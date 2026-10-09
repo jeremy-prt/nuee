@@ -8,6 +8,7 @@ const emit = defineEmits<{ answer: [allow: boolean] }>()
 
 const { t } = useI18n()
 const titleId = useId()
+const detailId = useId()
 const deny = useTemplateRef('deny')
 const isMac = navigator.userAgent.includes('Mac')
 
@@ -30,12 +31,14 @@ onMounted(() => deny.value?.focus())
   <div
     role="alertdialog"
     :aria-labelledby="titleId"
+    :aria-describedby="approval.detail ? detailId : undefined"
     class="rounded-xl border border-stroke bg-overlay p-4 shadow-lg"
     @keydown="onKeydown"
   >
     <p :id="titleId" class="text-sm font-medium">{{ t('approval.title', { agent: agentName, tool: approval.name }) }}</p>
     <pre
       v-if="approval.detail"
+      :id="detailId"
       class="mt-3 max-h-40 overflow-auto rounded-md bg-selection/60 p-3 font-mono text-xs whitespace-pre-wrap break-words select-text"
     >{{ approval.detail }}</pre>
     <p v-if="approval.description" class="mt-2 text-xs text-muted">{{ approval.description }}</p>
@@ -43,19 +46,21 @@ onMounted(() => deny.value?.focus())
       <button
         ref="deny"
         type="button"
+        aria-keyshortcuts="Escape"
         class="flex h-8 items-center gap-2 rounded-md bg-selection px-3 text-sm hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-accent"
         @click="emit('answer', false)"
       >
         {{ t('approval.deny') }}
-        <kbd class="font-sans text-xs text-muted">Esc</kbd>
+        <kbd class="font-sans text-xs text-muted" aria-hidden="true">Esc</kbd>
       </button>
       <button
         type="button"
+        :aria-keyshortcuts="isMac ? 'Meta+Enter' : 'Control+Enter'"
         class="flex h-8 items-center gap-2 rounded-md bg-content px-3 text-sm text-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         @click="emit('answer', true)"
       >
         {{ t('approval.allow') }}
-        <kbd class="font-sans text-xs opacity-60">{{ isMac ? '⌘↵' : 'Ctrl+↵' }}</kbd>
+        <kbd class="font-sans text-xs opacity-60" aria-hidden="true">{{ isMac ? '⌘↵' : 'Ctrl+↵' }}</kbd>
       </button>
     </div>
   </div>
