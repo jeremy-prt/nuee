@@ -21,7 +21,7 @@ export default {
     newChat: 'Nouveau chat',
     toggle: 'Afficher ou masquer le panneau latéral',
     resize: 'Redimensionner le panneau latéral',
-    empty: 'Aucun chat pour le moment. Lance-en un avec +.',
+    empty: 'Aucun chat pour le moment. Lance-en un avec {shortcut}.',
   },
   workspace: {
     tabs: 'Onglets ouverts',

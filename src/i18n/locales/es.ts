@@ -21,7 +21,7 @@ export default {
     newChat: 'Nuevo chat',
     toggle: 'Mostrar u ocultar el panel lateral',
     resize: 'Cambiar el tamaño del panel lateral',
-    empty: 'Aún no hay chats. Empieza uno con +.',
+    empty: 'Aún no hay chats. Empieza uno con {shortcut}.',
   },
   workspace: {
     tabs: 'Pestañas abiertas',

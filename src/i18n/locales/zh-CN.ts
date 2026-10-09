@@ -21,7 +21,7 @@ export default {
     newChat: '新建聊天',
     toggle: '显示或隐藏侧面板',
     resize: '调整侧面板大小',
-    empty: '暂无聊天。点击 + 开始一个。',
+    empty: '暂无聊天。按 {shortcut} 开始一个。',
   },
   workspace: {
     tabs: '已打开的标签页',

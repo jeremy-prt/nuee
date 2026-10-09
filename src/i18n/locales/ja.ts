@@ -21,7 +21,7 @@ export default {
     newChat: '新しいチャット',
     toggle: 'サイドパネルの表示を切り替え',
     resize: 'サイドパネルのサイズを変更',
-    empty: 'まだチャットはありません。＋で始めましょう。',
+    empty: 'まだチャットはありません。{shortcut} で始めましょう。',
   },
   workspace: {
     tabs: '開いているタブ',

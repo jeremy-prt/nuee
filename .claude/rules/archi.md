@@ -69,7 +69,8 @@ src-tauri/src/
 
 - Composants accessibles : reka-ui (headless) habillé dans `components/ui/`, jamais une lib de composants déjà stylés.
 - Couleurs uniquement via les jetons de `main.css` (`canvas`, `content`, `muted`, `stroke`, `selection`, `accent`). Pas de couleur nommée `base` : `text-base` est déjà la taille de texte de Tailwind.
-- Barre latérale repliable : l'icône reste à 16 px du bord dans les deux états (rail `p-2` + item `px-2`, replié à 48 px). Repli instantané, sans animation (choix de Jérémy) ; les libellés restent dans le DOM, masqués. Jamais de `justify-center` ni d'élément qui apparaît au-dessus des icônes au repli.
+- Barre latérale repliable : l'icône reste à 16 px du bord dans les deux états (rail `p-2` + item `px-2`, replié à 48 px), jamais de `justify-center`. Repli instantané, sans animation ; les libellés restent dans le DOM, masqués. Choix de Jérémy : dépliée, son bouton est dans la barre de titre ; repliée, il devient la première icône de la colonne.
+- Boutons de colonne (barre latérale, panneau) : au-dessus du bord droit de leur colonne, sans fond « actif », seulement survol et infobulle. Le bouton de la barre latérale montre l'action (flèche gauche pour replier, droite pour déplier).
 - Navigation : `stores/navigation.ts` choisit la vue centrale. Seule la vue `chats` a des onglets, l'historique des chats et les panneaux bas/droite ; Accueil, Issues, Notes, Réglages… sont des pages pleine largeur dans `views/`.
 - Les onglets de la barre de titre démarrent au bord de la colonne centrale : `ShellTitleBar` additionne les largeurs des colonnes de gauche. Une nouvelle colonne à gauche doit entrer dans ce calcul.
 - Barre de titre pleine largeur : une bordure verticale de colonne n'y monte que si elle ne croise pas les boutons de fenêtre macOS (calcul dans `ShellTitleBar`).

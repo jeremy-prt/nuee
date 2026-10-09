@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { Columns2, LayoutList, MessageSquare, PanelBottom, PanelRight, Plus, X } from '@lucide/vue'
+import { Columns2, LayoutList, MessageSquare, PanelBottom, PanelRight, X } from '@lucide/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import ShellRailToggle from '@/components/shell/ShellRailToggle.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import { useLayoutDrag } from '@/composables/useLayoutDrag'
-import { useNewChat } from '@/composables/useNewChat'
 import { useTabTitle } from '@/composables/useTabTitle'
 import { isMacosApp } from '@/ipc/system'
 import { useDragStore } from '@/stores/drag'
@@ -20,17 +20,19 @@ const workspace = useWorkspaceStore()
 const drag = useDragStore()
 const { startTabDrag } = useLayoutDrag()
 const { tabTitle } = useTabTitle()
-const newChat = useNewChat()
 
-// Place des boutons de fenêtre macOS (fin à 70 px) plus une marge.
-const MIN_LEFT_ZONE = isMacosApp() ? 84 : 0
+// Boutons de fenêtre macOS (fin à 70 px) plus une marge ; un bouton de la barre fait 28 px plus 8 px de marge.
+const LIGHTS = isMacosApp() ? 84 : 0
+const TOGGLE = 36
+
 const railWidth = computed(() => (layout.rail.expanded ? layout.rail.width : RAIL_COLLAPSED_WIDTH))
 const panelOpen = computed(() => navigation.hasPanel && layout.panel.open)
 
-// Les bordures verticales montent dans la barre de titre tant qu'elles ne croisent pas les boutons macOS.
+// Dépliée, la barre latérale a son bouton ici, au-dessus de son bord droit, et sa bordure monte.
+// Repliée, elle est plus étroite que les boutons macOS : son bouton passe dans la colonne d'icônes.
 // Chaque séparateur fait 1 px : la zone inclut celui de la barre latérale, l'espace celui du panneau.
-const railBorderUp = computed(() => railWidth.value >= MIN_LEFT_ZONE)
-const leftZone = computed(() => (railBorderUp.value ? railWidth.value + 1 : MIN_LEFT_ZONE))
+const leftZone = computed(() => Math.max(railWidth.value + 1, LIGHTS))
+const railBorderUp = computed(() => leftZone.value === railWidth.value + 1)
 const centerStart = computed(() => railWidth.value + 1 + (panelOpen.value ? layout.panel.width + 1 : 0))
 const spacer = computed(() => Math.max(0, centerStart.value - leftZone.value))
 </script>
@@ -41,17 +43,31 @@ const spacer = computed(() => Math.max(0, centerStart.value - leftZone.value))
     data-tauri-drag-region
   >
     <div
-      class="shrink-0 self-stretch"
+      class="flex shrink-0 items-center justify-end self-stretch pe-2"
       :class="{ 'border-e border-stroke': railBorderUp }"
       :style="{ width: `${leftZone}px` }"
       data-tauri-drag-region
-    />
+    >
+      <ShellRailToggle v-if="layout.rail.expanded" />
+    </div>
+    <!-- Au-dessus du panneau latéral : son bouton de fermeture, calé sur son bord droit. -->
     <div
-      class="shrink-0 self-stretch"
+      class="flex shrink-0 items-center justify-end self-stretch pe-2"
       :class="{ 'border-e border-stroke': panelOpen && spacer > 0 }"
       :style="{ width: `${spacer}px` }"
       data-tauri-drag-region
-    />
+    >
+      <UiIconButton
+        v-if="panelOpen && spacer >= TOGGLE"
+        :label="t('chats.toggle')"
+        :shortcut="shortcutLabel(shortcuts.togglePanel)"
+        aria-controls="shell-panel"
+        :aria-expanded="true"
+        @click="layout.togglePanel()"
+      >
+        <LayoutList class="size-4" aria-hidden="true" />
+      </UiIconButton>
+    </div>
 
     <div class="flex h-full min-w-0 flex-1 items-center gap-1 ps-2 pe-2" data-tauri-drag-region>
       <UiIconButton
@@ -108,9 +124,6 @@ const spacer = computed(() => Math.max(0, centerStart.value - leftZone.value))
             </button>
           </div>
 
-          <UiIconButton :label="t('chats.newChat')" :shortcut="shortcutLabel(shortcuts.newChat)" @click="newChat()">
-            <Plus class="size-4" aria-hidden="true" />
-          </UiIconButton>
         </div>
 
         <UiIconButton

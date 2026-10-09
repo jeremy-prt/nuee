@@ -1,18 +1,16 @@
 <script setup lang="ts">
-import { PanelLeftClose, SquarePen } from '@lucide/vue'
+import { Plus } from '@lucide/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ShellChatItem from '@/components/shell/ShellChatItem.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import { useNewChat } from '@/composables/useNewChat'
-import { useLayoutStore } from '@/stores/layout'
 import { useNavigationStore } from '@/stores/navigation'
 import { useProjectsStore } from '@/stores/projects'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { shortcutLabel, shortcuts } from '@/utils/shortcuts'
 
 const { t } = useI18n()
-const layout = useLayoutStore()
 const navigation = useNavigationStore()
 const projects = useProjectsStore()
 const workspace = useWorkspaceStore()
@@ -34,16 +32,7 @@ const title = computed(() => {
         :shortcut="shortcutLabel(shortcuts.newChat)"
         @click="newChat()"
       >
-        <SquarePen class="size-4" aria-hidden="true" />
-      </UiIconButton>
-      <UiIconButton
-        :label="t('chats.toggle')"
-        :shortcut="shortcutLabel(shortcuts.togglePanel)"
-        aria-controls="shell-panel"
-        :aria-expanded="true"
-        @click="layout.togglePanel()"
-      >
-        <PanelLeftClose class="size-4" aria-hidden="true" />
+        <Plus class="size-4" aria-hidden="true" />
       </UiIconButton>
     </div>
 
@@ -52,7 +41,7 @@ const title = computed(() => {
         <ul v-if="workspace.contextTabs.length" class="space-y-0.5">
           <li v-for="tab in workspace.contextTabs" :key="tab.id"><ShellChatItem :tab="tab" /></li>
         </ul>
-        <p v-else class="px-2 text-sm text-muted">{{ t('chats.empty') }}</p>
+        <p v-else class="px-2 text-sm text-muted">{{ t('chats.empty', { shortcut: shortcutLabel(shortcuts.newChat) }) }}</p>
       </template>
       <p v-else class="px-2 text-sm text-muted">{{ t(`empty.${navigation.view}`) }}</p>
     </div>

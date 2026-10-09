@@ -19,7 +19,7 @@ export default {
     newChat: 'New chat',
     toggle: 'Toggle side panel',
     resize: 'Resize side panel',
-    empty: 'No chats yet. Start one with +.',
+    empty: 'No chats yet. Start one with {shortcut}.',
   },
   workspace: {
     tabs: 'Open tabs',

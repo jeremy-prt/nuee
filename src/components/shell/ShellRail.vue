@@ -8,13 +8,13 @@ import {
   House,
   MessagesSquare,
   NotebookPen,
+  PanelLeftOpen,
   RefreshCw,
   Search,
   Settings,
 } from '@lucide/vue'
 import { useI18n } from 'vue-i18n'
 import ShellRailItem from '@/components/shell/ShellRailItem.vue'
-import ShellRailToggle from '@/components/shell/ShellRailToggle.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { pickFolder } from '@/ipc/dialog'
 import { RAIL_COLLAPSED_WIDTH, useLayoutStore } from '@/stores/layout'
@@ -54,12 +54,16 @@ const footer = [
     :style="{ width: `${layout.rail.expanded ? layout.rail.width : RAIL_COLLAPSED_WIDTH}px` }"
   >
     <nav class="flex min-h-0 flex-1 flex-col gap-0.5 overflow-x-hidden overflow-y-auto p-2" :aria-label="t('rail.label')">
-      <!-- Ligne réservée au repli : même hauteur dans les deux états, aucune icône ne bouge. -->
-      <div class="mb-1 flex h-8 shrink-0 items-center">
-        <p v-if="layout.rail.expanded" class="min-w-0 flex-1 truncate px-2 text-sm font-semibold whitespace-nowrap">Nuée</p>
-        <!-- Recréé à chaque état : le bouton change de place et garderait sinon son fond de survol. -->
-        <ShellRailToggle :key="String(layout.rail.expanded)" />
-      </div>
+      <ShellRailItem
+        v-if="!layout.rail.expanded"
+        :icon="PanelLeftOpen"
+        :label="t('rail.toggle')"
+        :shortcut="shortcutLabel(shortcuts.toggleRail)"
+        :expanded="false"
+        aria-controls="shell-rail"
+        :aria-expanded="false"
+        @click="layout.toggleRail()"
+      />
       <ShellRailItem
         v-for="item in pages"
         :key="item.view"

@@ -23,7 +23,7 @@ const STORAGE_KEY = 'nuee.layout.v5'
 export const RAIL_COLLAPSED_WIDTH = 48
 
 export const SIZES = {
-  rail: { min: 160, max: 320, defaultSize: 180 },
+  rail: { min: 180, max: 320, defaultSize: 200 },
   panel: { min: 200, max: 420, defaultSize: 240 },
   right: { min: 280, max: 800, defaultSize: 420 },
   bottom: { min: 160, max: 600, defaultSize: 260 },
@@ -42,7 +42,10 @@ function defaults(): LayoutState {
 function load(): LayoutState {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
-    return saved ? { ...defaults(), ...JSON.parse(saved) } : defaults()
+    const state: LayoutState = saved ? { ...defaults(), ...JSON.parse(saved) } : defaults()
+    // Une largeur enregistrée avant un changement de minimum reste dans les bornes actuelles.
+    state.rail.width = Math.min(SIZES.rail.max, Math.max(SIZES.rail.min, state.rail.width))
+    return state
   } catch {
     return defaults()
   }
