@@ -1,0 +1,25 @@
+[package]
+name = "nuee"
+version = "0.1.0"
+description = "Desktop app to run and orchestrate coding agents"
+authors = ["Jérémy Perret"]
+edition = "2024"
+license = "MIT"
+
+[lib]
+# Suffixe `_lib` obligatoire : sinon la lib et le binaire portent le même nom et cassent le build Windows.
+name = "nuee_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.7.1", features = [] }
+
+[dependencies]
+tauri = { version = "2.12.2", features = [] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true
