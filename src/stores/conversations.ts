@@ -39,6 +39,9 @@ export interface Conversation {
   phase: Phase
   // Début du tour en cours, pour la durée affichée à la fin de la réponse.
   startedAt: number
+  // Temps passé à attendre une réponse à une demande d'autorisation : il ne compte pas dans la durée.
+  pausedMs: number
+  pausedAt: number | null
   // Message envoyé pendant que l'agent range son tour : il part dès que le tour se clôt.
   queued: { cwd: string | null; prompt: string } | null
   // Demandes d'autorisation (mode Auto) en attente de réponse, la plus ancienne d'abord. Non enregistrées.
@@ -64,6 +67,23 @@ function lastIndex(items: readonly ChatItem[], match: (item: ChatItem) => boolea
 
 function lastIndexOfTool(items: ChatItem[], id: string) {
   return lastIndex(items, (item) => item.kind === 'tool' && item.id === id)
+}
+
+function elapsed(conversation: Conversation) {
+  const now = performance.now()
+  const paused = conversation.pausedMs + (conversation.pausedAt === null ? 0 : now - conversation.pausedAt)
+  return Math.round(now - conversation.startedAt - paused)
+}
+
+// Le compteur s'arrête à la première demande en attente et repart quand il n'en reste plus.
+function setApprovals(conversation: Conversation, approvals: readonly Approval[]) {
+  const now = performance.now()
+  if (!conversation.approvals.length && approvals.length) conversation.pausedAt = now
+  if (conversation.approvals.length && !approvals.length && conversation.pausedAt !== null) {
+    conversation.pausedMs += now - conversation.pausedAt
+    conversation.pausedAt = null
+  }
+  conversation.approvals = approvals
 }
 
 function settleTools(items: ChatItem[], status: 'done' | 'failed') {
@@ -114,17 +134,16 @@ function apply(conversation: Conversation, events: AgentEvent[]) {
       }
       case 'approval': {
         const { type: _, ...approval } = event
-        conversation.approvals = [...conversation.approvals, approval]
+        setApprovals(conversation, [...conversation.approvals, approval])
         break
       }
       case 'approvalCancelled':
-        conversation.approvals = conversation.approvals.filter((approval) => approval.id !== event.id)
+        setApprovals(conversation, conversation.approvals.filter((approval) => approval.id !== event.id))
         break
       case 'answered': {
         if (conversation.phase !== 'answering') break
         settleTools(items, 'done')
-        const durationMs = Math.round(performance.now() - conversation.startedAt)
-        items.push({ kind: 'end', id: crypto.randomUUID(), status: 'completed', error: null, durationMs })
+        items.push({ kind: 'end', id: crypto.randomUUID(), status: 'completed', error: null, durationMs: elapsed(conversation) })
         conversation.phase = 'finishing'
         break
       }
@@ -134,11 +153,11 @@ function apply(conversation: Conversation, events: AgentEvent[]) {
         const shown = conversation.phase === 'finishing' && items.at(-1)?.kind === 'end'
         if (shown && status !== 'completed') items[items.length - 1] = { kind: 'end', id: crypto.randomUUID(), status, error, durationMs: null }
         if (!shown) {
-          const durationMs = status === 'completed' ? Math.round(performance.now() - conversation.startedAt) : null
+          const durationMs = status === 'completed' ? elapsed(conversation) : null
           items.push({ kind: 'end', id: crypto.randomUUID(), status, error, durationMs })
         }
         conversation.phase = 'idle'
-        conversation.approvals = []
+        setApprovals(conversation, [])
         ended = true
         break
       }
@@ -185,6 +204,8 @@ export const useConversationsStore = defineStore('conversations', () => {
       options: { ...DEFAULT_OPTIONS },
       phase: 'idle',
       startedAt: 0,
+      pausedMs: 0,
+      pausedAt: null,
       queued: null,
       approvals: [],
       loaded,
@@ -281,6 +302,8 @@ export const useConversationsStore = defineStore('conversations', () => {
     const recap = interruptedText(conversation.items.slice(0, lastIndex(conversation.items, (item) => item.kind === 'user')))
     conversation.phase = 'answering'
     conversation.startedAt = performance.now()
+    conversation.pausedMs = 0
+    conversation.pausedAt = null
     try {
       await agentSend(spec(chatId, conversation, cwd), prompt, recap, (event) => queue(chatId, event))
     } catch (error) {
@@ -311,7 +334,7 @@ export const useConversationsStore = defineStore('conversations', () => {
   function approve(chatId: string, requestId: string, allow: boolean) {
     const conversation = conversations.get(chatId)
     if (!conversation) return
-    conversation.approvals = conversation.approvals.filter((approval) => approval.id !== requestId)
+    setApprovals(conversation, conversation.approvals.filter((approval) => approval.id !== requestId))
     agentApprove(chatId, requestId, allow).catch(() => {})
   }
 
