@@ -1,6 +1,6 @@
-name: build
+name: Build installers
 
-# Lancement manuel : binaires en artefacts du workflow.
+# Lancement manuel : installeurs en artefacts du workflow.
 # Tag v* : en plus, release GitHub en brouillon.
 on:
   workflow_dispatch:
@@ -8,27 +8,36 @@ on:
     tags: ['v*']
 
 jobs:
+  checks:
+    uses: ./.github/workflows/check.yml
+
   build:
+    name: ${{ matrix.name }}
+    needs: checks
     permissions:
       contents: write
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: macos-latest
+          - name: macOS (Apple Silicon)
+            platform: macos-latest
             args: --target aarch64-apple-darwin
-          - platform: macos-latest
+          - name: macOS (Intel)
+            platform: macos-latest
             args: --target x86_64-apple-darwin
           # 22.04 plutôt que latest : glibc plus ancienne, l'AppImage tourne sur plus de distributions.
-          - platform: ubuntu-22.04
+          - name: Linux
+            platform: ubuntu-22.04
             args: ''
-          - platform: windows-latest
+          - name: Windows
+            platform: windows-latest
             args: ''
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v7
 
-      - name: Linux dependencies
+      - name: Install Linux system libraries
         if: startsWith(matrix.platform, 'ubuntu')
         run: |
           sudo apt-get update
@@ -49,9 +58,11 @@ jobs:
         with:
           workspaces: './src-tauri -> target'
 
-      - run: pnpm install --frozen-lockfile
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
 
-      - uses: tauri-apps/tauri-action@v1
+      - name: Build and upload installers
+        uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:

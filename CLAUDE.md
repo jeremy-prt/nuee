@@ -7,7 +7,7 @@ App desktop Tauri 2 + Vue pour piloter des agents de code, open source (MIT). In
 - `pnpm tauri dev` : lance l'app (Vite sur le port 1420, imposé par `tauri.conf.json`)
 - `pnpm type-check` : vérif TS + Vue
 - `cargo check|clippy|test --manifest-path src-tauri/Cargo.toml` : côté Rust
-- Avant de pousser : `cargo fmt` et `cargo clippy --all-targets -- -D warnings` dans `src-tauri/`, la CI `check` échoue au moindre warning
+- Avant de pousser : `cargo fmt` et `cargo clippy --all-targets -- -D warnings` dans `src-tauri/`, le workflow Checks échoue au moindre warning
 - `pnpm tauri build` : ne builde que pour l'OS courant. Les trois OS passent par le workflow `.github/workflows/build.yml`
 
 ## Pièges

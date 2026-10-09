@@ -25,7 +25,7 @@ pnpm tauri dev
 pnpm tauri build
 ```
 
-This only builds for the current OS. For all three, run the `build` workflow from the Actions tab: installers are uploaded as workflow artifacts. Pushing a `v*` tag also creates a draft release.
+This only builds for the current OS. For all three, run the **Build installers** workflow from the Actions tab: it runs the checks first, then uploads the installers as workflow artifacts. Pushing a `v*` tag does the same and also creates a draft release.
 
 Binaries are not signed yet: macOS and Windows will show a warning on first launch.
 

@@ -1,9 +1,10 @@
-name: check
+name: Checks
 
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_call:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -11,11 +12,12 @@ concurrency:
 
 jobs:
   check:
+    name: Lint and type-check
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v7
 
-      - name: Linux dependencies
+      - name: Install Linux system libraries
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
@@ -35,13 +37,17 @@ jobs:
         with:
           workspaces: './src-tauri -> target'
 
-      - run: pnpm install --frozen-lockfile
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
 
       # Avant clippy : la macro generate_context! échoue si dist/ n'existe pas.
-      - run: pnpm build
+      - name: Type-check and build frontend
+        run: pnpm build
 
-      - run: cargo fmt --check
+      - name: Check Rust formatting
+        run: cargo fmt --check
         working-directory: src-tauri
 
-      - run: cargo clippy --all-targets -- -D warnings
+      - name: Lint Rust (clippy)
+        run: cargo clippy --all-targets -- -D warnings
         working-directory: src-tauri
