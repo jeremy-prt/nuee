@@ -29,6 +29,12 @@ This only builds for the current OS. For all three, run the **Build installers**
 
 Binaries are not signed yet: macOS and Windows will show a warning on first launch.
 
+## Translations
+
+The UI follows the system language and falls back to English. Available: English, French, Spanish, Portuguese (Brazil), Japanese and Simplified Chinese.
+
+To add a language: copy `src/i18n/locales/en.ts` to `<code>.ts`, translate it, and register it in `src/i18n/index.ts`. `pnpm type-check` fails if a key is missing.
+
 ## License
 
 [MIT](LICENSE)

@@ -27,6 +27,8 @@ src/
   ipc/                      # seul dossier qui importe @tauri-apps/api
     <domaine>.ts            # 1 fonction = 1 commande Rust
     bindings/               # généré par ts-rs, jamais édité à la main
+  i18n/                     # createI18n + choix de la langue au démarrage
+    locales/<langue>.ts     # en.ts fait référence, les autres finissent par `satisfies typeof en`
   utils/                    # fonctions pures
   assets/css/main.css       # Tailwind 4 : @import + @theme, pas de tailwind.config.js
 src-tauri/src/
@@ -34,7 +36,7 @@ src-tauri/src/
   lib.rs                    # Builder : plugins, manage(state), generate_handler!
   error.rs                  # AppError (thiserror), sérialisé en { kind, message }
   state.rs                  # état partagé passé à manage()
-  commands/<domaine>.rs     # valider, appeler le service, répondre
+  commands/<domaine>.rs     # valider, appeler le service (ou la lib si c'est une ligne), répondre
   services/<domaine>.rs     # la logique métier
   utils/                    # helpers techniques (chemins, env shell)
 ```
@@ -48,11 +50,18 @@ src-tauri/src/
 
 ## Rust
 
-- Commandes `async`, `pub` dans leur module, retour `Result<T, AppError>`. Un seul `generate_handler!` dans `lib.rs` : un second appel écrase le premier.
+- Commandes `pub` dans leur module, `async` dès qu'elles font des I/O, retour `Result<T, AppError>` dès qu'elles peuvent échouer. Un seul `generate_handler!` dans `lib.rs` : un second appel écrase le premier.
 - Pas de `unwrap()` / `expect()` hors démarrage : on remonte une `AppError`.
 - État : `std::sync::Mutex` par défaut, celui de tokio seulement si le verrou doit traverser un `.await`. Jamais de verrou tenu pendant un `.await`. Pas d'`Arc` autour de ce qu'on passe à `manage()`, Tauri l'enveloppe déjà.
 - Process enfants (CLI d'agents) : le front envoie un id d'agent et des options, jamais une ligne de commande. Rust construit la commande depuis une liste connue, garde le PID et tue par ce PID (`kill_on_drop`).
 - Lancée depuis le Finder, l'app n'a pas le PATH du shell : résoudre les binaires d'agents via un login shell.
+
+## Textes et langues
+
+- Aucun texte d'interface en dur : la clé va dans `src/i18n/locales/en.ts`, puis traduite dans toutes les autres langues. vue-tsc bloque si une traduction manque, mais pas si `t('...')` cite une clé qui n'existe pas : la copier depuis `en.ts`.
+- Traductions précompilées au build (`@intlify/unplugin-vue-i18n`, compilateur retiré du bundle) : un texte chargé à l'exécution (API, fichier) ne sera pas interprété en production.
+- Langue du système : la commande Rust `system_locales`, jamais `navigator.language` (WebView2 renvoie toujours en-US). Dates et nombres : `Intl.*` avec la locale de vue-i18n, jamais `undefined`.
+- Marges et positions en propriétés logiques Tailwind (`ms-`/`me-`, `ps-`/`pe-`, `start-`/`end-`) plutôt que gauche/droite : ça garde la porte ouverte aux langues écrites de droite à gauche.
 
 ## Sécurité
 
