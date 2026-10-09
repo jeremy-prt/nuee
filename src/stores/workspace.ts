@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, reactive, ref } from 'vue'
+import { useConversationsStore } from '@/stores/conversations'
 import { useNavigationStore } from '@/stores/navigation'
 
 export interface Tab {
@@ -20,6 +21,7 @@ const MAX_PANES = 2
 // Chaque contexte (un projet, ou les chats sans projet) a ses onglets et sa disposition.
 export const useWorkspaceStore = defineStore('workspace', () => {
   const navigation = useNavigationStore()
+  const conversations = useConversationsStore()
   const tabs = ref<Tab[]>([])
   const layouts = reactive<Record<string, PaneLayout>>({})
 
@@ -94,6 +96,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const index = siblings.findIndex((tab) => tab.id === id)
     if (index === -1) return
     tabs.value = tabs.value.filter((tab) => tab.id !== id)
+    conversations.dispose(id)
 
     const layout = current()
     const paneIndex = layout.panes.indexOf(id)

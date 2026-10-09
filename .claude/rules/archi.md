@@ -34,12 +34,11 @@ src/
   assets/css/main.css       # Tailwind 4 : jetons de couleur dans @theme, pas de tailwind.config.js
 src-tauri/src/
   main.rs                   # n'appelle que nuee_lib::run()
-  lib.rs                    # Builder : plugins, manage(state), generate_handler!
+  lib.rs                    # Builder : plugins, manage(XxxService), generate_handler!
   error.rs                  # AppError (thiserror), sérialisé en { kind, message }
-  state.rs                  # état partagé passé à manage()
   menu.rs, window.rs        # réglages natifs au démarrage : menu macOS, taille de la fenêtre
   commands/<domaine>.rs     # valider, appeler le service (ou la lib si c'est une ligne), répondre
-  services/<domaine>.rs     # la logique métier
+  services/<domaine>.rs     # la logique métier ; un domaine à plusieurs fichiers devient services/<domaine>/mod.rs
   utils/                    # helpers techniques (chemins, env shell)
 ```
 
@@ -57,6 +56,7 @@ src-tauri/src/
 - État : `std::sync::Mutex` par défaut, celui de tokio seulement si le verrou doit traverser un `.await`. Jamais de verrou tenu pendant un `.await`. Pas d'`Arc` autour de ce qu'on passe à `manage()`, Tauri l'enveloppe déjà.
 - Process enfants (CLI d'agents) : le front envoie un id d'agent et des options, jamais une ligne de commande. Rust construit la commande depuis une liste connue, garde le PID et tue par ce PID (`kill_on_drop`).
 - Lancée depuis le Finder, l'app n'a pas le PATH du shell : résoudre les binaires d'agents via un login shell.
+- Brancher un agent (Codex, Cursor...) : une variante dans `AgentKind`, un `Driver` dans `services/agent/<agent>.rs` (arguments de la CLI + traduction de sa sortie en `AgentEvent`), son nom et sa commande dans `src/utils/agents.ts`. Un process par tour, prompt sur stdin, session reprise via l'id renvoyé par l'agent.
 
 ## Textes et langues
 
@@ -68,7 +68,7 @@ src-tauri/src/
 ## Interface
 
 - Composants accessibles : reka-ui (headless) habillé dans `components/ui/`, jamais une lib de composants déjà stylés.
-- Couleurs uniquement via les jetons de `main.css` (`canvas`, `content`, `muted`, `stroke`, `selection`, `accent`). Pas de couleur nommée `base` : `text-base` est déjà la taille de texte de Tailwind.
+- Couleurs uniquement via les jetons de `main.css` (`canvas`, `content`, `muted`, `stroke`, `selection`, `accent`, `danger`). Pas de couleur nommée `base` : `text-base` est déjà la taille de texte de Tailwind.
 - Barre latérale repliable : l'icône reste à 16 px du bord dans les deux états (rail `p-2` + item `px-2`, replié à 48 px), jamais de `justify-center`. Repli instantané, sans animation ; les libellés restent dans le DOM, masqués. Choix de Jérémy : dépliée, son bouton est dans la barre de titre ; repliée, il devient la première icône de la colonne.
 - Boutons de colonne (barre latérale, panneau) : au-dessus du bord droit de leur colonne, sans fond « actif », seulement survol et infobulle. Le bouton de la barre latérale montre l'action (flèche gauche pour replier, droite pour déplier).
 - Navigation : `stores/navigation.ts` choisit la vue centrale. Seule la vue `chats` a des onglets, l'historique des chats et les panneaux bas/droite ; Accueil, Issues, Notes, Réglages… sont des pages pleine largeur dans `views/`.
@@ -82,7 +82,7 @@ src-tauri/src/
 ## Sécurité
 
 - Capabilities ciblées sur `"main"`, jamais `"*"`. Pas de permission `fs:` ni `shell:` exposée au front : tout passe par nos commandes, qui canonisent les chemins sous la racine du workspace.
-- Pas de `v-html` sur une sortie d'agent (markdown assaini) : une XSS dans la webview donne accès aux commandes, donc au lancement de process.
+- Pas de `v-html` sur une sortie d'agent : le markdown passe par `ChatMarkdown` (lexer marked rendu en nœuds Vue). Une XSS dans la webview donne accès aux commandes, donc au lancement de process.
 - CSP définie dans `tauri.conf.json` : ne pas la repasser à `null`, ne pas charger de CDN. Seul domaine externe autorisé : `api.github.com` (vérification des mises à jour).
 - `opener` n'ouvre que `https://github.com/jeremy-prt/nuee/releases/*` (scope dans la capability) : élargir ce scope au cas par cas.
 

@@ -53,11 +53,33 @@ export default {
   },
   chat: {
     subtitle: 'Abra um projeto e inicie um agente de código para começar.',
+    ready: 'Pergunte ao {agent} o que quiser sobre {project}.',
+    transcript: 'Conversa',
+    working: '{agent} está trabalhando…',
+    tool: {
+      running: 'Em andamento',
+      done: 'Concluído',
+      failed: 'Falhou',
+    },
+    end: {
+      done: 'Concluído',
+      completed: 'Concluído em {duration}',
+      stopped: 'Interrompido',
+      failed: '{agent} parou por causa de um erro.',
+      unauthenticated: '{agent} não está conectado. Execute “{command}” em um terminal para entrar e tente de novo.',
+    },
+    errors: {
+      agentNotFound: '{agent} não foi encontrado neste computador. Instale-o e verifique se “{command}” roda em um terminal.',
+      busy: 'Já há uma resposta em andamento neste chat.',
+      invalidInput: 'Não foi possível iniciar o agente: {detail}',
+      io: 'Não foi possível iniciar o agente: {detail}',
+    },
   },
   composer: {
     label: 'Mensagem',
     placeholder: 'Descreva o que você quer construir…',
     send: 'Enviar',
+    stop: 'Parar',
   },
   home: {
     subtitle: 'Um resumo da sua atividade aparecerá aqui.',

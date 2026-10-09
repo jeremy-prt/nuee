@@ -53,11 +53,33 @@ export default {
   },
   chat: {
     subtitle: 'プロジェクトを開いて、コーディングエージェントを起動しましょう。',
+    ready: '{project} について {agent} に何でも聞いてください。',
+    transcript: '会話',
+    working: '{agent} が作業中…',
+    tool: {
+      running: '実行中',
+      done: '完了',
+      failed: '失敗',
+    },
+    end: {
+      done: '完了',
+      completed: '{duration} で完了',
+      stopped: '停止しました',
+      failed: '{agent} はエラーで停止しました。',
+      unauthenticated: '{agent} にサインインしていません。ターミナルで「{command}」を実行してサインインし、もう一度お試しください。',
+    },
+    errors: {
+      agentNotFound: 'このコンピューターに {agent} が見つかりません。インストールしてから、ターミナルで「{command}」が動くか確認してください。',
+      busy: 'このチャットではすでに応答を生成中です。',
+      invalidInput: 'エージェントを起動できません：{detail}',
+      io: 'エージェントを起動できません：{detail}',
+    },
   },
   composer: {
     label: 'メッセージ',
     placeholder: '作りたいものを説明してください…',
     send: '送信',
+    stop: '停止',
   },
   home: {
     subtitle: 'アクティビティの概要がここに表示されます。',

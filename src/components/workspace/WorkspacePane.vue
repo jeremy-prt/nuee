@@ -36,6 +36,6 @@ const focused = computed(() => workspace.focusedPane === props.index)
         <X class="size-3.5" aria-hidden="true" />
       </UiIconButton>
     </div>
-    <ChatPane v-if="tab?.kind === 'chat'" :key="tab.id" class="min-h-0 flex-1" />
+    <ChatPane v-if="tab?.kind === 'chat'" :key="tab.id" :tab="tab" class="min-h-0 flex-1" />
   </section>
 </template>

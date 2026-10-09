@@ -51,11 +51,33 @@ export default {
   },
   chat: {
     subtitle: 'Open a project and launch a coding agent to get started.',
+    ready: 'Ask {agent} anything about {project}.',
+    transcript: 'Conversation',
+    working: '{agent} is working…',
+    tool: {
+      running: 'Running',
+      done: 'Done',
+      failed: 'Failed',
+    },
+    end: {
+      done: 'Done',
+      completed: 'Done in {duration}',
+      stopped: 'Stopped',
+      failed: '{agent} stopped on an error.',
+      unauthenticated: '{agent} is not signed in. Run “{command}” in a terminal to sign in, then try again.',
+    },
+    errors: {
+      agentNotFound: '{agent} was not found on this computer. Install it, then check that “{command}” runs in a terminal.',
+      busy: 'A reply is already in progress in this chat.',
+      invalidInput: 'Could not start the agent: {detail}',
+      io: 'Could not start the agent: {detail}',
+    },
   },
   composer: {
     label: 'Message',
     placeholder: 'Describe what you want to build…',
     send: 'Send',
+    stop: 'Stop',
   },
   home: {
     subtitle: 'A summary of your activity will show up here.',

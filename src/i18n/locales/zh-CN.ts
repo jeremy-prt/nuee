@@ -53,11 +53,33 @@ export default {
   },
   chat: {
     subtitle: '打开一个项目并启动编程智能体即可开始。',
+    ready: '关于 {project}，尽管向 {agent} 提问。',
+    transcript: '对话',
+    working: '{agent} 正在处理…',
+    tool: {
+      running: '进行中',
+      done: '已完成',
+      failed: '失败',
+    },
+    end: {
+      done: '已完成',
+      completed: '用时 {duration}',
+      stopped: '已停止',
+      failed: '{agent} 因错误而停止。',
+      unauthenticated: '{agent} 尚未登录。请在终端中运行“{command}”完成登录，然后重试。',
+    },
+    errors: {
+      agentNotFound: '在这台电脑上找不到 {agent}。请先安装，并确认“{command}”能在终端中运行。',
+      busy: '此聊天中已有回复正在生成。',
+      invalidInput: '无法启动智能体：{detail}',
+      io: '无法启动智能体：{detail}',
+    },
   },
   composer: {
     label: '消息',
     placeholder: '描述你想要构建的内容…',
     send: '发送',
+    stop: '停止',
   },
   home: {
     subtitle: '你的活动摘要将显示在这里。',

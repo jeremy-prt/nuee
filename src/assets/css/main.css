@@ -12,6 +12,7 @@
   --color-selection: color-mix(in srgb, var(--color-content) 10%, transparent);
   --color-selection-hover: color-mix(in srgb, var(--color-content) 15%, transparent);
   --color-accent: hsl(211 92% 62%);
+  --color-danger: hsl(0 72% 65%);
 }
 
 html,
