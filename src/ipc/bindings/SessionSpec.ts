@@ -2,12 +2,15 @@
 import type { AgentKind } from "./AgentKind";
 import type { TurnOptions } from "./TurnOptions";
 
-export type TurnRequest = { chatId: string, agent: AgentKind, 
+/**
+ * Ce qui définit le process d'un chat. Le même process sert tous les tours tant que ça ne change pas.
+ */
+export type SessionSpec = { chatId: string, agent: AgentKind, 
 /**
  * Dossier du projet. `None` : chat sans projet, l'agent travaille dans un dossier vide propre au chat.
  */
-cwd: string | null, prompt: string, 
+cwd: string | null, 
 /**
- * Session renvoyée par l'agent au tour précédent : la reprendre garde le fil de la conversation.
+ * Session renvoyée par l'agent : la reprendre garde le fil quand le process doit être relancé.
  */
 sessionId: string | null, options: TurnOptions, };

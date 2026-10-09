@@ -17,7 +17,7 @@ const props = defineProps<{
 }>()
 // Réglages résolus : modèle et effort sont toujours des valeurs réelles du catalogue.
 const options = defineModel<TurnOptions>('options', { required: true })
-const emit = defineEmits<{ send: [prompt: string]; stop: [] }>()
+const emit = defineEmits<{ send: [prompt: string]; stop: []; warm: [] }>()
 
 const { t } = useI18n()
 const prompt = ref('')
@@ -93,6 +93,7 @@ function onEnter(event: KeyboardEvent) {
       class="w-full resize-none bg-transparent text-sm select-text outline-none placeholder:text-muted"
       :placeholder="t('composer.placeholder')"
       @keydown.enter="onEnter"
+      @focus="emit('warm')"
     />
     <div class="flex items-center gap-1">
       <span class="pe-1 text-xs text-muted">{{ agentName }}</span>

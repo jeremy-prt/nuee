@@ -68,6 +68,7 @@ export default {
       done: 'Hecho',
       completed: 'Hecho en {duration}',
       stopped: 'Detenido',
+      stoppedKept: 'Detenido. {agent} conserva lo que ya había escrito.',
       failed: '{agent} se detuvo por un error.',
       unauthenticated: '{agent} no ha iniciado sesión. Ejecuta «{command}» en una terminal para iniciar sesión y vuelve a intentarlo.',
     },
@@ -79,6 +80,11 @@ export default {
       io: 'No se pudo iniciar el agente: {detail}',
       database: 'No se pudo acceder al historial de chats: {detail}',
     },
+  },
+  approval: {
+    title: '¿Permitir que {agent} use {tool}?',
+    allow: 'Permitir una vez',
+    deny: 'Rechazar',
   },
   composer: {
     label: 'Mensaje',

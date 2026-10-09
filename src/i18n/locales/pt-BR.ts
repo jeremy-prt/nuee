@@ -68,6 +68,7 @@ export default {
       done: 'Concluído',
       completed: 'Concluído em {duration}',
       stopped: 'Interrompido',
+      stoppedKept: 'Interrompido. {agent} mantém o que já tinha escrito.',
       failed: '{agent} parou por causa de um erro.',
       unauthenticated: '{agent} não está conectado. Execute “{command}” em um terminal para entrar e tente de novo.',
     },
@@ -79,6 +80,11 @@ export default {
       io: 'Não foi possível iniciar o agente: {detail}',
       database: 'Não foi possível acessar o histórico de chats: {detail}',
     },
+  },
+  approval: {
+    title: 'Permitir que {agent} use {tool}?',
+    allow: 'Permitir uma vez',
+    deny: 'Recusar',
   },
   composer: {
     label: 'Mensagem',

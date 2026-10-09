@@ -66,6 +66,7 @@ export default {
       done: 'Done',
       completed: 'Done in {duration}',
       stopped: 'Stopped',
+      stoppedKept: 'Stopped. {agent} keeps what it had written.',
       failed: '{agent} stopped on an error.',
       unauthenticated: '{agent} is not signed in. Run “{command}” in a terminal to sign in, then try again.',
     },
@@ -77,6 +78,11 @@ export default {
       io: 'Could not start the agent: {detail}',
       database: 'Could not access the chat history: {detail}',
     },
+  },
+  approval: {
+    title: 'Allow {agent} to use {tool}?',
+    allow: 'Allow once',
+    deny: 'Deny',
   },
   composer: {
     label: 'Message',

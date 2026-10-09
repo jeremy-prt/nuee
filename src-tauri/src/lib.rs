@@ -34,7 +34,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::system::system_locales,
             commands::agent::agent_send,
+            commands::agent::agent_warm,
             commands::agent::agent_stop,
+            commands::agent::agent_approve,
             commands::agent::agent_catalog,
             commands::chat::chat_list,
             commands::chat::chat_create,

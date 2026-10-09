@@ -68,6 +68,7 @@ export default {
       done: '完了',
       completed: '{duration} で完了',
       stopped: '停止しました',
+      stoppedKept: '停止しました。{agent} はそれまでに書いた内容を覚えています。',
       failed: '{agent} はエラーで停止しました。',
       unauthenticated: '{agent} にサインインしていません。ターミナルで「{command}」を実行してサインインし、もう一度お試しください。',
     },
@@ -79,6 +80,11 @@ export default {
       io: 'エージェントを起動できません：{detail}',
       database: 'チャット履歴にアクセスできません：{detail}',
     },
+  },
+  approval: {
+    title: '{agent} に {tool} の使用を許可しますか？',
+    allow: '今回だけ許可',
+    deny: '拒否',
   },
   composer: {
     label: 'メッセージ',

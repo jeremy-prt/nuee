@@ -5,4 +5,12 @@ import type { TurnStatus } from "./TurnStatus";
 /**
  * Flux commun à tous les agents : chaque driver traduit sa sortie dans ces événements.
  */
-export type AgentEvent = { "type": "session", id: string, } | { "type": "text", id: string, delta: string, } | { "type": "tool", id: string, name: string, kind: ToolKind, summary: string | null, } | { "type": "toolResult", id: string, output: string, isError: boolean, } | { "type": "turnEnd", status: TurnStatus, error: string | null, durationMs: number | null, };
+export type AgentEvent = { "type": "session", id: string, } | { "type": "text", id: string, delta: string, } | { "type": "tool", id: string, name: string, kind: ToolKind, summary: string | null, } | { "type": "toolResult", id: string, output: string, isError: boolean, } | { "type": "approval", id: string, name: string, kind: ToolKind, 
+/**
+ * Ce qui sera exécuté ou modifié, en entier (commande, chemin...).
+ */
+detail: string | null, 
+/**
+ * Explication donnée par l'agent, dans sa langue à lui.
+ */
+description: string | null, } | { "type": "approvalCancelled", id: string, } | { "type": "answered" } | { "type": "turnEnd", status: TurnStatus, error: string | null, durationMs: number | null, };

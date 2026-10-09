@@ -39,6 +39,7 @@ pub async fn chat_delete(
     agents: State<'_, AgentService>,
 ) -> Result<(), AppError> {
     chats.delete(&id)?;
+    agents.close(&id);
     agents.discard_scratch(&id);
     Ok(())
 }

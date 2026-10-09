@@ -1,19 +1,20 @@
 mod claude;
 mod process;
+mod session;
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::process::Stdio;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Mutex, MutexGuard};
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 use tauri::ipc::Channel;
-use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncReadExt, AsyncWriteExt, BufReader};
-use tokio::process::{Child, Command};
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::time::timeout;
 use ts_rs::TS;
+
+use self::session::{Session, SessionKey, Sessions, Turn};
 
 use crate::error::AppError;
 use crate::utils::shell_env;
@@ -34,16 +35,16 @@ impl AgentKind {
     }
 }
 
-#[derive(Debug, Deserialize, TS)]
+/// Ce qui définit le process d'un chat. Le même process sert tous les tours tant que ça ne change pas.
+#[derive(Debug, Clone, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
-pub struct TurnRequest {
+pub struct SessionSpec {
     pub chat_id: String,
     pub agent: AgentKind,
     /// Dossier du projet. `None` : chat sans projet, l'agent travaille dans un dossier vide propre au chat.
     pub cwd: Option<String>,
-    pub prompt: String,
-    /// Session renvoyée par l'agent au tour précédent : la reprendre garde le fil de la conversation.
+    /// Session renvoyée par l'agent : la reprendre garde le fil quand le process doit être relancé.
     pub session_id: Option<String>,
     pub options: TurnOptions,
 }
@@ -155,7 +156,26 @@ pub enum AgentEvent {
         output: String,
         is_error: bool,
     },
-    /// Toujours le dernier événement d'un tour, envoyé une fois le process terminé.
+    /// L'agent demande s'il peut utiliser un outil (mode Auto) ; il attend la réponse pour continuer.
+    Approval {
+        id: String,
+        name: String,
+        kind: ToolKind,
+        /// Ce qui sera exécuté ou modifié, en entier (commande, chemin...).
+        detail: Option<String>,
+        /// Explication donnée par l'agent, dans sa langue à lui.
+        description: Option<String>,
+        /// Paramètres de l'outil, renvoyés tels quels avec l'accord : ils restent côté Rust.
+        #[serde(skip)]
+        #[ts(skip)]
+        input: serde_json::Value,
+    },
+    ApprovalCancelled {
+        id: String,
+    },
+    /// La réponse est complète. L'agent range encore son tour (résumé, hooks) avant `turnEnd`.
+    Answered,
+    /// Toujours le dernier événement d'un tour.
     TurnEnd {
         status: TurnStatus,
         error: Option<String>,
@@ -163,43 +183,34 @@ pub enum AgentEvent {
     },
 }
 
-/// Bilan d'un tour annoncé par l'agent lui-même, avant qu'il ne quitte.
-#[derive(Debug, Clone, PartialEq)]
-pub struct Outcome {
-    pub status: TurnStatus,
-    pub error: Option<String>,
-    pub duration_ms: Option<u32>,
-}
-
-/// Ce qu'un agent fournit pour être branché : sa ligne de commande et la lecture de sa sortie.
-/// Le prompt part toujours sur stdin. Un driver ne sert qu'à un tour : il garde l'état du flux.
+/// Ce qu'un agent fournit pour être branché : sa ligne de commande, ses messages sur stdin et la
+/// lecture de sa sortie. Un driver vit autant que le process du chat.
 trait Driver: Send + Sync {
     fn binary(&self) -> &'static str;
     /// Lance l'agent sans tour pour qu'il décrive ses modèles : ses arguments et la ligne à lui écrire.
     fn catalog_probe(&self) -> (Vec<String>, String);
     fn parse_catalog(&self, line: &str) -> Option<Catalog>;
-    fn args(&self, request: &TurnRequest) -> Vec<String>;
+    fn args(&self, spec: &SessionSpec) -> Vec<String>;
+    /// Ligne à écrire sur stdin pour lancer un tour.
+    fn user_message(&self, prompt: &str) -> String;
+    /// Ligne qui interrompt le tour en cours sans arrêter le process.
+    fn interrupt_message(&self) -> String;
+    /// Réponse à une demande `Approval`.
+    fn approval_message(&self, id: &str, input: &serde_json::Value, allow: bool) -> String;
+    /// Traduit une ligne de sortie ; renvoie `TurnEnd` quand l'agent clôt le tour.
     fn parse_line(&mut self, line: &str) -> Vec<AgentEvent>;
-    fn outcome(&self) -> Option<&Outcome>;
 }
 
-/// Temps laissé à l'agent pour quitter après son bilan, puis après un SIGTERM.
+/// Temps laissé à l'agent pour obéir avant de passer au signal suivant.
 const GRACE: Duration = Duration::from_secs(2);
 const CATALOG_TIMEOUT: Duration = Duration::from_secs(20);
-const STDERR_TAIL: usize = 2000;
+/// Un process inutilisé si longtemps est arrêté ; le tour suivant le relance avec `--resume`.
+const IDLE: Duration = Duration::from_secs(5 * 60);
 
-struct Running {
-    turn: u64,
-    pid: u32,
-    stopped: Arc<AtomicBool>,
-}
-
-type Registry = Arc<Mutex<HashMap<String, Running>>>;
-
-/// Un process par tour : le prompt part sur stdin, la sortie revient ligne par ligne sur le canal.
+/// Un process par chat, gardé ouvert entre les tours : pas de démarrage à payer à chaque message.
 pub struct AgentService {
-    running: Registry,
-    next_turn: AtomicU64,
+    sessions: Sessions,
+    next_session: AtomicU64,
     /// Parent des dossiers de travail des chats sans projet.
     scratch: PathBuf,
     catalogs: Mutex<HashMap<AgentKind, Catalog>>,
@@ -207,98 +218,105 @@ pub struct AgentService {
 
 impl AgentService {
     pub fn new(scratch: PathBuf) -> Self {
+        let sessions = Sessions::default();
+        session::reap_idle(sessions.clone(), IDLE);
         Self {
-            running: Registry::default(),
-            next_turn: AtomicU64::new(0),
+            sessions,
+            next_session: AtomicU64::new(0),
             scratch,
             catalogs: Mutex::default(),
         }
     }
 
-    pub fn send(&self, request: TurnRequest, channel: Channel<AgentEvent>) -> Result<(), AppError> {
-        let cwd = match &request.cwd {
-            Some(path) => valid_dir(path)?,
-            None => self.scratch_dir(&request.chat_id)?,
-        };
-        if request.prompt.trim().is_empty() {
+    /// `recap` : réponse coupée par un arrêt au tour précédent. Un process neuf ne l'a pas en mémoire,
+    /// elle lui est donc rappelée avant le message.
+    pub fn send(
+        &self,
+        spec: SessionSpec,
+        prompt: String,
+        recap: Option<String>,
+        channel: Channel<AgentEvent>,
+    ) -> Result<(), AppError> {
+        if prompt.trim().is_empty() {
             return Err(AppError::InvalidInput("message vide".into()));
         }
-        if let Some(id) = &request.session_id
-            && !valid_session_id(id)
-        {
-            return Err(AppError::InvalidInput(
-                "identifiant de session invalide".into(),
-            ));
-        }
+        let (key, cwd) = self.key(&spec)?;
+        let driver = spec.agent.driver(&cwd);
 
-        let driver = request.agent.driver(&cwd);
-        if let Some(model) = &request.options.model
-            && !self.knows_model(request.agent, model)
-        {
-            return Err(AppError::InvalidInput(format!("modèle inconnu : {model}")));
-        }
-        let program = shell_env::find_binary(driver.binary())
-            .ok_or(AppError::AgentNotFound(driver.binary()))?;
-
-        let mut running = lock(&self.running);
-        if running.contains_key(&request.chat_id) {
-            return Err(AppError::Busy);
-        }
-
-        let child = spawn(&program, driver.args(&request), &cwd)?;
-        let pid = child.id().unwrap_or_default();
-        let turn = self.next_turn.fetch_add(1, Ordering::Relaxed);
-        let stopped = Arc::new(AtomicBool::new(false));
-        running.insert(
-            request.chat_id.clone(),
-            Running {
-                turn,
-                pid,
-                stopped: stopped.clone(),
-            },
-        );
-        drop(running);
-
-        let registry = self.running.clone();
-        tauri::async_runtime::spawn(async move {
-            let end = run_turn(child, driver, request.prompt, &channel, &stopped).await;
-            // Libéré avant le dernier événement : le front peut renvoyer un message aussitôt.
-            let mut running = lock(&registry);
-            if running
-                .get(&request.chat_id)
-                .is_some_and(|entry| entry.turn == turn)
-            {
-                running.remove(&request.chat_id);
+        let mut sessions = lock(&self.sessions);
+        if let Some(session) = sessions.get(&spec.chat_id) {
+            if session.busy() {
+                return Err(AppError::Busy);
             }
-            drop(running);
-            let _ = channel.send(end);
+            if session.key != key
+                && let Some(old) = sessions.remove(&spec.chat_id)
+            {
+                old.retire();
+            }
+        }
+        if !sessions.contains_key(&spec.chat_id) {
+            let session = self.start(&spec, key, &cwd)?;
+            sessions.insert(spec.chat_id.clone(), session);
+        }
+        let Some(session) = sessions.get(&spec.chat_id) else {
+            return Err(AppError::AgentFailed("session introuvable".into()));
+        };
+
+        let text = match recap.filter(|recap| session.is_fresh() && !recap.trim().is_empty()) {
+            Some(recap) => with_recap(&recap, &prompt),
+            None => prompt,
+        };
+        session.begin(Turn {
+            channel,
+            stopped: false,
+            number: 0,
         });
+        if !session.write(driver.user_message(&text)) {
+            session.abandon();
+            return Err(AppError::AgentFailed(format!(
+                "{} s'est arrêté",
+                driver.binary()
+            )));
+        }
         Ok(())
     }
 
-    /// SIGINT d'abord, puis SIGTERM puis SIGKILL au groupe tant que l'agent n'est pas sorti.
-    pub fn stop(&self, chat_id: &str) {
-        let running = lock(&self.running);
-        let Some(entry) = running.get(chat_id) else {
-            return;
-        };
-        entry.stopped.store(true, Ordering::Relaxed);
-        process::interrupt(entry.pid);
+    /// Lance le process d'un chat avant le premier message, pendant que l'utilisateur écrit.
+    pub fn warm(&self, spec: SessionSpec) -> Result<(), AppError> {
+        let (key, cwd) = self.key(&spec)?;
+        let mut sessions = lock(&self.sessions);
+        if !sessions.contains_key(&spec.chat_id) {
+            let session = self.start(&spec, key, &cwd)?;
+            sessions.insert(spec.chat_id.clone(), session);
+        }
+        Ok(())
+    }
 
-        let (pid, turn, chat_id) = (entry.pid, entry.turn, chat_id.to_owned());
-        let registry = self.running.clone();
-        tauri::async_runtime::spawn(async move {
-            for force in [false, true] {
-                tokio::time::sleep(GRACE).await;
-                let alive = lock(&registry)
-                    .get(&chat_id)
-                    .is_some_and(|entry| entry.turn == turn);
-                if !alive {
-                    return;
-                }
-                process::kill_tree(pid, force);
-            }
-        });
+    /// Interrompt le tour en cours ; le process reste ouvert et garde ce qu'il avait déjà écrit.
+    pub fn stop(&self, chat_id: &str) {
+        if let Some(session) = lock(&self.sessions).get(chat_id) {
+            session.interrupt();
+        }
+    }
+
+    pub fn approve(&self, chat_id: &str, request_id: &str, allow: bool) {
+        if let Some(session) = lock(&self.sessions).get(chat_id) {
+            session.answer(request_id, allow);
+        }
+    }
+
+    /// Chat fermé pour de bon (supprimé) : son process s'arrête.
+    pub fn close(&self, chat_id: &str) {
+        if let Some(session) = lock(&self.sessions).remove(chat_id) {
+            session.retire();
+        }
+    }
+
+    /// À la fermeture de l'app : sans ça, les agents survivraient à la fenêtre.
+    pub fn stop_all(&self) {
+        for session in lock(&self.sessions).values() {
+            process::kill_tree(session.pid, false);
+        }
     }
 
     /// Lu une fois par lancement de l'app : l'agent met une à deux secondes à répondre.
@@ -316,7 +334,7 @@ impl AgentService {
         let program = shell_env::find_binary(driver.binary())
             .ok_or(AppError::AgentNotFound(driver.binary()))?;
         let (args, line) = driver.catalog_probe();
-        let mut child = spawn(&program, args, &self.scratch)?;
+        let mut child = session::spawn(&program, args, &self.scratch)?;
 
         // stdin reste ouvert : à sa fermeture l'agent quitterait avant d'avoir répondu.
         let mut stdin = child.stdin.take();
@@ -358,6 +376,50 @@ impl AgentService {
         }
     }
 
+    fn start(&self, spec: &SessionSpec, key: SessionKey, cwd: &Path) -> Result<Session, AppError> {
+        let driver = spec.agent.driver(cwd);
+        let program = shell_env::find_binary(driver.binary())
+            .ok_or(AppError::AgentNotFound(driver.binary()))?;
+        let args = driver.args(spec);
+        let id = self.next_session.fetch_add(1, Ordering::Relaxed);
+        Ok(Session::start(session::Launch {
+            program: &program,
+            args,
+            cwd,
+            driver,
+            chat_id: spec.chat_id.clone(),
+            id,
+            key,
+            sessions: self.sessions.clone(),
+        })?)
+    }
+
+    /// Valide tout ce qui finira en argument ou en chemin, et donne de quoi comparer deux process.
+    fn key(&self, spec: &SessionSpec) -> Result<(SessionKey, PathBuf), AppError> {
+        let cwd = match &spec.cwd {
+            Some(path) => valid_dir(path)?,
+            None => self.scratch_dir(&spec.chat_id)?,
+        };
+        if let Some(id) = &spec.session_id
+            && !valid_session_id(id)
+        {
+            return Err(AppError::InvalidInput(
+                "identifiant de session invalide".into(),
+            ));
+        }
+        if let Some(model) = &spec.options.model
+            && !self.knows_model(spec.agent, model)
+        {
+            return Err(AppError::InvalidInput(format!("modèle inconnu : {model}")));
+        }
+        let key = SessionKey {
+            agent: spec.agent,
+            cwd: cwd.clone(),
+            options: spec.options.clone(),
+        };
+        Ok((key, cwd))
+    }
+
     fn scratch_dir(&self, chat_id: &str) -> Result<PathBuf, AppError> {
         // L'id devient un nom de dossier : rien qui permette d'en sortir.
         if !valid_session_id(chat_id) {
@@ -382,124 +444,13 @@ impl AgentService {
             None => valid_session_id(model),
         }
     }
-
-    /// À la fermeture de l'app : sans ça, les agents en cours survivraient à la fenêtre.
-    pub fn stop_all(&self) {
-        for entry in lock(&self.running).values() {
-            entry.stopped.store(true, Ordering::Relaxed);
-            process::kill_tree(entry.pid, false);
-        }
-    }
 }
 
-fn spawn(program: &Path, args: Vec<String>, cwd: &Path) -> std::io::Result<Child> {
-    let mut command = Command::new(program);
-    command
-        .args(args)
-        .current_dir(cwd)
-        .env("PATH", shell_env::search_path())
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .kill_on_drop(true);
-    // Groupe à part : l'arrêt vise aussi les commandes lancées par l'agent.
-    #[cfg(unix)]
-    command.process_group(0);
-    #[cfg(windows)]
-    command.creation_flags(process::CREATE_NO_WINDOW);
-    command.spawn()
-}
-
-async fn run_turn(
-    mut child: Child,
-    mut driver: Box<dyn Driver>,
-    prompt: String,
-    channel: &Channel<AgentEvent>,
-    stopped: &AtomicBool,
-) -> AgentEvent {
-    if let Some(mut stdin) = child.stdin.take() {
-        tauri::async_runtime::spawn(async move {
-            let _ = stdin.write_all(prompt.as_bytes()).await;
-            let _ = stdin.shutdown().await;
-        });
-    }
-    let stderr = child
-        .stderr
-        .take()
-        .map(|stderr| tauri::async_runtime::spawn(read_tail(stderr)));
-
-    if let Some(stdout) = child.stdout.take() {
-        let mut lines = BufReader::new(stdout).lines();
-        loop {
-            // Après son bilan l'agent doit sortir : un enfant qui garde stdout ouvert ne bloque pas le tour.
-            let next = if driver.outcome().is_some() {
-                timeout(GRACE, lines.next_line()).await.unwrap_or(Ok(None))
-            } else {
-                lines.next_line().await
-            };
-            let Ok(Some(line)) = next else { break };
-            for event in driver.parse_line(&line) {
-                let _ = channel.send(event);
-            }
-        }
-    }
-
-    let exit = match timeout(GRACE, child.wait()).await {
-        Ok(status) => status.ok(),
-        Err(_) => {
-            if let Some(pid) = child.id() {
-                process::kill_tree(pid, true);
-            }
-            child.wait().await.ok()
-        }
-    };
-    // Un petit-enfant qui aurait hérité de stderr ne doit pas retenir la fin du tour.
-    let stderr = match stderr {
-        Some(task) => timeout(GRACE, task)
-            .await
-            .ok()
-            .and_then(Result::ok)
-            .unwrap_or_default(),
-        None => String::new(),
-    };
-
-    let (status, error, duration_ms) = if stopped.load(Ordering::Relaxed) {
-        (TurnStatus::Stopped, None, None)
-    } else if let Some(outcome) = driver.outcome() {
-        (outcome.status, outcome.error.clone(), outcome.duration_ms)
-    } else if exit.is_some_and(|exit| exit.success()) {
-        (TurnStatus::Completed, None, None)
-    } else {
-        let detail = match (stderr.trim(), exit.and_then(|exit| exit.code())) {
-            ("", Some(code)) => format!("code de sortie {code}"),
-            ("", None) => "process interrompu".to_owned(),
-            (stderr, _) => stderr.to_owned(),
-        };
-        (TurnStatus::Failed, Some(detail), None)
-    };
-    AgentEvent::TurnEnd {
-        status,
-        error,
-        duration_ms,
-    }
-}
-
-/// Garde la fin de stderr : c'est là que les CLI écrivent la raison d'un échec.
-async fn read_tail(stream: impl AsyncRead + Unpin) -> String {
-    let mut buffer = Vec::new();
-    let mut reader = BufReader::new(stream);
-    let mut chunk = [0u8; 4096];
-    while let Ok(read) = reader.read(&mut chunk).await {
-        if read == 0 {
-            break;
-        }
-        buffer.extend_from_slice(&chunk[..read]);
-        if buffer.len() > STDERR_TAIL * 2 {
-            buffer.drain(..buffer.len() - STDERR_TAIL);
-        }
-    }
-    let start = buffer.len().saturating_sub(STDERR_TAIL);
-    String::from_utf8_lossy(&buffer[start..]).into_owned()
+fn with_recap(recap: &str, prompt: &str) -> String {
+    format!(
+        "[Nuée] Your previous reply was interrupted by the user before it finished. \
+         This is what you had written so far:\n\n{recap}\n\n[End of the interrupted reply]\n\n{prompt}"
+    )
 }
 
 fn valid_dir(path: &str) -> Result<PathBuf, AppError> {
@@ -511,7 +462,7 @@ fn valid_dir(path: &str) -> Result<PathBuf, AppError> {
     Ok(dir)
 }
 
-/// L'id finit en argument de la CLI : rien qui puisse passer pour une option.
+/// L'id finit en argument de la CLI ou en nom de dossier : rien qui puisse passer pour une option.
 fn valid_session_id(id: &str) -> bool {
     !id.is_empty()
         && id.len() <= 128
@@ -521,8 +472,8 @@ fn valid_session_id(id: &str) -> bool {
             .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
 }
 
-fn lock(registry: &Registry) -> MutexGuard<'_, HashMap<String, Running>> {
-    registry
+fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
+    mutex
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
@@ -531,77 +482,13 @@ fn lock(registry: &Registry) -> MutexGuard<'_, HashMap<String, Running>> {
 mod tests {
     use super::*;
 
-    struct Silent;
-
-    impl Driver for Silent {
-        fn binary(&self) -> &'static str {
-            "sh"
-        }
-        fn catalog_probe(&self) -> (Vec<String>, String) {
-            (Vec::new(), String::new())
-        }
-        fn parse_catalog(&self, _: &str) -> Option<Catalog> {
-            None
-        }
-        fn args(&self, _: &TurnRequest) -> Vec<String> {
-            Vec::new()
-        }
-        fn parse_line(&mut self, _: &str) -> Vec<AgentEvent> {
-            Vec::new()
-        }
-        fn outcome(&self) -> Option<&Outcome> {
-            None
-        }
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn stop_ends_the_turn_and_kills_the_commands_it_started() {
-        tauri::async_runtime::block_on(async {
-            let script = vec!["-c".to_owned(), "sleep 30 & sleep 30".to_owned()];
-            let child = spawn(Path::new("/bin/sh"), script, Path::new("/")).expect("sh");
-            let pid = child.id().expect("pid");
-            let stopped = Arc::new(AtomicBool::new(false));
-
-            let flag = stopped.clone();
-            tauri::async_runtime::spawn(async move {
-                tokio::time::sleep(Duration::from_millis(300)).await;
-                flag.store(true, Ordering::Relaxed);
-                process::kill_tree(pid, false);
-            });
-
-            let channel = Channel::new(|_| Ok(()));
-            let started = std::time::Instant::now();
-            let end = run_turn(child, Box::new(Silent), String::new(), &channel, &stopped).await;
-            assert!(matches!(
-                end,
-                AgentEvent::TurnEnd {
-                    status: TurnStatus::Stopped,
-                    ..
-                }
-            ));
-            assert!(started.elapsed() < GRACE);
-
-            // Le `sleep` lancé en arrière-plan doit avoir disparu avec son groupe.
-            let group = -libc::pid_t::try_from(pid).expect("pid");
-            let mut alive = true;
-            for _ in 0..20 {
-                // SAFETY: signal 0 ne fait que tester l'existence du groupe.
-                alive = unsafe { libc::kill(group, 0) } == 0;
-                if !alive {
-                    break;
-                }
-                tokio::time::sleep(Duration::from_millis(50)).await;
-            }
-            assert!(!alive);
-        });
-    }
-
     #[test]
     fn session_id_rejects_options_and_separators() {
         assert!(valid_session_id("1d0cf17d-9061-48e3-bd69-6389a56c5b64"));
+        assert!(valid_session_id("claude-haiku-4-5-20251001"));
         assert!(!valid_session_id("--dangerously-skip-permissions"));
         assert!(!valid_session_id("abc def"));
+        assert!(!valid_session_id(".."));
         assert!(!valid_session_id(""));
     }
 }

@@ -68,6 +68,7 @@ export default {
       done: '已完成',
       completed: '用时 {duration}',
       stopped: '已停止',
+      stoppedKept: '已停止。{agent} 会保留已写出的内容。',
       failed: '{agent} 因错误而停止。',
       unauthenticated: '{agent} 尚未登录。请在终端中运行“{command}”完成登录，然后重试。',
     },
@@ -79,6 +80,11 @@ export default {
       io: '无法启动智能体：{detail}',
       database: '无法访问聊天记录：{detail}',
     },
+  },
+  approval: {
+    title: '允许 {agent} 使用 {tool} 吗？',
+    allow: '允许一次',
+    deny: '拒绝',
   },
   composer: {
     label: '消息',

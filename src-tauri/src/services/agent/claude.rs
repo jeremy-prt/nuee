@@ -4,13 +4,13 @@ use std::path::{Path, PathBuf};
 use serde_json::Value;
 
 use super::{
-    AgentEvent, Catalog, Driver, Effort, ModelInfo, Outcome, PermissionMode, ToolKind, TurnRequest,
+    AgentEvent, Catalog, Driver, Effort, ModelInfo, PermissionMode, SessionSpec, ToolKind,
     TurnStatus,
 };
 
 const OUTPUT_LIMIT: usize = 4000;
 
-/// Claude Code en mode non interactif : `claude -p`, prompt sur stdin, sortie `stream-json`.
+/// Claude Code en mode non interactif gardé ouvert : messages et sortie en `stream-json`.
 pub struct Claude {
     cwd: PathBuf,
     session_sent: bool,
@@ -18,7 +18,6 @@ pub struct Claude {
     /// Messages dont le texte est arrivé en morceaux : leur copie complète ne doit pas le doubler.
     streamed: HashSet<String>,
     auth_failed: bool,
-    outcome: Option<Outcome>,
 }
 
 impl Claude {
@@ -29,7 +28,6 @@ impl Claude {
             message_id: String::new(),
             streamed: HashSet::new(),
             auth_failed: false,
-            outcome: None,
         }
     }
 
@@ -46,6 +44,14 @@ impl Claude {
                     kind: describe(name, &Value::Null, &self.cwd).0,
                     summary: None,
                 });
+            }
+            // Fin d'un message qui n'appelle pas d'outil : la réponse est là, le reste n'est que rangement.
+            Some("message_delta")
+                if event["delta"]["stop_reason"]
+                    .as_str()
+                    .is_some_and(|reason| reason != "tool_use" && reason != "pause_turn") =>
+            {
+                events.push(AgentEvent::Answered);
             }
             Some("content_block_delta") if event["delta"]["type"] == "text_delta" => {
                 self.streamed.insert(self.message_id.clone());
@@ -103,7 +109,29 @@ impl Claude {
         }
     }
 
-    fn result(&mut self, line: &Value) {
+    fn approval(&self, line: &Value) -> AgentEvent {
+        let request = &line["request"];
+        let tool = str_of(&request["tool_name"]);
+        let input = request["input"].clone();
+        let (kind, summary) = describe(tool, &input, &self.cwd);
+        let name = request["display_name"]
+            .as_str()
+            .filter(|name| !name.is_empty())
+            .unwrap_or(tool);
+        AgentEvent::Approval {
+            id: str_of(&line["request_id"]).to_owned(),
+            name: name.to_owned(),
+            kind,
+            detail: input["command"].as_str().map(str::to_owned).or(summary),
+            description: request["description"]
+                .as_str()
+                .filter(|text| !text.is_empty())
+                .map(str::to_owned),
+            input,
+        }
+    }
+
+    fn result(&mut self, line: &Value, events: &mut Vec<AgentEvent>) {
         let failed = line["is_error"].as_bool().unwrap_or(false) || line["subtype"] != "success";
         let status = match (failed, self.auth_failed) {
             (false, _) => TurnStatus::Completed,
@@ -121,11 +149,13 @@ impl Claude {
         let duration_ms = line["duration_ms"]
             .as_u64()
             .and_then(|ms| u32::try_from(ms).ok());
-        self.outcome = Some(Outcome {
+        events.push(AgentEvent::TurnEnd {
             status,
             error,
             duration_ms,
         });
+        self.streamed.clear();
+        self.auth_failed = false;
     }
 }
 
@@ -192,17 +222,22 @@ impl Driver for Claude {
         })
     }
 
-    fn args(&self, request: &TurnRequest) -> Vec<String> {
+    fn args(&self, spec: &SessionSpec) -> Vec<String> {
         let mut args: Vec<String> = [
             "-p",
+            "--input-format",
+            "stream-json",
             "--output-format",
             "stream-json",
             "--verbose",
             "--include-partial-messages",
+            // Les demandes d'autorisation du mode Auto arrivent sur stdout et attendent la réponse de Nuée.
+            "--permission-prompt-tool",
+            "stdio",
         ]
         .map(String::from)
         .into();
-        let options = &request.options;
+        let options = &spec.options;
         // Le flag dédié plutôt que `--permission-mode bypassPermissions` : il ne dépend pas
         // d'une acceptation préalable du mode dans la config de l'utilisateur.
         match options.mode {
@@ -222,10 +257,36 @@ impl Driver for Claude {
             };
             args.extend(["--effort".into(), level.into()]);
         }
-        if let Some(id) = &request.session_id {
+        if let Some(id) = &spec.session_id {
             args.extend(["--resume".to_owned(), id.clone()]);
         }
         args
+    }
+
+    fn user_message(&self, prompt: &str) -> String {
+        serde_json::json!({
+            "type": "user",
+            "message": { "role": "user", "content": prompt },
+            "parent_tool_use_id": null,
+        })
+        .to_string()
+    }
+
+    fn approval_message(&self, id: &str, input: &Value, allow: bool) -> String {
+        let response = if allow {
+            serde_json::json!({ "behavior": "allow", "updatedInput": input })
+        } else {
+            serde_json::json!({ "behavior": "deny", "message": "The user denied this action in Nuée." })
+        };
+        serde_json::json!({
+            "type": "control_response",
+            "response": { "subtype": "success", "request_id": id, "response": response },
+        })
+        .to_string()
+    }
+
+    fn interrupt_message(&self) -> String {
+        r#"{"type":"control_request","request_id":"nuee-interrupt","request":{"subtype":"interrupt"}}"#.to_owned()
     }
 
     fn parse_line(&mut self, line: &str) -> Vec<AgentEvent> {
@@ -247,14 +308,18 @@ impl Driver for Claude {
             Some("stream_event") => self.stream_event(&line["event"], &mut events),
             Some("assistant") => self.assistant(&line, &mut events),
             Some("user") => self.tool_results(&line["message"]["content"], &mut events),
-            Some("result") => self.result(&line),
+            Some("result") => self.result(&line, &mut events),
+            Some("control_request") if line["request"]["subtype"] == "can_use_tool" => {
+                events.push(self.approval(&line));
+            }
+            Some("control_cancel_request") => {
+                events.push(AgentEvent::ApprovalCancelled {
+                    id: str_of(&line["request_id"]).to_owned(),
+                });
+            }
             _ => {}
         }
         events
-    }
-
-    fn outcome(&self) -> Option<&Outcome> {
-        self.outcome.as_ref()
     }
 }
 
@@ -378,7 +443,7 @@ mod tests {
 
     #[test]
     fn tool_call_is_announced_then_completed() {
-        let (claude, events) = parse(&[
+        let (_, events) = parse(&[
             r#"{"type":"stream_event","event":{"type":"message_start","message":{"id":"m1"}}}"#,
             r#"{"type":"stream_event","event":{"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"t1","name":"Read","input":{}}}}"#,
             r#"{"type":"assistant","message":{"id":"m1","content":[{"type":"tool_use","id":"t1","name":"Read","input":{"file_path":"/projet/src/a.txt"}}]}}"#,
@@ -405,42 +470,46 @@ mod tests {
                     output: "banane".into(),
                     is_error: false
                 },
+                AgentEvent::TurnEnd {
+                    status: TurnStatus::Completed,
+                    error: None,
+                    duration_ms: Some(9631)
+                },
             ]
-        );
-        assert_eq!(
-            claude.outcome(),
-            Some(&Outcome {
-                status: TurnStatus::Completed,
-                error: None,
-                duration_ms: Some(9631)
-            })
         );
     }
 
     #[test]
+    fn the_answer_is_complete_before_the_agent_closes_its_turn() {
+        let (_, events) = parse(&[
+            r#"{"type":"stream_event","event":{"type":"message_delta","delta":{"stop_reason":"tool_use"}}}"#,
+            r#"{"type":"stream_event","event":{"type":"message_delta","delta":{"stop_reason":"end_turn"}}}"#,
+        ]);
+        assert_eq!(events, vec![AgentEvent::Answered]);
+    }
+
+    #[test]
     fn missing_login_is_reported_as_such() {
-        let (claude, events) = parse(&[
+        let (_, events) = parse(&[
             r#"{"type":"assistant","error":"authentication_failed","message":{"id":"x","content":[{"type":"text","text":"Not logged in · Please run /login"}]}}"#,
             r#"{"type":"result","subtype":"success","is_error":true,"result":"Not logged in · Please run /login"}"#,
         ]);
-        assert!(events.is_empty());
-        let outcome = claude.outcome().cloned();
         assert_eq!(
-            outcome.map(|o| (o.status, o.error)),
-            Some((
-                TurnStatus::Unauthenticated,
-                Some("Not logged in · Please run /login".into())
-            ))
+            events,
+            vec![AgentEvent::TurnEnd {
+                status: TurnStatus::Unauthenticated,
+                error: Some("Not logged in · Please run /login".into()),
+                duration_ms: None
+            }]
         );
     }
 
     #[test]
     fn options_become_cli_flags() {
-        let request = TurnRequest {
+        let request = SessionSpec {
             chat_id: "c".into(),
             agent: super::super::AgentKind::Claude,
             cwd: Some("/projet".into()),
-            prompt: "salut".into(),
             session_id: Some("s1".into()),
             options: super::super::TurnOptions {
                 mode: PermissionMode::Auto,
@@ -449,7 +518,7 @@ mod tests {
             },
         };
         let args = Claude::new(Path::new("/projet")).args(&request);
-        let tail: Vec<&str> = args.iter().skip(5).map(String::as_str).collect();
+        let tail: Vec<&str> = args.iter().skip(9).map(String::as_str).collect();
         assert_eq!(
             tail,
             [
@@ -487,6 +556,36 @@ mod tests {
             [Effort::Low, Effort::High, Effort::Xhigh]
         );
         assert!(catalog.models[1].efforts.is_empty());
+    }
+
+    #[test]
+    fn a_permission_request_becomes_an_approval_and_its_answer_keeps_the_input() {
+        let (claude, events) = parse(&[
+            r#"{"type":"control_request","request_id":"r1","request":{"subtype":"can_use_tool","tool_name":"Bash","display_name":"Bash","input":{"command":"rm -rf /tmp/x"},"description":"Delete x"}}"#,
+        ]);
+        let [
+            AgentEvent::Approval {
+                id,
+                detail,
+                description,
+                input,
+                ..
+            },
+        ] = events.as_slice()
+        else {
+            panic!("une demande attendue : {events:?}");
+        };
+        assert_eq!(
+            (id.as_str(), detail.as_deref(), description.as_deref()),
+            ("r1", Some("rm -rf /tmp/x"), Some("Delete x"))
+        );
+        let answer: Value =
+            serde_json::from_str(&claude.approval_message(id, input, true)).expect("json");
+        assert_eq!(answer["response"]["request_id"], "r1");
+        assert_eq!(
+            answer["response"]["response"]["updatedInput"]["command"],
+            "rm -rf /tmp/x"
+        );
     }
 
     #[test]

@@ -49,7 +49,7 @@ function agentParams() {
 <template>
   <div ref="scroller" class="overflow-y-auto" @scroll.passive="onScroll">
     <ol class="mx-auto flex max-w-3xl flex-col gap-3 px-6 py-6" role="log" :aria-busy="running" :aria-label="t('chat.transcript')">
-      <li v-for="item in items" :key="item.id" :class="{ 'flex justify-end': item.kind === 'user' }">
+      <li v-for="(item, index) in items" :key="item.id" :class="{ 'flex justify-end': item.kind === 'user' }">
         <p
           v-if="item.kind === 'user'"
           class="max-w-[85%] rounded-xl bg-selection px-3 py-2 text-sm whitespace-pre-wrap break-words select-text"
@@ -60,7 +60,9 @@ function agentParams() {
           <p v-if="item.status === 'completed'" class="text-xs text-muted">
             {{ item.durationMs === null ? t('chat.end.done') : t('chat.end.completed', { duration: duration(item.durationMs) }) }}
           </p>
-          <p v-else-if="item.status === 'stopped'" class="text-xs text-muted">{{ t('chat.end.stopped') }}</p>
+          <p v-else-if="item.status === 'stopped'" class="text-xs text-muted">
+            {{ items[index - 1]?.kind === 'text' ? t('chat.end.stoppedKept', agentParams()) : t('chat.end.stopped') }}
+          </p>
           <div v-else class="flex gap-2 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm" role="alert">
             <CircleAlert class="mt-0.5 size-4 shrink-0 text-danger" aria-hidden="true" />
             <div class="min-w-0">

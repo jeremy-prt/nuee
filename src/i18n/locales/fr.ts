@@ -68,6 +68,7 @@ export default {
       done: 'Terminé',
       completed: 'Terminé en {duration}',
       stopped: 'Arrêté',
+      stoppedKept: 'Arrêté. {agent} garde ce qu\'il avait déjà écrit.',
       failed: '{agent} s\'est arrêté sur une erreur.',
       unauthenticated: '{agent} n\'est pas connecté. Lance « {command} » dans un terminal pour te connecter, puis réessaie.',
     },
@@ -79,6 +80,11 @@ export default {
       io: 'Impossible de lancer l\'agent : {detail}',
       database: 'Impossible d\'accéder à l\'historique des chats : {detail}',
     },
+  },
+  approval: {
+    title: 'Autoriser {agent} à utiliser {tool} ?',
+    allow: 'Autoriser une fois',
+    deny: 'Refuser',
   },
   composer: {
     label: 'Message',

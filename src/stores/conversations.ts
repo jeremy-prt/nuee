@@ -1,10 +1,11 @@
 import { defineStore } from 'pinia'
 import { shallowReactive } from 'vue'
-import { agentSend, agentStop, isAppError } from '@/ipc/agent'
+import { agentApprove, agentSend, agentStop, agentWarm, isAppError } from '@/ipc/agent'
 import type { AgentEvent } from '@/ipc/bindings/AgentEvent'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { AppError } from '@/ipc/bindings/AppError'
 import type { ChatSummary } from '@/ipc/bindings/ChatSummary'
+import type { SessionSpec } from '@/ipc/bindings/SessionSpec'
 import type { ToolKind } from '@/ipc/bindings/ToolKind'
 import type { TurnOptions } from '@/ipc/bindings/TurnOptions'
 import type { TurnStatus } from '@/ipc/bindings/TurnStatus'
@@ -26,11 +27,22 @@ export type ChatItem =
   | { kind: 'end'; id: string; status: TurnStatus; error: string | null; durationMs: number | null }
   | { kind: 'error'; id: string; error: AppError }
 
+export type Approval = Omit<Extract<AgentEvent, { type: 'approval' }>, 'type'>
+
+// answering : l'agent répond. finishing : réponse complète, l'agent range encore son tour (résumé, hooks).
+export type Phase = 'idle' | 'answering' | 'finishing'
+
 export interface Conversation {
   agent: AgentKind
   sessionId: string | null
   options: TurnOptions
-  running: boolean
+  phase: Phase
+  // Début du tour en cours, pour la durée affichée à la fin de la réponse.
+  startedAt: number
+  // Message envoyé pendant que l'agent range son tour : il part dès que le tour se clôt.
+  queued: { cwd: string | null; prompt: string } | null
+  // Demandes d'autorisation (mode Auto) en attente de réponse, la plus ancienne d'abord. Non enregistrées.
+  approvals: readonly Approval[]
   // Faux tant que l'historique n'est pas lu : envoyer avant écraserait la conversation chargée.
   loaded: boolean
   // Remplacé à chaque frame, jamais muté : un élément modifié est un nouvel objet.
@@ -41,12 +53,17 @@ export const DEFAULT_OPTIONS: TurnOptions = { mode: 'bypass', model: null, effor
 
 const SAVE_DELAY = 600
 
-function lastIndexOfTool(items: ChatItem[], id: string) {
+// findLastIndex n'est pas dans la lib TS du projet (ES2022).
+function lastIndex(items: readonly ChatItem[], match: (item: ChatItem) => boolean) {
   for (let i = items.length - 1; i >= 0; i--) {
     const item = items[i]
-    if (item?.kind === 'tool' && item.id === id) return i
+    if (item && match(item)) return i
   }
   return -1
+}
+
+function lastIndexOfTool(items: ChatItem[], id: string) {
+  return lastIndex(items, (item) => item.kind === 'tool' && item.id === id)
 }
 
 function settleTools(items: ChatItem[], status: 'done' | 'failed') {
@@ -55,9 +72,19 @@ function settleTools(items: ChatItem[], status: 'done' | 'failed') {
   })
 }
 
+// L'agent repart après sa réponse (un hook lui a demandé de continuer) : la fin affichée était prématurée.
+function resume(conversation: Conversation, items: ChatItem[]) {
+  if (conversation.phase !== 'finishing') return
+  if (items.at(-1)?.kind === 'end') items.pop()
+  conversation.phase = 'answering'
+}
+
+// Renvoie vrai quand le tour s'est clos.
 function apply(conversation: Conversation, events: AgentEvent[]) {
   const items = [...conversation.items]
+  let ended = false
   for (const event of events) {
+    if (event.type === 'text' || event.type === 'tool') resume(conversation, items)
     switch (event.type) {
       case 'session':
         conversation.sessionId = event.id
@@ -85,16 +112,50 @@ function apply(conversation: Conversation, events: AgentEvent[]) {
         if (tool?.kind === 'tool') items[index] = { ...tool, output: event.output, status: event.isError ? 'failed' : 'done' }
         break
       }
+      case 'approval': {
+        const { type: _, ...approval } = event
+        conversation.approvals = [...conversation.approvals, approval]
+        break
+      }
+      case 'approvalCancelled':
+        conversation.approvals = conversation.approvals.filter((approval) => approval.id !== event.id)
+        break
+      case 'answered': {
+        if (conversation.phase !== 'answering') break
+        settleTools(items, 'done')
+        const durationMs = Math.round(performance.now() - conversation.startedAt)
+        items.push({ kind: 'end', id: crypto.randomUUID(), status: 'completed', error: null, durationMs })
+        conversation.phase = 'finishing'
+        break
+      }
       case 'turnEnd': {
         settleTools(items, event.status === 'completed' ? 'done' : 'failed')
-        const { status, error, durationMs } = event
-        items.push({ kind: 'end', id: crypto.randomUUID(), status, error, durationMs })
-        conversation.running = false
+        const { status, error } = event
+        const shown = conversation.phase === 'finishing' && items.at(-1)?.kind === 'end'
+        if (shown && status !== 'completed') items[items.length - 1] = { kind: 'end', id: crypto.randomUUID(), status, error, durationMs: null }
+        if (!shown) {
+          const durationMs = status === 'completed' ? Math.round(performance.now() - conversation.startedAt) : null
+          items.push({ kind: 'end', id: crypto.randomUUID(), status, error, durationMs })
+        }
+        conversation.phase = 'idle'
+        conversation.approvals = []
+        ended = true
         break
       }
     }
   }
   conversation.items = items
+  return ended
+}
+
+// Texte que l'agent écrivait quand l'utilisateur l'a arrêté : un process relancé ne l'a plus en mémoire.
+function interruptedText(items: readonly ChatItem[]) {
+  const lastUser = lastIndex(items, (item) => item.kind === 'user')
+  const turn = items.slice(lastUser + 1)
+  if (!turn.some((item) => item.kind === 'end' && item.status === 'stopped')) return null
+  const afterTools = turn.slice(lastIndex(turn, (item) => item.kind === 'tool') + 1)
+  const text = afterTools.flatMap((item) => (item.kind === 'text' ? [item.text] : [])).join('\n\n')
+  return text.trim() ? text : null
 }
 
 // Un tour coupé par la fermeture de l'app n'a jamais reçu sa fin : on la pose au chargement.
@@ -118,7 +179,17 @@ export const useConversationsStore = defineStore('conversations', () => {
   let frame = 0
 
   function blank(agent: AgentKind, loaded: boolean) {
-    return shallowReactive<Conversation>({ agent, sessionId: null, options: { ...DEFAULT_OPTIONS }, running: false, loaded, items: [] })
+    return shallowReactive<Conversation>({
+      agent,
+      sessionId: null,
+      options: { ...DEFAULT_OPTIONS },
+      phase: 'idle',
+      startedAt: 0,
+      queued: null,
+      approvals: [],
+      loaded,
+      items: [],
+    })
   }
 
   // Les écritures d'un chat passent l'une après l'autre : une sauvegarde ancienne n'écrase jamais une récente.
@@ -178,8 +249,13 @@ export const useConversationsStore = defineStore('conversations', () => {
     for (const [chatId, events] of pending) {
       const conversation = conversations.get(chatId)
       if (!conversation) continue
-      apply(conversation, events)
+      const ended = apply(conversation, events)
       save(chatId)
+      const queued = conversation.queued
+      if (ended && queued) {
+        conversation.queued = null
+        dispatch(chatId, conversation, queued.cwd, queued.prompt)
+      }
     }
     pending.clear()
   }
@@ -195,28 +271,53 @@ export const useConversationsStore = defineStore('conversations', () => {
     conversation.items = [...conversation.items, item]
   }
 
-  // cwd null : chat sans projet, Rust lui donne un dossier vide à lui.
-  async function send(chatId: string, cwd: string | null, prompt: string) {
-    const conversation = conversations.get(chatId)
-    if (!conversation?.loaded || conversation.running) return
-    push(conversation, { kind: 'user', id: crypto.randomUUID(), text: prompt })
-    conversation.running = true
-    save(chatId)
+  function spec(chatId: string, conversation: Conversation, cwd: string | null): SessionSpec {
     const { agent, sessionId } = conversation
-    const options = catalog.resolve(agent, conversation.options)
+    return { chatId, agent, cwd, sessionId, options: catalog.resolve(agent, conversation.options) }
+  }
+
+  async function dispatch(chatId: string, conversation: Conversation, cwd: string | null, prompt: string) {
+    // Calculé avant que le nouveau message ne s'ajoute : il porte sur le tour précédent.
+    const recap = interruptedText(conversation.items.slice(0, lastIndex(conversation.items, (item) => item.kind === 'user')))
+    conversation.phase = 'answering'
+    conversation.startedAt = performance.now()
     try {
-      await agentSend({ chatId, agent, cwd, prompt, sessionId, options }, (event) => queue(chatId, event))
+      await agentSend(spec(chatId, conversation, cwd), prompt, recap, (event) => queue(chatId, event))
     } catch (error) {
-      conversation.running = false
+      conversation.phase = 'idle'
       const appError: AppError = isAppError(error) ? error : { kind: 'io', message: String(error) }
       push(conversation, { kind: 'error', id: crypto.randomUUID(), error: appError })
       save(chatId)
     }
   }
 
-  // Le tour se termine quand l'agent est sorti : turnEnd arrive avec le statut « stopped ».
+  // cwd null : chat sans projet, Rust lui donne un dossier vide à lui.
+  function send(chatId: string, cwd: string | null, prompt: string) {
+    const conversation = conversations.get(chatId)
+    if (!conversation?.loaded || conversation.phase === 'answering' || conversation.queued) return
+    push(conversation, { kind: 'user', id: crypto.randomUUID(), text: prompt })
+    save(chatId)
+    if (conversation.phase === 'finishing') conversation.queued = { cwd, prompt }
+    else dispatch(chatId, conversation, cwd, prompt)
+  }
+
+  // Appelé quand l'utilisateur commence à écrire ; Rust ignore l'appel si le process tourne déjà.
+  function warm(chatId: string, cwd: string | null) {
+    const conversation = conversations.get(chatId)
+    if (!conversation?.loaded || conversation.phase !== 'idle') return
+    agentWarm(spec(chatId, conversation, cwd)).catch(() => {})
+  }
+
+  function approve(chatId: string, requestId: string, allow: boolean) {
+    const conversation = conversations.get(chatId)
+    if (!conversation) return
+    conversation.approvals = conversation.approvals.filter((approval) => approval.id !== requestId)
+    agentApprove(chatId, requestId, allow).catch(() => {})
+  }
+
+  // Le process reste ouvert : turnEnd arrive aussitôt avec le statut « stopped ».
   function stop(chatId: string) {
-    if (conversations.get(chatId)?.running) agentStop(chatId).catch(() => {})
+    if (conversations.get(chatId)?.phase === 'answering') agentStop(chatId).catch(() => {})
   }
 
   function remove(chatId: string) {
@@ -228,5 +329,5 @@ export const useConversationsStore = defineStore('conversations', () => {
     write(chatId, () => chatDelete(chatId))
   }
 
-  return { find, create, open, setOptions, send, stop, remove }
+  return { find, create, open, setOptions, send, warm, approve, stop, remove }
 })
