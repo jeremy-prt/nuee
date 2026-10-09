@@ -16,5 +16,6 @@ App desktop Tauri 2 + Vue pour piloter des agents de code, open source (MIT). In
 - TypeScript reste en 6 : create-vue et vue-tsc ne suivent pas encore TS 7 (port natif).
 - Tauri 2 uniquement : les crates `tauri*` en 3.x sur crates.io sont des alphas, et aucune recette Tauri 1 (allowlist, `@tauri-apps/api/tauri`).
 - Un plugin Tauri ajouté doit avoir sa permission dans `src-tauri/capabilities/default.json`, sinon ses appels sont refusés.
+- La fenêtre est définie deux fois : `tauri.conf.json` et `tauri.macos.conf.json` (transparence, barre de titre). Le tableau `windows` est remplacé, pas fusionné : toute modif de fenêtre se fait dans les deux.
 - `productName` reste en ASCII (`Nuee`) : un accent casse le paquet `.deb`. Le titre de fenêtre garde « Nuée ».
 - Pinia 4 exige `@vue/devtools-api` installé à côté.

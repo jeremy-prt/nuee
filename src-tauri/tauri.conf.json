@@ -18,9 +18,12 @@
         "height": 800,
         "minWidth": 800,
         "minHeight": 500,
-        "center": true
+        "theme": "Dark",
+        "backgroundColor": "#171717",
+        "visible": false
       }
     ],
+    "macOSPrivateApi": true,
     "security": {
       "csp": {
         "default-src": "'self'",

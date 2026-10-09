@@ -16,7 +16,7 @@ tauri-build = { version = "2.7.1", features = [] }
 
 [dependencies]
 sys-locale = "0.3.2"
-tauri = { version = "2.12.2", features = [] }
+tauri = { version = "2.12.2", features = ["macos-private-api"] }
 
 [profile.release]
 codegen-units = 1

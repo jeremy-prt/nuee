@@ -1,5 +1,42 @@
 export default {
-  home: {
-    title: 'Getting started',
+  shell: {
+    toggleRail: 'Toggle projects sidebar',
+    toggleConversations: 'Toggle conversations',
+    resizeRail: 'Resize projects sidebar',
+    resizeConversations: 'Resize conversations',
+    newChat: 'New conversation',
+    projects: 'Projects',
+    noProjects: 'No project open yet',
+    conversations: 'Conversations',
+    noConversations: 'No conversations yet',
+  },
+  workspace: {
+    tabs: 'Open tabs',
+    chatTitle: 'Conversation {n}',
+    closeTab: 'Close tab',
+    split: 'Split right',
+    closePane: 'Close pane',
+    empty: 'No open tab',
+  },
+  dock: {
+    right: 'Right panel',
+    bottom: 'Bottom panel',
+    toggleRight: 'Toggle right panel',
+    toggleBottom: 'Toggle bottom panel',
+    moveToRight: 'Move to right panel',
+    moveToBottom: 'Move to bottom panel',
+    close: 'Hide panel',
+    resize: 'Resize panel',
+    terminal: { title: 'Terminal', empty: 'Terminals will show up here.' },
+    changes: { title: 'Changes', empty: 'Changes made by agents will show up here.' },
+    files: { title: 'Files', empty: 'Open a project to browse its files.' },
+  },
+  chat: {
+    subtitle: 'Open a project and launch a coding agent to get started.',
+  },
+  composer: {
+    label: 'Message',
+    placeholder: 'Describe what you want to build…',
+    send: 'Send',
   },
 }

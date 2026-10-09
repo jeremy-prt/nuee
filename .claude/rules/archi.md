@@ -22,6 +22,7 @@ Même logique que l'archi Nuxt : depuis un bouton, on retrouve vite la commande 
 src/
   views/                    # 1 fichier = 1 écran ; bandeau `// ===== Initialisation =====` pour l'init
   components/<domaine>/     # <Domaine>Xxx.vue
+  components/ui/            # UiXxx.vue : nos briques stylées, reka-ui (headless) dessous
   composables/              # useXxx : données réactives + chargement, une instance par appel
   stores/                   # Pinia, un store par domaine, un seul exemplaire partagé
   ipc/                      # seul dossier qui importe @tauri-apps/api
@@ -29,13 +30,14 @@ src/
     bindings/               # généré par ts-rs, jamais édité à la main
   i18n/                     # createI18n + choix de la langue au démarrage
     locales/<langue>.ts     # en.ts fait référence, les autres finissent par `satisfies typeof en`
-  utils/                    # fonctions pures
-  assets/css/main.css       # Tailwind 4 : @import + @theme, pas de tailwind.config.js
+  utils/                    # fonctions pures ; shortcuts.ts = tous les raccourcis clavier
+  assets/css/main.css       # Tailwind 4 : jetons de couleur dans @theme, pas de tailwind.config.js
 src-tauri/src/
   main.rs                   # n'appelle que nuee_lib::run()
   lib.rs                    # Builder : plugins, manage(state), generate_handler!
   error.rs                  # AppError (thiserror), sérialisé en { kind, message }
   state.rs                  # état partagé passé à manage()
+  menu.rs, window.rs        # réglages natifs au démarrage : menu macOS, taille de la fenêtre
   commands/<domaine>.rs     # valider, appeler le service (ou la lib si c'est une ligne), répondre
   services/<domaine>.rs     # la logique métier
   utils/                    # helpers techniques (chemins, env shell)
@@ -62,6 +64,14 @@ src-tauri/src/
 - Traductions précompilées au build (`@intlify/unplugin-vue-i18n`, compilateur retiré du bundle) : un texte chargé à l'exécution (API, fichier) ne sera pas interprété en production.
 - Langue du système : la commande Rust `system_locales`, jamais `navigator.language` (WebView2 renvoie toujours en-US). Dates et nombres : `Intl.*` avec la locale de vue-i18n, jamais `undefined`.
 - Marges et positions en propriétés logiques Tailwind (`ms-`/`me-`, `ps-`/`pe-`, `start-`/`end-`) plutôt que gauche/droite : ça garde la porte ouverte aux langues écrites de droite à gauche.
+
+## Interface
+
+- Composants accessibles : reka-ui (headless) habillé dans `components/ui/`, jamais une lib de composants déjà stylés.
+- Couleurs uniquement via les jetons de `main.css` (`canvas`, `content`, `muted`, `stroke`, `selection`, `accent`). Pas de couleur nommée `base` : `text-base` est déjà la taille de texte de Tailwind.
+- Transparence et flou : macOS seulement, via la variante `macos:` (classe `is-macos` posée au démarrage). Windows et Linux restent opaques.
+- Raccourcis : déclarés dans `utils/shortcuts.ts`, comparés sur la lettre tapée (en AZERTY, W n'est pas sur la touche physique `KeyW`). Un raccourci ⌘ porté par un élément du menu natif (`src-tauri/src/menu.rs`) n'atteint jamais la webview.
+- Disposition (panneaux, tailles) mémorisée en localStorage par `stores/layout.ts` : confort local, rien de critique. Une nouvelle valeur par défaut ne touche pas une disposition déjà enregistrée : changer `STORAGE_KEY` pour repartir de zéro.
 
 ## Sécurité
 

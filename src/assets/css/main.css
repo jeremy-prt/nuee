@@ -1,1 +1,32 @@
 @import 'tailwindcss';
+
+/* Fenêtre transparente + flou natif : uniquement macOS (voir tauri.macos.conf.json). */
+@custom-variant macos (&:where(.is-macos, .is-macos *));
+
+@theme {
+  --color-canvas: hsl(240 0% 9%);
+  --color-content: hsl(240 0% 92%);
+  --color-muted: color-mix(in srgb, var(--color-content) 55%, transparent);
+  --color-stroke: color-mix(in srgb, var(--color-content) 8%, transparent);
+  --color-selection: color-mix(in srgb, var(--color-content) 10%, transparent);
+  --color-selection-hover: color-mix(in srgb, var(--color-content) 15%, transparent);
+  --color-accent: hsl(211 92% 62%);
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: var(--color-canvas);
+  color: var(--color-content);
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+html.is-macos,
+html.is-macos body,
+html.is-macos #app {
+  background: transparent;
+}
