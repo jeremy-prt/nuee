@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import WorkspacePane from '@/components/workspace/WorkspacePane.vue'
+import { useNewChat } from '@/composables/useNewChat'
 import { useWorkspaceStore } from '@/stores/workspace'
 
 const { t } = useI18n()
 const workspace = useWorkspaceStore()
+const newChat = useNewChat()
 </script>
 
 <template>
@@ -19,9 +21,9 @@ const workspace = useWorkspaceStore()
     <button
       type="button"
       class="h-8 rounded-md border border-stroke px-3 text-sm hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-accent"
-      @click="workspace.openChat()"
+      @click="newChat()"
     >
-      {{ t('shell.newChat') }}
+      {{ t('chats.newChat') }}
     </button>
   </div>
 </template>

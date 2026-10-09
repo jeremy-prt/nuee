@@ -4,21 +4,24 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatPane from '@/components/chat/ChatPane.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
+import { useTabTitle } from '@/composables/useTabTitle'
 import { useWorkspaceStore } from '@/stores/workspace'
 
 const props = defineProps<{ index: number }>()
 
 const { t } = useI18n()
 const workspace = useWorkspaceStore()
+const { tabTitle } = useTabTitle()
 
 const tab = computed(() => workspace.tabs.find((tab) => tab.id === workspace.panes[props.index]))
-const title = computed(() => (tab.value ? t('workspace.chatTitle', { n: tab.value.number }) : ''))
+const title = computed(() => (tab.value ? tabTitle(tab.value) : ''))
 const focused = computed(() => workspace.focusedPane === props.index)
 </script>
 
 <template>
   <section
     class="flex min-w-0 flex-1 flex-col"
+    :data-pane-index="index"
     :aria-label="title"
     @pointerdown="workspace.focusedPane = index"
     @focusin="workspace.focusedPane = index"

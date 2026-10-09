@@ -5,6 +5,7 @@
 
 @theme {
   --color-canvas: hsl(240 0% 9%);
+  --color-overlay: hsl(240 0% 14%);
   --color-content: hsl(240 0% 92%);
   --color-muted: color-mix(in srgb, var(--color-content) 55%, transparent);
   --color-stroke: color-mix(in srgb, var(--color-content) 8%, transparent);

@@ -12,6 +12,8 @@ pub fn run() {
     let builder = builder.menu(menu::build);
 
     builder
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             if let Some(main) = app.get_webview_window("main") {
                 window::fit_to_screen(&main)?;

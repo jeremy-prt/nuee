@@ -1,32 +1,56 @@
 <script setup lang="ts">
+import { TooltipProvider } from 'reka-ui'
 import { computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ShellDock from '@/components/shell/ShellDock.vue'
-import ShellConversations from '@/components/shell/ShellConversations.vue'
 import ShellRail from '@/components/shell/ShellRail.vue'
 import ShellResizeHandle from '@/components/shell/ShellResizeHandle.vue'
+import ShellSidePanel from '@/components/shell/ShellSidePanel.vue'
 import ShellTitleBar from '@/components/shell/ShellTitleBar.vue'
+import { useNewChat } from '@/composables/useNewChat'
+import { useDragStore } from '@/stores/drag'
 import { SIZES, useLayoutStore } from '@/stores/layout'
+import { useNavigationStore } from '@/stores/navigation'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { matchesShortcut, type Shortcut, shortcuts } from '@/utils/shortcuts'
+import HomeView from '@/views/HomeView.vue'
+import PlaceholderView from '@/views/PlaceholderView.vue'
+import SearchView from '@/views/SearchView.vue'
+import UpdatesView from '@/views/UpdatesView.vue'
 import WorkspaceView from '@/views/WorkspaceView.vue'
 
 // ===== Initialisation =====
 const { t } = useI18n()
 const layout = useLayoutStore()
+const navigation = useNavigationStore()
 const workspace = useWorkspaceStore()
+const drag = useDragStore()
+const newChat = useNewChat()
 
+const inChats = computed(() => navigation.view === 'chats')
 const showBottomDock = computed(() => layout.bottom.open && layout.viewsIn('bottom').length > 0)
 const showRightDock = computed(() => layout.right.open && layout.viewsIn('right').length > 0)
 
+// Raccourcis propres aux chats : sans effet sur les autres vues.
+function inChatsOnly(action: () => void) {
+  return () => {
+    if (inChats.value) action()
+  }
+}
+
+function togglePanel() {
+  if (navigation.hasPanel) layout.togglePanel()
+}
+
 const actions: [Shortcut, () => void][] = [
   [shortcuts.toggleRail, layout.toggleRail],
-  [shortcuts.toggleConversations, layout.toggleConversations],
-  [shortcuts.toggleRightDock, () => layout.toggleDock('right')],
-  [shortcuts.toggleBottomDock, () => layout.toggleDock('bottom')],
-  [shortcuts.newChat, workspace.openChat],
-  [shortcuts.closeTab, workspace.closeActiveTab],
-  [shortcuts.split, workspace.split],
+  [shortcuts.newChat, () => newChat()],
+  [shortcuts.search, () => navigation.go('search')],
+  [shortcuts.togglePanel, togglePanel],
+  [shortcuts.toggleRightDock, inChatsOnly(() => layout.toggleDock('right'))],
+  [shortcuts.toggleBottomDock, inChatsOnly(() => layout.toggleDock('bottom'))],
+  [shortcuts.closeTab, inChatsOnly(workspace.closeActiveTab)],
+  [shortcuts.split, inChatsOnly(workspace.split)],
 ]
 
 function onKeydown(event: KeyboardEvent) {
@@ -36,64 +60,87 @@ function onKeydown(event: KeyboardEvent) {
   action[1]()
 }
 
-onMounted(() => {
-  window.addEventListener('keydown', onKeydown)
-  workspace.openChat()
-})
+onMounted(() => window.addEventListener('keydown', onKeydown))
 onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 </script>
 
 <template>
-  <h1 class="sr-only">Nuée</h1>
-  <div class="flex h-full">
-    <template v-if="layout.rail.open">
-      <ShellRail :style="{ width: `${layout.rail.width}px` }" />
-      <ShellResizeHandle
-        v-model="layout.rail.width"
-        v-bind="SIZES.rail"
-        orientation="vertical"
-        :label="t('shell.resizeRail')"
-      />
-    </template>
-    <template v-if="layout.conversations.open">
-      <ShellConversations :style="{ width: `${layout.conversations.width}px` }" />
-      <ShellResizeHandle
-        v-model="layout.conversations.width"
-        v-bind="SIZES.conversations"
-        orientation="vertical"
-        :label="t('shell.resizeConversations')"
-      />
-    </template>
-
-    <div class="flex min-w-0 flex-1 flex-col bg-canvas macos:bg-canvas/70">
+  <TooltipProvider :delay-duration="400" :skip-delay-duration="300">
+    <h1 class="sr-only">Nuée</h1>
+    <div class="flex h-full flex-col">
       <ShellTitleBar />
       <div class="flex min-h-0 flex-1">
-        <div class="flex min-w-0 flex-1 flex-col">
-          <main class="min-h-0 flex-1">
-            <WorkspaceView />
-          </main>
-          <template v-if="showBottomDock">
+        <ShellRail />
+        <ShellResizeHandle
+          v-if="layout.rail.expanded"
+          v-model="layout.rail.width"
+          v-bind="SIZES.rail"
+          orientation="vertical"
+          :label="t('rail.resize')"
+        />
+        <div v-else class="w-px shrink-0 bg-stroke" />
+
+        <template v-if="navigation.hasPanel && layout.panel.open">
+          <ShellSidePanel :style="{ width: `${layout.panel.width}px` }" />
+          <ShellResizeHandle
+            v-model="layout.panel.width"
+            v-bind="SIZES.panel"
+            orientation="vertical"
+            :label="t('chats.resize')"
+          />
+        </template>
+
+        <div
+          v-if="navigation.view === 'chats'"
+          id="workspace-area"
+          class="flex min-w-0 flex-1 bg-canvas macos:bg-canvas/70"
+        >
+          <div id="workspace-column" class="flex min-w-0 flex-1 flex-col">
+            <main class="min-h-0 flex-1">
+              <WorkspaceView />
+            </main>
+            <template v-if="showBottomDock">
+              <ShellResizeHandle
+                v-model="layout.bottom.size"
+                v-bind="SIZES.bottom"
+                orientation="horizontal"
+                invert
+                :label="t('dock.resize')"
+              />
+              <ShellDock position="bottom" :style="{ height: `${layout.bottom.size}px` }" />
+            </template>
+          </div>
+          <template v-if="showRightDock">
             <ShellResizeHandle
-              v-model="layout.bottom.size"
-              v-bind="SIZES.bottom"
-              orientation="horizontal"
+              v-model="layout.right.size"
+              v-bind="SIZES.right"
+              orientation="vertical"
               invert
               :label="t('dock.resize')"
             />
-            <ShellDock position="bottom" :style="{ height: `${layout.bottom.size}px` }" />
+            <ShellDock position="right" :style="{ width: `${layout.right.size}px` }" />
           </template>
         </div>
-        <template v-if="showRightDock">
-          <ShellResizeHandle
-            v-model="layout.right.size"
-            v-bind="SIZES.right"
-            orientation="vertical"
-            invert
-            :label="t('dock.resize')"
-          />
-          <ShellDock position="right" :style="{ width: `${layout.right.size}px` }" />
-        </template>
+
+        <main v-else class="min-w-0 flex-1 bg-canvas macos:bg-canvas/70">
+          <HomeView v-if="navigation.view === 'home'" />
+          <SearchView v-else-if="navigation.view === 'search'" />
+          <UpdatesView v-else-if="navigation.view === 'updates'" />
+          <PlaceholderView v-else :view="navigation.view" />
+        </main>
       </div>
     </div>
-  </div>
+
+    <div
+      v-if="drag.preview"
+      class="pointer-events-none fixed z-50 rounded-lg border-2 border-accent/60 bg-accent/15 transition-all duration-100 ease-out motion-reduce:transition-none"
+      :style="{
+        left: `${drag.preview.left + 4}px`,
+        top: `${drag.preview.top + 4}px`,
+        width: `${drag.preview.width - 8}px`,
+        height: `${drag.preview.height - 8}px`,
+      }"
+      aria-hidden="true"
+    />
+  </TooltipProvider>
 </template>

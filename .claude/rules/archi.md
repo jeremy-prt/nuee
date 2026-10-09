@@ -69,15 +69,21 @@ src-tauri/src/
 
 - Composants accessibles : reka-ui (headless) habillé dans `components/ui/`, jamais une lib de composants déjà stylés.
 - Couleurs uniquement via les jetons de `main.css` (`canvas`, `content`, `muted`, `stroke`, `selection`, `accent`). Pas de couleur nommée `base` : `text-base` est déjà la taille de texte de Tailwind.
+- Barre latérale repliable : l'icône reste à 16 px du bord dans les deux états (rail `p-2` + item `px-2`, replié à 48 px). Repli instantané, sans animation (choix de Jérémy) ; les libellés restent dans le DOM, masqués. Jamais de `justify-center` ni d'élément qui apparaît au-dessus des icônes au repli.
+- Navigation : `stores/navigation.ts` choisit la vue centrale. Seule la vue `chats` a des onglets, l'historique des chats et les panneaux bas/droite ; Accueil, Issues, Notes, Réglages… sont des pages pleine largeur dans `views/`.
+- Les onglets de la barre de titre démarrent au bord de la colonne centrale : `ShellTitleBar` additionne les largeurs des colonnes de gauche. Une nouvelle colonne à gauche doit entrer dans ce calcul.
+- Barre de titre pleine largeur : une bordure verticale de colonne n'y monte que si elle ne croise pas les boutons de fenêtre macOS (calcul dans `ShellTitleBar`).
 - Transparence et flou : macOS seulement, via la variante `macos:` (classe `is-macos` posée au démarrage). Windows et Linux restent opaques.
 - Raccourcis : déclarés dans `utils/shortcuts.ts`, comparés sur la lettre tapée (en AZERTY, W n'est pas sur la touche physique `KeyW`). Un raccourci ⌘ porté par un élément du menu natif (`src-tauri/src/menu.rs`) n'atteint jamais la webview.
+- Glisser-déposer des onglets et panneaux : `composables/useLayoutDrag.ts` (seuil de 4 px, Échap annule). Il repère les zones par `data-tab-strip`, `data-tab-id`, `data-pane-index`, `#workspace-area` et `#workspace-column` : renommer l'un casse le dépôt sans erreur.
 - Disposition (panneaux, tailles) mémorisée en localStorage par `stores/layout.ts` : confort local, rien de critique. Une nouvelle valeur par défaut ne touche pas une disposition déjà enregistrée : changer `STORAGE_KEY` pour repartir de zéro.
 
 ## Sécurité
 
 - Capabilities ciblées sur `"main"`, jamais `"*"`. Pas de permission `fs:` ni `shell:` exposée au front : tout passe par nos commandes, qui canonisent les chemins sous la racine du workspace.
 - Pas de `v-html` sur une sortie d'agent (markdown assaini) : une XSS dans la webview donne accès aux commandes, donc au lancement de process.
-- CSP définie dans `tauri.conf.json` : ne pas la repasser à `null`, ne pas charger de CDN.
+- CSP définie dans `tauri.conf.json` : ne pas la repasser à `null`, ne pas charger de CDN. Seul domaine externe autorisé : `api.github.com` (vérification des mises à jour).
+- `opener` n'ouvre que `https://github.com/jeremy-prt/nuee/releases/*` (scope dans la capability) : élargir ce scope au cas par cas.
 
 ## Divers
 

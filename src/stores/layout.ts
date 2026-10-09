@@ -11,26 +11,28 @@ interface Dock {
 }
 
 interface LayoutState {
-  rail: { open: boolean; width: number }
-  conversations: { open: boolean; width: number }
+  rail: { expanded: boolean; width: number }
+  panel: { open: boolean; width: number }
   right: Dock
   bottom: Dock
   views: Record<DockView, DockPosition>
 }
 
-const STORAGE_KEY = 'nuee.layout.v2'
+const STORAGE_KEY = 'nuee.layout.v5'
+
+export const RAIL_COLLAPSED_WIDTH = 48
 
 export const SIZES = {
   rail: { min: 160, max: 320, defaultSize: 180 },
-  conversations: { min: 200, max: 420, defaultSize: 240 },
+  panel: { min: 200, max: 420, defaultSize: 240 },
   right: { min: 280, max: 800, defaultSize: 420 },
   bottom: { min: 160, max: 600, defaultSize: 260 },
 }
 
 function defaults(): LayoutState {
   return {
-    rail: { open: true, width: SIZES.rail.defaultSize },
-    conversations: { open: true, width: SIZES.conversations.defaultSize },
+    rail: { expanded: true, width: SIZES.rail.defaultSize },
+    panel: { open: true, width: SIZES.panel.defaultSize },
     right: { open: false, size: SIZES.right.defaultSize, active: 'changes' },
     bottom: { open: false, size: SIZES.bottom.defaultSize, active: 'terminal' },
     views: { terminal: 'bottom', changes: 'right', files: 'right' },
@@ -66,11 +68,11 @@ export const useLayoutStore = defineStore('layout', () => {
   }
 
   function toggleRail() {
-    state.rail.open = !state.rail.open
+    state.rail.expanded = !state.rail.expanded
   }
 
-  function toggleConversations() {
-    state.conversations.open = !state.conversations.open
+  function togglePanel() {
+    state.panel.open = !state.panel.open
   }
 
   function toggleDock(position: DockPosition) {
@@ -91,5 +93,5 @@ export const useLayoutStore = defineStore('layout', () => {
     if (!remaining.length) state[from].open = false
   }
 
-  return { ...toRefs(state), viewsIn, toggleRail, toggleConversations, toggleDock, moveView }
+  return { ...toRefs(state), viewsIn, toggleRail, togglePanel, toggleDock, moveView }
 })

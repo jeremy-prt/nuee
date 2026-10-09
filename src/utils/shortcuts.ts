@@ -6,7 +6,8 @@ export interface Shortcut {
 
 export const shortcuts = {
   toggleRail: { key: 'b' },
-  toggleConversations: { key: 'b', shift: true },
+  togglePanel: { key: 'b', shift: true },
+  search: { key: 'k' },
   toggleRightDock: { key: 'b', alt: true },
   toggleBottomDock: { key: 'j' },
   newChat: { key: 'n' },
