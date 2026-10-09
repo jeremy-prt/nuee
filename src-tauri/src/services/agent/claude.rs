@@ -3,7 +3,10 @@ use std::path::{Path, PathBuf};
 
 use serde_json::Value;
 
-use super::{AgentEvent, Driver, Outcome, ToolKind, TurnRequest, TurnStatus};
+use super::{
+    AgentEvent, Catalog, Driver, Effort, ModelInfo, Outcome, PermissionMode, ToolKind, TurnRequest,
+    TurnStatus,
+};
 
 const OUTPUT_LIMIT: usize = 4000;
 
@@ -131,6 +134,64 @@ impl Driver for Claude {
         "claude"
     }
 
+    fn catalog_probe(&self) -> (Vec<String>, String) {
+        let args = [
+            "-p",
+            "--input-format",
+            "stream-json",
+            "--output-format",
+            "stream-json",
+            "--verbose",
+            "--no-session-persistence",
+            // Sans serveurs MCP : la réponse arrive sans attendre qu'ils démarrent.
+            "--strict-mcp-config",
+            "--mcp-config",
+            r#"{"mcpServers":{}}"#,
+        ];
+        let request = r#"{"type":"control_request","request_id":"nuee-catalog","request":{"subtype":"initialize"}}"#;
+        (args.map(String::from).into(), request.to_owned())
+    }
+
+    fn parse_catalog(&self, line: &str) -> Option<Catalog> {
+        let line: Value = serde_json::from_str(line).ok()?;
+        let response = &line["response"];
+        if line["type"] != "control_response" || response["request_id"] != "nuee-catalog" {
+            return None;
+        }
+        let rows = response["response"]["models"].as_array()?;
+        // La ligne « default » ne sert qu'à dire lequel des vrais modèles est choisi par défaut.
+        let default_target = rows
+            .iter()
+            .find(|row| row["value"] == "default")
+            .map(|row| &row["resolvedModel"]);
+        let models: Vec<ModelInfo> = rows
+            .iter()
+            .filter(|row| row["value"] != "default" && row["disabled"] != true)
+            .map(|row| ModelInfo {
+                value: str_of(&row["value"]).to_owned(),
+                label: str_of(&row["displayName"]).to_owned(),
+                description: str_of(&row["description"]).to_owned(),
+                efforts: row["supportedEffortLevels"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(|level| effort_of(level.as_str()?))
+                    .collect(),
+            })
+            .filter(|model| !model.value.is_empty())
+            .collect();
+        let default_model = default_target.and_then(|target| {
+            rows.iter()
+                .find(|row| row["value"] != "default" && &row["resolvedModel"] == target)
+                .map(|row| str_of(&row["value"]).to_owned())
+        });
+        Some(Catalog {
+            models,
+            default_model,
+            default_effort: user_effort().unwrap_or(Effort::High),
+        })
+    }
+
     fn args(&self, request: &TurnRequest) -> Vec<String> {
         let mut args: Vec<String> = [
             "-p",
@@ -141,6 +202,26 @@ impl Driver for Claude {
         ]
         .map(String::from)
         .into();
+        let options = &request.options;
+        // Le flag dédié plutôt que `--permission-mode bypassPermissions` : il ne dépend pas
+        // d'une acceptation préalable du mode dans la config de l'utilisateur.
+        match options.mode {
+            PermissionMode::Bypass => args.push("--dangerously-skip-permissions".into()),
+            PermissionMode::Auto => args.extend(["--permission-mode".into(), "auto".into()]),
+        }
+        if let Some(model) = &options.model {
+            args.extend(["--model".into(), model.clone()]);
+        }
+        if let Some(effort) = options.effort {
+            let level = match effort {
+                Effort::Low => "low",
+                Effort::Medium => "medium",
+                Effort::High => "high",
+                Effort::Xhigh => "xhigh",
+                Effort::Max => "max",
+            };
+            args.extend(["--effort".into(), level.into()]);
+        }
         if let Some(id) = &request.session_id {
             args.extend(["--resume".to_owned(), id.clone()]);
         }
@@ -210,6 +291,27 @@ fn describe(name: &str, input: &Value, cwd: &Path) -> (ToolKind, Option<String>)
         "Task" | "Agent" => (ToolKind::Agent, field("description").map(str::to_owned)),
         _ => (ToolKind::Other, None),
     }
+}
+
+fn effort_of(level: &str) -> Option<Effort> {
+    match level {
+        "low" => Some(Effort::Low),
+        "medium" => Some(Effort::Medium),
+        "high" => Some(Effort::High),
+        "xhigh" => Some(Effort::Xhigh),
+        "max" => Some(Effort::Max),
+        _ => None,
+    }
+}
+
+/// Effort réglé dans la config Claude de l'utilisateur : Nuée l'affiche comme valeur de départ.
+fn user_effort() -> Option<Effort> {
+    let dir = std::env::var_os("CLAUDE_CONFIG_DIR")
+        .map(PathBuf::from)
+        .or_else(|| std::env::home_dir().map(|home| home.join(".claude")))?;
+    let settings: Value =
+        serde_json::from_str(&std::fs::read_to_string(dir.join("settings.json")).ok()?).ok()?;
+    effort_of(settings["effortLevel"].as_str()?)
 }
 
 fn str_of(value: &Value) -> &str {
@@ -330,6 +432,61 @@ mod tests {
                 Some("Not logged in · Please run /login".into())
             ))
         );
+    }
+
+    #[test]
+    fn options_become_cli_flags() {
+        let request = TurnRequest {
+            chat_id: "c".into(),
+            agent: super::super::AgentKind::Claude,
+            cwd: Some("/projet".into()),
+            prompt: "salut".into(),
+            session_id: Some("s1".into()),
+            options: super::super::TurnOptions {
+                mode: PermissionMode::Auto,
+                model: Some("opus".into()),
+                effort: Some(Effort::Xhigh),
+            },
+        };
+        let args = Claude::new(Path::new("/projet")).args(&request);
+        let tail: Vec<&str> = args.iter().skip(5).map(String::as_str).collect();
+        assert_eq!(
+            tail,
+            [
+                "--permission-mode",
+                "auto",
+                "--model",
+                "opus",
+                "--effort",
+                "xhigh",
+                "--resume",
+                "s1"
+            ]
+        );
+    }
+
+    #[test]
+    fn catalog_hides_the_default_row_but_remembers_its_target() {
+        let line = r#"{"type":"control_response","response":{"subtype":"success","request_id":"nuee-catalog","response":{"models":[
+            {"value":"default","resolvedModel":"claude-opus-5-5","displayName":"Default (recommended)"},
+            {"value":"opus","resolvedModel":"claude-opus-5-5","displayName":"Opus 5.5","description":"Complexe","supportedEffortLevels":["low","high","xhigh"]},
+            {"value":"claude-haiku-4-5","resolvedModel":"claude-haiku-4-5","displayName":"Haiku 4.5","description":"Rapide"}
+        ]}}}"#;
+        let catalog = Claude::new(Path::new("/"))
+            .parse_catalog(&line.replace('\n', ""))
+            .expect("catalogue");
+        assert_eq!(catalog.default_model.as_deref(), Some("opus"));
+        let labels: Vec<&str> = catalog
+            .models
+            .iter()
+            .map(|model| model.label.as_str())
+            .collect();
+        assert_eq!(labels, ["Opus 5.5", "Haiku 4.5"]);
+        assert_eq!(
+            catalog.models[0].efforts,
+            [Effort::Low, Effort::High, Effort::Xhigh]
+        );
+        assert!(catalog.models[1].efforts.is_empty());
     }
 
     #[test]

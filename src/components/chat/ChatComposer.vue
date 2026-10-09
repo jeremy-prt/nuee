@@ -1,15 +1,64 @@
 <script setup lang="ts">
 import { ArrowUp, Square } from '@lucide/vue'
-import { ref, useId, useTemplateRef } from 'vue'
+import { computed, ref, useId, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
+import UiSelect from '@/components/ui/UiSelect.vue'
+import type { Catalog } from '@/ipc/bindings/Catalog'
+import type { Effort } from '@/ipc/bindings/Effort'
+import type { PermissionMode } from '@/ipc/bindings/PermissionMode'
+import type { TurnOptions } from '@/ipc/bindings/TurnOptions'
 
-const props = defineProps<{ agentName: string; disabled: boolean; running: boolean }>()
+const props = defineProps<{
+  agentName: string
+  // null tant que l'agent n'a pas décrit ses modèles : on laisse alors son choix par défaut.
+  catalog: Catalog | null
+  disabled: boolean
+  running: boolean
+}>()
+// Réglages résolus : modèle et effort sont toujours des valeurs réelles du catalogue.
+const options = defineModel<TurnOptions>('options', { required: true })
 const emit = defineEmits<{ send: [prompt: string]; stop: [] }>()
 
 const { t } = useI18n()
 const prompt = ref('')
 const id = useId()
 const input = useTemplateRef('input')
+
+const modeOptions = computed(() =>
+  (['bypass', 'auto'] as const).map((mode) => ({
+    value: mode,
+    label: t(`composer.mode.${mode}`),
+    hint: t(`composer.mode.${mode}Hint`),
+  })),
+)
+const modelOptions = computed(() =>
+  (props.catalog?.models ?? []).map((model) => ({
+    value: model.value,
+    label: model.label,
+    hint: model.value === props.catalog?.defaultModel ? t('composer.default') : undefined,
+  })),
+)
+const efforts = computed(() => props.catalog?.models.find((model) => model.value === options.value.model)?.efforts ?? [])
+const effortOptions = computed(() =>
+  efforts.value.map((effort) => ({
+    value: effort,
+    label: t(`composer.effort.${effort}`),
+    hint: effort === props.catalog?.defaultEffort ? t('composer.default') : undefined,
+  })),
+)
+
+const mode = computed({
+  get: () => options.value.mode,
+  set: (value: string) => (options.value = { ...options.value, mode: value as PermissionMode }),
+})
+const model = computed({
+  get: () => options.value.model ?? '',
+  set: (value: string) => (options.value = { ...options.value, model: value }),
+})
+const effort = computed({
+  get: () => options.value.effort ?? '',
+  set: (value: string) => (options.value = { ...options.value, effort: value as Effort }),
+})
 
 function submit() {
   const text = prompt.value.trim()
@@ -45,8 +94,24 @@ function onEnter(event: KeyboardEvent) {
       :placeholder="t('composer.placeholder')"
       @keydown.enter="onEnter"
     />
-    <div class="flex items-center justify-between gap-2">
-      <span class="text-xs text-muted">{{ agentName }}</span>
+    <div class="flex items-center gap-1">
+      <span class="pe-1 text-xs text-muted">{{ agentName }}</span>
+      <UiSelect v-model="mode" :label="t('composer.mode.label')" :options="modeOptions" :disabled="disabled" />
+      <UiSelect
+        v-if="modelOptions.length"
+        v-model="model"
+        :label="t('composer.model.label')"
+        :options="modelOptions"
+        :disabled="disabled"
+      />
+      <UiSelect
+        v-if="effortOptions.length"
+        v-model="effort"
+        :label="t('composer.effort.label')"
+        :options="effortOptions"
+        :disabled="disabled"
+      />
+      <span class="flex-1" />
       <button
         v-if="running"
         type="button"

@@ -19,7 +19,7 @@ use crate::error::AppError;
 use crate::utils::shell_env;
 
 /// Agents qu'on sait lancer. En ajouter un : une variante ici, un `Driver` dans son fichier.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub enum AgentKind {
@@ -40,10 +40,45 @@ impl AgentKind {
 pub struct TurnRequest {
     pub chat_id: String,
     pub agent: AgentKind,
-    pub cwd: String,
+    /// Dossier du projet. `None` : chat sans projet, l'agent travaille dans un dossier vide propre au chat.
+    pub cwd: Option<String>,
     pub prompt: String,
     /// Session renvoyée par l'agent au tour précédent : la reprendre garde le fil de la conversation.
     pub session_id: Option<String>,
+    pub options: TurnOptions,
+}
+
+/// Réglages d'un chat, repris à chaque tour : en changer en cours de conversation est possible.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct TurnOptions {
+    pub mode: PermissionMode,
+    /// Valeur prise dans le catalogue de l'agent ; `None` laisse l'agent choisir.
+    pub model: Option<String>,
+    pub effort: Option<Effort>,
+}
+
+/// Pas de mode « validation manuelle » : Nuée laisse l'agent agir seul.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum PermissionMode {
+    /// Aucune demande de permission.
+    Bypass,
+    /// L'agent juge lui-même ce qui est risqué.
+    Auto,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum Effort {
+    Low,
+    Medium,
+    High,
+    Xhigh,
+    Max,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
@@ -67,6 +102,28 @@ pub enum TurnStatus {
     Failed,
     Stopped,
     Unauthenticated,
+}
+
+/// Modèles proposés par l'agent installé, tels qu'il les décrit lui-même.
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct Catalog {
+    pub models: Vec<ModelInfo>,
+    /// `value` du modèle utilisé quand on n'en choisit aucun.
+    pub default_model: Option<String>,
+    pub default_effort: Effort,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct ModelInfo {
+    pub value: String,
+    pub label: String,
+    pub description: String,
+    /// Vide quand le modèle ne règle pas son effort.
+    pub efforts: Vec<Effort>,
 }
 
 /// Flux commun à tous les agents : chaque driver traduit sa sortie dans ces événements.
@@ -116,8 +173,11 @@ pub struct Outcome {
 
 /// Ce qu'un agent fournit pour être branché : sa ligne de commande et la lecture de sa sortie.
 /// Le prompt part toujours sur stdin. Un driver ne sert qu'à un tour : il garde l'état du flux.
-trait Driver: Send {
+trait Driver: Send + Sync {
     fn binary(&self) -> &'static str;
+    /// Lance l'agent sans tour pour qu'il décrive ses modèles : ses arguments et la ligne à lui écrire.
+    fn catalog_probe(&self) -> (Vec<String>, String);
+    fn parse_catalog(&self, line: &str) -> Option<Catalog>;
     fn args(&self, request: &TurnRequest) -> Vec<String>;
     fn parse_line(&mut self, line: &str) -> Vec<AgentEvent>;
     fn outcome(&self) -> Option<&Outcome>;
@@ -125,6 +185,7 @@ trait Driver: Send {
 
 /// Temps laissé à l'agent pour quitter après son bilan, puis après un SIGTERM.
 const GRACE: Duration = Duration::from_secs(2);
+const CATALOG_TIMEOUT: Duration = Duration::from_secs(20);
 const STDERR_TAIL: usize = 2000;
 
 struct Running {
@@ -136,15 +197,29 @@ struct Running {
 type Registry = Arc<Mutex<HashMap<String, Running>>>;
 
 /// Un process par tour : le prompt part sur stdin, la sortie revient ligne par ligne sur le canal.
-#[derive(Default)]
 pub struct AgentService {
     running: Registry,
     next_turn: AtomicU64,
+    /// Parent des dossiers de travail des chats sans projet.
+    scratch: PathBuf,
+    catalogs: Mutex<HashMap<AgentKind, Catalog>>,
 }
 
 impl AgentService {
+    pub fn new(scratch: PathBuf) -> Self {
+        Self {
+            running: Registry::default(),
+            next_turn: AtomicU64::new(0),
+            scratch,
+            catalogs: Mutex::default(),
+        }
+    }
+
     pub fn send(&self, request: TurnRequest, channel: Channel<AgentEvent>) -> Result<(), AppError> {
-        let cwd = valid_dir(&request.cwd)?;
+        let cwd = match &request.cwd {
+            Some(path) => valid_dir(path)?,
+            None => self.scratch_dir(&request.chat_id)?,
+        };
         if request.prompt.trim().is_empty() {
             return Err(AppError::InvalidInput("message vide".into()));
         }
@@ -157,6 +232,11 @@ impl AgentService {
         }
 
         let driver = request.agent.driver(&cwd);
+        if let Some(model) = &request.options.model
+            && !self.knows_model(request.agent, model)
+        {
+            return Err(AppError::InvalidInput(format!("modèle inconnu : {model}")));
+        }
         let program = shell_env::find_binary(driver.binary())
             .ok_or(AppError::AgentNotFound(driver.binary()))?;
 
@@ -196,26 +276,111 @@ impl AgentService {
         Ok(())
     }
 
-    /// SIGTERM au groupe, puis SIGKILL si l'agent n'est pas sorti à temps.
+    /// SIGINT d'abord, puis SIGTERM puis SIGKILL au groupe tant que l'agent n'est pas sorti.
     pub fn stop(&self, chat_id: &str) {
         let running = lock(&self.running);
         let Some(entry) = running.get(chat_id) else {
             return;
         };
         entry.stopped.store(true, Ordering::Relaxed);
-        process::kill_tree(entry.pid, false);
+        process::interrupt(entry.pid);
 
         let (pid, turn, chat_id) = (entry.pid, entry.turn, chat_id.to_owned());
         let registry = self.running.clone();
         tauri::async_runtime::spawn(async move {
-            tokio::time::sleep(GRACE).await;
-            if lock(&registry)
-                .get(&chat_id)
-                .is_some_and(|entry| entry.turn == turn)
-            {
-                process::kill_tree(pid, true);
+            for force in [false, true] {
+                tokio::time::sleep(GRACE).await;
+                let alive = lock(&registry)
+                    .get(&chat_id)
+                    .is_some_and(|entry| entry.turn == turn);
+                if !alive {
+                    return;
+                }
+                process::kill_tree(pid, force);
             }
         });
+    }
+
+    /// Lu une fois par lancement de l'app : l'agent met une à deux secondes à répondre.
+    pub async fn catalog(&self, kind: AgentKind) -> Result<Catalog, AppError> {
+        if let Some(catalog) = self
+            .catalogs
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .get(&kind)
+        {
+            return Ok(catalog.clone());
+        }
+        std::fs::create_dir_all(&self.scratch)?;
+        let driver = kind.driver(&self.scratch);
+        let program = shell_env::find_binary(driver.binary())
+            .ok_or(AppError::AgentNotFound(driver.binary()))?;
+        let (args, line) = driver.catalog_probe();
+        let mut child = spawn(&program, args, &self.scratch)?;
+
+        // stdin reste ouvert : à sa fermeture l'agent quitterait avant d'avoir répondu.
+        let mut stdin = child.stdin.take();
+        if let Some(stdin) = stdin.as_mut() {
+            stdin.write_all(format!("{line}\n").as_bytes()).await?;
+            stdin.flush().await?;
+        }
+        let read = async {
+            let stdout = child.stdout.take()?;
+            let mut lines = BufReader::new(stdout).lines();
+            while let Ok(Some(line)) = lines.next_line().await {
+                if let Some(catalog) = driver.parse_catalog(&line) {
+                    return Some(catalog);
+                }
+            }
+            None
+        };
+        let catalog = timeout(CATALOG_TIMEOUT, read).await.ok().flatten();
+        drop(stdin);
+        if let Some(pid) = child.id() {
+            process::kill_tree(pid, true);
+        }
+        let _ = child.wait().await;
+
+        let catalog = catalog.ok_or_else(|| {
+            AppError::AgentFailed(format!("{} n'a pas décrit ses modèles", driver.binary()))
+        })?;
+        self.catalogs
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .insert(kind, catalog.clone());
+        Ok(catalog)
+    }
+
+    /// Le dossier de travail d'un chat sans projet disparaît avec lui.
+    pub fn discard_scratch(&self, chat_id: &str) {
+        if valid_session_id(chat_id) {
+            let _ = std::fs::remove_dir_all(self.scratch.join(chat_id));
+        }
+    }
+
+    fn scratch_dir(&self, chat_id: &str) -> Result<PathBuf, AppError> {
+        // L'id devient un nom de dossier : rien qui permette d'en sortir.
+        if !valid_session_id(chat_id) {
+            return Err(AppError::InvalidInput(
+                "identifiant de chat invalide".into(),
+            ));
+        }
+        let dir = self.scratch.join(chat_id);
+        std::fs::create_dir_all(&dir)?;
+        Ok(dir)
+    }
+
+    /// Sans catalogue (agent qui n'a pas répondu), seule la forme de la valeur est vérifiée.
+    fn knows_model(&self, kind: AgentKind, model: &str) -> bool {
+        match self
+            .catalogs
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .get(&kind)
+        {
+            Some(catalog) => catalog.models.iter().any(|known| known.value == model),
+            None => valid_session_id(model),
+        }
     }
 
     /// À la fermeture de l'app : sans ça, les agents en cours survivraient à la fenêtre.
@@ -371,6 +536,12 @@ mod tests {
     impl Driver for Silent {
         fn binary(&self) -> &'static str {
             "sh"
+        }
+        fn catalog_probe(&self) -> (Vec<String>, String) {
+            (Vec::new(), String::new())
+        }
+        fn parse_catalog(&self, _: &str) -> Option<Catalog> {
+            None
         }
         fn args(&self, _: &TurnRequest) -> Vec<String> {
             Vec::new()

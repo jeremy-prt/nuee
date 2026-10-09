@@ -13,12 +13,15 @@ export default {
     chats: 'Chats',
     projects: 'Projets',
     addProject: 'Ajouter un projet',
+    pickProject: 'Choisis le dossier du projet. Les agents y travailleront sans demander, hooks et serveurs MCP du projet compris.',
     usage: 'Quota',
     updates: 'Mises à jour',
     settings: 'Réglages',
   },
   chats: {
     newChat: 'Nouveau chat',
+    delete: 'Supprimer le chat',
+    confirmDelete: 'Clique encore pour supprimer définitivement',
     toggle: 'Afficher ou masquer le panneau latéral',
     resize: 'Redimensionner le panneau latéral',
     empty: 'Aucun chat pour le moment. Lance-en un avec {shortcut}.',
@@ -52,8 +55,8 @@ export default {
     },
   },
   chat: {
-    subtitle: 'Ouvre un projet et lance un agent de code pour commencer.',
     ready: 'Demande ce que tu veux à {agent} sur {project}.',
+    readyNoProject: 'Une question rapide ? {agent} répond sans dossier de projet.',
     transcript: 'Conversation',
     working: '{agent} travaille…',
     tool: {
@@ -70,9 +73,11 @@ export default {
     },
     errors: {
       agentNotFound: '{agent} est introuvable sur cet ordinateur. Installe-le, puis vérifie que « {command} » se lance dans un terminal.',
+      agentFailed: '{agent} n\'a pas répondu : {detail}',
       busy: 'Une réponse est déjà en cours dans ce chat.',
       invalidInput: 'Impossible de lancer l\'agent : {detail}',
       io: 'Impossible de lancer l\'agent : {detail}',
+      database: 'Impossible d\'accéder à l\'historique des chats : {detail}',
     },
   },
   composer: {
@@ -80,6 +85,25 @@ export default {
     placeholder: 'Décris ce que tu veux construire…',
     send: 'Envoyer',
     stop: 'Arrêter',
+    default: 'Par défaut',
+    mode: {
+      label: 'Mode de permission',
+      bypass: 'Bypass',
+      bypassHint: 'Aucune demande de permission : l\'agent lit, écrit et lance des commandes seul.',
+      auto: 'Auto',
+      autoHint: 'L\'agent juge lui-même ce qui est risqué et s\'en abstient.',
+    },
+    model: {
+      label: 'Modèle',
+    },
+    effort: {
+      label: 'Effort',
+      low: 'Faible',
+      medium: 'Moyen',
+      high: 'Élevé',
+      xhigh: 'Très élevé',
+      max: 'Max',
+    },
   },
   home: {
     subtitle: 'Le résumé de ton activité apparaîtra ici.',

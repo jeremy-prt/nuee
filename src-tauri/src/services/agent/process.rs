@@ -1,6 +1,25 @@
 #[cfg(windows)]
 pub const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
+/// Comme Ctrl+C : l'agent clôt son tour et range sa session avant de sortir.
+#[cfg(unix)]
+pub fn interrupt(pid: u32) {
+    if let Ok(pid) = libc::pid_t::try_from(pid)
+        && pid > 0
+    {
+        // SAFETY: kill() ne touche pas à la mémoire ; au pire le PID n'existe plus et l'appel échoue.
+        unsafe {
+            libc::kill(pid, libc::SIGINT);
+        }
+    }
+}
+
+/// Pas de Ctrl+C à envoyer à un process sans console : on passe directement à l'arrêt.
+#[cfg(windows)]
+pub fn interrupt(pid: u32) {
+    kill_tree(pid, false);
+}
+
 /// Tue l'agent et ce qu'il a lancé : le process a été créé en tête de son propre groupe.
 #[cfg(unix)]
 pub fn kill_tree(pid: u32, force: bool) {

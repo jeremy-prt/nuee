@@ -11,12 +11,15 @@ export default {
     chats: 'Chats',
     projects: 'Projects',
     addProject: 'Add a project',
+    pickProject: 'Choose the project folder. Agents will work in it without asking, including its hooks and MCP servers.',
     usage: 'Usage',
     updates: 'Updates',
     settings: 'Settings',
   },
   chats: {
     newChat: 'New chat',
+    delete: 'Delete chat',
+    confirmDelete: 'Click again to delete for good',
     toggle: 'Toggle side panel',
     resize: 'Resize side panel',
     empty: 'No chats yet. Start one with {shortcut}.',
@@ -50,8 +53,8 @@ export default {
     },
   },
   chat: {
-    subtitle: 'Open a project and launch a coding agent to get started.',
     ready: 'Ask {agent} anything about {project}.',
+    readyNoProject: 'A quick question? {agent} answers without a project folder.',
     transcript: 'Conversation',
     working: '{agent} is working…',
     tool: {
@@ -68,9 +71,11 @@ export default {
     },
     errors: {
       agentNotFound: '{agent} was not found on this computer. Install it, then check that “{command}” runs in a terminal.',
+      agentFailed: '{agent} did not respond: {detail}',
       busy: 'A reply is already in progress in this chat.',
       invalidInput: 'Could not start the agent: {detail}',
       io: 'Could not start the agent: {detail}',
+      database: 'Could not access the chat history: {detail}',
     },
   },
   composer: {
@@ -78,6 +83,25 @@ export default {
     placeholder: 'Describe what you want to build…',
     send: 'Send',
     stop: 'Stop',
+    default: 'Default',
+    mode: {
+      label: 'Permission mode',
+      bypass: 'Bypass',
+      bypassHint: 'No permission requests: the agent reads, writes and runs commands on its own.',
+      auto: 'Auto',
+      autoHint: 'The agent decides what is risky and holds back on it.',
+    },
+    model: {
+      label: 'Model',
+    },
+    effort: {
+      label: 'Effort',
+      low: 'Low',
+      medium: 'Medium',
+      high: 'High',
+      xhigh: 'Very high',
+      max: 'Max',
+    },
   },
   home: {
     subtitle: 'A summary of your activity will show up here.',

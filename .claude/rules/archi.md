@@ -56,7 +56,10 @@ src-tauri/src/
 - État : `std::sync::Mutex` par défaut, celui de tokio seulement si le verrou doit traverser un `.await`. Jamais de verrou tenu pendant un `.await`. Pas d'`Arc` autour de ce qu'on passe à `manage()`, Tauri l'enveloppe déjà.
 - Process enfants (CLI d'agents) : le front envoie un id d'agent et des options, jamais une ligne de commande. Rust construit la commande depuis une liste connue, garde le PID et tue par ce PID (`kill_on_drop`).
 - Lancée depuis le Finder, l'app n'a pas le PATH du shell : résoudre les binaires d'agents via un login shell.
-- Brancher un agent (Codex, Cursor...) : une variante dans `AgentKind`, un `Driver` dans `services/agent/<agent>.rs` (arguments de la CLI + traduction de sa sortie en `AgentEvent`), son nom et sa commande dans `src/utils/agents.ts`. Un process par tour, prompt sur stdin, session reprise via l'id renvoyé par l'agent.
+- Brancher un agent (Codex, Cursor...) : une variante dans `AgentKind`, un `Driver` dans `services/agent/<agent>.rs` (arguments de la CLI, sonde qui liste ses modèles, traduction de sa sortie en `AgentEvent`), son nom et sa commande dans `src/utils/agents.ts`. Un process par tour, prompt sur stdin, session reprise via l'id renvoyé par l'agent.
+- Modèles et efforts : jamais codés en dur, l'agent installé les décrit (Claude : `control_request` `initialize`, lu une fois par lancement). L'interface montre toujours une valeur réelle (« Opus 5.5 », « Élevé »), jamais « par défaut ». Modes de permission : Bypass et Auto seulement (choix de Jérémy), passés en flag à chaque tour : ils priment sur la config Claude de l'utilisateur.
+- Chat sans projet : Rust le lance dans `<données de l'app>/scratch/<id du chat>`, supprimé avec le chat.
+- Historique : SQLite (`services/chat.rs`), une ligne par chat ; les messages sont un JSON que seul le front lit. Fermer un onglet garde le chat (`layout.tabs` = onglets ouverts, `tabs` = tous les chats) ; seule la corbeille de la barre latérale le supprime. Nouvelle colonne = nouvelle entrée dans `MIGRATIONS`, jamais une modif d'une entrée passée.
 
 ## Textes et langues
 

@@ -13,12 +13,15 @@ export default {
     chats: 'Chats',
     projects: 'Proyectos',
     addProject: 'Añadir un proyecto',
+    pickProject: 'Elige la carpeta del proyecto. Los agentes trabajarán en ella sin preguntar, incluidos sus hooks y servidores MCP.',
     usage: 'Uso',
     updates: 'Actualizaciones',
     settings: 'Ajustes',
   },
   chats: {
     newChat: 'Nuevo chat',
+    delete: 'Eliminar el chat',
+    confirmDelete: 'Haz clic otra vez para eliminarlo definitivamente',
     toggle: 'Mostrar u ocultar el panel lateral',
     resize: 'Cambiar el tamaño del panel lateral',
     empty: 'Aún no hay chats. Empieza uno con {shortcut}.',
@@ -52,8 +55,8 @@ export default {
     },
   },
   chat: {
-    subtitle: 'Abre un proyecto y lanza un agente de código para empezar.',
     ready: 'Pregunta a {agent} lo que quieras sobre {project}.',
+    readyNoProject: '¿Una pregunta rápida? {agent} responde sin carpeta de proyecto.',
     transcript: 'Conversación',
     working: '{agent} está trabajando…',
     tool: {
@@ -70,9 +73,11 @@ export default {
     },
     errors: {
       agentNotFound: 'No se encontró {agent} en este equipo. Instálalo y comprueba que «{command}» se ejecuta en una terminal.',
+      agentFailed: '{agent} no respondió: {detail}',
       busy: 'Ya hay una respuesta en curso en este chat.',
       invalidInput: 'No se pudo iniciar el agente: {detail}',
       io: 'No se pudo iniciar el agente: {detail}',
+      database: 'No se pudo acceder al historial de chats: {detail}',
     },
   },
   composer: {
@@ -80,6 +85,25 @@ export default {
     placeholder: 'Describe lo que quieres construir…',
     send: 'Enviar',
     stop: 'Detener',
+    default: 'Predeterminado',
+    mode: {
+      label: 'Modo de permisos',
+      bypass: 'Bypass',
+      bypassHint: 'Sin solicitudes de permiso: el agente lee, escribe y ejecuta comandos por su cuenta.',
+      auto: 'Auto',
+      autoHint: 'El agente decide qué es arriesgado y se abstiene de hacerlo.',
+    },
+    model: {
+      label: 'Modelo',
+    },
+    effort: {
+      label: 'Esfuerzo',
+      low: 'Bajo',
+      medium: 'Medio',
+      high: 'Alto',
+      xhigh: 'Muy alto',
+      max: 'Máx.',
+    },
   },
   home: {
     subtitle: 'Aquí aparecerá un resumen de tu actividad.',

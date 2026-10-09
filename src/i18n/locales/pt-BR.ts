@@ -13,12 +13,15 @@ export default {
     chats: 'Chats',
     projects: 'Projetos',
     addProject: 'Adicionar um projeto',
+    pickProject: 'Escolha a pasta do projeto. Os agentes vão trabalhar nela sem pedir permissão, incluindo seus hooks e servidores MCP.',
     usage: 'Uso',
     updates: 'Atualizações',
     settings: 'Configurações',
   },
   chats: {
     newChat: 'Novo chat',
+    delete: 'Excluir o chat',
+    confirmDelete: 'Clique de novo para excluir de vez',
     toggle: 'Mostrar ou ocultar o painel lateral',
     resize: 'Redimensionar o painel lateral',
     empty: 'Nenhum chat ainda. Comece um com {shortcut}.',
@@ -52,8 +55,8 @@ export default {
     },
   },
   chat: {
-    subtitle: 'Abra um projeto e inicie um agente de código para começar.',
     ready: 'Pergunte ao {agent} o que quiser sobre {project}.',
+    readyNoProject: 'Uma pergunta rápida? {agent} responde sem pasta de projeto.',
     transcript: 'Conversa',
     working: '{agent} está trabalhando…',
     tool: {
@@ -70,9 +73,11 @@ export default {
     },
     errors: {
       agentNotFound: '{agent} não foi encontrado neste computador. Instale-o e verifique se “{command}” roda em um terminal.',
+      agentFailed: '{agent} não respondeu: {detail}',
       busy: 'Já há uma resposta em andamento neste chat.',
       invalidInput: 'Não foi possível iniciar o agente: {detail}',
       io: 'Não foi possível iniciar o agente: {detail}',
+      database: 'Não foi possível acessar o histórico de chats: {detail}',
     },
   },
   composer: {
@@ -80,6 +85,25 @@ export default {
     placeholder: 'Descreva o que você quer construir…',
     send: 'Enviar',
     stop: 'Parar',
+    default: 'Padrão',
+    mode: {
+      label: 'Modo de permissão',
+      bypass: 'Bypass',
+      bypassHint: 'Sem pedidos de permissão: o agente lê, escreve e executa comandos sozinho.',
+      auto: 'Auto',
+      autoHint: 'O agente decide o que é arriscado e evita fazer.',
+    },
+    model: {
+      label: 'Modelo',
+    },
+    effort: {
+      label: 'Esforço',
+      low: 'Baixo',
+      medium: 'Médio',
+      high: 'Alto',
+      xhigh: 'Muito alto',
+      max: 'Máx.',
+    },
   },
   home: {
     subtitle: 'Um resumo da sua atividade aparecerá aqui.',

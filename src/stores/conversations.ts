@@ -4,8 +4,12 @@ import { agentSend, agentStop, isAppError } from '@/ipc/agent'
 import type { AgentEvent } from '@/ipc/bindings/AgentEvent'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { AppError } from '@/ipc/bindings/AppError'
+import type { ChatSummary } from '@/ipc/bindings/ChatSummary'
 import type { ToolKind } from '@/ipc/bindings/ToolKind'
+import type { TurnOptions } from '@/ipc/bindings/TurnOptions'
 import type { TurnStatus } from '@/ipc/bindings/TurnStatus'
+import { chatContent, chatCreate, chatDelete, chatSave } from '@/ipc/chat'
+import { useCatalogStore } from '@/stores/catalog'
 
 export type ChatItem =
   | { kind: 'user'; id: string; text: string }
@@ -25,10 +29,17 @@ export type ChatItem =
 export interface Conversation {
   agent: AgentKind
   sessionId: string | null
+  options: TurnOptions
   running: boolean
+  // Faux tant que l'historique n'est pas lu : envoyer avant écraserait la conversation chargée.
+  loaded: boolean
   // Remplacé à chaque frame, jamais muté : un élément modifié est un nouvel objet.
   items: readonly ChatItem[]
 }
+
+export const DEFAULT_OPTIONS: TurnOptions = { mode: 'bypass', model: null, effort: null }
+
+const SAVE_DELAY = 600
 
 function lastIndexOfTool(items: ChatItem[], id: string) {
   for (let i = items.length - 1; i >= 0; i--) {
@@ -36,6 +47,12 @@ function lastIndexOfTool(items: ChatItem[], id: string) {
     if (item?.kind === 'tool' && item.id === id) return i
   }
   return -1
+}
+
+function settleTools(items: ChatItem[], status: 'done' | 'failed') {
+  items.forEach((item, i) => {
+    if (item.kind === 'tool' && item.status === 'running') items[i] = { ...item, status }
+  })
 }
 
 function apply(conversation: Conversation, events: AgentEvent[]) {
@@ -69,10 +86,7 @@ function apply(conversation: Conversation, events: AgentEvent[]) {
         break
       }
       case 'turnEnd': {
-        const settled = event.status === 'completed' ? 'done' : 'failed'
-        items.forEach((item, i) => {
-          if (item.kind === 'tool' && item.status === 'running') items[i] = { ...item, status: settled }
-        })
+        settleTools(items, event.status === 'completed' ? 'done' : 'failed')
         const { status, error, durationMs } = event
         items.push({ kind: 'end', id: crypto.randomUUID(), status, error, durationMs })
         conversation.running = false
@@ -83,30 +97,89 @@ function apply(conversation: Conversation, events: AgentEvent[]) {
   conversation.items = items
 }
 
-// Conversations par onglet de chat, en mémoire. Les événements d'agent sont appliqués une fois par frame.
+// Un tour coupé par la fermeture de l'app n'a jamais reçu sa fin : on la pose au chargement.
+function settleInterrupted(saved: ChatItem[]) {
+  const last = saved.at(-1)
+  if (!last || last.kind === 'end' || last.kind === 'error') return saved
+  const items = [...saved]
+  settleTools(items, 'failed')
+  items.push({ kind: 'end', id: crypto.randomUUID(), status: 'stopped', error: null, durationMs: null })
+  return items
+}
+
+// Conversations par chat. Les événements d'agent sont appliqués une fois par frame, l'historique
+// est enregistré peu après chaque changement.
 export const useConversationsStore = defineStore('conversations', () => {
+  const catalog = useCatalogStore()
   const conversations = shallowReactive(new Map<string, Conversation>())
   const pending = new Map<string, AgentEvent[]>()
+  const timers = new Map<string, number>()
+  const writes = new Map<string, Promise<void>>()
   let frame = 0
+
+  function blank(agent: AgentKind, loaded: boolean) {
+    return shallowReactive<Conversation>({ agent, sessionId: null, options: { ...DEFAULT_OPTIONS }, running: false, loaded, items: [] })
+  }
+
+  // Les écritures d'un chat passent l'une après l'autre : une sauvegarde ancienne n'écrase jamais une récente.
+  function write(chatId: string, task: () => Promise<void>) {
+    const next = (writes.get(chatId) ?? Promise.resolve()).then(task).catch((error) => console.error('historique', error))
+    writes.set(chatId, next)
+  }
+
+  function save(chatId: string) {
+    clearTimeout(timers.get(chatId))
+    const timer = window.setTimeout(() => {
+      timers.delete(chatId)
+      const conversation = conversations.get(chatId)
+      if (!conversation?.loaded) return
+      const { sessionId, options, items } = conversation
+      write(chatId, () => chatSave(chatId, { sessionId, options, items: [...items] }))
+    }, SAVE_DELAY)
+    timers.set(chatId, timer)
+  }
 
   function find(chatId: string) {
     return conversations.get(chatId)
   }
 
-  function ensure(chatId: string) {
-    let conversation = conversations.get(chatId)
-    if (!conversation) {
-      conversation = shallowReactive<Conversation>({ agent: 'claude', sessionId: null, running: false, items: [] })
-      conversations.set(chatId, conversation)
-    }
-    return conversation
+  function create(chat: ChatSummary) {
+    conversations.set(chat.id, blank(chat.agent, true))
+    write(chat.id, () => chatCreate(chat))
+  }
+
+  // Lit l'historique au premier affichage du chat.
+  function open(chatId: string, agent: AgentKind) {
+    if (conversations.has(chatId)) return
+    const conversation = blank(agent, false)
+    conversations.set(chatId, conversation)
+    chatContent(chatId)
+      .then((content) => {
+        if (!content) return
+        conversation.sessionId = content.sessionId
+        conversation.options = content.options
+        conversation.items = settleInterrupted(content.items as ChatItem[])
+      })
+      .catch((error) => console.error('historique', error))
+      .finally(() => {
+        conversation.loaded = true
+      })
+  }
+
+  function setOptions(chatId: string, options: TurnOptions) {
+    const conversation = conversations.get(chatId)
+    if (!conversation) return
+    conversation.options = options
+    save(chatId)
   }
 
   function flush() {
     frame = 0
     for (const [chatId, events] of pending) {
       const conversation = conversations.get(chatId)
-      if (conversation) apply(conversation, events)
+      if (!conversation) continue
+      apply(conversation, events)
+      save(chatId)
     }
     pending.clear()
   }
@@ -122,18 +195,22 @@ export const useConversationsStore = defineStore('conversations', () => {
     conversation.items = [...conversation.items, item]
   }
 
-  async function send(chatId: string, cwd: string, prompt: string) {
-    const conversation = ensure(chatId)
-    if (conversation.running) return
+  // cwd null : chat sans projet, Rust lui donne un dossier vide à lui.
+  async function send(chatId: string, cwd: string | null, prompt: string) {
+    const conversation = conversations.get(chatId)
+    if (!conversation?.loaded || conversation.running) return
     push(conversation, { kind: 'user', id: crypto.randomUUID(), text: prompt })
     conversation.running = true
+    save(chatId)
     const { agent, sessionId } = conversation
+    const options = catalog.resolve(agent, conversation.options)
     try {
-      await agentSend({ chatId, agent, cwd, prompt, sessionId }, (event) => queue(chatId, event))
+      await agentSend({ chatId, agent, cwd, prompt, sessionId, options }, (event) => queue(chatId, event))
     } catch (error) {
       conversation.running = false
       const appError: AppError = isAppError(error) ? error : { kind: 'io', message: String(error) }
       push(conversation, { kind: 'error', id: crypto.randomUUID(), error: appError })
+      save(chatId)
     }
   }
 
@@ -142,11 +219,14 @@ export const useConversationsStore = defineStore('conversations', () => {
     if (conversations.get(chatId)?.running) agentStop(chatId).catch(() => {})
   }
 
-  function dispose(chatId: string) {
+  function remove(chatId: string) {
     stop(chatId)
+    clearTimeout(timers.get(chatId))
+    timers.delete(chatId)
     conversations.delete(chatId)
     pending.delete(chatId)
+    write(chatId, () => chatDelete(chatId))
   }
 
-  return { find, send, stop, dispose }
+  return { find, create, open, setOptions, send, stop, remove }
 })

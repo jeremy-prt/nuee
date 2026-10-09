@@ -1,6 +1,8 @@
 import { Channel, invoke } from '@tauri-apps/api/core'
 import type { AgentEvent } from '@/ipc/bindings/AgentEvent'
+import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { AppError } from '@/ipc/bindings/AppError'
+import type { Catalog } from '@/ipc/bindings/Catalog'
 import type { TurnRequest } from '@/ipc/bindings/TurnRequest'
 
 // Se résout dès que l'agent est lancé ; ses événements arrivent ensuite sur onEvent, jusqu'à turnEnd.
@@ -11,6 +13,11 @@ export function agentSend(request: TurnRequest, onEvent: (event: AgentEvent) => 
 
 export function agentStop(chatId: string) {
   return invoke<void>('agent_stop', { chatId })
+}
+
+// Modèles de l'agent installé ; Rust le lit une fois par lancement de l'app.
+export function agentCatalog(agent: AgentKind) {
+  return invoke<Catalog>('agent_catalog', { agent })
 }
 
 export function isAppError(error: unknown): error is AppError {

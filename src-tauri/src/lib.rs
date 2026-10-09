@@ -9,6 +9,7 @@ mod window;
 use tauri::{Manager, RunEvent};
 
 use crate::services::agent::AgentService;
+use crate::services::chat::ChatService;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -19,11 +20,13 @@ pub fn run() {
     builder
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
-        .manage(AgentService::default())
         .setup(|app| {
             if let Some(main) = app.get_webview_window("main") {
                 window::fit_to_screen(&main)?;
             }
+            let data = app.path().app_data_dir()?;
+            app.manage(ChatService::open(&data.join("nuee.db"))?);
+            app.manage(AgentService::new(data.join("scratch")));
             // Le login shell met parfois une seconde à répondre : autant que ce ne soit pas au premier message.
             std::thread::spawn(utils::shell_env::search_path);
             Ok(())
@@ -32,6 +35,12 @@ pub fn run() {
             commands::system::system_locales,
             commands::agent::agent_send,
             commands::agent::agent_stop,
+            commands::agent::agent_catalog,
+            commands::chat::chat_list,
+            commands::chat::chat_create,
+            commands::chat::chat_content,
+            commands::chat::chat_save,
+            commands::chat::chat_delete,
         ])
         .build(tauri::generate_context!())
         .expect("échec au lancement de l'application Tauri")

@@ -13,12 +13,15 @@ export default {
     chats: 'チャット',
     projects: 'プロジェクト',
     addProject: 'プロジェクトを追加',
+    pickProject: 'プロジェクトのフォルダーを選択してください。エージェントは確認なしでそこで作業します（プロジェクトの hooks と MCP サーバーも含む）。',
     usage: '使用量',
     updates: 'アップデート',
     settings: '設定',
   },
   chats: {
     newChat: '新しいチャット',
+    delete: 'チャットを削除',
+    confirmDelete: 'もう一度クリックすると完全に削除します',
     toggle: 'サイドパネルの表示を切り替え',
     resize: 'サイドパネルのサイズを変更',
     empty: 'まだチャットはありません。{shortcut} で始めましょう。',
@@ -52,8 +55,8 @@ export default {
     },
   },
   chat: {
-    subtitle: 'プロジェクトを開いて、コーディングエージェントを起動しましょう。',
     ready: '{project} について {agent} に何でも聞いてください。',
+    readyNoProject: 'ちょっとした質問ですか？{agent} がプロジェクトフォルダーなしで答えます。',
     transcript: '会話',
     working: '{agent} が作業中…',
     tool: {
@@ -70,9 +73,11 @@ export default {
     },
     errors: {
       agentNotFound: 'このコンピューターに {agent} が見つかりません。インストールしてから、ターミナルで「{command}」が動くか確認してください。',
+      agentFailed: '{agent} が応答しませんでした：{detail}',
       busy: 'このチャットではすでに応答を生成中です。',
       invalidInput: 'エージェントを起動できません：{detail}',
       io: 'エージェントを起動できません：{detail}',
+      database: 'チャット履歴にアクセスできません：{detail}',
     },
   },
   composer: {
@@ -80,6 +85,25 @@ export default {
     placeholder: '作りたいものを説明してください…',
     send: '送信',
     stop: '停止',
+    default: '既定',
+    mode: {
+      label: '権限モード',
+      bypass: 'Bypass',
+      bypassHint: '権限の確認なし：エージェントが自分で読み書きし、コマンドを実行します。',
+      auto: 'Auto',
+      autoHint: 'エージェントが危険な操作を自分で判断し、控えます。',
+    },
+    model: {
+      label: 'モデル',
+    },
+    effort: {
+      label: '思考量',
+      low: '低',
+      medium: '中',
+      high: '高',
+      xhigh: '最高',
+      max: '最大',
+    },
   },
   home: {
     subtitle: 'アクティビティの概要がここに表示されます。',

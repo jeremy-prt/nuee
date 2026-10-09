@@ -2,7 +2,7 @@ use tauri::State;
 use tauri::ipc::Channel;
 
 use crate::error::AppError;
-use crate::services::agent::{AgentEvent, AgentService, TurnRequest};
+use crate::services::agent::{AgentEvent, AgentKind, AgentService, Catalog, TurnRequest};
 
 /// Rend la main dès que l'agent est lancé ; la suite arrive sur `on_event` jusqu'à `turnEnd`.
 #[tauri::command]
@@ -17,4 +17,12 @@ pub async fn agent_send(
 #[tauri::command]
 pub fn agent_stop(chat_id: String, agents: State<'_, AgentService>) {
     agents.stop(&chat_id);
+}
+
+#[tauri::command]
+pub async fn agent_catalog(
+    agent: AgentKind,
+    agents: State<'_, AgentService>,
+) -> Result<Catalog, AppError> {
+    agents.catalog(agent).await
 }

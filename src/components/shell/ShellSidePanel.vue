@@ -38,8 +38,8 @@ const title = computed(() => {
 
     <div class="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
       <template v-if="navigation.view === 'chats'">
-        <ul v-if="workspace.contextTabs.length" class="space-y-0.5">
-          <li v-for="tab in workspace.contextTabs" :key="tab.id"><ShellChatItem :tab="tab" /></li>
+        <ul v-if="workspace.contextChats.length" class="space-y-0.5">
+          <li v-for="tab in workspace.contextChats" :key="tab.id"><ShellChatItem :tab="tab" /></li>
         </ul>
         <p v-else class="px-2 text-sm text-muted">{{ t('chats.empty', { shortcut: shortcutLabel(shortcuts.newChat) }) }}</p>
       </template>

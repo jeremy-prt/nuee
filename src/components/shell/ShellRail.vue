@@ -28,7 +28,7 @@ const navigation = useNavigationStore()
 const projects = useProjectsStore()
 
 async function addProject() {
-  const path = await pickFolder(t('rail.addProject'))
+  const path = await pickFolder(t('rail.pickProject'))
   if (path) navigation.openChats(projects.add(path).id)
 }
 

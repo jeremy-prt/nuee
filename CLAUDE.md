@@ -19,4 +19,5 @@ App desktop Tauri 2 + Vue pour piloter des agents de code, open source (MIT). In
 - La fenêtre est définie deux fois : `tauri.conf.json` et `tauri.macos.conf.json` (transparence, barre de titre). Le tableau `windows` est remplacé, pas fusionné : toute modif de fenêtre se fait dans les deux.
 - `productName` reste en ASCII (`Nuee`) : un accent casse le paquet `.deb`. Le titre de fenêtre garde « Nuée ».
 - Pinia 4 exige `@vue/devtools-api` installé à côté.
+- Dev et build partagent l'historique (même `identifier`) : `nuee.db` dans le dossier de données de l'app (`~/Library/Application Support/io.github.jeremy-prt.nuee/` sur macOS).
 - En dev, après une grosse modif de composants, le rechargement à chaud peut laisser la fenêtre Tauri dans un état périmé (écouteurs en double, ancien rendu) : recharger la page (`touch src/main.ts`) avant de conclure à un bug.

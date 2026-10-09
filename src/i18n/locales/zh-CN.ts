@@ -13,12 +13,15 @@ export default {
     chats: '聊天',
     projects: '项目',
     addProject: '添加项目',
+    pickProject: '选择项目文件夹。智能体将在其中直接工作，不再询问，包括项目的 hooks 和 MCP 服务器。',
     usage: '用量',
     updates: '更新',
     settings: '设置',
   },
   chats: {
     newChat: '新建聊天',
+    delete: '删除聊天',
+    confirmDelete: '再次点击即可永久删除',
     toggle: '显示或隐藏侧面板',
     resize: '调整侧面板大小',
     empty: '暂无聊天。按 {shortcut} 开始一个。',
@@ -52,8 +55,8 @@ export default {
     },
   },
   chat: {
-    subtitle: '打开一个项目并启动编程智能体即可开始。',
     ready: '关于 {project}，尽管向 {agent} 提问。',
+    readyNoProject: '有个小问题？{agent} 无需项目文件夹即可回答。',
     transcript: '对话',
     working: '{agent} 正在处理…',
     tool: {
@@ -70,9 +73,11 @@ export default {
     },
     errors: {
       agentNotFound: '在这台电脑上找不到 {agent}。请先安装，并确认“{command}”能在终端中运行。',
+      agentFailed: '{agent} 没有响应：{detail}',
       busy: '此聊天中已有回复正在生成。',
       invalidInput: '无法启动智能体：{detail}',
       io: '无法启动智能体：{detail}',
+      database: '无法访问聊天记录：{detail}',
     },
   },
   composer: {
@@ -80,6 +85,25 @@ export default {
     placeholder: '描述你想要构建的内容…',
     send: '发送',
     stop: '停止',
+    default: '默认',
+    mode: {
+      label: '权限模式',
+      bypass: 'Bypass',
+      bypassHint: '不请求任何权限：智能体自行读写文件并运行命令。',
+      auto: 'Auto',
+      autoHint: '智能体自行判断哪些操作有风险并避免执行。',
+    },
+    model: {
+      label: '模型',
+    },
+    effort: {
+      label: '推理强度',
+      low: '低',
+      medium: '中',
+      high: '高',
+      xhigh: '很高',
+      max: '最高',
+    },
   },
   home: {
     subtitle: '你的活动摘要将显示在这里。',
