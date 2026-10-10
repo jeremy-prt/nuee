@@ -4,4 +4,12 @@ import type { AgentKind } from "./AgentKind";
 /**
  * Ce que la barre latérale affiche d'un chat, sans charger sa conversation.
  */
-export type ChatSummary = { id: string, projectId: string | null, number: number, agent: AgentKind, };
+export type ChatSummary = { id: string, projectId: string | null, number: number, agent: AgentKind, 
+/**
+ * Résumé du premier message, donné par l'agent. `None` : on affiche « Chat <number> ».
+ */
+title: string | null, 
+/**
+ * Faux tant qu'aucun message n'est parti : l'historique ne montre pas un chat vide.
+ */
+started: boolean, };

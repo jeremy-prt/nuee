@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
+import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { ChatContent } from '@/ipc/bindings/ChatContent'
 import type { ChatSummary } from '@/ipc/bindings/ChatSummary'
 
@@ -17,6 +18,11 @@ export function chatContent(id: string) {
 
 export function chatSave(id: string, content: ChatContent) {
   return invoke<void>('chat_save', { id, content })
+}
+
+// Rend le titre enregistré : celui de l'agent, ou `seed` s'il n'a pas su répondre.
+export function chatTitle(id: string, agent: AgentKind, prompt: string, seed: string) {
+  return invoke<string>('chat_title', { id, agent, prompt, seed })
 }
 
 export function chatDelete(id: string) {

@@ -388,6 +388,12 @@ mod tests {
         fn parse_catalog(&self, _: &str) -> Option<Catalog> {
             None
         }
+        fn title_args(&self) -> Vec<String> {
+            Vec::new()
+        }
+        fn parse_title(&self, _: &str) -> Option<String> {
+            None
+        }
         fn args(&self, _: &SessionSpec) -> Vec<String> {
             Vec::new()
         }

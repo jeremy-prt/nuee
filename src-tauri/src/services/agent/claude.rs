@@ -9,6 +9,13 @@ use super::{
 };
 
 const OUTPUT_LIMIT: usize = 4000;
+const TITLE_LIMIT: usize = 50;
+/// En anglais pour le modèle, mais le titre suit la langue du message.
+const TITLE_PROMPT: &str = "You name coding chats so the user can recognize them weeks later. \
+Reply with the title only: 3 to 6 words, under 40 characters, in the same language as the user's message. \
+Name the goal with a compact noun phrase or action phrase. Leave out tools, models and output formats \
+unless they are the topic. Do not copy and truncate the message. No quotes, labels or trailing punctuation. \
+Do not call tools.";
 
 /// Claude Code en mode non interactif gardé ouvert : messages et sortie en `stream-json`.
 pub struct Claude {
@@ -222,6 +229,38 @@ impl Driver for Claude {
         })
     }
 
+    fn title_args(&self) -> Vec<String> {
+        [
+            "-p",
+            "--output-format",
+            "json",
+            "--model",
+            "haiku",
+            "--no-session-persistence",
+            "--tools",
+            "",
+            "--disable-slash-commands",
+            // Sans hooks : la notification de fin de tour de l'utilisateur ne doit pas sonner pour un titre.
+            "--settings",
+            r#"{"disableAllHooks":true}"#,
+            "--strict-mcp-config",
+            "--mcp-config",
+            r#"{"mcpServers":{}}"#,
+            "--system-prompt",
+            TITLE_PROMPT,
+        ]
+        .map(String::from)
+        .into()
+    }
+
+    fn parse_title(&self, output: &str) -> Option<String> {
+        let result: Value = serde_json::from_str(output.trim()).ok()?;
+        if result["is_error"].as_bool().unwrap_or(true) {
+            return None;
+        }
+        clean_title(result["result"].as_str()?)
+    }
+
     fn args(&self, spec: &SessionSpec) -> Vec<String> {
         let mut args: Vec<String> = [
             "-p",
@@ -355,6 +394,26 @@ impl Driver for Claude {
         }
         events
     }
+}
+
+/// Première ligne, sans guillemets ni ponctuation finale, coupée si le modèle a été trop bavard.
+fn clean_title(text: &str) -> Option<String> {
+    let line = text.lines().find(|line| !line.trim().is_empty())?;
+    let line = line
+        .trim_matches(|c: char| {
+            c.is_whitespace() || matches!(c, '"' | '\'' | '`' | '«' | '»' | '“' | '”' | '*')
+        })
+        .trim_end_matches(['.', '!', '?', ':'])
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
+    if line.is_empty() {
+        return None;
+    }
+    Some(match line.char_indices().nth(TITLE_LIMIT - 1) {
+        Some((end, _)) => format!("{}…", line[..end].trim_end()),
+        None => line,
+    })
 }
 
 /// `@"chemin"` : Claude Code lit lui-même le fichier (ou liste le dossier) avant de répondre.
@@ -659,6 +718,23 @@ mod tests {
         let message = Claude::new(Path::new("/")).user_message("Salut", &[]);
         let message: Value = serde_json::from_str(&message).expect("json");
         assert_eq!(message["message"]["content"], "Salut");
+    }
+
+    #[test]
+    fn the_title_is_cleaned_up() {
+        let claude = Claude::new(Path::new("/"));
+        let output =
+            r#"{"type":"result","is_error":false,"result":"« Inverser une liste en Python. »\n"}"#;
+        assert_eq!(
+            claude.parse_title(output).as_deref(),
+            Some("Inverser une liste en Python")
+        );
+        assert_eq!(
+            claude.parse_title(r#"{"type":"result","is_error":true,"result":"quota"}"#),
+            None
+        );
+        let long = clean_title(&"mot ".repeat(30)).expect("titre");
+        assert!(long.ends_with('…') && long.chars().count() <= TITLE_LIMIT);
     }
 
     #[test]

@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 use tauri::ipc::Channel;
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::time::timeout;
 use ts_rs::TS;
 
@@ -191,6 +191,9 @@ trait Driver: Send + Sync {
     /// Lance l'agent sans tour pour qu'il décrive ses modèles : ses arguments et la ligne à lui écrire.
     fn catalog_probe(&self) -> (Vec<String>, String);
     fn parse_catalog(&self, line: &str) -> Option<Catalog>;
+    /// Lance l'agent hors de tout chat pour résumer un message en titre ; le message part sur stdin.
+    fn title_args(&self) -> Vec<String>;
+    fn parse_title(&self, output: &str) -> Option<String>;
     fn args(&self, spec: &SessionSpec) -> Vec<String>;
     /// Ligne à écrire sur stdin pour lancer un tour.
     fn user_message(&self, prompt: &str, attachments: &[Attached]) -> String;
@@ -205,6 +208,9 @@ trait Driver: Send + Sync {
 /// Temps laissé à l'agent pour obéir avant de passer au signal suivant.
 const GRACE: Duration = Duration::from_secs(2);
 const CATALOG_TIMEOUT: Duration = Duration::from_secs(20);
+const TITLE_TIMEOUT: Duration = Duration::from_secs(45);
+/// Assez pour comprendre la demande ; un long message collé n'apporte rien de plus au titre.
+const TITLE_INPUT_LIMIT: usize = 8000;
 /// Un process inutilisé si longtemps est arrêté ; le tour suivant le relance avec `--resume`.
 const IDLE: Duration = Duration::from_secs(5 * 60);
 
@@ -370,6 +376,35 @@ impl AgentService {
             .unwrap_or_else(|p| p.into_inner())
             .insert(kind, catalog.clone());
         Ok(catalog)
+    }
+
+    /// Titre court tiré du premier message d'un chat. `None` si l'agent n'a pas su répondre.
+    pub async fn title(&self, kind: AgentKind, prompt: &str) -> Option<String> {
+        std::fs::create_dir_all(&self.scratch).ok()?;
+        let driver = kind.driver(&self.scratch);
+        let program = shell_env::find_binary(driver.binary())?;
+        let mut child = session::spawn(&program, driver.title_args(), &self.scratch).ok()?;
+        let input: String = prompt.chars().take(TITLE_INPUT_LIMIT).collect();
+        // stdin fermé après le message : l'agent sait qu'il n'y en aura pas d'autre.
+        if let Some(mut stdin) = child.stdin.take() {
+            stdin.write_all(input.as_bytes()).await.ok()?;
+        }
+        let read = async {
+            let mut output = String::new();
+            child
+                .stdout
+                .take()?
+                .read_to_string(&mut output)
+                .await
+                .ok()?;
+            Some(output)
+        };
+        let output = timeout(TITLE_TIMEOUT, read).await.ok().flatten();
+        if let Some(pid) = child.id() {
+            process::kill_tree(pid, true);
+        }
+        let _ = child.wait().await;
+        driver.parse_title(&output?)
     }
 
     /// Le dossier de travail d'un chat sans projet disparaît avec lui.

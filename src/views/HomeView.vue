@@ -22,7 +22,7 @@ const newChat = useNewChat()
     <dl class="grid w-full max-w-md grid-cols-2 gap-3">
       <div class="rounded-xl border border-stroke bg-selection/40 px-4 py-3">
         <dt class="text-xs text-muted">{{ t('home.chats') }}</dt>
-        <dd class="mt-1 text-2xl font-semibold">{{ workspace.tabs.length }}</dd>
+        <dd class="mt-1 text-2xl font-semibold">{{ workspace.startedChats.length }}</dd>
       </div>
       <div class="rounded-xl border border-stroke bg-selection/40 px-4 py-3">
         <dt class="text-xs text-muted">{{ t('home.projects') }}</dt>

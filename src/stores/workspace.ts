@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
 import { computed, reactive, ref, watch } from 'vue'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
-import { chatList } from '@/ipc/chat'
+import type { Attachment } from '@/ipc/bindings/Attachment'
+import { chatList, chatTitle } from '@/ipc/chat'
 import { useConversationsStore } from '@/stores/conversations'
 import { useNavigationStore } from '@/stores/navigation'
 
@@ -11,6 +12,10 @@ export interface Tab {
   number: number
   projectId: string | null
   agent: AgentKind
+  // null jusqu'au premier message : on affiche alors « Chat <number> ».
+  title: string | null
+  // Un chat n'entre dans l'historique qu'une fois son premier message envoyé.
+  started: boolean
 }
 
 interface PaneLayout {
@@ -22,6 +27,13 @@ interface PaneLayout {
 }
 
 const MAX_PANES = 2
+const SEED_LENGTH = 50
+
+// Titre affiché tout de suite, le temps que l'agent en propose un meilleur.
+function titleSeed(prompt: string, attachments: Attachment[]) {
+  const line = prompt.split('\n').find((text) => text.trim())?.trim() ?? attachments.map((attachment) => attachment.name).join(', ')
+  return line.length > SEED_LENGTH ? `${line.slice(0, SEED_LENGTH - 1).trimEnd()}…` : line
+}
 const STORAGE_KEY = 'nuee.workspace.v1'
 
 function loadLayouts(): Record<string, Partial<PaneLayout>> {
@@ -89,8 +101,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const contextTabs = computed(() =>
     (layouts[contextKey.value]?.tabs ?? []).flatMap((id) => tabs.value.find((tab) => tab.id === id) ?? []),
   )
+  const startedChats = computed(() => tabs.value.filter((tab) => tab.started))
   // Historique de la barre latérale, le plus récent en haut.
-  const contextChats = computed(() => tabsFor(navigation.projectId).reverse())
+  const contextChats = computed(() => tabsFor(navigation.projectId).filter((tab) => tab.started).reverse())
 
   function tabsFor(projectId: string | null) {
     return tabs.value.filter((tab) => tab.projectId === projectId)
@@ -106,9 +119,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   function createChat() {
     const projectId = navigation.projectId
-    const tab: Tab = { id: crypto.randomUUID(), kind: 'chat', number: nextChatNumber(projectId), projectId, agent: 'claude' }
+    const tab: Tab = { id: crypto.randomUUID(), kind: 'chat', number: nextChatNumber(projectId), projectId, agent: 'claude', title: null, started: false }
     tabs.value.push(tab)
-    conversations.create({ id: tab.id, projectId, number: tab.number, agent: tab.agent })
+    conversations.create({ id: tab.id, projectId, number: tab.number, agent: tab.agent, title: null, started: false })
     current().tabs.push(tab.id)
     return tab
   }
@@ -147,6 +160,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const index = layout.tabs.indexOf(id)
     if (index === -1) return
     layout.tabs.splice(index, 1)
+    // Fermé sans message, il ne serait plus visible nulle part : on ne le garde pas.
+    if (tabs.value.some((tab) => tab.id === id && !tab.started)) deleteChat(id)
 
     const paneIndex = layout.panes.indexOf(id)
     if (paneIndex === -1) return
@@ -168,6 +183,24 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (layout) closeTab(id, layout)
     tabs.value = tabs.value.filter((item) => item.id !== id)
     conversations.remove(id)
+  }
+
+  // Premier message du chat : il entre dans l'historique, et l'agent résume le message en titre
+  // (quelques secondes) ; le début du message sert de titre en attendant.
+  function startChat(id: string, prompt: string, attachments: Attachment[]) {
+    const tab = tabs.value.find((item) => item.id === id)
+    if (!tab) return
+    tab.started = true
+    if (tab.title !== null) return
+    const seed = titleSeed(prompt, attachments)
+    if (!seed) return
+    tab.title = seed
+    chatTitle(id, tab.agent, prompt, seed)
+      .then((title) => {
+        const current = tabs.value.find((item) => item.id === id)
+        if (current) current.title = title
+      })
+      .catch((error) => console.error('titre', error))
   }
 
   // Réordonne les onglets ouverts en plaçant `id` juste avant `beforeId` (ou en fin de liste).
@@ -204,6 +237,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     activeTabId,
     contextTabs,
     contextChats,
+    startedChats,
     show,
     openChat,
     split,
@@ -211,6 +245,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     closeTab,
     closeActiveTab,
     deleteChat,
+    startChat,
     moveTab,
     dropTab,
   }

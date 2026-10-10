@@ -15,7 +15,7 @@ const input = ref<HTMLInputElement>()
 const results = computed(() => {
   const needle = query.value.trim().toLowerCase()
   if (!needle) return []
-  return workspace.tabs.filter((tab) => tabTitle(tab).toLowerCase().includes(needle))
+  return workspace.startedChats.filter((tab) => tabTitle(tab).toLowerCase().includes(needle))
 })
 
 onMounted(() => input.value?.focus())

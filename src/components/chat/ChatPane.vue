@@ -7,8 +7,9 @@ import ChatTranscript from '@/components/chat/ChatTranscript.vue'
 import { useFileDrop } from '@/composables/useFileDrop'
 import { useCatalogStore } from '@/stores/catalog'
 import { DEFAULT_OPTIONS, useConversationsStore } from '@/stores/conversations'
+import type { Attachment } from '@/ipc/bindings/Attachment'
 import { useProjectsStore } from '@/stores/projects'
-import type { Tab } from '@/stores/workspace'
+import { type Tab, useWorkspaceStore } from '@/stores/workspace'
 import { agents } from '@/utils/agents'
 
 const props = defineProps<{ tab: Tab }>()
@@ -17,6 +18,7 @@ const { t } = useI18n()
 const projects = useProjectsStore()
 const conversations = useConversationsStore()
 const catalog = useCatalogStore()
+const workspace = useWorkspaceStore()
 
 // Le pane est recréé à chaque changement d'onglet (:key), l'historique se charge donc ici.
 conversations.open(props.tab.id, props.tab.agent)
@@ -37,6 +39,11 @@ const options = computed({
 
 const cwd = computed(() => project.value?.path ?? null)
 const approval = computed(() => conversation.value?.approvals[0] ?? null)
+
+function send(prompt: string, attachments: Attachment[]) {
+  if (!items.value.some((item) => item.kind === 'user')) workspace.startChat(props.tab.id, prompt, attachments)
+  conversations.send(props.tab.id, cwd.value, prompt, attachments)
+}
 
 const pane = useTemplateRef('pane')
 const composer = useTemplateRef('composer')
@@ -79,7 +86,7 @@ const { over } = useFileDrop(pane, (paths) => {
         :catalog="catalog.get(agent)"
         :disabled="!loaded"
         :running="answering"
-        @send="(prompt, attachments) => conversations.send(tab.id, cwd, prompt, attachments)"
+        @send="send"
         @warm="conversations.warm(tab.id, cwd)"
         @stop="conversations.stop(tab.id)"
       />

@@ -62,7 +62,7 @@ src-tauri/src/
 - Modèles et efforts : jamais codés en dur, l'agent installé les décrit (Claude : `control_request` `initialize`, lu une fois par lancement). L'interface montre toujours une valeur réelle (« Opus 5.5 », « Élevé »), jamais « par défaut ». Modes de permission : Bypass et Auto seulement (choix de Jérémy), passés en flag à chaque tour : ils priment sur la config Claude de l'utilisateur.
 - Pièces jointes vers Claude : images en bloc base64 (la CLI redimensionne), autres fichiers en `@"chemin"` placé avant le message. Pas d'image en `@` : au-delà de ~3 Mo, elle est ignorée sans erreur.
 - Chat sans projet : Rust le lance dans `<données de l'app>/scratch/<id du chat>`, supprimé avec le chat.
-- Historique : SQLite (`services/chat.rs`), une ligne par chat ; les messages sont un JSON que seul le front lit. Fermer un onglet garde le chat (`layout.tabs` = onglets ouverts, `tabs` = tous les chats) ; seule la corbeille de la barre latérale le supprime. Nouvelle colonne = nouvelle entrée dans `MIGRATIONS`, jamais une modif d'une entrée passée.
+- Historique : SQLite (`services/chat.rs`), une ligne par chat ; les messages sont un JSON que seul le front lit. Un chat n'entre dans l'historique qu'à son premier message (`started`). Fermer un onglet garde le chat (`layout.tabs` = onglets ouverts, `tabs` = tous les chats), sauf s'il n'a jamais servi ; sinon seule la corbeille de la barre latérale le supprime. Nouvelle colonne = nouvelle entrée dans `MIGRATIONS`, jamais une modif d'une entrée passée.
 
 ## Textes et langues
 
