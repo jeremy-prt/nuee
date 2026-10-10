@@ -20,6 +20,13 @@ function label(setting: GlassSetting) {
   return t(`settings.glass.${setting}.label`)
 }
 
+// En Mixte, deux opacités : on précise quelle zone chacune règle.
+function hint(setting: GlassSetting) {
+  if (setting === 'opacity' && props.windowStyle === 'mixed') return t('settings.glass.opacity.barsHint')
+  if (setting === 'centerOpacity') return t('settings.glass.centerOpacity.hint')
+  return undefined
+}
+
 function options(setting: GlassSetting) {
   return glassOptions[setting].map((value) => ({ value, label: t(`settings.glass.${setting}.${value}`) }))
 }
@@ -30,11 +37,12 @@ function options(setting: GlassSetting) {
     <template #action>
       <SettingsResetButton @click="appearance.resetGlass(props.windowStyle)" />
     </template>
-    <SettingsRow v-for="setting in settings" :key="setting" :label="label(setting)">
+    <SettingsRow v-for="setting in settings" :key="setting" v-slot="{ hintId }" :label="label(setting)" :hint="hint(setting)">
       <UiSegmented
         v-model="appearance.glass[props.windowStyle][setting]"
         :label="label(setting)"
         :options="options(setting)"
+        :aria-describedby="hintId"
       />
     </SettingsRow>
   </SettingsGroup>

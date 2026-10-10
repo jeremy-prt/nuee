@@ -13,7 +13,7 @@
   /* Fonds des barres et panneaux (chrome) et de la zone centrale (surface) : voir le style de fenêtre plus bas. */
   --color-chrome: var(--color-canvas);
   --color-surface: var(--color-canvas);
-  /* Menus et infobulles : plein en Opaque, translucide sinon (voir plus bas). */
+  /* Menus, infobulles, confirmations et messages : plein en Opaque, translucide sinon (voir plus bas). */
   --color-popover: var(--color-overlay);
 }
 
@@ -74,16 +74,28 @@ html.is-macos:not([data-window='opaque']) {
   background-image: linear-gradient(var(--color-stroke), var(--color-stroke));
 }
 
-/* Menus déroulants (UiSelect). Le verre (fond, flou, bord) est sur le cadre que reka positionne, qui ne
-   bouge pas : WebKit peint un fond périmé si l'élément flouté est lui-même animé. Seul le contenu grandit
-   depuis son bouton. Fermeture sans animation, sinon le cadre resterait vide un instant. */
-[data-reka-popper-content-wrapper]:has(> .ui-pop) {
+/* Verre des menus (UiSelect), confirmations (UiConfirmDialog) et messages (UiToasts). Fond, flou et bord sont
+   sur un cadre qui ne bouge pas : WebKit peint un fond périmé si l'élément flouté est lui-même animé. Seul le
+   contenu s'anime dedans. Fermeture sans animation, sinon le cadre resterait vide un instant. */
+[data-reka-popper-content-wrapper]:has(> .ui-pop),
+.ui-glass {
   overflow: hidden;
   border: 1px solid var(--color-stroke);
-  border-radius: 0.5rem;
   background: var(--color-popover);
   box-shadow: 0 12px 32px -8px rgb(0 0 0 / 0.5);
   backdrop-filter: blur(10px);
+}
+
+[data-reka-popper-content-wrapper]:has(> .ui-pop) {
+  border-radius: 0.5rem;
+}
+
+/* Au-dessus du voile sombre d'une confirmation, le même verre se confondrait avec lui : on l'éclaircit. */
+.ui-glass-raised {
+  --raised: color-mix(in srgb, var(--color-content) 7%, transparent);
+  border-color: color-mix(in srgb, var(--color-content) 14%, transparent);
+  background-image: linear-gradient(var(--raised), var(--raised));
+  box-shadow: 0 24px 64px -12px rgb(0 0 0 / 0.6);
 }
 
 @keyframes ui-pop-in {
@@ -111,6 +123,57 @@ html.is-macos:not([data-window='opaque']) {
 
 @media (prefers-reduced-motion: reduce) {
   .ui-pop[data-state] {
+    animation: none;
+  }
+}
+
+/* Contenu des confirmations et des messages, dans leur cadre de verre : même courbe que les menus. */
+@keyframes ui-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes ui-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes ui-dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@keyframes ui-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+.ui-overlay[data-state='open'] {
+  animation: ui-fade-in 200ms ease-out;
+}
+
+.ui-overlay[data-state='closed'] {
+  animation: ui-fade-out 120ms ease-in;
+}
+
+[data-state='open'] > .ui-dialog-body {
+  animation: ui-dialog-in 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-state='open'] > .ui-toast-body {
+  animation: ui-toast-in 240ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-overlay[data-state],
+  [data-state] > .ui-dialog-body,
+  [data-state] > .ui-toast-body {
     animation: none;
   }
 }

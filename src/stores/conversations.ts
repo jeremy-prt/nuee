@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { shallowReactive } from 'vue'
+import { computed, shallowReactive } from 'vue'
 import { agentApprove, agentSend, agentStop, agentWarm, isAppError } from '@/ipc/agent'
 import type { AgentEvent } from '@/ipc/bindings/AgentEvent'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
@@ -11,6 +11,7 @@ import type { ToolKind } from '@/ipc/bindings/ToolKind'
 import type { TurnOptions } from '@/ipc/bindings/TurnOptions'
 import type { TurnStatus } from '@/ipc/bindings/TurnStatus'
 import { chatContent, chatCreate, chatDelete, chatSave } from '@/ipc/chat'
+import { type Signal, useAttentionStore } from '@/stores/attention'
 import { useCatalogStore } from '@/stores/catalog'
 
 export type ChatItem =
@@ -100,10 +101,18 @@ function resume(conversation: Conversation, items: ChatItem[]) {
   conversation.phase = 'answering'
 }
 
-// Renvoie vrai quand le tour s'est clos.
+// Ce qui mérite de prévenir l'utilisateur, du plus au moins important quand une frame en apporte plusieurs.
+const SIGNALS: readonly Signal[] = ['approval', 'failed', 'done']
+
+function strongest(current: Signal | null, next: Signal) {
+  return current && SIGNALS.indexOf(current) < SIGNALS.indexOf(next) ? current : next
+}
+
+// `ended` : le tour s'est clos. `signal` : de quoi prévenir l'utilisateur (un arrêt demandé n'en est pas).
 function apply(conversation: Conversation, events: AgentEvent[]) {
   const items = [...conversation.items]
   let ended = false
+  let signal: Signal | null = null
   for (const event of events) {
     if (event.type === 'text' || event.type === 'tool') resume(conversation, items)
     switch (event.type) {
@@ -136,6 +145,7 @@ function apply(conversation: Conversation, events: AgentEvent[]) {
       case 'approval': {
         const { type: _, ...approval } = event
         setApprovals(conversation, [...conversation.approvals, approval])
+        signal = strongest(signal, 'approval')
         break
       }
       case 'approvalCancelled':
@@ -146,6 +156,7 @@ function apply(conversation: Conversation, events: AgentEvent[]) {
         settleTools(items, 'done')
         items.push({ kind: 'end', id: crypto.randomUUID(), status: 'completed', error: null, durationMs: elapsed(conversation) })
         conversation.phase = 'finishing'
+        signal = strongest(signal, 'done')
         break
       }
       case 'turnEnd': {
@@ -157,6 +168,8 @@ function apply(conversation: Conversation, events: AgentEvent[]) {
           const durationMs = status === 'completed' ? elapsed(conversation) : null
           items.push({ kind: 'end', id: crypto.randomUUID(), status, error, durationMs })
         }
+        if (status === 'failed' || status === 'unauthenticated') signal = strongest(signal, 'failed')
+        else if (status === 'completed' && !shown) signal = strongest(signal, 'done')
         conversation.phase = 'idle'
         setApprovals(conversation, [])
         ended = true
@@ -165,7 +178,7 @@ function apply(conversation: Conversation, events: AgentEvent[]) {
     }
   }
   conversation.items = items
-  return ended
+  return { ended, signal }
 }
 
 // Texte que l'agent écrivait quand l'utilisateur l'a arrêté : un process relancé ne l'a plus en mémoire.
@@ -193,6 +206,8 @@ function settleInterrupted(saved: ChatItem[]) {
 export const useConversationsStore = defineStore('conversations', () => {
   const catalog = useCatalogStore()
   const conversations = shallowReactive(new Map<string, Conversation>())
+  // Un agent travaille encore quelque part : la mise en veille attend.
+  const busy = computed(() => [...conversations.values()].some((conversation) => conversation.phase !== 'idle'))
   const pending = new Map<string, AgentEvent[]>()
   const timers = new Map<string, number>()
   const writes = new Map<string, Promise<void>>()
@@ -271,8 +286,9 @@ export const useConversationsStore = defineStore('conversations', () => {
     for (const [chatId, events] of pending) {
       const conversation = conversations.get(chatId)
       if (!conversation) continue
-      const ended = apply(conversation, events)
+      const { ended, signal } = apply(conversation, events)
       save(chatId)
+      if (signal) useAttentionStore().signal(chatId, signal)
       const queued = conversation.queued
       if (ended && queued) {
         conversation.queued = null
@@ -353,5 +369,5 @@ export const useConversationsStore = defineStore('conversations', () => {
     write(chatId, () => chatDelete(chatId))
   }
 
-  return { find, create, open, setOptions, send, warm, approve, stop, remove }
+  return { busy, find, create, open, setOptions, send, warm, approve, stop, remove }
 })

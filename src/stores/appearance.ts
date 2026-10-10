@@ -260,6 +260,19 @@ export const useAppearanceStore = defineStore('appearance', () => {
     themeIntensity.value = 'light'
   }
 
+  // Le fichier de l'image de fond reste à supprimer par l'appelant (commande background_remove).
+  function resetAll() {
+    const initial = defaults()
+    theme.value = initial.theme
+    themeScope.value = initial.themeScope
+    themeIntensity.value = initial.themeIntensity
+    windowStyle.value = initial.windowStyle
+    Object.assign(glass, initial.glass)
+    Object.assign(background, initial.background)
+    zoom.value = initial.zoom
+    chatWidth.value = initial.chatWidth
+  }
+
   return {
     theme,
     themeScope,
@@ -275,6 +288,7 @@ export const useAppearanceStore = defineStore('appearance', () => {
     resetGlass,
     resetTheme,
     resetBackground,
+    resetAll,
     setBackground,
   }
 })

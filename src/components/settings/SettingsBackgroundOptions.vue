@@ -27,7 +27,9 @@ function options(setting: (typeof rows)[number]) {
     <SettingsRow
       v-for="setting in rows"
       :key="setting"
+      v-slot="{ hintId }"
       :label="t(`settings.background.${setting}.label`)"
+      :hint="setting === 'intensity' ? t('settings.background.intensity.hint') : undefined"
       :disabled="setting === 'intensity' && appearance.background.effect === 'none'"
     >
       <UiSegmented
@@ -35,6 +37,7 @@ function options(setting: (typeof rows)[number]) {
         :label="t(`settings.background.${setting}.label`)"
         :options="options(setting)"
         :disabled="setting === 'intensity' && appearance.background.effect === 'none'"
+        :aria-describedby="hintId"
       />
     </SettingsRow>
   </SettingsGroup>

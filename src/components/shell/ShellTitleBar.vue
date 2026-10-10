@@ -8,6 +8,7 @@ import { useLayoutDrag } from '@/composables/useLayoutDrag'
 import { useTabTitle } from '@/composables/useTabTitle'
 import { isMacosApp } from '@/ipc/system'
 import { useAppearanceStore } from '@/stores/appearance'
+import { useAttentionStore } from '@/stores/attention'
 import { useDragStore } from '@/stores/drag'
 import { RAIL_COLLAPSED_WIDTH, useLayoutStore } from '@/stores/layout'
 import { useNavigationStore } from '@/stores/navigation'
@@ -18,6 +19,7 @@ const { t } = useI18n()
 const layout = useLayoutStore()
 const navigation = useNavigationStore()
 const appearance = useAppearanceStore()
+const attention = useAttentionStore()
 const workspace = useWorkspaceStore()
 const drag = useDragStore()
 const { startTabDrag } = useLayoutDrag()
@@ -134,6 +136,9 @@ const spacer = computed(() => Math.max(0, centerStart.value - leftZone.value))
           >
             <MessageSquare class="size-3.5 shrink-0" aria-hidden="true" />
             <span class="truncate">{{ tabTitle(tab) }}</span>
+            <span v-if="attention.isUnseen(tab.id)" class="size-1.5 shrink-0 rounded-full bg-accent">
+              <span class="sr-only">{{ t('attention.unseen') }}</span>
+            </span>
             <button
               type="button"
               tabindex="-1"

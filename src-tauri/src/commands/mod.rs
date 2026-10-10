@@ -1,6 +1,10 @@
 pub mod agent;
+pub mod app;
 pub mod attachment;
+pub mod autostart;
 pub mod background;
 pub mod chat;
+pub mod notification;
+pub mod power;
 pub mod system;
 pub mod window;

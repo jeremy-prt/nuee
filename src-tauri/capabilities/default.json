@@ -14,7 +14,16 @@
       "identifier": "opener:allow-open-url",
       "allow": [
         {
+          "url": "https://github.com/jeremy-prt/nuee"
+        },
+        {
           "url": "https://github.com/jeremy-prt/nuee/releases/*"
+        },
+        {
+          "url": "https://github.com/jeremy-prt/nuee/issues/new"
+        },
+        {
+          "url": "https://github.com/jeremy-prt/nuee/blob/main/LICENSE"
         }
       ]
     },

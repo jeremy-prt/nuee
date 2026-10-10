@@ -10,8 +10,8 @@ export function appVersion() {
   return getVersion()
 }
 
-// Limité aux pages de release du dépôt par la capability (opener:allow-open-url).
-export function openReleasePage(url: string) {
+// Limité aux pages du dépôt listées dans la capability (opener:allow-open-url).
+export function openGithubPage(url: string) {
   return openUrl(url)
 }
 

@@ -1,13 +1,14 @@
 <script setup lang="ts">
+import SettingsHeading from '@/components/settings/SettingsHeading.vue'
+
 defineProps<{ title?: string }>()
 </script>
 
 <template>
   <section class="pt-8">
-    <div v-if="title" class="flex items-end gap-4 pb-2.5">
-      <h3 class="min-w-0 flex-1 text-sm font-semibold">{{ title }}</h3>
+    <SettingsHeading v-if="title" :title="title">
       <slot name="action" />
-    </div>
+    </SettingsHeading>
     <div class="overflow-hidden rounded-xl border border-stroke bg-content/3">
       <slot />
     </div>

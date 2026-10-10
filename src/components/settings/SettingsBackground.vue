@@ -4,6 +4,8 @@ import { ref, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsBackgroundThumb from '@/components/settings/SettingsBackgroundThumb.vue'
 import SettingsCustomizeButton from '@/components/settings/SettingsCustomizeButton.vue'
+import SettingsHeading from '@/components/settings/SettingsHeading.vue'
+import UiButton from '@/components/ui/UiButton.vue'
 import { forgetBackground } from '@/composables/useBackgroundImage'
 import { useFileDrop } from '@/composables/useFileDrop'
 import { backgroundImport, backgroundRemove } from '@/ipc/background'
@@ -16,6 +18,8 @@ const appearance = useAppearanceStore()
 const navigation = useNavigationStore()
 const zone = useTemplateRef('zone')
 const error = ref('')
+// Une grosse image met une seconde à être copiée : le bouton le montre.
+const importing = ref(false)
 
 async function use(path: string) {
   error.value = ''
@@ -24,6 +28,7 @@ async function use(path: string) {
     error.value = t('settings.background.unsupported')
     return
   }
+  importing.value = true
   try {
     const previous = appearance.background.path
     appearance.setBackground(await backgroundImport(path))
@@ -32,6 +37,8 @@ async function use(path: string) {
   } catch (cause) {
     const detail = (cause as { message?: string }).message ?? String(cause)
     error.value = t('settings.background.failed', { detail })
+  } finally {
+    importing.value = false
   }
 }
 
@@ -59,7 +66,7 @@ const { over } = useFileDrop(zone, (paths) => use(paths[0]!), true)
 
 <template>
   <section class="pt-8" aria-labelledby="background-title">
-    <h3 id="background-title" class="pb-2.5 text-sm font-semibold">{{ t('settings.background.title') }}</h3>
+    <SettingsHeading id="background-title" :title="t('settings.background.title')" />
     <div
       ref="zone"
       class="relative rounded-xl border p-3 transition-colors motion-reduce:transition-none"
@@ -68,20 +75,8 @@ const { over } = useFileDrop(zone, (paths) => use(paths[0]!), true)
       <div v-if="appearance.background.path" class="flex flex-wrap items-center gap-4">
         <SettingsBackgroundThumb :path="appearance.background.path" class="w-48" />
         <div class="flex flex-wrap gap-2">
-          <button
-            type="button"
-            class="h-8 cursor-pointer rounded-md border border-stroke px-3 text-sm hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-accent"
-            @click="choose()"
-          >
-            {{ t('settings.background.change') }}
-          </button>
-          <button
-            type="button"
-            class="h-8 cursor-pointer rounded-md px-3 text-sm text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-accent"
-            @click="remove()"
-          >
-            {{ t('settings.background.remove') }}
-          </button>
+          <UiButton :loading="importing" @click="choose()">{{ t('settings.background.change') }}</UiButton>
+          <UiButton variant="ghost" :disabled="importing" @click="remove()">{{ t('settings.background.remove') }}</UiButton>
         </div>
         <SettingsCustomizeButton
           show
@@ -94,13 +89,7 @@ const { over } = useFileDrop(zone, (paths) => use(paths[0]!), true)
       <div v-else class="flex flex-col items-center gap-3 py-6 text-center">
         <ImagePlus class="size-6 text-muted" aria-hidden="true" />
         <p class="text-sm text-muted">{{ t('settings.background.drop') }}</p>
-        <button
-          type="button"
-          class="h-8 cursor-pointer rounded-md border border-stroke px-3 text-sm hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-accent"
-          @click="choose()"
-        >
-          {{ t('settings.background.choose') }}
-        </button>
+        <UiButton :loading="importing" @click="choose()">{{ t('settings.background.choose') }}</UiButton>
       </div>
     </div>
     <p aria-live="polite" class="mt-2 min-h-5 text-sm text-danger">{{ error }}</p>

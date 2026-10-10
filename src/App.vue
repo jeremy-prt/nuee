@@ -8,18 +8,25 @@ import ShellRail from '@/components/shell/ShellRail.vue'
 import ShellResizeHandle from '@/components/shell/ShellResizeHandle.vue'
 import ShellSidePanel from '@/components/shell/ShellSidePanel.vue'
 import ShellTitleBar from '@/components/shell/ShellTitleBar.vue'
+import UiConfirmDialog from '@/components/ui/UiConfirmDialog.vue'
+import UiToasts from '@/components/ui/UiToasts.vue'
 import { useNewChat } from '@/composables/useNewChat'
+import { appQuit, onQuitRequested } from '@/ipc/app'
+import { isTauriApp } from '@/ipc/system'
 import { useAppearanceStore } from '@/stores/appearance'
+import { useAttentionStore } from '@/stores/attention'
+import { useDialogStore } from '@/stores/dialog'
 import { useDragStore } from '@/stores/drag'
+import { useGeneralStore } from '@/stores/general'
 import { SIZES, useLayoutStore } from '@/stores/layout'
 import { useNavigationStore } from '@/stores/navigation'
+import { useUpdatesStore } from '@/stores/updates'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { matchesShortcut, type Shortcut, shortcuts } from '@/utils/shortcuts'
 import HomeView from '@/views/HomeView.vue'
 import PlaceholderView from '@/views/PlaceholderView.vue'
 import SearchView from '@/views/SearchView.vue'
 import SettingsView from '@/views/SettingsView.vue'
-import UpdatesView from '@/views/UpdatesView.vue'
 import WorkspaceView from '@/views/WorkspaceView.vue'
 
 // ===== Initialisation =====
@@ -31,6 +38,11 @@ const drag = useDragStore()
 const newChat = useNewChat()
 // Pose le style de fenêtre sur <html> dès le démarrage, pas seulement à l'ouverture des réglages.
 const appearance = useAppearanceStore()
+// Langue choisie et mise en veille : appliquées avant le premier rendu.
+const general = useGeneralStore()
+const dialog = useDialogStore()
+// Suit le focus de la fenêtre dès le lancement : un chat qui finit doit savoir s'il est vu.
+useAttentionStore()
 
 const inChats = computed(() => navigation.view === 'chats')
 const showBottomDock = computed(() => layout.bottom.open && layout.viewsIn('bottom').length > 0)
@@ -69,8 +81,32 @@ function onKeydown(event: KeyboardEvent) {
   action[1]()
 }
 
-onMounted(() => window.addEventListener('keydown', onKeydown))
-onUnmounted(() => window.removeEventListener('keydown', onKeydown))
+// Rust ne demande que si un agent travaille encore ; un second ⌘Q pendant la question est ignoré.
+let askingQuit = false
+async function confirmQuit(busy: number) {
+  if (askingQuit) return
+  askingQuit = true
+  const confirmed = await dialog.confirm({
+    title: t('quit.title'),
+    message: t('quit.message', busy),
+    confirmLabel: t('quit.confirm'),
+  })
+  askingQuit = false
+  if (confirmed) appQuit()
+}
+
+let stopQuitListener: (() => void) | null = null
+
+onMounted(() => {
+  window.addEventListener('keydown', onKeydown)
+  if (!isTauriApp()) return
+  onQuitRequested(confirmQuit).then((stop) => (stopQuitListener = stop))
+  if (general.checkUpdates) useUpdatesStore().checkOnLaunch()
+})
+onUnmounted(() => {
+  window.removeEventListener('keydown', onKeydown)
+  stopQuitListener?.()
+})
 </script>
 
 <template>
@@ -137,7 +173,6 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
           <ShellBackground />
           <HomeView v-if="navigation.view === 'home'" />
           <SearchView v-else-if="navigation.view === 'search'" />
-          <UpdatesView v-else-if="navigation.view === 'updates'" />
           <SettingsView v-else-if="navigation.view === 'settings'" />
           <PlaceholderView v-else :view="navigation.view" />
         </main>
@@ -155,5 +190,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
       }"
       aria-hidden="true"
     />
+    <UiConfirmDialog />
+    <UiToasts />
   </TooltipProvider>
 </template>

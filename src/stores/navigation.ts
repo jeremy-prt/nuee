@@ -6,7 +6,7 @@ import type { SettingsSection } from '@/utils/settings'
 
 type SettingsDetail = WindowStyle | 'theme' | 'background'
 
-export type View = 'home' | 'chats' | 'issues' | 'pullRequests' | 'notes' | 'search' | 'usage' | 'updates' | 'settings'
+export type View = 'home' | 'chats' | 'issues' | 'pullRequests' | 'notes' | 'search' | 'usage' | 'settings'
 
 // Vues « liste à gauche, détail au centre » : elles affichent le second panneau.
 const PANEL_VIEWS: readonly View[] = ['chats', 'issues', 'pullRequests', 'notes']
@@ -52,6 +52,14 @@ export const useNavigationStore = defineStore('navigation', () => {
     go('chats')
   }
 
+  // Ouvre les réglages directement sur une section (le bouton Mises à jour mène à Général).
+  function openSettings(section: SettingsSection) {
+    if (view.value === 'settings') return showSettingsSection(section)
+    settingsSection.value = section
+    settingsDetail.value = null
+    go('settings')
+  }
+
   // Recliquer sur la section dans la barre latérale ramène aussi de sa sous-page.
   function showSettingsSection(section: SettingsSection) {
     crossfade(() => {
@@ -79,6 +87,7 @@ export const useNavigationStore = defineStore('navigation', () => {
     hasPanel,
     go,
     openChats,
+    openSettings,
     showSettingsSection,
     showSettingsDetail,
     closeSettings,

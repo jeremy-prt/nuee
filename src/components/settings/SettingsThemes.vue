@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import SettingsCustomizeButton from '@/components/settings/SettingsCustomizeButton.vue'
+import SettingsHeading from '@/components/settings/SettingsHeading.vue'
 import UiChoiceCard from '@/components/ui/UiChoiceCard.vue'
 import { useAppearanceStore } from '@/stores/appearance'
 import { useNavigationStore } from '@/stores/navigation'
@@ -25,7 +26,7 @@ function orb(id: ThemeId) {
 
 <template>
   <section class="pt-8" role="radiogroup" aria-labelledby="theme-title">
-    <h3 id="theme-title" class="pb-2.5 text-sm font-semibold">{{ t('settings.themes.title') }}</h3>
+    <SettingsHeading id="theme-title" :title="t('settings.themes.title')" />
     <div class="grid grid-cols-2 gap-2 @xl:grid-cols-4">
       <div v-for="id in themeIds" :key="id" class="relative">
         <UiChoiceCard

@@ -8,6 +8,7 @@ App desktop Tauri 2 + Vue pour piloter des agents de code, open source (MIT). In
 - `pnpm type-check` : vérif TS + Vue
 - `cargo check|clippy|test --manifest-path src-tauri/Cargo.toml` : côté Rust. `cargo test` régénère aussi les types TS de `src/ipc/bindings/` (commités, le CI ne les régénère pas) : le relancer après tout changement de struct qui traverse l'IPC
 - Avant de pousser : `pnpm build` (vue-tsc ne voit pas les erreurs de syntaxe dans les templates, le build si), puis `cargo fmt` et `cargo clippy --all-targets -- -D warnings` dans `src-tauri/` : le workflow Checks échoue au moindre warning
+- Notifications, pastille du Dock et lancement au démarrage ne marchent pas sous `tauri dev` (binaire hors .app) : les tester dans `pnpm tauri build --debug --bundles app` (`src-tauri/target/debug/bundle/macos/Nuee.app`)
 - `pnpm tauri build` : ne builde que pour l'OS courant. Les trois OS passent par le workflow `.github/workflows/build.yml`
 
 ## Pièges

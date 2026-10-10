@@ -2,13 +2,17 @@
 import { ArrowLeft } from '@lucide/vue'
 import { nextTick, onMounted, onUnmounted, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import SettingsAbout from '@/components/settings/SettingsAbout.vue'
 import SettingsAppearance from '@/components/settings/SettingsAppearance.vue'
 import SettingsBackground from '@/components/settings/SettingsBackground.vue'
 import SettingsBackgroundOptions from '@/components/settings/SettingsBackgroundOptions.vue'
 import SettingsGlass from '@/components/settings/SettingsGlass.vue'
 import SettingsInterface from '@/components/settings/SettingsInterface.vue'
+import SettingsNotifications from '@/components/settings/SettingsNotifications.vue'
+import SettingsSystem from '@/components/settings/SettingsSystem.vue'
 import SettingsThemeOptions from '@/components/settings/SettingsThemeOptions.vue'
 import SettingsThemes from '@/components/settings/SettingsThemes.vue'
+import SettingsUpdates from '@/components/settings/SettingsUpdates.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import { useNavigationStore } from '@/stores/navigation'
 
@@ -38,11 +42,11 @@ function back() {
   navigation.showSettingsDetail(null)
 }
 
-// Échap venu d'un menu ouvert ne ferme que ce menu : reka-ui le traite sans marquer l'évènement
-// (defaultPrevented reste faux), d'où le test sur l'élément qui a reçu la touche.
+// Échap venu d'un menu, d'une confirmation ou d'un message ne ferme que lui : reka-ui le traite sans
+// marquer l'évènement (defaultPrevented reste faux), d'où le test sur l'élément qui a reçu la touche.
 function onKeydown(event: KeyboardEvent) {
   if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing) return
-  if ((event.target as Element | null)?.closest?.('[data-reka-popper-content-wrapper], [role="dialog"]')) return
+  if ((event.target as Element | null)?.closest?.('[data-reka-popper-content-wrapper], [role="dialog"], [role="alertdialog"], .ui-toast')) return
   event.preventDefault()
   if (navigation.settingsDetail) back()
   else navigation.closeSettings()
@@ -74,7 +78,13 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
       <template v-else>
         <h2 class="text-xl font-semibold">{{ t(`settings.sections.${navigation.settingsSection}`) }}</h2>
         <p class="mt-1.5 max-w-xl text-sm text-muted">{{ t(`settings.hints.${navigation.settingsSection}`) }}</p>
-        <template v-if="navigation.settingsSection === 'appearance'">
+        <template v-if="navigation.settingsSection === 'general'">
+          <SettingsSystem />
+          <SettingsNotifications />
+          <SettingsUpdates />
+          <SettingsAbout />
+        </template>
+        <template v-else-if="navigation.settingsSection === 'appearance'">
           <SettingsThemes />
           <SettingsAppearance />
           <SettingsBackground />

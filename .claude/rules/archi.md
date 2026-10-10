@@ -56,6 +56,7 @@ src-tauri/src/
 - État : `std::sync::Mutex` par défaut, celui de tokio seulement si le verrou doit traverser un `.await`. Jamais de verrou tenu pendant un `.await`. Pas d'`Arc` autour de ce qu'on passe à `manage()`, Tauri l'enveloppe déjà.
 - Process enfants (CLI d'agents) : le front envoie un id d'agent et des options, jamais une ligne de commande. Rust construit la commande depuis une liste connue, garde le PID et tue par ce PID (`kill_on_drop`).
 - Lancée depuis le Finder, l'app n'a pas le PATH du shell : résoudre les binaires d'agents via un login shell.
+- macOS : notifications et pastille du Dock par `UNUserNotificationCenter` (`services/notification.rs`), pas `tauri-plugin-notification` (son `NSUserNotification` est refusé par macOS 27) ; lancement au démarrage par `auto-launch` en SMAppService, pas `tauri-plugin-autostart` (son LaunchAgent range l'app en tâche de fond). Les deux exigent l'app empaquetée et signée avec `signingIdentity: "-"` (sinon l'identifiant de signature ne correspond pas et macOS refuse sans demander).
 - Brancher un agent (Codex, Cursor...) : une variante dans `AgentKind`, un `Driver` dans `services/agent/<agent>.rs` (arguments de la CLI, sonde qui liste ses modèles, traduction de sa sortie en `AgentEvent`), son nom et sa commande dans `src/utils/agents.ts`. Un process par chat gardé ouvert (`services/agent/session.rs`) : messages et interruption écrits sur stdin, relancé avec `--resume` si le mode, le modèle, l'effort ou le dossier change, arrêté après 5 min sans tour. Il démarre dès le focus du champ de saisie (`agent_warm`).
 - Mode Auto : les demandes d'autorisation passent par `--permission-prompt-tool stdio` (`control_request` `can_use_tool`) et s'affichent dans `ChatApproval` ; Rust garde les paramètres de l'outil pour les renvoyer avec l'accord. Pas de consigne système ajoutée à Claude : une phrase en anglais en fin de prompt le fait répondre en anglais.
 - Fin de tour en deux temps : `answered` dès que la réponse est complète (le front affiche « Terminé »), `turnEnd` quand l'agent a fini de ranger (résumé, hooks : plusieurs secondes). Un message envoyé entre les deux attend `turnEnd`. Après un arrêt, le texte coupé est rappelé à l'agent si son process est neuf (paramètre `recap`).
@@ -73,7 +74,7 @@ src-tauri/src/
 
 ## Interface
 
-- Composants accessibles : reka-ui (headless) habillé dans `components/ui/`, jamais une lib de composants déjà stylés.
+- Composants accessibles : reka-ui (headless) habillé dans `components/ui/`, jamais une lib de composants déjà stylés. Confirmation : `useDialogStore().confirm()`, jamais le `ask` natif ; message en bas de fenêtre : `useToastsStore().push()`.
 - Couleurs uniquement via les jetons de `main.css` (`canvas`, `chrome`, `surface`, `popover`, `content`, `muted`, `stroke`, `selection`, `accent`, `danger`). Pas de couleur nommée `base` : `text-base` est déjà la taille de texte de Tailwind.
 - Barre latérale repliable : l'icône reste à 16 px du bord dans les deux états (rail `p-2` + item `px-2`, replié à 48 px), jamais de `justify-center`. Repli instantané, sans animation ; les libellés restent dans le DOM, masqués. Choix de Jérémy : dépliée, son bouton est dans la barre de titre ; repliée, il devient la première icône de la colonne.
 - Boutons de colonne (barre latérale, panneau) : au-dessus du bord droit de leur colonne, sans fond « actif », seulement survol et infobulle. Le bouton de la barre latérale montre l'action (flèche gauche pour replier, droite pour déplier).
@@ -84,7 +85,7 @@ src-tauri/src/
 - Thèmes (`utils/themes.ts`) : un thème fixe `--color-accent`. Bouton principal en `bg-accent text-canvas`, jamais `bg-content` : il doit suivre le thème. Les fonds d'éléments actifs passent par `bg-selection`, que le mode « Toute l'interface » teinte avec l'accent.
 - Flou du bureau : commande `window_set_blur` (API privée `CGSSetWindowBackgroundBlurRadius`, comme monocode et Brume). Pas de `windowEffects` dans `tauri.macos.conf.json` : le matériau natif écrase le rayon choisi. `set_blur` donne aussi à la NSWindow un fond blanc à alpha 0,001, sans quoi le flou déborde des coins arrondis.
 - Raccourcis : déclarés dans `utils/shortcuts.ts`, comparés sur la lettre tapée (en AZERTY, W n'est pas sur la touche physique `KeyW`). Un raccourci ⌘ porté par un élément du menu natif (`src-tauri/src/menu.rs`) n'atteint jamais la webview. Symboles (⌘, ⌘+ ⌘0) : `also`, `codes` et `shift: 'any'`, car ils demandent ⇧ sur certaines dispositions.
-- Menus reka (`UiSelect`) : le verre (fond, flou) va sur le cadre `[data-reka-popper-content-wrapper]`, jamais sur l'élément animé (WebKit peint alors un fond périmé). Échap dans un menu reka n'est pas marqué `defaultPrevented` : un écouteur global d'Échap doit ignorer les cibles situées dans un menu.
+- Verre des menus, confirmations et messages : fond et flou sur un cadre fixe (`[data-reka-popper-content-wrapper]` ou `.ui-glass`), seul le contenu s'anime dedans (WebKit peint un fond périmé si l'élément flouté est animé). Échap dans un menu reka n'est pas marqué `defaultPrevented` : un écouteur global d'Échap doit ignorer les cibles situées dans un menu.
 - Transitions des réglages : fondu enchaîné par l'API View Transitions (`crossfade` dans `stores/navigation.ts`). Changer de vue ou de sous-page des réglages passe par `go`, `showSettingsSection` ou `showSettingsDetail`, jamais en écrivant la ref directement : sinon pas de fondu.
 - Taille de l'interface : zoom natif de la webview (`setZoom`). Les boutons macOS et les positions du glisser-déposer ne suivent pas : `ShellTitleBar` et `useFileDrop` compensent avec `zoomFactor`.
 - Fichiers glissés depuis le Finder : les événements HTML5 ne les reçoivent pas (Tauri capte le dépôt), passer par `useFileDrop` qui teste la position contre la zone.
@@ -97,7 +98,7 @@ src-tauri/src/
 - Pas de `v-html` sur une sortie d'agent : le markdown passe par `ChatMarkdown` (lexer marked rendu en nœuds Vue). Une XSS dans la webview donne accès aux commandes, donc au lancement de process.
 - La webview n'affiche un fichier local que via le protocole asset, limité à `$APPDATA/attachments/**` et `$APPDATA/backgrounds/**` (image de fond, lue aussi en `fetch` pour ses effets, d'où `asset:` dans `connect-src`) : ne pas élargir ce scope, copier l'image dedans.
 - CSP définie dans `tauri.conf.json` : ne pas la repasser à `null`, ne pas charger de CDN. Seul domaine externe autorisé : `api.github.com` (vérification des mises à jour).
-- `opener` n'ouvre que `https://github.com/jeremy-prt/nuee/releases/*` (scope dans la capability) : élargir ce scope au cas par cas.
+- `opener` n'ouvre que les pages du dépôt listées dans la capability (releases, issues/new, LICENSE) : élargir ce scope au cas par cas.
 
 ## Divers
 

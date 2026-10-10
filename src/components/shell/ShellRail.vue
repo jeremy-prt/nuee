@@ -23,12 +23,14 @@ import { pickFolder } from '@/ipc/dialog'
 import { RAIL_COLLAPSED_WIDTH, useLayoutStore } from '@/stores/layout'
 import { useNavigationStore } from '@/stores/navigation'
 import { useProjectsStore } from '@/stores/projects'
+import { useUpdatesStore } from '@/stores/updates'
 import { shortcutLabel, shortcuts } from '@/utils/shortcuts'
 
 const { t } = useI18n()
 const layout = useLayoutStore()
 const navigation = useNavigationStore()
 const projects = useProjectsStore()
+const updates = useUpdatesStore()
 
 const footerButtons = useTemplateRef<HTMLButtonElement[]>('footerButtons')
 
@@ -55,11 +57,16 @@ const pages = [
   { view: 'search', icon: Search, shortcut: shortcutLabel(shortcuts.search) },
 ] as const
 
+// Mises à jour n'est pas une vue : le bouton mène à Réglages > Général.
 const footer = [
-  { view: 'settings', icon: Settings, shortcut: shortcutLabel(shortcuts.settings) },
-  { view: 'usage', icon: Gauge },
-  { view: 'updates', icon: RefreshCw },
+  { id: 'settings', icon: Settings, shortcut: shortcutLabel(shortcuts.settings), open: () => navigation.go('settings') },
+  { id: 'usage', icon: Gauge, open: () => navigation.go('usage') },
+  { id: 'updates', icon: RefreshCw, open: () => navigation.openSettings('general') },
 ] as const
+
+function footerLabel(id: (typeof footer)[number]['id']) {
+  return id === 'updates' && updates.status === 'available' ? t('updates.availableTitle') : t(`rail.${id}`)
+}
 </script>
 
 <template>
@@ -143,10 +150,10 @@ const footer = [
     </div>
     <!-- Dépliée : une ligne (Réglages et Quota à gauche, Mises à jour à droite). Repliée : une colonne de 48 px. -->
     <div v-else class="flex shrink-0 gap-0.5 p-2" :class="layout.rail.expanded ? 'flex-row' : 'flex-col'">
-      <template v-for="(item, index) in footer" :key="item.view">
+      <template v-for="(item, index) in footer" :key="item.id">
         <span v-if="layout.rail.expanded && index === footer.length - 1" class="flex-1" />
         <UiTooltip
-          :label="t(`rail.${item.view}`)"
+          :label="footerLabel(item.id)"
           :shortcut="'shortcut' in item ? item.shortcut : undefined"
           :side="layout.rail.expanded ? 'top' : 'right'"
           :side-offset="8"
@@ -154,14 +161,19 @@ const footer = [
           <button
             ref="footerButtons"
             type="button"
-            :data-view="item.view"
-            class="grid size-8 shrink-0 place-items-center rounded-md focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
-            :class="navigation.view === item.view ? 'bg-selection text-content' : 'text-muted hover:bg-selection-hover hover:text-content'"
-            :aria-label="t(`rail.${item.view}`)"
-            :aria-current="navigation.view === item.view ? 'page' : undefined"
-            @click="navigation.go(item.view)"
+            :data-view="item.id"
+            class="relative grid size-8 shrink-0 place-items-center rounded-md focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+            :class="navigation.view === item.id ? 'bg-selection text-content' : 'text-muted hover:bg-selection-hover hover:text-content'"
+            :aria-label="footerLabel(item.id)"
+            :aria-current="navigation.view === item.id ? 'page' : undefined"
+            @click="item.open()"
           >
             <component :is="item.icon" class="size-4" aria-hidden="true" />
+            <span
+              v-if="item.id === 'updates' && updates.status === 'available'"
+              class="absolute end-1.5 top-1.5 size-1.5 rounded-full bg-accent"
+              aria-hidden="true"
+            />
           </button>
         </UiTooltip>
       </template>

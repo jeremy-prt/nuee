@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import SettingsCustomizeButton from '@/components/settings/SettingsCustomizeButton.vue'
+import SettingsHeading from '@/components/settings/SettingsHeading.vue'
 import SettingsWindowPreview from '@/components/settings/SettingsWindowPreview.vue'
 import UiChoiceCard from '@/components/ui/UiChoiceCard.vue'
 import { isMacosApp } from '@/ipc/system'
@@ -37,7 +38,7 @@ function preview(style: WindowStyle): GlassValues {
     aria-labelledby="window-style-title"
     :aria-describedby="available ? undefined : 'window-style-hint'"
   >
-    <h3 id="window-style-title" class="pb-2.5 text-sm font-semibold">{{ t('settings.appearance.window') }}</h3>
+    <SettingsHeading id="window-style-title" :title="t('settings.appearance.window')" />
     <p v-if="!available" id="window-style-hint" class="mb-3 text-sm text-muted">{{ t('settings.appearance.macosOnly') }}</p>
 
     <div class="grid grid-cols-3 gap-3">

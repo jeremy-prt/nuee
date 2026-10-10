@@ -321,6 +321,14 @@ impl AgentService {
         }
     }
 
+    /// Chats dont un tour n'est pas clos : réponse en cours, rangement ou demande d'autorisation.
+    pub fn busy_count(&self) -> usize {
+        lock(&self.sessions)
+            .values()
+            .filter(|session| session.busy())
+            .count()
+    }
+
     /// À la fermeture de l'app : sans ça, les agents survivraient à la fenêtre.
     pub fn stop_all(&self) {
         for session in lock(&self.sessions).values() {
