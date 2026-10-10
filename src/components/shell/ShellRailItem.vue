@@ -12,7 +12,7 @@ defineProps<{ icon: Component; label: string; expanded: boolean; active?: boolea
     <button
       v-bind="$attrs"
       type="button"
-      class="flex h-8 w-full shrink-0 items-center gap-2.5 overflow-hidden rounded-md px-2 text-sm whitespace-nowrap focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+      class="flex h-8 w-full shrink-0 items-center gap-2.5 overflow-hidden rounded-md px-2 text-sm whitespace-nowrap focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
       :class="active ? 'bg-selection text-content' : 'text-muted hover:bg-selection-hover hover:text-content'"
       :aria-label="label"
       :aria-current="active ? 'page' : undefined"

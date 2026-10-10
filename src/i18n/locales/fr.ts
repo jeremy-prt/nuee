@@ -27,6 +27,7 @@ export default {
     toggle: 'Afficher ou masquer le panneau latéral',
     resize: 'Redimensionner le panneau latéral',
     empty: 'Aucun chat pour le moment. Lance-en un avec {shortcut}.',
+    emptyNoShortcut: 'Aucun chat pour le moment.',
   },
   workspace: {
     tabs: 'Onglets ouverts',
@@ -161,13 +162,22 @@ export default {
     hints: {
       general: 'Langue, démarrage, notifications, sons et mises à jour.',
       appearance: 'Thème, transparence de la fenêtre, image de fond et taille de l\'interface.',
-      shortcuts: 'Tous les raccourcis clavier de Nuée.',
+      shortcuts: 'Tous les raccourcis clavier de Nuée. Clique sur l\'un d\'eux pour le changer.',
       agents: 'Les agents installés sur cet ordinateur et leur connexion.',
       connections: 'Tes comptes de providers et les services connectés, comme GitHub.',
       skills: 'Les skills et serveurs MCP que tes agents peuvent utiliser.',
       archive: 'Les chats archivés, à retrouver ou à supprimer.',
     },
     shortcuts: {
+      edit: 'Modifier « {name} » ({keys})',
+      recording: 'Appuie sur les touches…',
+      recordingHint: 'Échap pour annuler, ⌫ pour désactiver.',
+      disabled: 'Désactivé',
+      resetOne: 'Rétablir le raccourci par défaut de « {name} »',
+      taken: '{keys} est déjà utilisé par « {name} ».',
+      replace: 'Remplacer',
+      reserved: '{keys} est réservé au système.',
+      needsMod: 'Ajoute {mod} à la combinaison.',
       groups: {
         navigation: 'Navigation',
         chats: 'Chats',

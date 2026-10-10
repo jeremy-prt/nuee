@@ -27,6 +27,7 @@ export default {
     toggle: '显示或隐藏侧面板',
     resize: '调整侧面板大小',
     empty: '暂无聊天。按 {shortcut} 开始一个。',
+    emptyNoShortcut: '暂无聊天。',
   },
   workspace: {
     tabs: '已打开的标签页',
@@ -161,13 +162,22 @@ export default {
     hints: {
       general: '语言、启动、通知、声音和更新。',
       appearance: '主题、窗口透明度、背景图片和界面大小。',
-      shortcuts: 'Nuée 的所有键盘快捷键。',
+      shortcuts: 'Nuée 的所有键盘快捷键。点击即可修改。',
       agents: '这台电脑上安装的智能体及其连接状态。',
       connections: '你的提供商账户和已连接的服务，例如 GitHub。',
       skills: '你的智能体可以使用的技能和 MCP 服务器。',
       archive: '已归档的聊天，可以恢复或删除。',
     },
     shortcuts: {
+      edit: '修改“{name}”（{keys}）',
+      recording: '请按下按键…',
+      recordingHint: '按 Esc 取消，按 ⌫ 停用。',
+      disabled: '已停用',
+      resetOne: '将“{name}”恢复为默认快捷键',
+      taken: '{keys} 已被“{name}”使用。',
+      replace: '替换',
+      reserved: '{keys} 已被系统保留。',
+      needsMod: '请在组合中加入 {mod}。',
       groups: {
         navigation: '导航',
         chats: '聊天',

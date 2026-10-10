@@ -10,6 +10,7 @@ import { isTauriApp, openGithubPage } from '@/ipc/system'
 import { useAppearanceStore } from '@/stores/appearance'
 import { useDialogStore } from '@/stores/dialog'
 import { useGeneralStore } from '@/stores/general'
+import { useShortcutsStore } from '@/stores/shortcuts'
 
 const REPOSITORY = 'https://github.com/jeremy-prt/nuee'
 
@@ -23,6 +24,7 @@ const { t } = useI18n()
 const appearance = useAppearanceStore()
 const dialog = useDialogStore()
 const general = useGeneralStore()
+const shortcuts = useShortcutsStore()
 
 async function resetAll() {
   const confirmed = await dialog.confirm({
@@ -33,6 +35,7 @@ async function resetAll() {
   })
   if (!confirmed) return
   general.reset()
+  shortcuts.reset()
   const image = appearance.background.path
   appearance.resetAll()
   if (image && isTauriApp()) {

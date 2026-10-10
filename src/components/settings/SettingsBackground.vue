@@ -70,7 +70,7 @@ const { over } = useFileDrop(zone, (paths) => use(paths[0]!), true)
     <div
       ref="zone"
       class="relative rounded-xl border p-3 transition-colors motion-reduce:transition-none"
-      :class="over ? 'border-accent bg-selection/40' : appearance.background.path ? 'border-stroke' : 'border-dashed border-stroke'"
+      :class="over ? 'border-ring bg-selection/40' : appearance.background.path ? 'border-stroke' : 'border-dashed border-stroke'"
     >
       <div v-if="appearance.background.path" class="flex flex-wrap items-center gap-4">
         <SettingsBackgroundThumb :path="appearance.background.path" class="w-48" />

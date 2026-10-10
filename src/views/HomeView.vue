@@ -3,10 +3,11 @@ import { SquarePen } from '@lucide/vue'
 import { useI18n } from 'vue-i18n'
 import { useNewChat } from '@/composables/useNewChat'
 import { useProjectsStore } from '@/stores/projects'
+import { useShortcutsStore } from '@/stores/shortcuts'
 import { useWorkspaceStore } from '@/stores/workspace'
-import { shortcutLabel, shortcuts } from '@/utils/shortcuts'
 
 const { t } = useI18n()
+const shortcuts = useShortcutsStore()
 const workspace = useWorkspaceStore()
 const projects = useProjectsStore()
 const newChat = useNewChat()
@@ -32,12 +33,12 @@ const newChat = useNewChat()
 
     <button
       type="button"
-      class="flex h-9 items-center gap-2 rounded-md bg-accent px-4 text-sm font-medium text-canvas hover:bg-accent/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      class="flex h-9 items-center gap-2 rounded-md bg-accent px-4 text-sm font-medium text-canvas hover:bg-accent/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       @click="newChat(null)"
     >
       <SquarePen class="size-4" aria-hidden="true" />
       {{ t('chats.newChat') }}
-      <kbd class="font-sans text-xs opacity-60">{{ shortcutLabel(shortcuts.newChat) }}</kbd>
+      <kbd v-if="shortcuts.label('newChat')" class="font-sans text-xs opacity-60">{{ shortcuts.label('newChat') }}</kbd>
     </button>
   </div>
 </template>

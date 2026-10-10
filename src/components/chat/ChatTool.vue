@@ -31,7 +31,7 @@ const icon = computed(() => ICONS[props.item.tool])
     <component
       :is="item.output ? 'summary' : 'div'"
       class="flex min-w-0 items-center gap-2 rounded-md text-muted [&::-webkit-details-marker]:hidden"
-      :class="item.output ? 'cursor-default list-none px-2 py-1 hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-accent' : undefined"
+      :class="item.output ? 'cursor-default list-none px-2 py-1 hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring' : undefined"
     >
       <component :is="icon" class="size-3.5 shrink-0" aria-hidden="true" />
       <span class="shrink-0 font-medium text-content">{{ item.name }}</span>

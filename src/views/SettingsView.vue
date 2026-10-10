@@ -8,6 +8,7 @@ import SettingsBackground from '@/components/settings/SettingsBackground.vue'
 import SettingsBackgroundOptions from '@/components/settings/SettingsBackgroundOptions.vue'
 import SettingsGlass from '@/components/settings/SettingsGlass.vue'
 import SettingsInterface from '@/components/settings/SettingsInterface.vue'
+import SettingsResetButton from '@/components/settings/SettingsResetButton.vue'
 import SettingsShortcuts from '@/components/settings/SettingsShortcuts.vue'
 import SettingsNotifications from '@/components/settings/SettingsNotifications.vue'
 import SettingsSystem from '@/components/settings/SettingsSystem.vue'
@@ -16,11 +17,12 @@ import SettingsThemes from '@/components/settings/SettingsThemes.vue'
 import SettingsUpdates from '@/components/settings/SettingsUpdates.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import { useNavigationStore } from '@/stores/navigation'
-import { matchesShortcut, shortcuts } from '@/utils/shortcuts'
+import { useShortcutsStore } from '@/stores/shortcuts'
 
 // ===== Initialisation =====
 const { t } = useI18n()
 const navigation = useNavigationStore()
+const shortcuts = useShortcutsStore()
 const root = useTemplateRef('root')
 const heading = useTemplateRef('heading')
 
@@ -30,24 +32,29 @@ watch(
   () => root.value?.scrollTo({ top: 0 }),
 )
 
-// Le bouton qui a ouvert la sous-page disparaît avec elle : on lui rend le focus au retour.
+// Au retour, le focus ne revient sur « Personnaliser » que si Retour a été validé au clavier (`detail` à 0) :
+// après un clic ou Échap, il ne saute nulle part. Le titre de la sous-page, lui, ne montre pas d'anneau.
+let restoreFocus = false
 watch(
   () => navigation.settingsDetail,
   async (detail, previous) => {
+    const restore = restoreFocus
+    restoreFocus = false
     await nextTick()
     if (detail) heading.value?.focus()
-    else if (previous) root.value?.querySelector<HTMLElement>(`[data-customize="${previous}"]`)?.focus()
+    else if (previous && restore) root.value?.querySelector<HTMLElement>(`[data-customize="${previous}"]`)?.focus()
   },
 )
 
-function back() {
+function back(event?: MouseEvent) {
+  restoreFocus = event?.detail === 0
   navigation.showSettingsDetail(null)
 }
 
 // Échap venu d'un menu, d'une confirmation ou d'un message ne ferme que lui : reka-ui le traite sans
 // marquer l'évènement (defaultPrevented reste faux), d'où le test sur l'élément qui a reçu la touche.
 function onKeydown(event: KeyboardEvent) {
-  if (!matchesShortcut(event, shortcuts.closeSettings) || event.defaultPrevented || event.isComposing) return
+  if (!shortcuts.matches(event, 'closeSettings') || event.defaultPrevented || event.isComposing) return
   if ((event.target as Element | null)?.closest?.('[data-reka-popper-content-wrapper], [role="dialog"], [role="alertdialog"], .ui-toast')) return
   event.preventDefault()
   if (navigation.settingsDetail) back()
@@ -63,7 +70,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
     <div class="mx-auto w-full max-w-4xl px-6 py-8 pb-16 @2xl:px-10 @4xl:px-14">
       <template v-if="navigation.settingsDetail">
         <div class="-ms-1.5 flex items-center gap-1.5">
-          <UiIconButton :label="t('settings.backTo', { section: t('settings.sections.appearance') })" @click="back()">
+          <UiIconButton :label="t('settings.backTo', { section: t('settings.sections.appearance') })" @click="back($event)">
             <ArrowLeft class="size-4" aria-hidden="true" />
           </UiIconButton>
           <h2 ref="heading" tabindex="-1" class="text-xl font-semibold outline-none">
@@ -78,8 +85,13 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
         <SettingsGlass v-else :window-style="navigation.settingsDetail" />
       </template>
       <template v-else>
-        <h2 class="text-xl font-semibold">{{ t(`settings.sections.${navigation.settingsSection}`) }}</h2>
-        <p class="mt-1.5 max-w-xl text-sm text-muted">{{ t(`settings.hints.${navigation.settingsSection}`) }}</p>
+        <div class="flex items-end gap-4">
+          <div class="min-w-0 flex-1">
+            <h2 class="text-xl font-semibold">{{ t(`settings.sections.${navigation.settingsSection}`) }}</h2>
+            <p class="mt-1.5 max-w-xl text-sm text-muted">{{ t(`settings.hints.${navigation.settingsSection}`) }}</p>
+          </div>
+          <SettingsResetButton v-if="navigation.settingsSection === 'shortcuts'" @click="shortcuts.reset()" />
+        </div>
         <template v-if="navigation.settingsSection === 'general'">
           <SettingsSystem />
           <SettingsNotifications />

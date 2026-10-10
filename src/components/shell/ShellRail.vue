@@ -14,7 +14,7 @@ import {
   Search,
   Settings,
 } from '@lucide/vue'
-import { nextTick, useTemplateRef, watch } from 'vue'
+import { nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsNav from '@/components/settings/SettingsNav.vue'
 import ShellRailItem from '@/components/shell/ShellRailItem.vue'
@@ -23,10 +23,11 @@ import { pickFolder } from '@/ipc/dialog'
 import { RAIL_COLLAPSED_WIDTH, useLayoutStore } from '@/stores/layout'
 import { useNavigationStore } from '@/stores/navigation'
 import { useProjectsStore } from '@/stores/projects'
+import { useShortcutsStore } from '@/stores/shortcuts'
 import { useUpdatesStore } from '@/stores/updates'
-import { shortcutLabel, shortcuts } from '@/utils/shortcuts'
 
 const { t } = useI18n()
+const shortcuts = useShortcutsStore()
 const layout = useLayoutStore()
 const navigation = useNavigationStore()
 const projects = useProjectsStore()
@@ -34,15 +35,29 @@ const updates = useUpdatesStore()
 
 const footerButtons = useTemplateRef<HTMLButtonElement[]>('footerButtons')
 
-// Retour et Échap ferment les réglages : le focus revient au bouton qui les avait ouverts.
+// Le focus ne suit que si on a validé au clavier le bouton qui disparaît (Réglages, Retour) :
+// un clic, Échap ou un raccourci le laissent où il est. `detail` vaut 0 pour un clic venu du clavier.
+const byKeyboard = ref(false)
+
 watch(
-  () => navigation.view === 'settings',
-  async (open) => {
-    if (open) return
+  () => navigation.view,
+  async (_, previous) => {
+    const restore = byKeyboard.value
     await nextTick()
-    footerButtons.value?.find((button) => button.dataset.view === 'settings')?.focus()
+    byKeyboard.value = false
+    if (restore && previous === 'settings') footerButtons.value?.find((button) => button.dataset.view === 'settings')?.focus()
   },
 )
+
+function openFooter(open: () => void, event: MouseEvent) {
+  byKeyboard.value = event.detail === 0
+  open()
+}
+
+function closeSettings(event: MouseEvent) {
+  byKeyboard.value = event.detail === 0
+  navigation.closeSettings()
+}
 
 async function addProject() {
   const path = await pickFolder(t('rail.pickProject'))
@@ -54,12 +69,12 @@ const pages = [
   { view: 'issues', icon: CircleDot },
   { view: 'pullRequests', icon: GitPullRequest },
   { view: 'notes', icon: NotebookPen },
-  { view: 'search', icon: Search, shortcut: shortcutLabel(shortcuts.search) },
+  { view: 'search', icon: Search, shortcut: 'search' },
 ] as const
 
 // Mises à jour n'est pas une vue : le bouton mène à Réglages > Général.
 const footer = [
-  { id: 'settings', icon: Settings, shortcut: shortcutLabel(shortcuts.settings), open: () => navigation.go('settings') },
+  { id: 'settings', icon: Settings, shortcut: 'settings', open: () => navigation.go('settings') },
   { id: 'usage', icon: Gauge, open: () => navigation.go('usage') },
   { id: 'updates', icon: RefreshCw, open: () => navigation.openSettings('general') },
 ] as const
@@ -83,20 +98,20 @@ function footerLabel(id: (typeof footer)[number]['id']) {
         v-if="!layout.rail.expanded"
         :icon="PanelLeftOpen"
         :label="t('rail.toggle')"
-        :shortcut="shortcutLabel(shortcuts.toggleRail)"
+        :shortcut="shortcuts.label('toggleRail')"
         :expanded="false"
         aria-controls="shell-rail"
         :aria-expanded="false"
         @click="layout.toggleRail()"
       />
-      <SettingsNav v-if="navigation.view === 'settings'" />
+      <SettingsNav v-if="navigation.view === 'settings'" :focus-current="byKeyboard" />
       <template v-else>
         <ShellRailItem
           v-for="item in pages"
           :key="item.view"
           :icon="item.icon"
           :label="t(`rail.${item.view}`)"
-          :shortcut="'shortcut' in item ? item.shortcut : undefined"
+          :shortcut="'shortcut' in item ? shortcuts.label(item.shortcut) : undefined"
           :expanded="layout.rail.expanded"
           :active="navigation.view === item.view"
           @click="navigation.go(item.view)"
@@ -119,7 +134,7 @@ function footerLabel(id: (typeof footer)[number]['id']) {
           <UiTooltip :label="t('rail.addProject')" :side="layout.rail.expanded ? 'top' : 'right'" :side-offset="8">
             <button
               type="button"
-              class="grid shrink-0 place-items-center rounded-md text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+              class="grid shrink-0 place-items-center rounded-md text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
               :class="layout.rail.expanded ? 'size-7' : 'size-8'"
               :aria-label="t('rail.addProject')"
               @click="addProject()"
@@ -145,7 +160,7 @@ function footerLabel(id: (typeof footer)[number]['id']) {
         :icon="ArrowLeft"
         :label="t('settings.back')"
         :expanded="layout.rail.expanded"
-        @click="navigation.closeSettings()"
+        @click="closeSettings($event)"
       />
     </div>
     <!-- Dépliée : une ligne (Réglages et Quota à gauche, Mises à jour à droite). Repliée : une colonne de 48 px. -->
@@ -154,7 +169,7 @@ function footerLabel(id: (typeof footer)[number]['id']) {
         <span v-if="layout.rail.expanded && index === footer.length - 1" class="flex-1" />
         <UiTooltip
           :label="footerLabel(item.id)"
-          :shortcut="'shortcut' in item ? item.shortcut : undefined"
+          :shortcut="'shortcut' in item ? shortcuts.label(item.shortcut) : undefined"
           :side="layout.rail.expanded ? 'top' : 'right'"
           :side-offset="8"
         >
@@ -162,11 +177,11 @@ function footerLabel(id: (typeof footer)[number]['id']) {
             ref="footerButtons"
             type="button"
             :data-view="item.id"
-            class="relative grid size-8 shrink-0 place-items-center rounded-md focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+            class="relative grid size-8 shrink-0 place-items-center rounded-md focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
             :class="navigation.view === item.id ? 'bg-selection text-content' : 'text-muted hover:bg-selection-hover hover:text-content'"
             :aria-label="footerLabel(item.id)"
             :aria-current="navigation.view === item.id ? 'page' : undefined"
-            @click="item.open()"
+            @click="openFooter(item.open, $event)"
           >
             <component :is="item.icon" class="size-4" aria-hidden="true" />
             <span

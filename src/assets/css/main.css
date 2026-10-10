@@ -8,6 +8,8 @@
   --color-stroke: color-mix(in srgb, var(--color-content) 8%, transparent);
   --color-selection: color-mix(in srgb, var(--color-content) 10%, transparent);
   --color-selection-hover: color-mix(in srgb, var(--color-content) 15%, transparent);
+  /* Focus et éléments choisis : l'accent du thème adouci, l'accent plein ressort trop (blanc vif dans Nuée). */
+  --color-ring: color-mix(in srgb, var(--color-accent) 45%, transparent);
   --color-accent: hsl(240 0% 92%);
   --color-danger: hsl(0 72% 65%);
   /* Fonds des barres et panneaux (chrome) et de la zone centrale (surface) : voir le style de fenêtre plus bas. */

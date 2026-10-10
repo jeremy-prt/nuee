@@ -18,7 +18,7 @@ const model = defineModel<T>({ required: true })
       v-for="option in options"
       :key="option.value"
       :value="option.value"
-      class="flex h-6 items-center justify-center gap-1.5 rounded-[5px] px-2.5 whitespace-nowrap text-muted focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent enabled:cursor-pointer enabled:hover:text-content disabled:cursor-not-allowed data-[state=checked]:bg-selection data-[state=checked]:text-content"
+      class="flex h-6 items-center justify-center gap-1.5 rounded-[5px] px-2.5 whitespace-nowrap text-muted focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring enabled:cursor-pointer enabled:hover:text-content disabled:cursor-not-allowed data-[state=checked]:bg-selection data-[state=checked]:text-content"
     >
       <span v-if="option.swatch" class="size-2.5 rounded-full border border-content/20" :style="{ background: option.swatch }" aria-hidden="true" />
       {{ option.label }}

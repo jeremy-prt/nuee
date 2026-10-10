@@ -39,7 +39,7 @@ const active = computed({
             v-for="view in views"
             :key="view"
             :value="view"
-            class="flex h-7 items-center gap-1.5 rounded-md px-2 text-xs text-muted hover:text-content focus-visible:outline-2 focus-visible:outline-accent data-[state=active]:bg-selection data-[state=active]:text-content"
+            class="flex h-7 items-center gap-1.5 rounded-md px-2 text-xs text-muted hover:text-content focus-visible:outline-2 focus-visible:outline-ring data-[state=active]:bg-selection data-[state=active]:text-content"
             :class="{ 'opacity-50': drag.source?.kind === 'view' && drag.source.view === view }"
             @pointerdown="startViewDrag($event, view)"
           >

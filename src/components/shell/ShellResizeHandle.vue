@@ -50,7 +50,7 @@ function onKeydown(event: KeyboardEvent) {
     :aria-valuenow="size"
     :aria-valuemin="min"
     :aria-valuemax="max"
-    class="separator relative z-10 shrink-0 outline-none hover:bg-accent/50 focus-visible:bg-accent/50"
+    class="separator relative z-10 shrink-0 outline-none hover:bg-ring focus-visible:bg-ring"
     :class="orientation === 'vertical' ? 'w-px' : 'h-px'"
     @pointerdown="onPointerDown"
     @keydown="onKeydown"

@@ -13,9 +13,9 @@ const selected = computed(() => props.checked ?? model.value === props.value)
 
 <template>
   <label
-    class="rounded-xl border has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-accent"
+    class="rounded-xl border has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-ring"
     :class="[
-      selected ? 'border-accent bg-selection/40' : 'border-stroke',
+      selected ? 'border-ring bg-selection/40' : 'border-stroke',
       disabled ? 'cursor-not-allowed' : 'cursor-pointer',
       { 'hover:bg-selection/40': !selected && !disabled },
     ]"

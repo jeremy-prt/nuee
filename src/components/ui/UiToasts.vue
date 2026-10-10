@@ -36,7 +36,7 @@ function run(toast: Toast) {
           <UiButton size="sm" @click="run(toast)">{{ toast.action.label }}</UiButton>
         </ToastAction>
         <ToastClose
-          class="grid size-7 shrink-0 cursor-pointer place-items-center rounded-md text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-accent"
+          class="grid size-7 shrink-0 cursor-pointer place-items-center rounded-md text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-ring"
           :aria-label="t('toast.close')"
         >
           <X class="size-3.5" aria-hidden="true" />

@@ -30,7 +30,7 @@ onMounted(() => input.value?.focus())
       ref="input"
       v-model="query"
       type="search"
-      class="h-10 w-full rounded-lg border border-stroke bg-selection/50 px-3 text-sm select-text outline-none placeholder:text-muted focus:border-accent"
+      class="h-10 w-full rounded-lg border border-stroke bg-selection/50 px-3 text-sm select-text outline-none placeholder:text-muted focus:border-ring"
       :placeholder="t('search.placeholder')"
     />
     <ul v-if="results.length" class="mt-3 space-y-0.5">

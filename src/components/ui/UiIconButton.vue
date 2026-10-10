@@ -11,7 +11,7 @@ defineProps<{ label: string; shortcut?: string; active?: boolean }>()
     <button
       v-bind="$attrs"
       type="button"
-      class="grid size-7 shrink-0 place-items-center rounded-md text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-accent disabled:pointer-events-none disabled:opacity-40"
+      class="grid size-7 shrink-0 place-items-center rounded-md text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-40"
       :class="{ 'bg-selection text-content': active }"
       :aria-label="label"
     >

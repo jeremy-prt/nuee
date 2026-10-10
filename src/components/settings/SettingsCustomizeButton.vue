@@ -19,7 +19,7 @@ defineEmits<{ click: [] }>()
       v-if="show"
       v-bind="$attrs"
       type="button"
-      class="absolute grid size-7 cursor-pointer place-items-center rounded-md bg-canvas/30 text-muted backdrop-blur-sm hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-accent"
+      class="absolute grid size-7 cursor-pointer place-items-center rounded-md bg-canvas/30 text-muted backdrop-blur-sm hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-ring"
       :aria-label="label"
       @click="$emit('click')"
     >

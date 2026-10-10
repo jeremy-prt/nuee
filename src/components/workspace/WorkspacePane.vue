@@ -29,7 +29,7 @@ const focused = computed(() => workspace.focusedPane === props.index)
     <div
       v-if="workspace.panes.length > 1"
       class="flex h-8 shrink-0 items-center gap-2 border-t-2 border-b border-b-stroke ps-3 pe-1 text-xs"
-      :class="focused ? 'border-t-accent text-content' : 'border-t-transparent text-muted'"
+      :class="focused ? 'border-t-ring text-content' : 'border-t-transparent text-muted'"
     >
       <span class="flex-1 truncate">{{ title }}</span>
       <UiIconButton :label="t('workspace.closePane')" @click="workspace.closePane(index)">

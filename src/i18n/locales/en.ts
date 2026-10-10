@@ -25,6 +25,7 @@ export default {
     toggle: 'Toggle side panel',
     resize: 'Resize side panel',
     empty: 'No chats yet. Start one with {shortcut}.',
+    emptyNoShortcut: 'No chats yet.',
   },
   workspace: {
     tabs: 'Open tabs',
@@ -159,13 +160,22 @@ export default {
     hints: {
       general: 'Language, startup, notifications, sounds and updates.',
       appearance: 'Theme, window transparency, background image and interface size.',
-      shortcuts: 'Every keyboard shortcut in Nuée.',
+      shortcuts: 'Every keyboard shortcut in Nuée. Click one to change it.',
       agents: 'The agents installed on this computer and whether they are signed in.',
       connections: 'Your provider accounts and connected services, such as GitHub.',
       skills: 'The skills and MCP servers your agents can use.',
       archive: 'Archived chats, to bring back or delete.',
     },
     shortcuts: {
+      edit: 'Change “{name}” ({keys})',
+      recording: 'Press keys…',
+      recordingHint: 'Esc to cancel, ⌫ to disable.',
+      disabled: 'Disabled',
+      resetOne: 'Restore the default shortcut for “{name}”',
+      taken: '{keys} is already used by “{name}”.',
+      replace: 'Replace',
+      reserved: '{keys} is reserved by the system.',
+      needsMod: 'Add {mod} to the combination.',
       groups: {
         navigation: 'Navigation',
         chats: 'Chats',

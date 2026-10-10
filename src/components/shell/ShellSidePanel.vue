@@ -7,10 +7,11 @@ import UiIconButton from '@/components/ui/UiIconButton.vue'
 import { useNewChat } from '@/composables/useNewChat'
 import { useNavigationStore } from '@/stores/navigation'
 import { useProjectsStore } from '@/stores/projects'
+import { useShortcutsStore } from '@/stores/shortcuts'
 import { useWorkspaceStore } from '@/stores/workspace'
-import { shortcutLabel, shortcuts } from '@/utils/shortcuts'
 
 const { t } = useI18n()
+const shortcuts = useShortcutsStore()
 const navigation = useNavigationStore()
 const projects = useProjectsStore()
 const workspace = useWorkspaceStore()
@@ -29,7 +30,7 @@ const title = computed(() => {
       <UiIconButton
         v-if="navigation.view === 'chats'"
         :label="t('chats.newChat')"
-        :shortcut="shortcutLabel(shortcuts.newChat)"
+        :shortcut="shortcuts.label('newChat')"
         @click="newChat()"
       >
         <Plus class="size-4" aria-hidden="true" />
@@ -41,7 +42,7 @@ const title = computed(() => {
         <ul v-if="workspace.contextChats.length" class="space-y-0.5">
           <li v-for="tab in workspace.contextChats" :key="tab.id"><ShellChatItem :tab="tab" /></li>
         </ul>
-        <p v-else class="px-2 text-sm text-muted">{{ t('chats.empty', { shortcut: shortcutLabel(shortcuts.newChat) }) }}</p>
+        <p v-else class="px-2 text-sm text-muted">{{ shortcuts.label('newChat') ? t('chats.empty', { shortcut: shortcuts.label('newChat') }) : t('chats.emptyNoShortcut') }}</p>
       </template>
       <p v-else class="px-2 text-sm text-muted">{{ t(`empty.${navigation.view}`) }}</p>
     </div>

@@ -20,7 +20,7 @@ const newChat = useNewChat()
     <p class="text-sm text-muted">{{ t('workspace.empty') }}</p>
     <button
       type="button"
-      class="h-8 rounded-md border border-stroke px-3 text-sm hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-accent"
+      class="h-8 rounded-md border border-stroke px-3 text-sm hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring"
       @click="newChat()"
     >
       {{ t('chats.newChat') }}

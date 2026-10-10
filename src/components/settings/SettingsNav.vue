@@ -7,6 +7,8 @@ import { useLayoutStore } from '@/stores/layout'
 import { useNavigationStore } from '@/stores/navigation'
 import { type SettingsSection, settingsGroups } from '@/utils/settings'
 
+const props = defineProps<{ focusCurrent: boolean }>()
+
 const { t } = useI18n()
 const layout = useLayoutStore()
 const navigation = useNavigationStore()
@@ -22,8 +24,10 @@ const icons: Record<SettingsSection, typeof Archive> = {
   archive: Archive,
 }
 
-// Le bouton Réglages qui avait le focus disparaît à l'ouverture : on le rend à la section affichée.
-onMounted(() => root.value?.querySelector<HTMLElement>('[aria-current="page"]')?.focus())
+// Le bouton Réglages validé au clavier disparaît à l'ouverture : on rend le focus à la section affichée.
+onMounted(() => {
+  if (props.focusCurrent) root.value?.querySelector<HTMLElement>('[aria-current="page"]')?.focus()
+})
 </script>
 
 <template>

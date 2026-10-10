@@ -27,6 +27,7 @@ export default {
     toggle: 'Mostrar u ocultar el panel lateral',
     resize: 'Cambiar el tamaño del panel lateral',
     empty: 'Aún no hay chats. Empieza uno con {shortcut}.',
+    emptyNoShortcut: 'Aún no hay chats.',
   },
   workspace: {
     tabs: 'Pestañas abiertas',
@@ -161,13 +162,22 @@ export default {
     hints: {
       general: 'Idioma, inicio, notificaciones, sonidos y actualizaciones.',
       appearance: 'Tema, transparencia de la ventana, imagen de fondo y tamaño de la interfaz.',
-      shortcuts: 'Todos los atajos de teclado de Nuée.',
+      shortcuts: 'Todos los atajos de teclado de Nuée. Haz clic en uno para cambiarlo.',
       agents: 'Los agentes instalados en este equipo y su conexión.',
       connections: 'Tus cuentas de proveedores y los servicios conectados, como GitHub.',
       skills: 'Las skills y los servidores MCP que pueden usar tus agentes.',
       archive: 'Los chats archivados, para recuperarlos o eliminarlos.',
     },
     shortcuts: {
+      edit: 'Cambiar «{name}» ({keys})',
+      recording: 'Pulsa las teclas…',
+      recordingHint: 'Esc para cancelar, ⌫ para desactivar.',
+      disabled: 'Desactivado',
+      resetOne: 'Restablecer el atajo predeterminado de «{name}»',
+      taken: '{keys} ya lo usa «{name}».',
+      replace: 'Reemplazar',
+      reserved: '{keys} está reservado por el sistema.',
+      needsMod: 'Añade {mod} a la combinación.',
       groups: {
         navigation: 'Navegación',
         chats: 'Chats',

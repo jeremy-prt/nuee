@@ -12,10 +12,11 @@ import { useAttentionStore } from '@/stores/attention'
 import { useDragStore } from '@/stores/drag'
 import { RAIL_COLLAPSED_WIDTH, useLayoutStore } from '@/stores/layout'
 import { useNavigationStore } from '@/stores/navigation'
+import { useShortcutsStore } from '@/stores/shortcuts'
 import { useWorkspaceStore } from '@/stores/workspace'
-import { shortcutLabel, shortcuts } from '@/utils/shortcuts'
 
 const { t } = useI18n()
+const shortcuts = useShortcutsStore()
 const layout = useLayoutStore()
 const navigation = useNavigationStore()
 const appearance = useAppearanceStore()
@@ -67,7 +68,7 @@ const spacer = computed(() => Math.max(0, centerStart.value - leftZone.value))
       <UiIconButton
         v-if="panelOpen && spacer >= TOGGLE"
         :label="t('chats.toggle')"
-        :shortcut="shortcutLabel(shortcuts.togglePanel)"
+        :shortcut="shortcuts.label('togglePanel')"
         aria-controls="shell-panel"
         :aria-expanded="true"
         @click="layout.togglePanel()"
@@ -80,7 +81,7 @@ const spacer = computed(() => Math.max(0, centerStart.value - leftZone.value))
       <UiIconButton
         v-if="navigation.hasPanel && !layout.panel.open"
         :label="t('chats.toggle')"
-        :shortcut="shortcutLabel(shortcuts.togglePanel)"
+        :shortcut="shortcuts.label('togglePanel')"
         aria-controls="shell-panel"
         :aria-expanded="false"
         @click="layout.togglePanel()"
@@ -94,7 +95,7 @@ const spacer = computed(() => Math.max(0, centerStart.value - leftZone.value))
         <button
           v-if="navigation.settingsDetail"
           type="button"
-          class="shrink-0 rounded text-muted hover:text-content focus-visible:outline-2 focus-visible:outline-accent"
+          class="shrink-0 rounded text-muted hover:text-content focus-visible:outline-2 focus-visible:outline-ring"
           @click="navigation.showSettingsDetail(null)"
         >
           {{ t(`settings.sections.${navigation.settingsSection}`) }}
@@ -121,7 +122,7 @@ const spacer = computed(() => Math.max(0, centerStart.value - leftZone.value))
             tabindex="0"
             :data-tab-id="tab.id"
             :aria-selected="tab.id === workspace.activeTabId"
-            class="group flex h-7 max-w-52 shrink-0 items-center gap-1.5 rounded-md ps-2 pe-1 text-xs focus-visible:outline-2 focus-visible:outline-accent"
+            class="group flex h-7 max-w-52 shrink-0 items-center gap-1.5 rounded-md ps-2 pe-1 text-xs focus-visible:outline-2 focus-visible:outline-ring"
             :class="[
               tab.id === workspace.activeTabId
                 ? 'bg-selection text-content'
@@ -145,7 +146,7 @@ const spacer = computed(() => Math.max(0, centerStart.value - leftZone.value))
               class="grid size-5 shrink-0 place-items-center rounded group-hover:opacity-100 hover:bg-selection-hover"
               :class="tab.id === workspace.activeTabId ? 'opacity-100' : 'opacity-0'"
               :aria-label="t('workspace.closeTab')"
-              :title="`${t('workspace.closeTab')} (${shortcutLabel(shortcuts.closeTab)})`"
+              :title="shortcuts.label('closeTab') ? `${t('workspace.closeTab')} (${shortcuts.label('closeTab')})` : t('workspace.closeTab')"
               @click.stop="workspace.closeTab(tab.id)"
             >
               <X class="size-3" aria-hidden="true" />
@@ -156,7 +157,7 @@ const spacer = computed(() => Math.max(0, centerStart.value - leftZone.value))
 
         <UiIconButton
           :label="t('workspace.split')"
-          :shortcut="shortcutLabel(shortcuts.split)"
+          :shortcut="shortcuts.label('split')"
           :disabled="workspace.panes.length !== 1"
           @click="workspace.split()"
         >
@@ -165,7 +166,7 @@ const spacer = computed(() => Math.max(0, centerStart.value - leftZone.value))
         <UiIconButton
           v-if="layout.viewsIn('bottom').length"
           :label="t('dock.toggleBottom')"
-          :shortcut="shortcutLabel(shortcuts.toggleBottomDock)"
+          :shortcut="shortcuts.label('toggleBottomDock')"
           :active="layout.bottom.open"
           :aria-expanded="layout.bottom.open"
           @click="layout.toggleDock('bottom')"
@@ -175,7 +176,7 @@ const spacer = computed(() => Math.max(0, centerStart.value - leftZone.value))
         <UiIconButton
           v-if="layout.viewsIn('right').length"
           :label="t('dock.toggleRight')"
-          :shortcut="shortcutLabel(shortcuts.toggleRightDock)"
+          :shortcut="shortcuts.label('toggleRightDock')"
           :active="layout.right.open"
           :aria-expanded="layout.right.open"
           @click="layout.toggleDock('right')"

@@ -20,9 +20,10 @@ import { useDragStore } from '@/stores/drag'
 import { useGeneralStore } from '@/stores/general'
 import { SIZES, useLayoutStore } from '@/stores/layout'
 import { useNavigationStore } from '@/stores/navigation'
+import { useShortcutsStore } from '@/stores/shortcuts'
 import { useUpdatesStore } from '@/stores/updates'
 import { useWorkspaceStore } from '@/stores/workspace'
-import { matchesShortcut, type Shortcut, shortcuts } from '@/utils/shortcuts'
+import type { ShortcutId } from '@/utils/shortcuts'
 import HomeView from '@/views/HomeView.vue'
 import PlaceholderView from '@/views/PlaceholderView.vue'
 import SearchView from '@/views/SearchView.vue'
@@ -36,6 +37,7 @@ const navigation = useNavigationStore()
 const workspace = useWorkspaceStore()
 const drag = useDragStore()
 const newChat = useNewChat()
+const shortcuts = useShortcutsStore()
 // Pose le style de fenêtre sur <html> dès le démarrage, pas seulement à l'ouverture des réglages.
 const appearance = useAppearanceStore()
 // Langue choisie et mise en veille : appliquées avant le premier rendu.
@@ -59,23 +61,23 @@ function togglePanel() {
   if (navigation.hasPanel) layout.togglePanel()
 }
 
-const actions: [Shortcut, () => void][] = [
-  [shortcuts.toggleRail, layout.toggleRail],
-  [shortcuts.newChat, () => newChat()],
-  [shortcuts.search, () => navigation.go('search')],
-  [shortcuts.togglePanel, togglePanel],
-  [shortcuts.toggleRightDock, inChatsOnly(() => layout.toggleDock('right'))],
-  [shortcuts.toggleBottomDock, inChatsOnly(() => layout.toggleDock('bottom'))],
-  [shortcuts.closeTab, inChatsOnly(workspace.closeActiveTab)],
-  [shortcuts.split, inChatsOnly(workspace.split)],
-  [shortcuts.settings, () => navigation.go('settings')],
-  [shortcuts.zoomIn, () => appearance.stepZoom(1)],
-  [shortcuts.zoomOut, () => appearance.stepZoom(-1)],
-  [shortcuts.zoomReset, () => (appearance.zoom = 100)],
+const actions: [ShortcutId, () => void][] = [
+  ['toggleRail', layout.toggleRail],
+  ['newChat', () => newChat()],
+  ['search', () => navigation.go('search')],
+  ['togglePanel', togglePanel],
+  ['toggleRightDock', inChatsOnly(() => layout.toggleDock('right'))],
+  ['toggleBottomDock', inChatsOnly(() => layout.toggleDock('bottom'))],
+  ['closeTab', inChatsOnly(workspace.closeActiveTab)],
+  ['split', inChatsOnly(workspace.split)],
+  ['settings', () => navigation.go('settings')],
+  ['zoomIn', () => appearance.stepZoom(1)],
+  ['zoomOut', () => appearance.stepZoom(-1)],
+  ['zoomReset', () => (appearance.zoom = 100)],
 ]
 
 function onKeydown(event: KeyboardEvent) {
-  const action = actions.find(([shortcut]) => matchesShortcut(event, shortcut))
+  const action = actions.find(([id]) => shortcuts.matches(event, id))
   if (!action) return
   event.preventDefault()
   action[1]()
@@ -181,7 +183,7 @@ onUnmounted(() => {
 
     <div
       v-if="drag.preview"
-      class="pointer-events-none fixed z-50 rounded-lg border-2 border-accent/60 bg-accent/15 transition-all duration-100 ease-out motion-reduce:transition-none"
+      class="pointer-events-none fixed z-50 rounded-lg border-2 border-ring bg-accent/15 transition-all duration-100 ease-out motion-reduce:transition-none"
       :style="{
         left: `${drag.preview.left + 4}px`,
         top: `${drag.preview.top + 4}px`,

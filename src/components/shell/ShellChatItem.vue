@@ -41,7 +41,7 @@ async function remove() {
   <div class="group relative">
     <button
       type="button"
-      class="flex h-8 w-full items-center gap-2 rounded-md ps-2 pe-8 text-sm focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+      class="flex h-8 w-full items-center gap-2 rounded-md ps-2 pe-8 text-sm focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
       :class="props.tab.id === workspace.activeTabId ? 'bg-selection' : 'hover:bg-selection-hover'"
       :aria-current="props.tab.id === workspace.activeTabId ? 'true' : undefined"
       @click="select"
@@ -54,7 +54,7 @@ async function remove() {
     </button>
     <button
       type="button"
-      class="absolute end-1 top-1 grid size-6 place-items-center rounded text-muted opacity-0 group-hover:opacity-100 hover:bg-selection-hover hover:text-content focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-accent"
+      class="absolute end-1 top-1 grid size-6 place-items-center rounded text-muted opacity-0 group-hover:opacity-100 hover:bg-selection-hover hover:text-content focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-ring"
       :aria-label="t('chats.delete')"
       :title="t('chats.delete')"
       @click="remove"

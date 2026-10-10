@@ -2,7 +2,7 @@
 import { onMounted, useId, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Approval } from '@/stores/conversations'
-import { matchesShortcut, shortcutLabel, shortcuts } from '@/utils/shortcuts'
+import { useShortcutsStore } from '@/stores/shortcuts'
 
 defineProps<{ approval: Approval; agentName: string }>()
 const emit = defineEmits<{ answer: [allow: boolean] }>()
@@ -11,15 +11,15 @@ const { t } = useI18n()
 const titleId = useId()
 const detailId = useId()
 const deny = useTemplateRef('deny')
-const isMac = navigator.userAgent.includes('Mac')
+const shortcuts = useShortcutsStore()
 
 // Écouté sur la carte et non la fenêtre : avec deux panes, seule la demande qui a le focus répond.
 // Le focus va sur Refuser : une Entrée de trop ne lance rien.
 function onKeydown(event: KeyboardEvent) {
-  if (matchesShortcut(event, shortcuts.deny)) {
+  if (shortcuts.matches(event, 'deny')) {
     event.preventDefault()
     emit('answer', false)
-  } else if (matchesShortcut(event, shortcuts.approve)) {
+  } else if (shortcuts.matches(event, 'approve')) {
     event.preventDefault()
     emit('answer', true)
   }
@@ -47,21 +47,21 @@ onMounted(() => deny.value?.focus())
       <button
         ref="deny"
         type="button"
-        aria-keyshortcuts="Escape"
-        class="flex h-8 items-center gap-2 rounded-md bg-selection px-3 text-sm hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-accent"
+        :aria-keyshortcuts="shortcuts.aria('deny')"
+        class="flex h-8 items-center gap-2 rounded-md bg-selection px-3 text-sm hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring"
         @click="emit('answer', false)"
       >
         {{ t('approval.deny') }}
-        <kbd class="font-sans text-xs text-muted" aria-hidden="true">{{ shortcutLabel(shortcuts.deny) }}</kbd>
+        <kbd v-if="shortcuts.label('deny')" class="font-sans text-xs text-muted" aria-hidden="true">{{ shortcuts.label('deny') }}</kbd>
       </button>
       <button
         type="button"
-        :aria-keyshortcuts="isMac ? 'Meta+Enter' : 'Control+Enter'"
-        class="flex h-8 items-center gap-2 rounded-md bg-accent px-3 text-sm text-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        :aria-keyshortcuts="shortcuts.aria('approve')"
+        class="flex h-8 items-center gap-2 rounded-md bg-accent px-3 text-sm text-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         @click="emit('answer', true)"
       >
         {{ t('approval.allow') }}
-        <kbd class="font-sans text-xs opacity-60" aria-hidden="true">{{ shortcutLabel(shortcuts.approve) }}</kbd>
+        <kbd v-if="shortcuts.label('approve')" class="font-sans text-xs opacity-60" aria-hidden="true">{{ shortcuts.label('approve') }}</kbd>
       </button>
     </div>
   </div>

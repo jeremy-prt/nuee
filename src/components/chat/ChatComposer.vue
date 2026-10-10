@@ -12,7 +12,7 @@ import type { Effort } from '@/ipc/bindings/Effort'
 import type { PermissionMode } from '@/ipc/bindings/PermissionMode'
 import type { TurnOptions } from '@/ipc/bindings/TurnOptions'
 import { pickFiles } from '@/ipc/dialog'
-import { matchesShortcut, shortcuts } from '@/utils/shortcuts'
+import { useShortcutsStore } from '@/stores/shortcuts'
 
 const props = defineProps<{
   chatId: string
@@ -27,6 +27,7 @@ const options = defineModel<TurnOptions>('options', { required: true })
 const emit = defineEmits<{ send: [prompt: string, attachments: Attachment[]]; stop: []; warm: [] }>()
 
 const { t } = useI18n()
+const shortcuts = useShortcutsStore()
 const prompt = ref('')
 const attachments = ref<Attachment[]>([])
 // Fichiers en cours d'écriture sur disque : envoyer avant les perdrait.
@@ -132,7 +133,7 @@ defineExpose({ attach })
 
 // Maj+Entrée va à la ligne (natif). Pendant une saisie IME, Entrée valide le mot.
 function onEnter(event: KeyboardEvent) {
-  if (!matchesShortcut(event, shortcuts.send) || event.isComposing) return
+  if (!shortcuts.matches(event, 'send') || event.isComposing) return
   event.preventDefault()
   submit()
 }
@@ -140,7 +141,7 @@ function onEnter(event: KeyboardEvent) {
 
 <template>
   <form
-    class="@container rounded-xl border border-stroke bg-selection/50 p-3 focus-within:border-accent"
+    class="@container rounded-xl border border-stroke bg-selection/50 p-3 focus-within:border-ring"
     :class="{ 'opacity-60': disabled }"
     @submit.prevent="submit"
   >
@@ -164,7 +165,7 @@ function onEnter(event: KeyboardEvent) {
         </template>
         <button
           type="button"
-          class="absolute -end-1.5 -top-1.5 grid size-5 place-items-center rounded-full border border-stroke bg-overlay text-muted hover:text-content focus-visible:outline-2 focus-visible:outline-accent"
+          class="absolute -end-1.5 -top-1.5 grid size-5 place-items-center rounded-full border border-stroke bg-overlay text-muted hover:text-content focus-visible:outline-2 focus-visible:outline-ring"
           :aria-label="t('composer.removeAttachment', { name: attachment.name })"
           :title="t('composer.removeAttachment', { name: attachment.name })"
           @click="remove(index)"
@@ -220,7 +221,7 @@ function onEnter(event: KeyboardEvent) {
       <button
         v-if="running"
         type="button"
-        class="grid size-7 place-items-center rounded-md bg-accent text-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        class="grid size-7 place-items-center rounded-md bg-accent text-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         :aria-label="t('composer.stop')"
         :title="t('composer.stop')"
         @click="emit('stop')"
@@ -231,7 +232,7 @@ function onEnter(event: KeyboardEvent) {
         v-else
         type="submit"
         :disabled="disabled || !canSend"
-        class="grid size-7 place-items-center rounded-md bg-accent text-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-30"
+        class="grid size-7 place-items-center rounded-md bg-accent text-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-30"
         :aria-label="t('composer.send')"
         :title="t('composer.send')"
       >

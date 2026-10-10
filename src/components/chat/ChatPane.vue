@@ -93,7 +93,7 @@ const { over } = useFileDrop(pane, (paths) => {
     </div>
     <div
       v-if="over"
-      class="pointer-events-none absolute inset-2 grid place-items-center rounded-xl border-2 border-dashed border-accent bg-canvas/70 text-sm"
+      class="pointer-events-none absolute inset-2 grid place-items-center rounded-xl border-2 border-dashed border-ring bg-canvas/70 text-sm"
     >
       {{ t('chat.dropFiles') }}
     </div>

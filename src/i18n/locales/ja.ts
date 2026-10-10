@@ -27,6 +27,7 @@ export default {
     toggle: 'サイドパネルの表示を切り替え',
     resize: 'サイドパネルのサイズを変更',
     empty: 'まだチャットはありません。{shortcut} で始めましょう。',
+    emptyNoShortcut: 'まだチャットはありません。',
   },
   workspace: {
     tabs: '開いているタブ',
@@ -161,13 +162,22 @@ export default {
     hints: {
       general: '言語、起動、通知、サウンド、アップデート。',
       appearance: 'テーマ、ウィンドウの透明度、背景画像、インターフェースのサイズ。',
-      shortcuts: 'Nuée のすべてのキーボードショートカット。',
+      shortcuts: 'Nuée のすべてのキーボードショートカット。クリックすると変更できます。',
       agents: 'このコンピュータにインストールされたエージェントと接続状態。',
       connections: 'プロバイダーのアカウントと、GitHub などの接続済みサービス。',
       skills: 'エージェントが使えるスキルと MCP サーバー。',
       archive: 'アーカイブしたチャット。復元または削除できます。',
     },
     shortcuts: {
+      edit: '「{name}」を変更（{keys}）',
+      recording: 'キーを押してください…',
+      recordingHint: 'Esc でキャンセル、⌫ で無効化。',
+      disabled: '無効',
+      resetOne: '「{name}」のショートカットを既定に戻す',
+      taken: '{keys} は「{name}」で使用中です。',
+      replace: '置き換える',
+      reserved: '{keys} はシステムで予約されています。',
+      needsMod: '{mod} を組み合わせに加えてください。',
       groups: {
         navigation: 'ナビゲーション',
         chats: 'チャット',

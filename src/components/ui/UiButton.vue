@@ -12,7 +12,7 @@ withDefaults(
 <template>
   <button
     type="button"
-    class="relative inline-flex shrink-0 items-center justify-center rounded-md font-medium whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent enabled:cursor-pointer disabled:cursor-not-allowed"
+    class="relative inline-flex shrink-0 items-center justify-center rounded-md font-medium whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring enabled:cursor-pointer disabled:cursor-not-allowed"
     :class="[
       size === 'sm' ? 'h-7 px-2.5 text-xs' : 'h-8 px-3.5 text-sm',
       {
