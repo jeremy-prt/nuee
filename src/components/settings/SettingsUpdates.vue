@@ -33,7 +33,7 @@ const result = computed(() => {
 
 <template>
   <SettingsGroup :title="t('settings.general.updates.title')">
-    <SettingsRow :label="t('settings.general.updates.version')">
+    <SettingsRow data-setting="version" :label="t('settings.general.updates.version')">
       <template #hint>
         <span>Nuée {{ version }}</span>
         <span aria-live="polite">
@@ -61,6 +61,7 @@ const result = computed(() => {
       </div>
     </SettingsRow>
     <SettingsRow
+      data-setting="checkUpdates"
       v-slot="{ hintId }"
       :label="t('settings.general.updates.checkOnLaunch')"
       :hint="t('settings.general.updates.checkOnLaunchHint')"

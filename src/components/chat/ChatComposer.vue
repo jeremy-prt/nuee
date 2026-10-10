@@ -141,7 +141,7 @@ function onEnter(event: KeyboardEvent) {
 
 <template>
   <form
-    class="@container rounded-xl border border-stroke bg-selection/50 p-3 focus-within:border-ring"
+    class="@container rounded-xl border border-stroke bg-selection/50 p-3 focus-within:border-stroke-focus"
     :class="{ 'opacity-60': disabled }"
     @submit.prevent="submit"
   >
@@ -180,6 +180,10 @@ function onEnter(event: KeyboardEvent) {
       ref="input"
       v-model="prompt"
       rows="3"
+      autocorrect="off"
+      autocapitalize="off"
+      spellcheck="false"
+      writingsuggestions="false"
       :disabled="disabled"
       class="w-full resize-none bg-transparent text-sm select-text outline-none placeholder:text-muted"
       :placeholder="t('composer.placeholder')"

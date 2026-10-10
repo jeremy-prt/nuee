@@ -4,7 +4,13 @@ import type { WindowStyle } from '@/stores/appearance'
 import { useLayoutStore } from '@/stores/layout'
 import type { SettingsSection } from '@/utils/settings'
 
-type SettingsDetail = WindowStyle | 'theme' | 'background'
+export type SettingsDetail = WindowStyle | 'theme' | 'background'
+
+export function settingsDetailKey(detail: SettingsDetail) {
+  if (detail === 'theme') return 'settings.themes.title'
+  if (detail === 'background') return 'settings.background.title'
+  return `settings.appearance.styles.${detail}`
+}
 
 export type View = 'home' | 'chats' | 'issues' | 'pullRequests' | 'notes' | 'search' | 'usage' | 'settings'
 
@@ -19,13 +25,11 @@ export const useNavigationStore = defineStore('navigation', () => {
   const settingsSection = ref<SettingsSection>('general')
   // Sous-page d'Apparence : le thème, l'image de fond, ou un style de fenêtre.
   const settingsDetail = ref<SettingsDetail | null>(null)
-  const settingsDetailKey = computed(() => {
-    if (settingsDetail.value === 'theme') return 'settings.themes.title'
-    if (settingsDetail.value === 'background') return 'settings.background.title'
-    return `settings.appearance.styles.${settingsDetail.value}`
-  })
+  const detailKey = computed(() => (settingsDetail.value ? settingsDetailKey(settingsDetail.value) : ''))
   // Vue que le bouton Retour des réglages retrouve.
   const beforeSettings = ref<View>('home')
+  // Réglage choisi dans la recherche : SettingsView le fait défiler jusqu'à lui et le met en avant.
+  const revealed = ref<{ id: string; focus: boolean } | null>(null)
 
   const hasPanel = computed(() => PANEL_VIEWS.includes(view.value))
 
@@ -78,12 +82,23 @@ export const useNavigationStore = defineStore('navigation', () => {
     go(beforeSettings.value)
   }
 
+  // `focus` : choisi au clavier, le focus passe sur le réglage trouvé.
+  function revealSetting(section: SettingsSection, detail: SettingsDetail | null, id: string, focus: boolean) {
+    const update = () => {
+      settingsSection.value = section
+      settingsDetail.value = detail
+      revealed.value = { id, focus }
+    }
+    if (settingsSection.value === section && settingsDetail.value === detail) update()
+    else crossfade(update)
+  }
+
   return {
     view,
     projectId,
     settingsSection,
     settingsDetail,
-    settingsDetailKey,
+    settingsDetailKey: detailKey,
     hasPanel,
     go,
     openChats,
@@ -91,5 +106,7 @@ export const useNavigationStore = defineStore('navigation', () => {
     showSettingsSection,
     showSettingsDetail,
     closeSettings,
+    revealed,
+    revealSetting,
   }
 })

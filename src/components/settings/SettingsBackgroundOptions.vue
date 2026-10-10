@@ -28,6 +28,7 @@ function options(setting: (typeof rows)[number]) {
       v-for="setting in rows"
       :key="setting"
       v-slot="{ hintId }"
+      :data-setting="`background-${setting}`"
       :label="t(`settings.background.${setting}.label`)"
       :hint="setting === 'intensity' ? t('settings.background.intensity.hint') : undefined"
       :disabled="setting === 'intensity' && appearance.background.effect === 'none'"
@@ -45,7 +46,7 @@ function options(setting: (typeof rows)[number]) {
   <template v-if="appearance.background.path">
     <section class="pt-8" role="radiogroup" aria-labelledby="background-effect-title">
       <h3 id="background-effect-title" class="pb-2.5 text-sm font-semibold">{{ t('settings.background.effect.label') }}</h3>
-      <div class="grid grid-cols-4 gap-2">
+      <div data-setting="background-effect" class="grid grid-cols-4 gap-2">
         <UiChoiceCard
           v-for="effect in backgroundEffects"
           :key="effect"

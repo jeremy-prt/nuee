@@ -39,11 +39,35 @@ watch(
   () => navigation.settingsDetail,
   async (detail, previous) => {
     const restore = restoreFocus
+    // Arrivé par la recherche : c'est elle qui place le focus.
+    const revealing = navigation.revealed
     restoreFocus = false
     await nextTick()
+    if (revealing) return
     if (detail) heading.value?.focus()
     else if (previous && restore) root.value?.querySelector<HTMLElement>(`[data-customize="${previous}"]`)?.focus()
   },
+)
+
+// Réglage choisi dans la recherche : défilé au centre et mis en avant ; choisi au clavier, le focus va sur sa commande.
+watch(
+  () => navigation.revealed,
+  (target) => {
+    if (!target) return
+    navigation.revealed = null
+    const element = target.id ? root.value?.querySelector<HTMLElement>(`[data-setting="${target.id}"]`) : null
+    if (!element) return
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches
+    element.scrollIntoView({ block: 'center', behavior: reduced ? 'auto' : 'smooth' })
+    element.classList.remove('setting-found')
+    void element.offsetWidth
+    element.classList.add('setting-found')
+    setTimeout(() => element.classList.remove('setting-found'), 1800)
+    if (!target.focus) return
+    const control = element.querySelector<HTMLElement>('input:checked') ?? element.querySelector<HTMLElement>('button:not(:disabled), input, [tabindex="0"]')
+    control?.focus({ preventScroll: true })
+  },
+  { flush: 'post' },
 )
 
 function back(event?: MouseEvent) {
@@ -54,6 +78,11 @@ function back(event?: MouseEvent) {
 // Échap venu d'un menu, d'une confirmation ou d'un message ne ferme que lui : reka-ui le traite sans
 // marquer l'évènement (defaultPrevented reste faux), d'où le test sur l'élément qui a reçu la touche.
 function onKeydown(event: KeyboardEvent) {
+  if (shortcuts.matches(event, 'searchSettings')) {
+    event.preventDefault()
+    document.getElementById('settings-search')?.focus()
+    return
+  }
   if (!shortcuts.matches(event, 'closeSettings') || event.defaultPrevented || event.isComposing) return
   if ((event.target as Element | null)?.closest?.('[data-reka-popper-content-wrapper], [role="dialog"], [role="alertdialog"], .ui-toast')) return
   event.preventDefault()

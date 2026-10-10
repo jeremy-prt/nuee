@@ -30,6 +30,7 @@ export const defaultShortcuts = {
   search: { group: 'navigation', key: 'k' },
   settings: { group: 'navigation', key: ',' },
   closeSettings: { group: 'navigation', key: 'Escape', mod: false, when: 'settings' },
+  searchSettings: { group: 'navigation', key: 'f', when: 'settings' },
   newChat: { group: 'chats', key: 'n' },
   closeTab: { group: 'chats', key: 'w' },
   split: { group: 'chats', key: 'd' },

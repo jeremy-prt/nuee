@@ -11,6 +11,7 @@ const hintId = computed(() => (props.hint || slots.hint ? id : undefined))
 
 <template>
   <div
+    data-setting-row
     class="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-stroke px-4 py-2.5 transition-opacity last:border-b-0 motion-reduce:transition-none"
     :class="{ 'opacity-40': disabled }"
   >

@@ -27,7 +27,7 @@ function orb(id: ThemeId) {
 <template>
   <section class="pt-8" role="radiogroup" aria-labelledby="theme-title">
     <SettingsHeading id="theme-title" :title="t('settings.themes.title')" />
-    <div class="grid grid-cols-2 gap-2 @xl:grid-cols-4">
+    <div data-setting="theme" class="grid grid-cols-2 gap-2 @xl:grid-cols-4">
       <div v-for="id in themeIds" :key="id" class="relative">
         <UiChoiceCard
           v-model="appearance.theme"

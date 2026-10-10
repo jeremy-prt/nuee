@@ -123,7 +123,13 @@ async function replace(event: MouseEvent) {
   <div ref="root">
     <SettingsGroup v-for="[group, ids] in groups" :key="group" :title="t(`settings.shortcuts.groups.${group}`)">
       <dl>
-        <div v-for="id in ids" :key="id" class="border-b border-stroke px-4 py-2 last:border-b-0">
+        <div
+          v-for="id in ids"
+          :key="id"
+          data-setting-row
+          :data-setting="`shortcut-${id}`"
+          class="border-b border-stroke px-4 py-2 last:border-b-0"
+        >
           <div class="flex min-h-7 items-center gap-4">
             <dt class="min-w-0 flex-1 text-sm">{{ name(id) }}</dt>
             <dd class="flex items-center gap-1">

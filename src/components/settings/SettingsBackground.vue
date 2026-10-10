@@ -69,6 +69,7 @@ const { over } = useFileDrop(zone, (paths) => use(paths[0]!), true)
     <SettingsHeading id="background-title" :title="t('settings.background.title')" />
     <div
       ref="zone"
+      data-setting="background"
       class="relative rounded-xl border p-3 transition-colors motion-reduce:transition-none"
       :class="over ? 'border-ring bg-selection/40' : appearance.background.path ? 'border-stroke' : 'border-dashed border-stroke'"
     >

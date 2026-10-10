@@ -59,15 +59,16 @@ onUnmounted(() => {
     />
     <SettingsRow
       v-slot="{ hintId }"
+      data-setting="systemNotifications"
       :label="t('settings.general.notifications.system')"
       :hint="t('settings.general.notifications.systemHint')"
     >
       <UiSwitch v-model="general.systemNotifications" :label="t('settings.general.notifications.system')" :aria-describedby="hintId" />
     </SettingsRow>
-    <SettingsRow v-slot="{ hintId }" :label="t('settings.general.notifications.app')" :hint="t('settings.general.notifications.appHint')">
+    <SettingsRow v-slot="{ hintId }" data-setting="appNotifications" :label="t('settings.general.notifications.app')" :hint="t('settings.general.notifications.appHint')">
       <UiSwitch v-model="general.appNotifications" :label="t('settings.general.notifications.app')" :aria-describedby="hintId" />
     </SettingsRow>
-    <SettingsRow v-slot="{ hintId }" :label="t('settings.general.notifications.sounds')" :hint="t('settings.general.notifications.soundsHint')">
+    <SettingsRow v-slot="{ hintId }" data-setting="sounds" :label="t('settings.general.notifications.sounds')" :hint="t('settings.general.notifications.soundsHint')">
       <div class="flex items-center gap-3">
         <UiIconButton :label="t('settings.general.notifications.preview')" @click="playCue('done')">
           <Volume2 class="size-4" aria-hidden="true" />
@@ -78,6 +79,7 @@ onUnmounted(() => {
     <SettingsRow
       v-if="dock"
       v-slot="{ hintId }"
+      data-setting="badge"
       :label="t('settings.general.notifications.badge')"
       :hint="t('settings.general.notifications.badgeHint')"
     >

@@ -23,11 +23,12 @@ const intensities = themeIntensities.map((value) => ({
     <template #action>
       <SettingsResetButton @click="appearance.resetTheme()" />
     </template>
-    <SettingsRow :label="t('settings.themes.scope.label')">
+    <SettingsRow data-setting="themeScope" :label="t('settings.themes.scope.label')">
       <UiSegmented v-model="appearance.themeScope" :label="t('settings.themes.scope.label')" :options="scopes" />
     </SettingsRow>
     <!-- Toujours visible, grisée en mode Boutons et liens : on voit qu'un réglage de plus existe. -->
     <SettingsRow
+      data-setting="themeIntensity"
       v-slot="{ hintId }"
       :label="t('settings.themes.intensity.label')"
       :hint="t('settings.themes.intensity.hint')"

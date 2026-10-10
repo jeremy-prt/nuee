@@ -41,7 +41,7 @@ function preview(style: WindowStyle): GlassValues {
     <SettingsHeading id="window-style-title" :title="t('settings.appearance.window')" />
     <p v-if="!available" id="window-style-hint" class="mb-3 text-sm text-muted">{{ t('settings.appearance.macosOnly') }}</p>
 
-    <div class="grid grid-cols-3 gap-3">
+    <div data-setting="windowStyle" class="grid grid-cols-3 gap-3">
       <!-- Hors macOS, seul Opaque s'applique : les deux autres restent visibles mais grisés. -->
       <div v-for="style in windowStyles" :key="style" class="relative" :class="{ 'opacity-50': !available && style !== 'opaque' }">
         <UiChoiceCard

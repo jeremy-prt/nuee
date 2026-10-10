@@ -2,6 +2,7 @@
 import { Columns2, LayoutList, MessageSquare, PanelBottom, PanelRight, X } from '@lucide/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import SettingsSearch from '@/components/settings/SettingsSearch.vue'
 import ShellRailToggle from '@/components/shell/ShellRailToggle.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import { useLayoutDrag } from '@/composables/useLayoutDrag'
@@ -106,6 +107,10 @@ const spacer = computed(() => Math.max(0, centerStart.value - leftZone.value))
           <span class="truncate" data-tauri-drag-region>{{ t(navigation.settingsDetailKey) }}</span>
         </template>
       </p>
+      <template v-if="navigation.view === 'settings'">
+        <span class="flex-1 self-stretch" data-tauri-drag-region />
+        <SettingsSearch />
+      </template>
 
       <template v-if="navigation.view === 'chats'">
         <div

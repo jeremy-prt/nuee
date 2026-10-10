@@ -47,7 +47,7 @@ async function resetAll() {
 
 <template>
   <SettingsGroup :title="t('settings.general.about.title')">
-    <SettingsRow :label="t('settings.general.about.openSource')">
+    <SettingsRow data-setting="about" :label="t('settings.general.about.openSource')">
       <div class="flex flex-wrap items-center gap-2">
         <UiButton v-for="link in links" :key="link.key" size="sm" @click="openGithubPage(link.url)">
           {{ t(`settings.general.about.${link.key}`) }}
@@ -55,7 +55,7 @@ async function resetAll() {
         </UiButton>
       </div>
     </SettingsRow>
-    <SettingsRow v-slot="{ hintId }" :label="t('settings.general.reset.label')" :hint="t('settings.general.reset.hint')">
+    <SettingsRow v-slot="{ hintId }" data-setting="resetAll" :label="t('settings.general.reset.label')" :hint="t('settings.general.reset.hint')">
       <UiButton size="sm" variant="danger" :aria-describedby="hintId" @click="resetAll()">{{ t('settings.general.reset.button') }}</UiButton>
     </SettingsRow>
   </SettingsGroup>

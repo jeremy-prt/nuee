@@ -37,7 +37,7 @@ function options(setting: GlassSetting) {
     <template #action>
       <SettingsResetButton @click="appearance.resetGlass(props.windowStyle)" />
     </template>
-    <SettingsRow v-for="setting in settings" :key="setting" v-slot="{ hintId }" :label="label(setting)" :hint="hint(setting)">
+    <SettingsRow v-for="setting in settings" :key="setting" v-slot="{ hintId }" :data-setting="`glass-${setting}`" :label="label(setting)" :hint="hint(setting)">
       <UiSegmented
         v-model="appearance.glass[props.windowStyle][setting]"
         :label="label(setting)"

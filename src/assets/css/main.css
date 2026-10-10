@@ -10,6 +10,8 @@
   --color-selection-hover: color-mix(in srgb, var(--color-content) 15%, transparent);
   /* Focus et éléments choisis : l'accent du thème adouci, l'accent plein ressort trop (blanc vif dans Nuée). */
   --color-ring: color-mix(in srgb, var(--color-accent) 45%, transparent);
+  /* Bordure d'un champ de saisie qui a le focus : le trait s'éclaircit à peine, comme dans monocode. */
+  --color-stroke-focus: color-mix(in srgb, var(--color-content) 20%, transparent);
   --color-accent: hsl(240 0% 92%);
   --color-danger: hsl(0 72% 65%);
   /* Fonds des barres et panneaux (chrome) et de la zone centrale (surface) : voir le style de fenêtre plus bas. */
@@ -185,4 +187,43 @@ html.is-macos:not([data-window='opaque']) {
 ::view-transition-new(root) {
   animation-duration: 170ms;
   animation-timing-function: ease-out;
+}
+
+/* Réglage trouvé par la recherche : une ligne s'allume puis s'éteint, un bloc de cartes s'entoure d'un anneau. */
+@keyframes setting-found-block {
+  0%,
+  40% {
+    outline-color: var(--color-ring);
+  }
+}
+
+@keyframes setting-found-row {
+  0%,
+  40% {
+    background-color: var(--color-selection-hover);
+  }
+}
+
+.setting-found {
+  outline: 2px solid transparent;
+  outline-offset: 6px;
+  border-radius: 0.75rem;
+  animation: setting-found-block 1.8s ease-out;
+}
+
+[data-setting-row].setting-found {
+  outline: none;
+  border-radius: 0;
+  animation-name: setting-found-row;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .setting-found {
+    animation: none;
+    outline-color: var(--color-ring);
+  }
+
+  [data-setting-row].setting-found {
+    background-color: var(--color-selection-hover);
+  }
 }

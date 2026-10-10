@@ -29,10 +29,10 @@ const language = computed({
 
 <template>
   <SettingsGroup :title="t('settings.general.system.title')">
-    <SettingsRow :label="t('settings.general.system.language')">
+    <SettingsRow data-setting="language" :label="t('settings.general.system.language')">
       <UiSelect v-model="language" :label="t('settings.general.system.language')" :options="languages" variant="field" side="bottom" />
     </SettingsRow>
-    <SettingsRow :label="t('settings.general.system.autostart')" :disabled="general.autostart === null">
+    <SettingsRow data-setting="autostart" :label="t('settings.general.system.autostart')" :disabled="general.autostart === null">
       <UiSwitch
         :model-value="general.autostart ?? false"
         :label="t('settings.general.system.autostart')"
@@ -40,10 +40,10 @@ const language = computed({
         @update:model-value="general.toggleAutostart"
       />
     </SettingsRow>
-    <SettingsRow v-slot="{ hintId }" :label="t('settings.general.system.keepAwake')" :hint="t('settings.general.system.keepAwakeHint')">
+    <SettingsRow v-slot="{ hintId }" data-setting="keepAwake" :label="t('settings.general.system.keepAwake')" :hint="t('settings.general.system.keepAwakeHint')">
       <UiSwitch v-model="general.keepAwake" :label="t('settings.general.system.keepAwake')" :aria-describedby="hintId" />
     </SettingsRow>
-    <SettingsRow :label="t('settings.general.system.confirmDelete')">
+    <SettingsRow data-setting="confirmDelete" :label="t('settings.general.system.confirmDelete')">
       <UiSwitch v-model="general.confirmDelete" :label="t('settings.general.system.confirmDelete')" />
     </SettingsRow>
   </SettingsGroup>
