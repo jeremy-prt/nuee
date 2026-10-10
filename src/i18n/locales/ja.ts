@@ -140,6 +140,7 @@ export default {
   settings: {
     nav: '設定のセクション',
     backTo: '{section} に戻る',
+    reset: 'デフォルトに戻す',
     back: '戻る',
     groups: {
       app: 'アプリ',
@@ -281,7 +282,6 @@ export default {
         medium: '中',
         light: '明るい',
       },
-      reset: 'デフォルトに戻す',
     },
   },
   updates: {

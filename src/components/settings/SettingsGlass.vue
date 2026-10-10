@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { RotateCcw } from '@lucide/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsGroup from '@/components/settings/SettingsGroup.vue'
+import SettingsResetButton from '@/components/settings/SettingsResetButton.vue'
 import SettingsRow from '@/components/settings/SettingsRow.vue'
 import UiSegmented from '@/components/ui/UiSegmented.vue'
 import { type GlassSetting, glassOptions, glassSettings, useAppearanceStore, type WindowStyle } from '@/stores/appearance'
@@ -28,14 +28,7 @@ function options(setting: GlassSetting) {
 <template>
   <SettingsGroup :title="props.windowStyle === 'opaque' ? t('settings.glass.backgroundTitle') : t('settings.glass.title')">
     <template #action>
-      <button
-        type="button"
-        class="-me-2 -mb-1 flex h-7 cursor-pointer items-center gap-1.5 rounded-md px-2 text-xs text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-accent"
-        @click="appearance.resetGlass(props.windowStyle)"
-      >
-        <RotateCcw class="size-3.5" aria-hidden="true" />
-        {{ t('settings.glass.reset') }}
-      </button>
+      <SettingsResetButton @click="appearance.resetGlass(props.windowStyle)" />
     </template>
     <SettingsRow v-for="setting in settings" :key="setting" :label="label(setting)">
       <UiSegmented

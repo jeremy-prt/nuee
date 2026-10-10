@@ -140,6 +140,7 @@ export default {
   settings: {
     nav: 'Secciones de ajustes',
     backTo: 'Volver a {section}',
+    reset: 'Restablecer valores',
     back: 'Volver',
     groups: {
       app: 'Aplicación',
@@ -281,7 +282,6 @@ export default {
         medium: 'Media',
         light: 'Clara',
       },
-      reset: 'Restablecer valores',
     },
   },
   updates: {

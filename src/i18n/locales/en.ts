@@ -138,6 +138,7 @@ export default {
   settings: {
     nav: 'Settings sections',
     backTo: 'Back to {section}',
+    reset: 'Restore defaults',
     back: 'Back',
     groups: {
       app: 'App',
@@ -279,7 +280,6 @@ export default {
         medium: 'Medium',
         light: 'Light',
       },
-      reset: 'Restore defaults',
     },
   },
   updates: {

@@ -2,6 +2,7 @@
 import { useI18n } from 'vue-i18n'
 import SettingsCustomizeButton from '@/components/settings/SettingsCustomizeButton.vue'
 import SettingsWindowPreview from '@/components/settings/SettingsWindowPreview.vue'
+import UiChoiceCard from '@/components/ui/UiChoiceCard.vue'
 import { isMacosApp } from '@/ipc/system'
 import { type GlassValues, useAppearanceStore, veilTint, type WindowStyle, windowStyles } from '@/stores/appearance'
 import { useNavigationStore } from '@/stores/navigation'
@@ -42,24 +43,17 @@ function preview(style: WindowStyle): GlassValues {
     <div class="grid grid-cols-3 gap-3">
       <!-- Hors macOS, seul Opaque s'applique : les deux autres restent visibles mais grisés. -->
       <div v-for="style in windowStyles" :key="style" class="relative" :class="{ 'opacity-50': !available && style !== 'opaque' }">
-        <label
-          class="flex flex-col gap-2 rounded-xl border p-2 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-accent"
-          :class="[
-            appearance.effectiveStyle === style ? 'border-accent bg-selection/40' : 'border-stroke hover:bg-selection/40',
-            available ? 'cursor-pointer' : 'cursor-not-allowed',
-          ]"
+        <UiChoiceCard
+          v-model="appearance.windowStyle"
+          name="window-style"
+          :value="style"
+          :disabled="!available"
+          :checked="appearance.effectiveStyle === style"
+          class="flex flex-col gap-2 p-2"
         >
-          <input
-            v-model="appearance.windowStyle"
-            type="radio"
-            name="window-style"
-            :value="style"
-            :disabled="!available"
-            class="sr-only"
-          />
           <SettingsWindowPreview :values="preview(style)" />
           <span class="px-1 pb-0.5 text-sm font-medium">{{ t(`settings.appearance.styles.${style}`) }}</span>
-        </label>
+        </UiChoiceCard>
         <SettingsCustomizeButton
           :show="appearance.effectiveStyle === style"
           :data-customize="style"

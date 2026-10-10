@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import SettingsCustomizeButton from '@/components/settings/SettingsCustomizeButton.vue'
+import UiChoiceCard from '@/components/ui/UiChoiceCard.vue'
 import { useAppearanceStore } from '@/stores/appearance'
 import { useNavigationStore } from '@/stores/navigation'
 import { type ThemeId, themeIds, themes } from '@/utils/themes'
@@ -9,8 +10,7 @@ const { t } = useI18n()
 const appearance = useAppearanceStore()
 const navigation = useNavigationStore()
 
-// Comme les pastilles de T3 Code : un nuage de la couleur, éclairé en haut à gauche, avec une teinte voisine
-// en bas à droite pour lui donner de la profondeur.
+// Un nuage de la couleur éclairé en haut à gauche, et une teinte voisine en bas à droite pour la profondeur.
 function orb(id: ThemeId) {
   const { hue, saturation, lightness } = themes[id]
   return {
@@ -28,14 +28,16 @@ function orb(id: ThemeId) {
     <h3 id="theme-title" class="pb-2.5 text-sm font-semibold">{{ t('settings.themes.title') }}</h3>
     <div class="grid grid-cols-2 gap-2 @xl:grid-cols-4">
       <div v-for="id in themeIds" :key="id" class="relative">
-        <label
-          class="flex cursor-pointer items-center gap-3 rounded-xl border p-2.5 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-accent"
-          :class="appearance.theme === id ? 'border-accent bg-selection/40 pe-11' : 'border-stroke hover:bg-selection/40'"
+        <UiChoiceCard
+          v-model="appearance.theme"
+          name="theme"
+          :value="id"
+          class="flex items-center gap-3 p-2.5"
+          :class="{ 'pe-11': appearance.theme === id }"
         >
-          <input v-model="appearance.theme" type="radio" name="theme" :value="id" class="sr-only" />
           <span class="size-7 shrink-0 rounded-full shadow-md ring-1 ring-content/10 ring-inset" :style="orb(id)" aria-hidden="true" />
           <span class="truncate text-sm font-medium">{{ t(`settings.themes.names.${id}`) }}</span>
-        </label>
+        </UiChoiceCard>
         <SettingsCustomizeButton
           :show="appearance.theme === id"
           data-customize="theme"

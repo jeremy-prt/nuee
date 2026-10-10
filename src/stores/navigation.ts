@@ -29,8 +29,8 @@ export const useNavigationStore = defineStore('navigation', () => {
 
   const hasPanel = computed(() => PANEL_VIEWS.includes(view.value))
 
-  // Fondu enchaîné à l'entrée, à la sortie et à l'intérieur des réglages, comme Brume : l'ancienne page
-  // s'efface pendant que la nouvelle apparaît (API View Transitions), sans instant vide entre les deux.
+  // Fondu enchaîné à l'entrée, à la sortie et à l'intérieur des réglages : l'ancienne page s'efface pendant
+  // que la nouvelle apparaît (API View Transitions), sans instant vide entre les deux.
   function crossfade(update: () => void) {
     if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) return update()
     document.startViewTransition(update)

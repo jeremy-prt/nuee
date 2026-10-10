@@ -140,6 +140,7 @@ export default {
   settings: {
     nav: '设置分区',
     backTo: '返回{section}',
+    reset: '恢复默认',
     back: '返回',
     groups: {
       app: '应用',
@@ -281,7 +282,6 @@ export default {
         medium: '中',
         light: '亮',
       },
-      reset: '恢复默认',
     },
   },
   updates: {

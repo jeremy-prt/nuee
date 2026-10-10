@@ -59,7 +59,7 @@ html[data-theme-scope='full'] {
 html.is-macos:not([data-window='opaque']) {
   --color-chrome: color-mix(in srgb, var(--color-veil) var(--chrome-alpha, 72%), transparent);
   --color-surface: color-mix(in srgb, var(--color-veil) var(--surface-alpha, 92%), transparent);
-  /* Comme monocode : presque pas de voile, le menu laisse voir, floutés, l'app et le bureau derrière lui. */
+  /* Presque pas de voile : le menu laisse voir, floutés, l'app et le bureau derrière lui. */
   --color-popover: color-mix(
     in srgb,
     color-mix(in srgb, var(--color-accent) var(--veil-tint, 0%), var(--color-overlay)) 8%,
@@ -115,7 +115,7 @@ html.is-macos:not([data-window='opaque']) {
   }
 }
 
-/* Fondu enchaîné des réglages (stores/navigation.ts) : doux et court, comme Brume. */
+/* Fondu enchaîné des réglages (crossfade dans stores/navigation.ts). */
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation-duration: 170ms;

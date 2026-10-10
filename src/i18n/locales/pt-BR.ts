@@ -140,6 +140,7 @@ export default {
   settings: {
     nav: 'Seções das configurações',
     backTo: 'Voltar para {section}',
+    reset: 'Restaurar padrões',
     back: 'Voltar',
     groups: {
       app: 'Aplicativo',
@@ -281,7 +282,6 @@ export default {
         medium: 'Média',
         light: 'Clara',
       },
-      reset: 'Restaurar padrões',
     },
   },
   updates: {
