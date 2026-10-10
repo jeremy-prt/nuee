@@ -30,7 +30,7 @@ src/
     bindings/               # généré par ts-rs, jamais édité à la main
   i18n/                     # createI18n + choix de la langue au démarrage
     locales/<langue>.ts     # en.ts fait référence, les autres finissent par `satisfies typeof en`
-  utils/                    # fonctions pures ; shortcuts.ts = tous les raccourcis clavier
+  utils/                    # fonctions pures ; shortcuts.ts = tous les raccourcis clavier ; `*.worker.ts` : Web Worker qui n'appelle que ces fonctions (effets de l'image de fond)
   assets/css/main.css       # Tailwind 4 : jetons de couleur dans @theme, pas de tailwind.config.js
 src-tauri/src/
   main.rs                   # n'appelle que nuee_lib::run()
@@ -92,7 +92,7 @@ src-tauri/src/
 
 - Capabilities ciblées sur `"main"`, jamais `"*"`. Pas de permission `fs:` ni `shell:` exposée au front : tout passe par nos commandes, qui canonisent les chemins sous la racine du workspace.
 - Pas de `v-html` sur une sortie d'agent : le markdown passe par `ChatMarkdown` (lexer marked rendu en nœuds Vue). Une XSS dans la webview donne accès aux commandes, donc au lancement de process.
-- La webview n'affiche un fichier local que via le protocole asset, limité à `$APPDATA/attachments/**` : ne pas élargir ce scope, copier l'image dedans.
+- La webview n'affiche un fichier local que via le protocole asset, limité à `$APPDATA/attachments/**` et `$APPDATA/backgrounds/**` (image de fond, lue aussi en `fetch` pour ses effets, d'où `asset:` dans `connect-src`) : ne pas élargir ce scope, copier l'image dedans.
 - CSP définie dans `tauri.conf.json` : ne pas la repasser à `null`, ne pas charger de CDN. Seul domaine externe autorisé : `api.github.com` (vérification des mises à jour).
 - `opener` n'ouvre que `https://github.com/jeremy-prt/nuee/releases/*` (scope dans la capability) : élargir ce scope au cas par cas.
 

@@ -27,11 +27,11 @@
     "security": {
       "assetProtocol": {
         "enable": true,
-        "scope": ["$APPDATA/attachments/**"]
+        "scope": ["$APPDATA/attachments/**", "$APPDATA/backgrounds/**"]
       },
       "csp": {
         "default-src": "'self'",
-        "connect-src": "ipc: http://ipc.localhost https://api.github.com",
+        "connect-src": "ipc: http://ipc.localhost asset: http://asset.localhost https://api.github.com",
         "img-src": "'self' asset: http://asset.localhost data: blob:",
         "style-src": "'self' 'unsafe-inline'"
       }

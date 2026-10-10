@@ -10,6 +10,7 @@ use tauri::{Manager, RunEvent};
 
 use crate::services::agent::AgentService;
 use crate::services::attachment::AttachmentService;
+use crate::services::background::BackgroundService;
 use crate::services::chat::ChatService;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -33,6 +34,8 @@ pub fn run() {
             app.manage(AgentService::new(data.join("scratch")));
             // Chemin repris par le scope `assetProtocol` de tauri.conf.json : les aperçus n'existent que là.
             app.manage(AttachmentService::new(data.join("attachments")));
+            // Même contrainte que les pièces jointes : ce dossier est dans le scope `assetProtocol`.
+            app.manage(BackgroundService::new(data.join("backgrounds")));
             // Le login shell met parfois une seconde à répondre : autant que ce ne soit pas au premier message.
             std::thread::spawn(utils::shell_env::search_path);
             Ok(())
@@ -46,6 +49,8 @@ pub fn run() {
             commands::agent::agent_catalog,
             commands::attachment::attachment_save,
             commands::attachment::attachment_import,
+            commands::background::background_import,
+            commands::background::background_remove,
             commands::chat::chat_list,
             commands::chat::chat_create,
             commands::chat::chat_content,

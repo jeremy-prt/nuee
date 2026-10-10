@@ -3,6 +3,8 @@ import { ArrowLeft } from '@lucide/vue'
 import { nextTick, onMounted, onUnmounted, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsAppearance from '@/components/settings/SettingsAppearance.vue'
+import SettingsBackground from '@/components/settings/SettingsBackground.vue'
+import SettingsBackgroundOptions from '@/components/settings/SettingsBackgroundOptions.vue'
 import SettingsGlass from '@/components/settings/SettingsGlass.vue'
 import SettingsThemeOptions from '@/components/settings/SettingsThemeOptions.vue'
 import SettingsThemes from '@/components/settings/SettingsThemes.vue'
@@ -50,11 +52,14 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
             <ArrowLeft class="size-4" aria-hidden="true" />
           </UiIconButton>
           <h2 ref="heading" tabindex="-1" class="text-xl font-semibold outline-none">
-            <template v-if="navigation.settingsDetail === 'theme'">{{ t('settings.themes.title') }}</template>
+            <template v-if="navigation.settingsDetail === 'theme' || navigation.settingsDetail === 'background'">
+              {{ t(navigation.settingsDetailKey) }}
+            </template>
             <template v-else>{{ t('settings.glass.heading', { style: t(navigation.settingsDetailKey) }) }}</template>
           </h2>
         </div>
         <SettingsThemeOptions v-if="navigation.settingsDetail === 'theme'" />
+        <SettingsBackgroundOptions v-else-if="navigation.settingsDetail === 'background'" />
         <SettingsGlass v-else :window-style="navigation.settingsDetail" />
       </template>
       <template v-else>
@@ -63,6 +68,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
         <template v-if="navigation.settingsSection === 'appearance'">
           <SettingsThemes />
           <SettingsAppearance />
+          <SettingsBackground />
         </template>
       </template>
     </div>

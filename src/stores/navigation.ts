@@ -4,7 +4,7 @@ import type { WindowStyle } from '@/stores/appearance'
 import { useLayoutStore } from '@/stores/layout'
 import type { SettingsSection } from '@/utils/settings'
 
-type SettingsDetail = WindowStyle | 'theme'
+type SettingsDetail = WindowStyle | 'theme' | 'background'
 
 export type View = 'home' | 'chats' | 'issues' | 'pullRequests' | 'notes' | 'search' | 'usage' | 'updates' | 'settings'
 
@@ -17,11 +17,13 @@ export const useNavigationStore = defineStore('navigation', () => {
   // Contexte des chats : un projet, ou null pour les chats sans projet.
   const projectId = ref<string | null>(null)
   const settingsSection = ref<SettingsSection>('general')
-  // Sous-page d'Apparence : les réglages du thème, ou ceux d'un style de fenêtre.
+  // Sous-page d'Apparence : le thème, l'image de fond, ou un style de fenêtre.
   const settingsDetail = ref<SettingsDetail | null>(null)
-  const settingsDetailKey = computed(() =>
-    settingsDetail.value === 'theme' ? 'settings.themes.title' : `settings.appearance.styles.${settingsDetail.value}`,
-  )
+  const settingsDetailKey = computed(() => {
+    if (settingsDetail.value === 'theme') return 'settings.themes.title'
+    if (settingsDetail.value === 'background') return 'settings.background.title'
+    return `settings.appearance.styles.${settingsDetail.value}`
+  })
   // Vue que le bouton Retour des réglages retrouve.
   const beforeSettings = ref<View>('home')
 

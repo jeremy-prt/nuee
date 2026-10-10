@@ -8,3 +8,11 @@ export async function pickFolder(title: string) {
 export async function pickFiles(title: string) {
   return (await open({ multiple: true, title })) ?? []
 }
+
+// Les formats acceptés par background_import côté Rust.
+export const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp']
+
+export async function pickImage(title: string) {
+  const path = await open({ multiple: false, title, filters: [{ name: 'Images', extensions: IMAGE_EXTENSIONS }] })
+  return typeof path === 'string' ? path : null
+}

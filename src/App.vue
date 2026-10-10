@@ -2,6 +2,7 @@
 import { TooltipProvider } from 'reka-ui'
 import { computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import ShellBackground from '@/components/shell/ShellBackground.vue'
 import ShellDock from '@/components/shell/ShellDock.vue'
 import ShellRail from '@/components/shell/ShellRail.vue'
 import ShellResizeHandle from '@/components/shell/ShellResizeHandle.vue'
@@ -66,7 +67,7 @@ function onKeydown(event: KeyboardEvent) {
 
 // Fondu à l'entrée et à la sortie des réglages, comme Brume. Le contenu seul : sur macOS, un fond
 // qui s'efface laisserait voir le bureau à travers la fenêtre transparente.
-const FADED = '#shell-rail > *, #view-area > *, #workspace-area > *'
+const FADED = '#shell-rail > *, #view-area > :not([data-backdrop]), #workspace-area > *'
 
 watch(
   () => navigation.view === 'settings',
@@ -116,7 +117,8 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
         >
           <div id="workspace-column" class="flex min-w-0 flex-1 flex-col">
             <!-- Seul le chat prend le fond de la zone centrale : terminal et panneau de droite font partie du cadre. -->
-            <main class="min-h-0 flex-1 bg-surface">
+            <main class="relative isolate min-h-0 flex-1 bg-surface">
+              <ShellBackground />
               <WorkspaceView />
             </main>
             <template v-if="showBottomDock">
@@ -142,7 +144,8 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
           </template>
         </div>
 
-        <main v-else id="view-area" class="min-w-0 flex-1 bg-surface">
+        <main v-else id="view-area" class="relative isolate min-w-0 flex-1 bg-surface">
+          <ShellBackground />
           <HomeView v-if="navigation.view === 'home'" />
           <SearchView v-else-if="navigation.view === 'search'" />
           <UpdatesView v-else-if="navigation.view === 'updates'" />

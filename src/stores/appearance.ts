@@ -64,6 +64,30 @@ function blurRadius(glass: Glass) {
   return BLUR[glass.blur]
 }
 
+// Image de fond de la zone centrale : effets décrits dans utils/backgroundEffects.ts.
+export const backgroundEffects = ['none', 'blur', 'fade', 'dither', 'ascii', 'halftone', 'scanlines', 'pixelate'] as const
+export type BackgroundEffect = (typeof backgroundEffects)[number]
+export const backgroundOptions = {
+  where: ['chats', 'everywhere'],
+  visibility: ['low', 'medium', 'high'],
+  intensity: ['low', 'medium', 'high'],
+  effect: backgroundEffects,
+} as const
+export const INTENSITY_LEVEL = { low: 0, medium: 1, high: 2 } as const
+type BackgroundSetting = keyof typeof backgroundOptions
+export interface Background {
+  path: string | null
+  effect: (typeof backgroundOptions)['effect'][number]
+  where: (typeof backgroundOptions)['where'][number]
+  visibility: (typeof backgroundOptions)['visibility'][number]
+  intensity: (typeof backgroundOptions)['intensity'][number]
+}
+export const BACKGROUND_OPACITY: Record<Background['visibility'], number> = { low: 18, medium: 32, high: 50 }
+
+function defaultBackground(path: string | null): Background {
+  return { path, effect: 'none', where: 'everywhere', visibility: 'low', intensity: 'medium' }
+}
+
 const STORAGE_KEY = 'nuee.appearance.v8'
 
 function defaultGlass(): Glass {
@@ -76,6 +100,7 @@ interface AppearanceState {
   themeIntensity: ThemeIntensity
   windowStyle: WindowStyle
   glass: Record<WindowStyle, Glass>
+  background: Background
 }
 
 function defaults(): AppearanceState {
@@ -85,6 +110,7 @@ function defaults(): AppearanceState {
     themeIntensity: 'light',
     windowStyle: 'mixed',
     glass: { transparent: defaultGlass(), mixed: defaultGlass(), opaque: defaultGlass() },
+    background: defaultBackground(null),
   }
 }
 
@@ -97,6 +123,13 @@ function load(): AppearanceState {
     if (themeScopes.includes(saved.themeScope)) state.themeScope = saved.themeScope
     if (themeIntensities.includes(saved.themeIntensity)) state.themeIntensity = saved.themeIntensity
     if (windowStyles.includes(saved.windowStyle)) state.windowStyle = saved.windowStyle
+    const background = saved.background ?? {}
+    if (typeof background.path === 'string') state.background.path = background.path
+    for (const setting of Object.keys(backgroundOptions) as BackgroundSetting[]) {
+      if ((backgroundOptions[setting] as readonly string[]).includes(background[setting])) {
+        ;(state.background as unknown as Record<BackgroundSetting, string>)[setting] = background[setting]
+      }
+    }
     for (const style of windowStyles) {
       for (const setting of Object.keys(glassOptions) as GlassSetting[]) {
         const value = saved.glass?.[style]?.[setting]
@@ -118,6 +151,7 @@ export const useAppearanceStore = defineStore('appearance', () => {
   const themeIntensity = ref<ThemeIntensity>(state.themeIntensity)
   const windowStyle = ref<WindowStyle>(state.windowStyle)
   const glass = reactive(state.glass)
+  const background = reactive(state.background)
 
   // Hors macOS, la fenêtre est toujours opaque : c'est le seul style qui s'applique.
   const effectiveStyle = computed<WindowStyle>(() => (isMacosApp() ? windowStyle.value : 'opaque'))
@@ -146,7 +180,7 @@ export const useAppearanceStore = defineStore('appearance', () => {
   )
 
   watch(
-    [theme, themeScope, themeIntensity, windowStyle, glass],
+    [theme, themeScope, themeIntensity, windowStyle, glass, background],
     () => {
       const saved = {
         theme: theme.value,
@@ -154,6 +188,7 @@ export const useAppearanceStore = defineStore('appearance', () => {
         themeIntensity: themeIntensity.value,
         windowStyle: windowStyle.value,
         glass,
+        background,
       }
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(saved))
@@ -168,10 +203,20 @@ export const useAppearanceStore = defineStore('appearance', () => {
     Object.assign(glass[style], defaultGlass())
   }
 
+  function resetBackground() {
+    Object.assign(background, defaultBackground(background.path))
+  }
+
+  // Une première image repart des réglages par défaut ; un changement d'image garde ceux en place.
+  function setBackground(path: string | null) {
+    if (path && !background.path) Object.assign(background, defaultBackground(path))
+    else background.path = path
+  }
+
   function resetTheme() {
     themeScope.value = 'accent'
     themeIntensity.value = 'light'
   }
 
-  return { theme, themeScope, themeIntensity, windowStyle, effectiveStyle, glass, resetGlass, resetTheme }
+  return { theme, themeScope, themeIntensity, windowStyle, effectiveStyle, glass, background, resetGlass, resetTheme, resetBackground, setBackground }
 })
