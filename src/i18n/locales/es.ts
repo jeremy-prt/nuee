@@ -157,12 +157,16 @@ export default {
     },
     hints: {
       general: 'Versión, actualizaciones, sonidos y notificaciones.',
-      appearance: 'Tema y transparencia de la ventana.',
+      appearance: 'Tema, transparencia de la ventana, imagen de fondo y tamaño de la interfaz.',
       shortcuts: 'Todos los atajos de teclado de Nuée.',
       agents: 'Los agentes instalados en este equipo y su conexión.',
       connections: 'Tus cuentas de proveedores y los servicios conectados, como GitHub.',
       skills: 'Las skills y los servidores MCP que pueden usar tus agentes.',
       archive: 'Los chats archivados, para recuperarlos o eliminarlos.',
+    },
+    interface: {
+      title: 'Interfaz',
+      zoom: 'Tamaño de la interfaz',
     },
     background: {
       title: 'Imagen de fondo',

@@ -7,6 +7,7 @@ import UiIconButton from '@/components/ui/UiIconButton.vue'
 import { useLayoutDrag } from '@/composables/useLayoutDrag'
 import { useTabTitle } from '@/composables/useTabTitle'
 import { isMacosApp } from '@/ipc/system'
+import { useAppearanceStore } from '@/stores/appearance'
 import { useDragStore } from '@/stores/drag'
 import { RAIL_COLLAPSED_WIDTH, useLayoutStore } from '@/stores/layout'
 import { useNavigationStore } from '@/stores/navigation'
@@ -16,13 +17,15 @@ import { shortcutLabel, shortcuts } from '@/utils/shortcuts'
 const { t } = useI18n()
 const layout = useLayoutStore()
 const navigation = useNavigationStore()
+const appearance = useAppearanceStore()
 const workspace = useWorkspaceStore()
 const drag = useDragStore()
 const { startTabDrag } = useLayoutDrag()
 const { tabTitle } = useTabTitle()
 
-// Boutons de fenêtre macOS (fin à 70 px) plus une marge ; un bouton de la barre fait 28 px plus 8 px de marge.
-const LIGHTS = isMacosApp() ? 84 : 0
+// Boutons de fenêtre macOS (fin à 70 pt) plus une marge ; un bouton de la barre fait 28 px plus 8 px de marge.
+// Ces boutons ne suivent pas le zoom de l'interface : leur place, en points, se convertit en px CSS.
+const lights = computed(() => (isMacosApp() ? 84 / appearance.zoomFactor : 0))
 const TOGGLE = 36
 
 const railWidth = computed(() => (layout.rail.expanded ? layout.rail.width : RAIL_COLLAPSED_WIDTH))
@@ -31,15 +34,17 @@ const panelOpen = computed(() => navigation.hasPanel && layout.panel.open)
 // Dépliée, la barre latérale a son bouton ici, au-dessus de son bord droit, et sa bordure monte.
 // Repliée, elle est plus étroite que les boutons macOS : son bouton passe dans la colonne d'icônes.
 // Chaque séparateur fait 1 px : la zone inclut celui de la barre latérale, l'espace celui du panneau.
-const leftZone = computed(() => Math.max(railWidth.value + 1, LIGHTS))
+const leftZone = computed(() => Math.max(railWidth.value + 1, lights.value))
 const railBorderUp = computed(() => leftZone.value === railWidth.value + 1)
 const centerStart = computed(() => railWidth.value + 1 + (panelOpen.value ? layout.panel.width + 1 : 0))
 const spacer = computed(() => Math.max(0, centerStart.value - leftZone.value))
 </script>
 
 <template>
+  <!-- Jamais moins de 40 pt de haut : les boutons macOS, fixes, doivent y tenir quel que soit le zoom. -->
   <header
-    class="flex h-10 shrink-0 items-center border-b border-stroke bg-chrome"
+    class="flex shrink-0 items-center border-b border-stroke bg-chrome"
+    :style="{ height: 'max(2.5rem, calc(2.5rem / var(--ui-zoom, 1)))' }"
     data-tauri-drag-region
   >
     <div

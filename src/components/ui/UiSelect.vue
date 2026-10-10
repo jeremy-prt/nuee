@@ -2,7 +2,6 @@
 import { Check, ChevronDown } from '@lucide/vue'
 import {
   SelectContent,
-  SelectIcon,
   SelectItem,
   SelectItemIndicator,
   SelectItemText,
@@ -19,7 +18,17 @@ export interface UiSelectOption {
   hint?: string
 }
 
-defineProps<{ label: string; options: UiSelectOption[]; disabled?: boolean }>()
+// `ghost` : discret, dans une barre d'outils (zone de saisie). `field` : bouton encadré, dans les réglages.
+withDefaults(
+  defineProps<{
+    label: string
+    options: UiSelectOption[]
+    disabled?: boolean
+    variant?: 'ghost' | 'field'
+    side?: 'top' | 'bottom'
+  }>(),
+  { variant: 'ghost', side: 'top' },
+)
 const model = defineModel<string>({ required: true })
 </script>
 
@@ -27,31 +36,41 @@ const model = defineModel<string>({ required: true })
   <SelectRoot v-model="model" :disabled="disabled">
     <SelectTrigger
       :aria-label="label"
-      :title="label"
-      class="flex h-6 items-center gap-1 rounded-md px-1.5 text-xs text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-accent disabled:pointer-events-none disabled:opacity-40 data-[state=open]:bg-selection data-[state=open]:text-content"
+      :title="variant === 'ghost' ? label : undefined"
+      class="group flex items-center focus-visible:outline-2 focus-visible:outline-accent disabled:pointer-events-none disabled:opacity-40"
+      :class="
+        variant === 'field'
+          ? 'h-7 min-w-24 cursor-pointer justify-between gap-2 rounded-md border border-stroke ps-2.5 pe-2 text-xs hover:bg-selection-hover data-[state=open]:bg-selection'
+          : 'h-6 gap-1 rounded-md px-1.5 text-xs text-muted hover:bg-selection-hover hover:text-content data-[state=open]:bg-selection data-[state=open]:text-content'
+      "
     >
       <SelectValue />
-      <SelectIcon><ChevronDown class="size-3" aria-hidden="true" /></SelectIcon>
+      <ChevronDown
+        class="size-3 shrink-0 text-muted transition-transform duration-150 ease-out group-data-[state=open]:rotate-180 motion-reduce:transition-none"
+        aria-hidden="true"
+      />
     </SelectTrigger>
     <SelectPortal>
       <SelectContent
         position="popper"
-        side="top"
+        :side="side"
         :side-offset="6"
-        class="z-50 max-h-(--reka-select-content-available-height) min-w-40 overflow-y-auto rounded-lg border border-stroke bg-overlay p-1 text-xs text-content shadow-lg select-none"
+        class="ui-pop z-50 max-h-(--reka-select-content-available-height) min-w-(--reka-select-trigger-width) overflow-y-auto rounded-lg border border-stroke bg-popover backdrop-blur-xl p-1 text-xs text-content shadow-xl select-none"
       >
         <SelectViewport>
           <SelectItem
             v-for="option in options"
             :key="option.value"
             :value="option.value"
-            class="flex cursor-default items-start gap-2 rounded-md px-2 py-1.5 outline-none data-[highlighted]:bg-selection-hover"
+            class="flex cursor-pointer items-start gap-2 rounded-md py-1.5 ps-1.5 pe-2.5 text-content/75 outline-none data-[highlighted]:bg-selection data-[highlighted]:text-content data-[state=checked]:text-content"
           >
+            <span class="grid size-3.5 shrink-0 place-items-center pt-px">
+              <SelectItemIndicator><Check class="size-3" aria-hidden="true" /></SelectItemIndicator>
+            </span>
             <span class="min-w-0 flex-1">
               <SelectItemText>{{ option.label }}</SelectItemText>
               <span v-if="option.hint" class="mt-0.5 block text-muted">{{ option.hint }}</span>
             </span>
-            <SelectItemIndicator class="mt-0.5"><Check class="size-3.5" aria-hidden="true" /></SelectItemIndicator>
           </SelectItem>
         </SelectViewport>
       </SelectContent>

@@ -155,12 +155,16 @@ export default {
     },
     hints: {
       general: 'Version, updates, sounds and notifications.',
-      appearance: 'Theme and window transparency.',
+      appearance: 'Theme, window transparency, background image and interface size.',
       shortcuts: 'Every keyboard shortcut in Nuée.',
       agents: 'The agents installed on this computer and whether they are signed in.',
       connections: 'Your provider accounts and connected services, such as GitHub.',
       skills: 'The skills and MCP servers your agents can use.',
       archive: 'Archived chats, to bring back or delete.',
+    },
+    interface: {
+      title: 'Interface',
+      zoom: 'Interface size',
     },
     background: {
       title: 'Background image',

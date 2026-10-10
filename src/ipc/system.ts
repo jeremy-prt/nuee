@@ -15,6 +15,10 @@ export function openReleasePage(url: string) {
   return openUrl(url)
 }
 
+export function isTauriApp() {
+  return isTauri()
+}
+
 // Seule la fenêtre macOS est transparente (tauri.macos.conf.json) : les styles en dépendent.
 export function isMacosApp() {
   return isTauri() && navigator.userAgent.includes('Mac')

@@ -6,6 +6,7 @@ import SettingsAppearance from '@/components/settings/SettingsAppearance.vue'
 import SettingsBackground from '@/components/settings/SettingsBackground.vue'
 import SettingsBackgroundOptions from '@/components/settings/SettingsBackgroundOptions.vue'
 import SettingsGlass from '@/components/settings/SettingsGlass.vue'
+import SettingsInterface from '@/components/settings/SettingsInterface.vue'
 import SettingsThemeOptions from '@/components/settings/SettingsThemeOptions.vue'
 import SettingsThemes from '@/components/settings/SettingsThemes.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
@@ -15,7 +16,22 @@ import { useNavigationStore } from '@/stores/navigation'
 const { t } = useI18n()
 const navigation = useNavigationStore()
 const root = useTemplateRef('root')
+const page = useTemplateRef('page')
 const heading = useTemplateRef('heading')
+
+// Changer de section ou de sous-page fait apparaître la nouvelle en fondu, comme dans Brume.
+watch(
+  () => [navigation.settingsSection, navigation.settingsDetail],
+  async () => {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    await nextTick()
+    root.value?.scrollTo({ top: 0 })
+    page.value?.animate(
+      { opacity: [0, 1], transform: ['translateY(4px)', 'none'] },
+      { duration: 200, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+    )
+  },
+)
 
 // Le bouton qui a ouvert la sous-page disparaît avec elle : on lui rend le focus au retour.
 watch(
@@ -45,7 +61,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 
 <template>
   <div ref="root" class="@container h-full overflow-y-auto">
-    <div class="mx-auto w-full max-w-4xl px-6 py-8 pb-16 @2xl:px-10 @4xl:px-14">
+    <div ref="page" class="mx-auto w-full max-w-4xl px-6 py-8 pb-16 @2xl:px-10 @4xl:px-14">
       <template v-if="navigation.settingsDetail">
         <div class="-ms-1.5 flex items-center gap-1.5">
           <UiIconButton :label="t('settings.backTo', { section: t('settings.sections.appearance') })" @click="back()">
@@ -69,6 +85,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
           <SettingsThemes />
           <SettingsAppearance />
           <SettingsBackground />
+          <SettingsInterface />
         </template>
       </template>
     </div>

@@ -1,4 +1,4 @@
-import { convertFileSrc, invoke } from '@tauri-apps/api/core'
+import { convertFileSrc, invoke, isTauri } from '@tauri-apps/api/core'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
 import type { Attachment } from '@/ipc/bindings/Attachment'
 
@@ -27,6 +27,8 @@ export type FileDrop = { type: 'over'; x: number; y: number } | { type: 'drop'; 
 // Glisser depuis le Finder : Tauri capte le dépôt pour toute la fenêtre et donne les chemins,
 // à chacun de vérifier que le point tombe chez lui. Position en pixels physiques sauf sur macOS.
 export function onFileDrop(handler: (event: FileDrop) => void) {
+  // Hors de l'app (pnpm dev dans un navigateur), pas de webview Tauri à écouter.
+  if (!isTauri()) return Promise.resolve(() => {})
   const scale = navigator.userAgent.includes('Mac') ? 1 : window.devicePixelRatio || 1
   return getCurrentWebview().onDragDropEvent(({ payload }) => {
     if (payload.type === 'leave') return handler({ type: 'leave' })

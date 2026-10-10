@@ -30,7 +30,7 @@ const workspace = useWorkspaceStore()
 const drag = useDragStore()
 const newChat = useNewChat()
 // Pose le style de fenêtre sur <html> dès le démarrage, pas seulement à l'ouverture des réglages.
-useAppearanceStore()
+const appearance = useAppearanceStore()
 
 const inChats = computed(() => navigation.view === 'chats')
 const showBottomDock = computed(() => layout.bottom.open && layout.viewsIn('bottom').length > 0)
@@ -56,6 +56,10 @@ const actions: [Shortcut, () => void][] = [
   [shortcuts.toggleBottomDock, inChatsOnly(() => layout.toggleDock('bottom'))],
   [shortcuts.closeTab, inChatsOnly(workspace.closeActiveTab)],
   [shortcuts.split, inChatsOnly(workspace.split)],
+  [shortcuts.settings, () => navigation.go('settings')],
+  [shortcuts.zoomIn, () => appearance.stepZoom(1)],
+  [shortcuts.zoomOut, () => appearance.stepZoom(-1)],
+  [shortcuts.zoomReset, () => (appearance.zoom = 100)],
 ]
 
 function onKeydown(event: KeyboardEvent) {

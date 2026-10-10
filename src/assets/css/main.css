@@ -13,6 +13,8 @@
   /* Fonds des barres et panneaux (chrome) et de la zone centrale (surface) : voir le style de fenêtre plus bas. */
   --color-chrome: var(--color-canvas);
   --color-surface: var(--color-canvas);
+  /* Menus et infobulles : plein en Opaque, translucide sinon (voir plus bas). */
+  --color-popover: var(--color-overlay);
 }
 
 html,
@@ -40,6 +42,7 @@ html {
   --color-veil: color-mix(in srgb, var(--color-accent) var(--veil-tint, 0%), hsl(240 0% var(--veil-lightness, 9%)));
   --color-chrome: var(--color-veil);
   --color-surface: var(--color-veil);
+  --color-popover: color-mix(in srgb, var(--color-accent) var(--veil-tint, 0%), var(--color-overlay));
 }
 
 /* Thème sur toute l'interface : les fonds d'éléments actifs ou survolés prennent l'accent. */
@@ -51,6 +54,12 @@ html[data-theme-scope='full'] {
 html.is-macos:not([data-window='opaque']) {
   --color-chrome: color-mix(in srgb, var(--color-veil) var(--chrome-alpha, 72%), transparent);
   --color-surface: color-mix(in srgb, var(--color-veil) var(--surface-alpha, 92%), transparent);
+  /* Comme monocode : le menu floute ce qu'il recouvre dans l'app (backdrop-blur) et garde la teinte du style. */
+  --color-popover: color-mix(
+    in srgb,
+    color-mix(in srgb, var(--color-accent) var(--veil-tint, 0%), var(--color-overlay)) 78%,
+    transparent
+  );
 }
 
 /* Trait entre deux colonnes : rien n'est dessous, il pose son propre fond de barre, sinon il laisserait
@@ -58,4 +67,45 @@ html.is-macos:not([data-window='opaque']) {
 @utility separator {
   background-color: var(--color-chrome);
   background-image: linear-gradient(var(--color-stroke), var(--color-stroke));
+}
+
+/* Menus déroulants (UiSelect) : ils s'ouvrent depuis leur bouton en grandissant, se ferment en fondu. */
+@keyframes ui-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--pop-lift, 0)) scale(0.94);
+  }
+}
+
+@keyframes ui-pop-out {
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+.ui-pop {
+  transform-origin: var(--reka-select-content-transform-origin);
+}
+
+.ui-pop[data-side='bottom'] {
+  --pop-lift: -6px;
+}
+
+.ui-pop[data-side='top'] {
+  --pop-lift: 6px;
+}
+
+.ui-pop[data-state='open'] {
+  animation: ui-pop-in 170ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ui-pop[data-state='closed'] {
+  animation: ui-pop-out 110ms ease-in forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-pop[data-state] {
+    animation: none;
+  }
 }

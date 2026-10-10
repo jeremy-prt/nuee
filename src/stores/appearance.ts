@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, reactive, ref, watch, watchEffect } from 'vue'
-import { isMacosApp } from '@/ipc/system'
-import { windowSetBlur } from '@/ipc/window'
+import { isMacosApp, isTauriApp } from '@/ipc/system'
+import { windowSetBlur, windowSetZoom } from '@/ipc/window'
 import { type ThemeId, themeAccent, themeIds } from '@/utils/themes'
 
 export const windowStyles = ['transparent', 'mixed', 'opaque'] as const
@@ -88,6 +88,9 @@ function defaultBackground(path: string | null): Background {
   return { path, effect: 'none', where: 'everywhere', visibility: 'low', intensity: 'medium' }
 }
 
+export const zoomLevels = [80, 90, 100, 110, 125, 150] as const
+export type ZoomLevel = (typeof zoomLevels)[number]
+
 const STORAGE_KEY = 'nuee.appearance.v8'
 
 function defaultGlass(): Glass {
@@ -101,6 +104,7 @@ interface AppearanceState {
   windowStyle: WindowStyle
   glass: Record<WindowStyle, Glass>
   background: Background
+  zoom: ZoomLevel
 }
 
 function defaults(): AppearanceState {
@@ -111,6 +115,7 @@ function defaults(): AppearanceState {
     windowStyle: 'mixed',
     glass: { transparent: defaultGlass(), mixed: defaultGlass(), opaque: defaultGlass() },
     background: defaultBackground(null),
+    zoom: 100,
   }
 }
 
@@ -123,6 +128,7 @@ function load(): AppearanceState {
     if (themeScopes.includes(saved.themeScope)) state.themeScope = saved.themeScope
     if (themeIntensities.includes(saved.themeIntensity)) state.themeIntensity = saved.themeIntensity
     if (windowStyles.includes(saved.windowStyle)) state.windowStyle = saved.windowStyle
+    if (zoomLevels.includes(saved.zoom)) state.zoom = saved.zoom
     const background = saved.background ?? {}
     if (typeof background.path === 'string') state.background.path = background.path
     for (const setting of Object.keys(backgroundOptions) as BackgroundSetting[]) {
@@ -152,6 +158,18 @@ export const useAppearanceStore = defineStore('appearance', () => {
   const windowStyle = ref<WindowStyle>(state.windowStyle)
   const glass = reactive(state.glass)
   const background = reactive(state.background)
+  const zoom = ref<ZoomLevel>(state.zoom)
+  // Facteur réellement appliqué : hors de l'app (navigateur), la webview n'est pas zoomée.
+  const zoomFactor = computed(() => (isTauriApp() ? zoom.value / 100 : 1))
+
+  watch(
+    zoomFactor,
+    (factor) => {
+      document.documentElement.style.setProperty('--ui-zoom', String(factor))
+      if (isTauriApp()) windowSetZoom(factor).catch(() => {})
+    },
+    { immediate: true },
+  )
 
   // Hors macOS, la fenêtre est toujours opaque : c'est le seul style qui s'applique.
   const effectiveStyle = computed<WindowStyle>(() => (isMacosApp() ? windowStyle.value : 'opaque'))
@@ -180,7 +198,7 @@ export const useAppearanceStore = defineStore('appearance', () => {
   )
 
   watch(
-    [theme, themeScope, themeIntensity, windowStyle, glass, background],
+    [theme, themeScope, themeIntensity, windowStyle, glass, background, zoom],
     () => {
       const saved = {
         theme: theme.value,
@@ -189,6 +207,7 @@ export const useAppearanceStore = defineStore('appearance', () => {
         windowStyle: windowStyle.value,
         glass,
         background,
+        zoom: zoom.value,
       }
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(saved))
@@ -198,6 +217,11 @@ export const useAppearanceStore = defineStore('appearance', () => {
     },
     { deep: true },
   )
+
+  function stepZoom(step: -1 | 1) {
+    const index = zoomLevels.indexOf(zoom.value) + step
+    zoom.value = zoomLevels[Math.max(0, Math.min(zoomLevels.length - 1, index))]!
+  }
 
   function resetGlass(style: WindowStyle) {
     Object.assign(glass[style], defaultGlass())
@@ -218,5 +242,20 @@ export const useAppearanceStore = defineStore('appearance', () => {
     themeIntensity.value = 'light'
   }
 
-  return { theme, themeScope, themeIntensity, windowStyle, effectiveStyle, glass, background, resetGlass, resetTheme, resetBackground, setBackground }
+  return {
+    theme,
+    themeScope,
+    themeIntensity,
+    windowStyle,
+    effectiveStyle,
+    glass,
+    background,
+    zoom,
+    zoomFactor,
+    stepZoom,
+    resetGlass,
+    resetTheme,
+    resetBackground,
+    setBackground,
+  }
 })

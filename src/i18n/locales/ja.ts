@@ -157,12 +157,16 @@ export default {
     },
     hints: {
       general: 'バージョン、アップデート、サウンド、通知。',
-      appearance: 'テーマとウィンドウの透明度。',
+      appearance: 'テーマ、ウィンドウの透明度、背景画像、インターフェースのサイズ。',
       shortcuts: 'Nuée のすべてのキーボードショートカット。',
       agents: 'このコンピュータにインストールされたエージェントと接続状態。',
       connections: 'プロバイダーのアカウントと、GitHub などの接続済みサービス。',
       skills: 'エージェントが使えるスキルと MCP サーバー。',
       archive: 'アーカイブしたチャット。復元または削除できます。',
+    },
+    interface: {
+      title: 'インターフェース',
+      zoom: 'インターフェースのサイズ',
     },
     background: {
       title: '背景画像',

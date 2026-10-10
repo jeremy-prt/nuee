@@ -157,12 +157,16 @@ export default {
     },
     hints: {
       general: '版本、更新、声音和通知。',
-      appearance: '主题和窗口透明度。',
+      appearance: '主题、窗口透明度、背景图片和界面大小。',
       shortcuts: 'Nuée 的所有键盘快捷键。',
       agents: '这台电脑上安装的智能体及其连接状态。',
       connections: '你的提供商账户和已连接的服务，例如 GitHub。',
       skills: '你的智能体可以使用的技能和 MCP 服务器。',
       archive: '已归档的聊天，可以恢复或删除。',
+    },
+    interface: {
+      title: '界面',
+      zoom: '界面大小',
     },
     background: {
       title: '背景图片',

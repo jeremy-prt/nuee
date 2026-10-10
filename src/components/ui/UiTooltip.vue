@@ -22,7 +22,7 @@ withDefaults(
       <TooltipContent
         :side="side"
         :side-offset="sideOffset"
-        class="z-50 flex items-center gap-2 rounded-md border border-stroke bg-overlay px-2 py-1 text-xs text-content shadow-lg select-none"
+        class="z-50 flex items-center gap-2 rounded-md border border-stroke bg-popover backdrop-blur-xl px-2 py-1 text-xs text-content shadow-lg select-none"
       >
         {{ label }}
         <kbd v-if="shortcut" class="font-sans text-muted">{{ shortcut }}</kbd>

@@ -56,7 +56,7 @@ const pages = [
 ] as const
 
 const footer = [
-  { view: 'settings', icon: Settings },
+  { view: 'settings', icon: Settings, shortcut: shortcutLabel(shortcuts.settings) },
   { view: 'usage', icon: Gauge },
   { view: 'updates', icon: RefreshCw },
 ] as const
@@ -145,7 +145,12 @@ const footer = [
     <div v-else class="flex shrink-0 gap-0.5 p-2" :class="layout.rail.expanded ? 'flex-row' : 'flex-col'">
       <template v-for="(item, index) in footer" :key="item.view">
         <span v-if="layout.rail.expanded && index === footer.length - 1" class="flex-1" />
-        <UiTooltip :label="t(`rail.${item.view}`)" :side="layout.rail.expanded ? 'top' : 'right'" :side-offset="8">
+        <UiTooltip
+          :label="t(`rail.${item.view}`)"
+          :shortcut="'shortcut' in item ? item.shortcut : undefined"
+          :side="layout.rail.expanded ? 'top' : 'right'"
+          :side-offset="8"
+        >
           <button
             ref="footerButtons"
             type="button"
