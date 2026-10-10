@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, reactive, ref, watch, watchEffect } from 'vue'
 import { isMacosApp } from '@/ipc/system'
 import { windowSetBlur } from '@/ipc/window'
+import { type ThemeId, themeAccent, themeIds } from '@/utils/themes'
 
 export const windowStyles = ['transparent', 'mixed', 'opaque'] as const
 export type WindowStyle = (typeof windowStyles)[number]
@@ -11,14 +12,13 @@ export const glassOptions = {
   centerOpacity: ['low', 'medium', 'high'],
   blur: ['none', 'low', 'medium', 'high'],
   lightness: ['dark', 'medium', 'light'],
-  tint: ['none', 'light', 'strong'],
 } as const
 export type GlassSetting = keyof typeof glassOptions
 export type Glass = { [K in GlassSetting]: (typeof glassOptions)[K][number] }
 
 // Transparent garde un seul voile pour toute la fenêtre ; Opaque ne laisse rien voir, seul son fond se règle.
 export function glassSettings(style: WindowStyle): GlassSetting[] {
-  if (style === 'opaque') return ['lightness', 'tint']
+  if (style === 'opaque') return ['lightness']
   const all = Object.keys(glassOptions) as GlassSetting[]
   return style === 'transparent' ? all.filter((setting) => setting !== 'centerOpacity') : all
 }
@@ -31,8 +31,21 @@ const CENTER_OPACITY: Record<Glass['centerOpacity'], number> = { low: 76, medium
 const BLUR: Record<Glass['blur'], number> = { none: 0, low: 24, medium: 48, high: 72 }
 // Luminosité du voile, en % (celle du fond opaque est de 9 %).
 const LIGHTNESS: Record<Glass['lightness'], number> = { dark: 5, medium: 9, light: 14 }
-// Part de la couleur d'accent dans le voile.
-const TINT: Record<Glass['tint'], number> = { none: 0, light: 8, strong: 16 }
+
+// Le thème colore l'accent seul, ou toute l'interface : le voile du fond et les éléments actifs ou survolés.
+export const themeScopes = ['accent', 'full'] as const
+export type ThemeScope = (typeof themeScopes)[number]
+export const themeIntensities = ['light', 'strong'] as const
+export type ThemeIntensity = (typeof themeIntensities)[number]
+// Part de l'accent dans le voile du fond et dans les fonds d'éléments actifs (survol un cran en dessous).
+const THEME_TINT: Record<ThemeIntensity, { veil: number; selection: number; hover: number }> = {
+  light: { veil: 8, selection: 18, hover: 12 },
+  strong: { veil: 16, selection: 26, hover: 18 },
+}
+
+export function veilTint(scope: ThemeScope, intensity: ThemeIntensity) {
+  return scope === 'full' ? THEME_TINT[intensity].veil : 0
+}
 
 export interface GlassValues {
   chrome: number
@@ -41,29 +54,38 @@ export interface GlassValues {
   tint: number
 }
 
-export function glassValues(style: WindowStyle, glass: Glass): GlassValues {
+function glassValues(style: WindowStyle, glass: Glass, tint: number): GlassValues {
   const chrome = style === 'opaque' ? 100 : BARS_OPACITY[glass.opacity]
   const surface = style === 'mixed' ? CENTER_OPACITY[glass.centerOpacity] : chrome
-  return { chrome, surface, lightness: LIGHTNESS[glass.lightness], tint: TINT[glass.tint] }
+  return { chrome, surface, lightness: LIGHTNESS[glass.lightness], tint }
 }
 
 function blurRadius(glass: Glass) {
   return BLUR[glass.blur]
 }
 
-const STORAGE_KEY = 'nuee.appearance.v5'
+const STORAGE_KEY = 'nuee.appearance.v7'
 
 function defaultGlass(): Glass {
-  return { opacity: 'medium', centerOpacity: 'medium', blur: 'medium', lightness: 'medium', tint: 'none' }
+  return { opacity: 'medium', centerOpacity: 'medium', blur: 'medium', lightness: 'medium' }
 }
 
 interface AppearanceState {
+  theme: ThemeId
+  themeScope: ThemeScope
+  themeIntensity: ThemeIntensity
   windowStyle: WindowStyle
   glass: Record<WindowStyle, Glass>
 }
 
 function defaults(): AppearanceState {
-  return { windowStyle: 'mixed', glass: { transparent: defaultGlass(), mixed: defaultGlass(), opaque: defaultGlass() } }
+  return {
+    theme: 'nuee',
+    themeScope: 'accent',
+    themeIntensity: 'light',
+    windowStyle: 'mixed',
+    glass: { transparent: defaultGlass(), mixed: defaultGlass(), opaque: defaultGlass() },
+  }
 }
 
 function load(): AppearanceState {
@@ -71,6 +93,9 @@ function load(): AppearanceState {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null')
     if (!saved) return defaults()
     const state = defaults()
+    if (themeIds.includes(saved.theme)) state.theme = saved.theme
+    if (themeScopes.includes(saved.themeScope)) state.themeScope = saved.themeScope
+    if (themeIntensities.includes(saved.themeIntensity)) state.themeIntensity = saved.themeIntensity
     if (windowStyles.includes(saved.windowStyle)) state.windowStyle = saved.windowStyle
     for (const style of windowStyles) {
       for (const setting of Object.keys(glassOptions) as GlassSetting[]) {
@@ -88,6 +113,9 @@ function load(): AppearanceState {
 
 export const useAppearanceStore = defineStore('appearance', () => {
   const state = load()
+  const theme = ref<ThemeId>(state.theme)
+  const themeScope = ref<ThemeScope>(state.themeScope)
+  const themeIntensity = ref<ThemeIntensity>(state.themeIntensity)
   const windowStyle = ref<WindowStyle>(state.windowStyle)
   const glass = reactive(state.glass)
 
@@ -98,7 +126,11 @@ export const useAppearanceStore = defineStore('appearance', () => {
   watchEffect(() => {
     const root = document.documentElement
     root.dataset.window = effectiveStyle.value
-    const values = glassValues(effectiveStyle.value, active.value)
+    root.dataset.themeScope = themeScope.value
+    root.style.setProperty('--color-accent', themeAccent(theme.value))
+    root.style.setProperty('--selection-tint', `${THEME_TINT[themeIntensity.value].selection}%`)
+    root.style.setProperty('--selection-hover-tint', `${THEME_TINT[themeIntensity.value].hover}%`)
+    const values = glassValues(effectiveStyle.value, active.value, veilTint(themeScope.value, themeIntensity.value))
     root.style.setProperty('--chrome-alpha', `${values.chrome}%`)
     root.style.setProperty('--surface-alpha', `${values.surface}%`)
     root.style.setProperty('--veil-lightness', `${values.lightness}%`)
@@ -114,10 +146,17 @@ export const useAppearanceStore = defineStore('appearance', () => {
   )
 
   watch(
-    [windowStyle, glass],
+    [theme, themeScope, themeIntensity, windowStyle, glass],
     () => {
+      const saved = {
+        theme: theme.value,
+        themeScope: themeScope.value,
+        themeIntensity: themeIntensity.value,
+        windowStyle: windowStyle.value,
+        glass,
+      }
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ windowStyle: windowStyle.value, glass }))
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(saved))
       } catch {
         // Stockage indisponible : le style reste valable pour la session.
       }
@@ -129,5 +168,10 @@ export const useAppearanceStore = defineStore('appearance', () => {
     Object.assign(glass[style], defaultGlass())
   }
 
-  return { windowStyle, effectiveStyle, glass, resetGlass }
+  function resetTheme() {
+    themeScope.value = 'accent'
+    themeIntensity.value = 'light'
+  }
+
+  return { theme, themeScope, themeIntensity, windowStyle, effectiveStyle, glass, resetGlass, resetTheme }
 })

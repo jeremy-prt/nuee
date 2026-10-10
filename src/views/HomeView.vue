@@ -32,7 +32,7 @@ const newChat = useNewChat()
 
     <button
       type="button"
-      class="flex h-9 items-center gap-2 rounded-md bg-content px-4 text-sm font-medium text-canvas hover:bg-content/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      class="flex h-9 items-center gap-2 rounded-md bg-accent px-4 text-sm font-medium text-canvas hover:bg-accent/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       @click="newChat(null)"
     >
       <SquarePen class="size-4" aria-hidden="true" />

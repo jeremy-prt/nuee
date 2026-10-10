@@ -1,26 +1,27 @@
 <script setup lang="ts">
 import { ArrowLeft } from '@lucide/vue'
-import { nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue'
+import { nextTick, onMounted, onUnmounted, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsAppearance from '@/components/settings/SettingsAppearance.vue'
 import SettingsGlass from '@/components/settings/SettingsGlass.vue'
+import SettingsThemeOptions from '@/components/settings/SettingsThemeOptions.vue'
+import SettingsThemes from '@/components/settings/SettingsThemes.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
-import type { WindowStyle } from '@/stores/appearance'
 import { useNavigationStore } from '@/stores/navigation'
 
 // ===== Initialisation =====
 const { t } = useI18n()
 const navigation = useNavigationStore()
+const root = useTemplateRef('root')
 const heading = useTemplateRef('heading')
-// Le bouton qui a ouvert la sous-page disparaît avec elle : on lui rend le focus au retour.
-const returnFocus = ref<WindowStyle | null>(null)
 
+// Le bouton qui a ouvert la sous-page disparaît avec elle : on lui rend le focus au retour.
 watch(
   () => navigation.settingsDetail,
   async (detail, previous) => {
-    returnFocus.value = detail ? null : previous
     await nextTick()
     if (detail) heading.value?.focus()
+    else if (previous) root.value?.querySelector<HTMLElement>(`[data-customize="${previous}"]`)?.focus()
   },
 )
 
@@ -41,7 +42,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 </script>
 
 <template>
-  <div class="@container h-full overflow-y-auto">
+  <div ref="root" class="@container h-full overflow-y-auto">
     <div class="mx-auto w-full max-w-4xl px-6 py-8 pb-16 @2xl:px-10 @4xl:px-14">
       <template v-if="navigation.settingsDetail">
         <div class="-ms-1.5 flex items-center gap-1.5">
@@ -49,15 +50,20 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
             <ArrowLeft class="size-4" aria-hidden="true" />
           </UiIconButton>
           <h2 ref="heading" tabindex="-1" class="text-xl font-semibold outline-none">
-            {{ t('settings.glass.heading', { style: t(`settings.appearance.styles.${navigation.settingsDetail}`) }) }}
+            <template v-if="navigation.settingsDetail === 'theme'">{{ t('settings.themes.title') }}</template>
+            <template v-else>{{ t('settings.glass.heading', { style: t(navigation.settingsDetailKey) }) }}</template>
           </h2>
         </div>
-        <SettingsGlass :window-style="navigation.settingsDetail" />
+        <SettingsThemeOptions v-if="navigation.settingsDetail === 'theme'" />
+        <SettingsGlass v-else :window-style="navigation.settingsDetail" />
       </template>
       <template v-else>
         <h2 class="text-xl font-semibold">{{ t(`settings.sections.${navigation.settingsSection}`) }}</h2>
         <p class="mt-1.5 max-w-xl text-sm text-muted">{{ t(`settings.hints.${navigation.settingsSection}`) }}</p>
-        <SettingsAppearance v-if="navigation.settingsSection === 'appearance'" :return-focus="returnFocus" />
+        <template v-if="navigation.settingsSection === 'appearance'">
+          <SettingsThemes />
+          <SettingsAppearance />
+        </template>
       </template>
     </div>
   </div>

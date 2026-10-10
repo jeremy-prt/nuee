@@ -8,7 +8,7 @@
   --color-stroke: color-mix(in srgb, var(--color-content) 8%, transparent);
   --color-selection: color-mix(in srgb, var(--color-content) 10%, transparent);
   --color-selection-hover: color-mix(in srgb, var(--color-content) 15%, transparent);
-  --color-accent: hsl(211 92% 62%);
+  --color-accent: hsl(240 0% 92%);
   --color-danger: hsl(0 72% 65%);
   /* Fonds des barres et panneaux (chrome) et de la zone centrale (surface) : voir le style de fenêtre plus bas. */
   --color-chrome: var(--color-canvas);
@@ -40,6 +40,12 @@ html {
   --color-veil: color-mix(in srgb, var(--color-accent) var(--veil-tint, 0%), hsl(240 0% var(--veil-lightness, 9%)));
   --color-chrome: var(--color-veil);
   --color-surface: var(--color-veil);
+}
+
+/* Thème sur toute l'interface : les fonds d'éléments actifs ou survolés prennent l'accent. */
+html[data-theme-scope='full'] {
+  --color-selection: color-mix(in srgb, var(--color-accent) var(--selection-tint, 18%), transparent);
+  --color-selection-hover: color-mix(in srgb, var(--color-accent) var(--selection-hover-tint, 12%), transparent);
 }
 
 html.is-macos:not([data-window='opaque']) {

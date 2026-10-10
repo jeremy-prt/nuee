@@ -56,7 +56,7 @@ onMounted(() => deny.value?.focus())
       <button
         type="button"
         :aria-keyshortcuts="isMac ? 'Meta+Enter' : 'Control+Enter'"
-        class="flex h-8 items-center gap-2 rounded-md bg-content px-3 text-sm text-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        class="flex h-8 items-center gap-2 rounded-md bg-accent px-3 text-sm text-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         @click="emit('answer', true)"
       >
         {{ t('approval.allow') }}

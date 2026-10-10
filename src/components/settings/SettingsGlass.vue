@@ -5,15 +5,7 @@ import { useI18n } from 'vue-i18n'
 import SettingsGroup from '@/components/settings/SettingsGroup.vue'
 import SettingsRow from '@/components/settings/SettingsRow.vue'
 import UiSegmented from '@/components/ui/UiSegmented.vue'
-import {
-  type Glass,
-  type GlassSetting,
-  glassOptions,
-  glassSettings,
-  glassValues,
-  useAppearanceStore,
-  type WindowStyle,
-} from '@/stores/appearance'
+import { type GlassSetting, glassOptions, glassSettings, useAppearanceStore, type WindowStyle } from '@/stores/appearance'
 
 const props = defineProps<{ windowStyle: WindowStyle }>()
 
@@ -21,7 +13,6 @@ const { t } = useI18n()
 const appearance = useAppearanceStore()
 
 const settings = computed(() => glassSettings(props.windowStyle))
-const glass = computed(() => appearance.glass[props.windowStyle])
 
 // En Mixte, l'opacité principale ne règle plus que les barres : le centre a sa propre ligne.
 function label(setting: GlassSetting) {
@@ -30,17 +21,7 @@ function label(setting: GlassSetting) {
 }
 
 function options(setting: GlassSetting) {
-  return glassOptions[setting].map((value) => ({
-    value,
-    label: t(`settings.glass.${setting}.${value}`),
-    swatch: setting === 'tint' ? tintSwatch(value as Glass['tint']) : undefined,
-  }))
-}
-
-// Une pastille de la couleur obtenue : le mot seul ne dit pas ce qui change.
-function tintSwatch(tint: Glass['tint']) {
-  const values = glassValues(props.windowStyle, { ...glass.value, tint })
-  return `color-mix(in srgb, var(--color-accent) ${values.tint * 2}%, hsl(240 0% 30%))`
+  return glassOptions[setting].map((value) => ({ value, label: t(`settings.glass.${setting}.${value}`) }))
 }
 </script>
 

@@ -208,7 +208,7 @@ function onEnter(event: KeyboardEvent) {
       <button
         v-if="running"
         type="button"
-        class="grid size-7 place-items-center rounded-md bg-content text-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        class="grid size-7 place-items-center rounded-md bg-accent text-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         :aria-label="t('composer.stop')"
         :title="t('composer.stop')"
         @click="emit('stop')"
@@ -219,7 +219,7 @@ function onEnter(event: KeyboardEvent) {
         v-else
         type="submit"
         :disabled="disabled || !canSend"
-        class="grid size-7 place-items-center rounded-md bg-content text-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-30"
+        class="grid size-7 place-items-center rounded-md bg-accent text-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-30"
         :aria-label="t('composer.send')"
         :title="t('composer.send')"
       >

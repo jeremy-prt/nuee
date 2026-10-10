@@ -95,7 +95,7 @@ const spacer = computed(() => Math.max(0, centerStart.value - leftZone.value))
         <span v-else class="truncate" data-tauri-drag-region>{{ t(`settings.sections.${navigation.settingsSection}`) }}</span>
         <template v-if="navigation.settingsDetail">
           <span class="shrink-0 text-muted/60" aria-hidden="true">/</span>
-          <span class="truncate" data-tauri-drag-region>{{ t(`settings.appearance.styles.${navigation.settingsDetail}`) }}</span>
+          <span class="truncate" data-tauri-drag-region>{{ t(navigation.settingsDetailKey) }}</span>
         </template>
       </p>
 

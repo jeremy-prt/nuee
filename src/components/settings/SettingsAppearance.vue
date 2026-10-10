@@ -1,19 +1,15 @@
 <script setup lang="ts">
-import { SlidersHorizontal } from '@lucide/vue'
-import { onMounted, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
+import SettingsCustomizeButton from '@/components/settings/SettingsCustomizeButton.vue'
 import SettingsWindowPreview from '@/components/settings/SettingsWindowPreview.vue'
 import { isMacosApp } from '@/ipc/system'
-import { type GlassValues, useAppearanceStore, type WindowStyle, windowStyles } from '@/stores/appearance'
+import { type GlassValues, useAppearanceStore, veilTint, type WindowStyle, windowStyles } from '@/stores/appearance'
 import { useNavigationStore } from '@/stores/navigation'
-
-const props = defineProps<{ returnFocus: WindowStyle | null }>()
 
 const { t } = useI18n()
 const appearance = useAppearanceStore()
 const navigation = useNavigationStore()
 const available = isMacosApp()
-const root = useTemplateRef('root')
 
 // Régler un style l'active aussi : la fenêtre sert d'aperçu pendant qu'on le règle.
 function customize(style: WindowStyle) {
@@ -21,21 +17,20 @@ function customize(style: WindowStyle) {
   navigation.settingsDetail = style
 }
 
-onMounted(() => {
-  if (props.returnFocus) root.value?.querySelector<HTMLElement>(`[data-customize="${props.returnFocus}"]`)?.focus()
-})
-
 // Écarts plus marqués que les vrais dosages : à cette taille, Mixte et Transparent se confondraient.
-const previews: Record<WindowStyle, GlassValues> = {
-  transparent: { chrome: 45, surface: 45, lightness: 9, tint: 0 },
-  mixed: { chrome: 45, surface: 90, lightness: 9, tint: 0 },
-  opaque: { chrome: 100, surface: 100, lightness: 9, tint: 0 },
+const OPACITIES: Record<WindowStyle, { chrome: number; surface: number }> = {
+  transparent: { chrome: 45, surface: 45 },
+  mixed: { chrome: 45, surface: 90 },
+  opaque: { chrome: 100, surface: 100 },
+}
+
+function preview(style: WindowStyle): GlassValues {
+  return { ...OPACITIES[style], lightness: 9, tint: veilTint(appearance.themeScope, appearance.themeIntensity) }
 }
 </script>
 
 <template>
   <section
-    ref="root"
     class="pt-8"
     role="radiogroup"
     aria-labelledby="window-style-title"
@@ -62,26 +57,16 @@ const previews: Record<WindowStyle, GlassValues> = {
             :disabled="!available"
             class="sr-only"
           />
-          <SettingsWindowPreview :values="previews[style]" />
+          <SettingsWindowPreview :values="preview(style)" />
           <span class="px-1 pb-0.5 text-sm font-medium">{{ t(`settings.appearance.styles.${style}`) }}</span>
         </label>
-        <Transition
-          enter-active-class="transition duration-200 ease-out motion-reduce:transition-none"
-          enter-from-class="scale-75 opacity-0"
-          leave-active-class="transition duration-150 ease-in motion-reduce:transition-none"
-          leave-to-class="scale-75 opacity-0"
-        >
-          <button
-            v-if="appearance.effectiveStyle === style"
-            type="button"
-            :data-customize="style"
-            class="absolute top-3.5 end-3.5 grid size-7 cursor-pointer place-items-center rounded-md bg-content text-canvas shadow-md hover:bg-content/85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-            :aria-label="t('settings.appearance.customize', { style: t(`settings.appearance.styles.${style}`) })"
-            @click="customize(style)"
-          >
-            <SlidersHorizontal class="size-3.5" aria-hidden="true" />
-          </button>
-        </Transition>
+        <SettingsCustomizeButton
+          :show="appearance.effectiveStyle === style"
+          :data-customize="style"
+          class="top-3.5 end-3.5"
+          :label="t('settings.appearance.customize', { style: t(`settings.appearance.styles.${style}`) })"
+          @click="customize(style)"
+        />
       </div>
     </div>
   </section>

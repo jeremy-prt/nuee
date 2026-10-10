@@ -4,6 +4,8 @@ import type { WindowStyle } from '@/stores/appearance'
 import { useLayoutStore } from '@/stores/layout'
 import type { SettingsSection } from '@/utils/settings'
 
+type SettingsDetail = WindowStyle | 'theme'
+
 export type View = 'home' | 'chats' | 'issues' | 'pullRequests' | 'notes' | 'search' | 'usage' | 'updates' | 'settings'
 
 // Vues « liste à gauche, détail au centre » : elles affichent le second panneau.
@@ -15,8 +17,11 @@ export const useNavigationStore = defineStore('navigation', () => {
   // Contexte des chats : un projet, ou null pour les chats sans projet.
   const projectId = ref<string | null>(null)
   const settingsSection = ref<SettingsSection>('general')
-  // Sous-page de la section : pour l'instant, les réglages d'un style de fenêtre dans Apparence.
-  const settingsDetail = ref<WindowStyle | null>(null)
+  // Sous-page d'Apparence : les réglages du thème, ou ceux d'un style de fenêtre.
+  const settingsDetail = ref<SettingsDetail | null>(null)
+  const settingsDetailKey = computed(() =>
+    settingsDetail.value === 'theme' ? 'settings.themes.title' : `settings.appearance.styles.${settingsDetail.value}`,
+  )
   // Vue que le bouton Retour des réglages retrouve.
   const beforeSettings = ref<View>('home')
 
@@ -44,5 +49,16 @@ export const useNavigationStore = defineStore('navigation', () => {
     go(beforeSettings.value)
   }
 
-  return { view, projectId, settingsSection, settingsDetail, hasPanel, go, openChats, showSettingsSection, closeSettings }
+  return {
+    view,
+    projectId,
+    settingsSection,
+    settingsDetail,
+    settingsDetailKey,
+    hasPanel,
+    go,
+    openChats,
+    showSettingsSection,
+    closeSettings,
+  }
 })
