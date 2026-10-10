@@ -167,6 +167,12 @@ export default {
     interface: {
       title: 'Interfaz',
       zoom: 'Tamaño de la interfaz',
+      chatWidth: {
+        label: 'Ancho del chat',
+        normal: 'Normal',
+        wide: 'Amplio',
+        full: 'Todo el ancho',
+      },
     },
     background: {
       title: 'Imagen de fondo',

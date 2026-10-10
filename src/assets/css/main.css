@@ -17,6 +17,11 @@
   --color-popover: var(--color-overlay);
 }
 
+:root {
+  /* Largeur maximale des messages et de la zone de saisie, réglée dans Apparence (stores/appearance.ts). */
+  --chat-width: clamp(40rem, 60%, 56rem);
+}
+
 html,
 body,
 #app {

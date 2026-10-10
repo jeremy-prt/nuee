@@ -55,7 +55,7 @@ function onCloseAutoFocus(event: Event) {
     <SelectTrigger
       :aria-label="label"
       :title="variant === 'ghost' ? label : undefined"
-      class="group flex items-center focus-visible:outline-2 focus-visible:outline-accent disabled:pointer-events-none disabled:opacity-40"
+      class="group flex items-center whitespace-nowrap focus-visible:outline-2 focus-visible:outline-accent disabled:pointer-events-none disabled:opacity-40"
       :class="
         variant === 'field'
           ? 'h-7 min-w-24 cursor-pointer justify-between gap-2 rounded-md border border-stroke ps-2.5 pe-2 text-xs hover:bg-selection-hover data-[state=open]:bg-selection'

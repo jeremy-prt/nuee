@@ -139,7 +139,7 @@ function onEnter(event: KeyboardEvent) {
 
 <template>
   <form
-    class="rounded-xl border border-stroke bg-selection/50 p-3 focus-within:border-accent"
+    class="@container rounded-xl border border-stroke bg-selection/50 p-3 focus-within:border-accent"
     :class="{ 'opacity-60': disabled }"
     @submit.prevent="submit"
   >
@@ -186,11 +186,12 @@ function onEnter(event: KeyboardEvent) {
       @paste="onPaste"
     />
     <p v-if="attachError" class="mb-1 text-xs text-danger" role="alert">{{ attachError }}</p>
-    <div class="flex items-center gap-1">
+    <!-- Étroite (petite fenêtre, écran partagé) : le nom de l'agent s'efface, les menus passent à la ligne entiers. -->
+    <div class="flex flex-wrap items-center gap-1">
       <UiIconButton :label="t('composer.attach')" :disabled="disabled" @click="pick">
         <Paperclip class="size-4" aria-hidden="true" />
       </UiIconButton>
-      <span class="pe-1 text-xs text-muted">{{ agentName }}</span>
+      <span class="pe-1 text-xs whitespace-nowrap text-muted @max-sm:hidden">{{ agentName }}</span>
       <UiSelect
         v-model="mode"
         :label="t('composer.mode.label')"

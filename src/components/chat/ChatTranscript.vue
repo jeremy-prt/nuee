@@ -49,7 +49,7 @@ function agentParams() {
 
 <template>
   <div ref="scroller" class="overflow-y-auto" @scroll.passive="onScroll">
-    <ol class="mx-auto flex max-w-3xl flex-col gap-3 px-6 py-6" role="log" :aria-busy="running" :aria-label="t('chat.transcript')">
+    <ol class="mx-auto flex max-w-(--chat-width) flex-col gap-3 px-6 py-6" role="log" :aria-busy="running" :aria-label="t('chat.transcript')">
       <li v-for="(item, index) in items" :key="item.id" :class="{ 'flex flex-col items-end gap-1': item.kind === 'user' }">
         <template v-if="item.kind === 'user'">
           <ul v-if="item.attachments?.length" class="flex max-w-[85%] flex-wrap justify-end gap-2" :aria-label="t('composer.attachments')">

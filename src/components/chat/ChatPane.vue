@@ -72,14 +72,14 @@ const { over } = useFileDrop(pane, (paths) => {
       <ChatApproval
         v-if="approval"
         :key="approval.id"
-        class="w-full max-w-3xl"
+        class="w-full max-w-(--chat-width)"
         :approval="approval"
         :agent-name="agents[agent].name"
         @answer="conversations.approve(tab.id, approval.id, $event)"
       />
       <ChatComposer
         ref="composer"
-        class="w-full max-w-3xl"
+        class="w-full max-w-(--chat-width)"
         :chat-id="tab.id"
         v-model:options="options"
         :agent-name="agents[agent].name"

@@ -167,6 +167,12 @@ export default {
     interface: {
       title: 'インターフェース',
       zoom: 'インターフェースのサイズ',
+      chatWidth: {
+        label: 'チャットの幅',
+        normal: '標準',
+        wide: '広め',
+        full: '全幅',
+      },
     },
     background: {
       title: '背景画像',

@@ -91,6 +91,17 @@ function defaultBackground(path: string | null): Background {
 export const zoomLevels = [80, 90, 100, 110, 125, 150] as const
 export type ZoomLevel = (typeof zoomLevels)[number]
 
+export const chatWidths = ['normal', 'wide', 'full'] as const
+export type ChatWidth = (typeof chatWidths)[number]
+// En proportion de la zone du chat (le % d'un max-width se rapporte au parent), bornée : jamais sous
+// 640 px tant que la zone le permet, pour qu'une petite fenêtre ne donne pas une colonne minuscule,
+// ni trop large sur un grand écran. La fenêtre elle-même ne descend pas sous 800 × 500 (tauri.conf.json).
+const CHAT_WIDTH: Record<ChatWidth, string> = {
+  normal: 'clamp(40rem, 60%, 56rem)',
+  wide: 'clamp(40rem, 80%, 80rem)',
+  full: '100%',
+}
+
 const STORAGE_KEY = 'nuee.appearance.v8'
 
 function defaultGlass(): Glass {
@@ -105,6 +116,7 @@ interface AppearanceState {
   glass: Record<WindowStyle, Glass>
   background: Background
   zoom: ZoomLevel
+  chatWidth: ChatWidth
 }
 
 function defaults(): AppearanceState {
@@ -116,6 +128,7 @@ function defaults(): AppearanceState {
     glass: { transparent: defaultGlass(), mixed: defaultGlass(), opaque: defaultGlass() },
     background: defaultBackground(null),
     zoom: 100,
+    chatWidth: 'normal',
   }
 }
 
@@ -129,6 +142,7 @@ function load(): AppearanceState {
     if (themeIntensities.includes(saved.themeIntensity)) state.themeIntensity = saved.themeIntensity
     if (windowStyles.includes(saved.windowStyle)) state.windowStyle = saved.windowStyle
     if (zoomLevels.includes(saved.zoom)) state.zoom = saved.zoom
+    if (chatWidths.includes(saved.chatWidth)) state.chatWidth = saved.chatWidth
     const background = saved.background ?? {}
     if (typeof background.path === 'string') state.background.path = background.path
     for (const setting of Object.keys(backgroundOptions) as BackgroundSetting[]) {
@@ -159,6 +173,9 @@ export const useAppearanceStore = defineStore('appearance', () => {
   const glass = reactive(state.glass)
   const background = reactive(state.background)
   const zoom = ref<ZoomLevel>(state.zoom)
+  const chatWidth = ref<ChatWidth>(state.chatWidth)
+
+  watchEffect(() => document.documentElement.style.setProperty('--chat-width', CHAT_WIDTH[chatWidth.value]))
   // Facteur réellement appliqué : hors de l'app (navigateur), la webview n'est pas zoomée.
   const zoomFactor = computed(() => (isTauriApp() ? zoom.value / 100 : 1))
 
@@ -198,7 +215,7 @@ export const useAppearanceStore = defineStore('appearance', () => {
   )
 
   watch(
-    [theme, themeScope, themeIntensity, windowStyle, glass, background, zoom],
+    [theme, themeScope, themeIntensity, windowStyle, glass, background, zoom, chatWidth],
     () => {
       const saved = {
         theme: theme.value,
@@ -208,6 +225,7 @@ export const useAppearanceStore = defineStore('appearance', () => {
         glass,
         background,
         zoom: zoom.value,
+        chatWidth: chatWidth.value,
       }
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(saved))
@@ -252,6 +270,7 @@ export const useAppearanceStore = defineStore('appearance', () => {
     background,
     zoom,
     zoomFactor,
+    chatWidth,
     stepZoom,
     resetGlass,
     resetTheme,

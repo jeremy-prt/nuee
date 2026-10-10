@@ -167,6 +167,12 @@ export default {
     interface: {
       title: '界面',
       zoom: '界面大小',
+      chatWidth: {
+        label: '聊天宽度',
+        normal: '标准',
+        wide: '较宽',
+        full: '全宽',
+      },
     },
     background: {
       title: '背景图片',
