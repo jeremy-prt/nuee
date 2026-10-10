@@ -71,7 +71,7 @@ watch(
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
     await nextTick()
     for (const element of document.querySelectorAll(FADED)) {
-      element.animate({ opacity: [0, 1] }, { duration: 180, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' })
+      element.animate({ opacity: [0, 1] }, { duration: 280, easing: 'ease-out' })
     }
   },
 )
