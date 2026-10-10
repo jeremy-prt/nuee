@@ -12,6 +12,8 @@ use crate::error::AppError;
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
+// Hors macOS, le plugin ne demande rien : seul `Granted` est construit, mais le type reste partagé avec le front.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub enum NotificationPermission {
     Granted,
     Denied,
