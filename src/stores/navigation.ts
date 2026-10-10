@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { useLayoutStore } from '@/stores/layout'
+import type { SettingsSection } from '@/utils/settings'
 
 export type View = 'home' | 'chats' | 'issues' | 'pullRequests' | 'notes' | 'search' | 'usage' | 'updates' | 'settings'
 
@@ -12,11 +13,15 @@ export const useNavigationStore = defineStore('navigation', () => {
   const view = ref<View>('home')
   // Contexte des chats : un projet, ou null pour les chats sans projet.
   const projectId = ref<string | null>(null)
+  const settingsSection = ref<SettingsSection>('general')
+  // Vue que le bouton Retour des réglages retrouve.
+  const beforeSettings = ref<View>('home')
 
   const hasPanel = computed(() => PANEL_VIEWS.includes(view.value))
 
   // Arriver sur une vue à liste rouvre toujours le panneau latéral, même s'il avait été fermé ailleurs.
   function go(target: View) {
+    if (target === 'settings' && view.value !== 'settings') beforeSettings.value = view.value
     view.value = target
     if (PANEL_VIEWS.includes(target)) layout.panel.open = true
   }
@@ -26,5 +31,9 @@ export const useNavigationStore = defineStore('navigation', () => {
     go('chats')
   }
 
-  return { view, projectId, hasPanel, go, openChats }
+  function closeSettings() {
+    go(beforeSettings.value)
+  }
+
+  return { view, projectId, settingsSection, hasPanel, go, openChats, closeSettings }
 })

@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import { CircleDot, Gauge, GitPullRequest, NotebookPen, Settings } from '@lucide/vue'
+import { CircleDot, Gauge, GitPullRequest, NotebookPen } from '@lucide/vue'
 import { useI18n } from 'vue-i18n'
 
 // Écrans pas encore construits : chacun aura sa propre vue quand il aura du contenu.
-const props = defineProps<{ view: 'issues' | 'pullRequests' | 'notes' | 'usage' | 'settings' }>()
+const props = defineProps<{ view: 'issues' | 'pullRequests' | 'notes' | 'usage' }>()
 
 // Issues, PR et notes ont leur liste dans le panneau latéral : le centre attend une sélection.
 const hasList = ['issues', 'pullRequests', 'notes'].includes(props.view)
 
 const { t } = useI18n()
-const icons = { issues: CircleDot, pullRequests: GitPullRequest, notes: NotebookPen, usage: Gauge, settings: Settings }
+const icons = { issues: CircleDot, pullRequests: GitPullRequest, notes: NotebookPen, usage: Gauge }
 </script>
 
 <template>

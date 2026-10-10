@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { TooltipProvider } from 'reka-ui'
-import { computed, onMounted, onUnmounted } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ShellDock from '@/components/shell/ShellDock.vue'
 import ShellRail from '@/components/shell/ShellRail.vue'
@@ -16,6 +16,7 @@ import { matchesShortcut, type Shortcut, shortcuts } from '@/utils/shortcuts'
 import HomeView from '@/views/HomeView.vue'
 import PlaceholderView from '@/views/PlaceholderView.vue'
 import SearchView from '@/views/SearchView.vue'
+import SettingsView from '@/views/SettingsView.vue'
 import UpdatesView from '@/views/UpdatesView.vue'
 import WorkspaceView from '@/views/WorkspaceView.vue'
 
@@ -59,6 +60,21 @@ function onKeydown(event: KeyboardEvent) {
   event.preventDefault()
   action[1]()
 }
+
+// Fondu à l'entrée et à la sortie des réglages, comme Brume. Le contenu seul : sur macOS, un fond
+// qui s'efface laisserait voir le bureau à travers la fenêtre transparente.
+const FADED = '#shell-rail > *, #view-area > *, #workspace-area > *'
+
+watch(
+  () => navigation.view === 'settings',
+  async () => {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    await nextTick()
+    for (const element of document.querySelectorAll(FADED)) {
+      element.animate({ opacity: [0, 1] }, { duration: 180, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' })
+    }
+  },
+)
 
 onMounted(() => window.addEventListener('keydown', onKeydown))
 onUnmounted(() => window.removeEventListener('keydown', onKeydown))
@@ -122,10 +138,11 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
           </template>
         </div>
 
-        <main v-else class="min-w-0 flex-1 bg-canvas macos:bg-canvas/70">
+        <main v-else id="view-area" class="min-w-0 flex-1 bg-canvas macos:bg-canvas/70">
           <HomeView v-if="navigation.view === 'home'" />
           <SearchView v-else-if="navigation.view === 'search'" />
           <UpdatesView v-else-if="navigation.view === 'updates'" />
+          <SettingsView v-else-if="navigation.view === 'settings'" />
           <PlaceholderView v-else :view="navigation.view" />
         </main>
       </div>

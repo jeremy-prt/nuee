@@ -81,6 +81,12 @@ const spacer = computed(() => Math.max(0, centerStart.value - leftZone.value))
         <LayoutList class="size-4" aria-hidden="true" />
       </UiIconButton>
 
+      <p v-if="navigation.view === 'settings'" class="flex min-w-0 items-center gap-2 px-1 text-xs" data-tauri-drag-region>
+        <span class="shrink-0 text-muted" data-tauri-drag-region>{{ t('rail.settings') }}</span>
+        <span class="shrink-0 text-muted/60" aria-hidden="true">/</span>
+        <span class="truncate" data-tauri-drag-region>{{ t(`settings.sections.${navigation.settingsSection}`) }}</span>
+      </p>
+
       <template v-if="navigation.view === 'chats'">
         <div
           role="tablist"
