@@ -3,17 +3,19 @@ use tauri::ipc::Channel;
 
 use crate::error::AppError;
 use crate::services::agent::{AgentEvent, AgentKind, AgentService, Catalog, SessionSpec};
+use crate::services::attachment::Attachment;
 
 /// Rend la main dès que le message est parti ; la suite arrive sur `on_event` jusqu'à `turnEnd`.
 #[tauri::command]
 pub async fn agent_send(
     spec: SessionSpec,
     prompt: String,
+    attachments: Vec<Attachment>,
     recap: Option<String>,
     on_event: Channel<AgentEvent>,
     agents: State<'_, AgentService>,
 ) -> Result<(), AppError> {
-    agents.send(spec, prompt, recap, on_event)
+    agents.send(spec, prompt, &attachments, recap, on_event)
 }
 
 #[tauri::command]

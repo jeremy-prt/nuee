@@ -59,6 +59,7 @@ export default {
     readyNoProject: 'Une question rapide ? {agent} répond sans dossier de projet.',
     transcript: 'Conversation',
     working: '{agent} travaille…',
+    dropFiles: 'Dépose pour joindre',
     tool: {
       running: 'En cours',
       done: 'Terminé',
@@ -91,6 +92,10 @@ export default {
     placeholder: 'Décris ce que tu veux construire…',
     send: 'Envoyer',
     stop: 'Arrêter',
+    attach: 'Joindre des fichiers',
+    attachments: 'Pièces jointes',
+    removeAttachment: 'Retirer {name}',
+    attachFailed: 'Impossible de joindre : {detail}',
     default: 'Par défaut',
     mode: {
       label: 'Mode de permission',

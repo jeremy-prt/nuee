@@ -59,6 +59,7 @@ export default {
     readyNoProject: '有个小问题？{agent} 无需项目文件夹即可回答。',
     transcript: '对话',
     working: '{agent} 正在处理…',
+    dropFiles: '拖放以附加',
     tool: {
       running: '进行中',
       done: '已完成',
@@ -91,6 +92,10 @@ export default {
     placeholder: '描述你想要构建的内容…',
     send: '发送',
     stop: '停止',
+    attach: '附加文件',
+    attachments: '附件',
+    removeAttachment: '移除 {name}',
+    attachFailed: '无法附加：{detail}',
     default: '默认',
     mode: {
       label: '权限模式',

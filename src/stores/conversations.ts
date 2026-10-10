@@ -4,6 +4,7 @@ import { agentApprove, agentSend, agentStop, agentWarm, isAppError } from '@/ipc
 import type { AgentEvent } from '@/ipc/bindings/AgentEvent'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { AppError } from '@/ipc/bindings/AppError'
+import type { Attachment } from '@/ipc/bindings/Attachment'
 import type { ChatSummary } from '@/ipc/bindings/ChatSummary'
 import type { SessionSpec } from '@/ipc/bindings/SessionSpec'
 import type { ToolKind } from '@/ipc/bindings/ToolKind'
@@ -13,7 +14,7 @@ import { chatContent, chatCreate, chatDelete, chatSave } from '@/ipc/chat'
 import { useCatalogStore } from '@/stores/catalog'
 
 export type ChatItem =
-  | { kind: 'user'; id: string; text: string }
+  | { kind: 'user'; id: string; text: string; attachments?: Attachment[] }
   | { kind: 'text'; id: string; text: string }
   | {
       kind: 'tool'
@@ -43,7 +44,7 @@ export interface Conversation {
   pausedMs: number
   pausedAt: number | null
   // Message envoyé pendant que l'agent range son tour : il part dès que le tour se clôt.
-  queued: { cwd: string | null; prompt: string } | null
+  queued: { cwd: string | null; prompt: string; attachments: Attachment[] } | null
   // Demandes d'autorisation (mode Auto) en attente de réponse, la plus ancienne d'abord. Non enregistrées.
   approvals: readonly Approval[]
   // Faux tant que l'historique n'est pas lu : envoyer avant écraserait la conversation chargée.
@@ -275,7 +276,7 @@ export const useConversationsStore = defineStore('conversations', () => {
       const queued = conversation.queued
       if (ended && queued) {
         conversation.queued = null
-        dispatch(chatId, conversation, queued.cwd, queued.prompt)
+        dispatch(chatId, conversation, queued.cwd, queued.prompt, queued.attachments)
       }
     }
     pending.clear()
@@ -297,7 +298,7 @@ export const useConversationsStore = defineStore('conversations', () => {
     return { chatId, agent, cwd, sessionId, options: catalog.resolve(agent, conversation.options) }
   }
 
-  async function dispatch(chatId: string, conversation: Conversation, cwd: string | null, prompt: string) {
+  async function dispatch(chatId: string, conversation: Conversation, cwd: string | null, prompt: string, attachments: Attachment[]) {
     // Calculé avant que le nouveau message ne s'ajoute : il porte sur le tour précédent.
     const recap = interruptedText(conversation.items.slice(0, lastIndex(conversation.items, (item) => item.kind === 'user')))
     conversation.phase = 'answering'
@@ -305,7 +306,7 @@ export const useConversationsStore = defineStore('conversations', () => {
     conversation.pausedMs = 0
     conversation.pausedAt = null
     try {
-      await agentSend(spec(chatId, conversation, cwd), prompt, recap, (event) => queue(chatId, event))
+      await agentSend(spec(chatId, conversation, cwd), prompt, attachments, recap, (event) => queue(chatId, event))
     } catch (error) {
       conversation.phase = 'idle'
       const appError: AppError = isAppError(error) ? error : { kind: 'io', message: String(error) }
@@ -315,13 +316,13 @@ export const useConversationsStore = defineStore('conversations', () => {
   }
 
   // cwd null : chat sans projet, Rust lui donne un dossier vide à lui.
-  function send(chatId: string, cwd: string | null, prompt: string) {
+  function send(chatId: string, cwd: string | null, prompt: string, attachments: Attachment[]) {
     const conversation = conversations.get(chatId)
     if (!conversation?.loaded || conversation.phase === 'answering' || conversation.queued) return
-    push(conversation, { kind: 'user', id: crypto.randomUUID(), text: prompt })
+    push(conversation, { kind: 'user', id: crypto.randomUUID(), text: prompt, attachments })
     save(chatId)
-    if (conversation.phase === 'finishing') conversation.queued = { cwd, prompt }
-    else dispatch(chatId, conversation, cwd, prompt)
+    if (conversation.phase === 'finishing') conversation.queued = { cwd, prompt, attachments }
+    else dispatch(chatId, conversation, cwd, prompt, attachments)
   }
 
   // Appelé quand l'utilisateur commence à écrire ; Rust ignore l'appel si le process tourne déjà.

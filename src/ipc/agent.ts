@@ -2,14 +2,21 @@ import { Channel, invoke } from '@tauri-apps/api/core'
 import type { AgentEvent } from '@/ipc/bindings/AgentEvent'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { AppError } from '@/ipc/bindings/AppError'
+import type { Attachment } from '@/ipc/bindings/Attachment'
 import type { Catalog } from '@/ipc/bindings/Catalog'
 import type { SessionSpec } from '@/ipc/bindings/SessionSpec'
 
 // Se résout dès que le message est parti ; les événements arrivent ensuite sur onEvent, jusqu'à turnEnd.
 // recap : réponse coupée au tour précédent, rappelée à l'agent seulement si son process est neuf.
-export function agentSend(spec: SessionSpec, prompt: string, recap: string | null, onEvent: (event: AgentEvent) => void) {
+export function agentSend(
+  spec: SessionSpec,
+  prompt: string,
+  attachments: Attachment[],
+  recap: string | null,
+  onEvent: (event: AgentEvent) => void,
+) {
   const channel = new Channel<AgentEvent>(onEvent)
-  return invoke<void>('agent_send', { spec, prompt, recap, onEvent: channel })
+  return invoke<void>('agent_send', { spec, prompt, attachments, recap, onEvent: channel })
 }
 
 // Démarre le process du chat pendant que l'utilisateur écrit : le premier message part sans attendre.

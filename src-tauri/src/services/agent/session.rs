@@ -391,7 +391,11 @@ mod tests {
         fn args(&self, _: &SessionSpec) -> Vec<String> {
             Vec::new()
         }
-        fn user_message(&self, prompt: &str) -> String {
+        fn user_message(
+            &self,
+            prompt: &str,
+            _: &[crate::services::attachment::Attached],
+        ) -> String {
             prompt.to_owned()
         }
         fn interrupt_message(&self) -> String {

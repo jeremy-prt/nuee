@@ -59,6 +59,7 @@ export default {
     readyNoProject: 'ちょっとした質問ですか？{agent} がプロジェクトフォルダーなしで答えます。',
     transcript: '会話',
     working: '{agent} が作業中…',
+    dropFiles: 'ドロップして添付',
     tool: {
       running: '実行中',
       done: '完了',
@@ -91,6 +92,10 @@ export default {
     placeholder: '作りたいものを説明してください…',
     send: '送信',
     stop: '停止',
+    attach: 'ファイルを添付',
+    attachments: '添付ファイル',
+    removeAttachment: '{name} を削除',
+    attachFailed: '添付できませんでした: {detail}',
     default: '既定',
     mode: {
       label: '権限モード',

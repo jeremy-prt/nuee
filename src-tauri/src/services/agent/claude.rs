@@ -4,8 +4,8 @@ use std::path::{Path, PathBuf};
 use serde_json::Value;
 
 use super::{
-    AgentEvent, Catalog, Driver, Effort, ModelInfo, PermissionMode, SessionSpec, ToolKind,
-    TurnStatus,
+    AgentEvent, Attached, Catalog, Driver, Effort, ModelInfo, PermissionMode, SessionSpec,
+    ToolKind, TurnStatus,
 };
 
 const OUTPUT_LIMIT: usize = 4000;
@@ -263,10 +263,44 @@ impl Driver for Claude {
         args
     }
 
-    fn user_message(&self, prompt: &str) -> String {
+    fn user_message(&self, prompt: &str, attachments: &[Attached]) -> String {
+        // Images d'abord, texte ensuite : une commande slash suivie d'une image n'est plus reconnue.
+        let mut content: Vec<Value> = Vec::new();
+        let mut references = Vec::new();
+        for attached in attachments {
+            match attached {
+                Attached::Image {
+                    path,
+                    media_type,
+                    base64,
+                } => {
+                    content.push(serde_json::json!({
+                        "type": "image",
+                        "source": { "type": "base64", "media_type": media_type, "data": base64 },
+                    }));
+                    // Le chemin sert si l'agent doit manipuler le fichier (le copier dans le projet...).
+                    references.push(format!("[Image: {path}]"));
+                }
+                Attached::Path(path) => references.push(mention(path)),
+            }
+        }
+        // Avant le message : une phrase en anglais à la fin ferait répondre Claude en anglais.
+        let text = if references.is_empty() {
+            prompt.to_owned()
+        } else {
+            format!("{}\n\n{prompt}", references.join("\n"))
+        };
+        let content = if content.is_empty() {
+            Value::String(text)
+        } else {
+            if !text.trim().is_empty() {
+                content.push(serde_json::json!({ "type": "text", "text": text }));
+            }
+            Value::Array(content)
+        };
         serde_json::json!({
             "type": "user",
-            "message": { "role": "user", "content": prompt },
+            "message": { "role": "user", "content": content },
             "parent_tool_use_id": null,
         })
         .to_string()
@@ -320,6 +354,16 @@ impl Driver for Claude {
             _ => {}
         }
         events
+    }
+}
+
+/// `@"chemin"` : Claude Code lit lui-même le fichier (ou liste le dossier) avant de répondre.
+/// Un guillemet dans le nom casserait la mention : l'agent reçoit alors le chemin seul.
+fn mention(path: &str) -> String {
+    if path.contains('"') {
+        path.to_owned()
+    } else {
+        format!("@\"{path}\"")
     }
 }
 
@@ -586,6 +630,35 @@ mod tests {
             answer["response"]["response"]["updatedInput"]["command"],
             "rm -rf /tmp/x"
         );
+    }
+
+    #[test]
+    fn attachments_come_before_the_text() {
+        let message = Claude::new(Path::new("/projet")).user_message(
+            "Et ça ?",
+            &[
+                Attached::Image {
+                    path: "/a/capture.png".into(),
+                    media_type: "image/png",
+                    base64: "iVBO".into(),
+                },
+                Attached::Path("/a/mon fichier.txt".into()),
+            ],
+        );
+        let message: Value = serde_json::from_str(&message).expect("json");
+        let content = &message["message"]["content"];
+        assert_eq!(content[0]["source"]["media_type"], "image/png");
+        assert_eq!(
+            content[1]["text"],
+            "[Image: /a/capture.png]\n@\"/a/mon fichier.txt\"\n\nEt ça ?"
+        );
+    }
+
+    #[test]
+    fn a_message_without_image_stays_plain_text() {
+        let message = Claude::new(Path::new("/")).user_message("Salut", &[]);
+        let message: Value = serde_json::from_str(&message).expect("json");
+        assert_eq!(message["message"]["content"], "Salut");
     }
 
     #[test]

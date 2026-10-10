@@ -59,6 +59,7 @@ export default {
     readyNoProject: '¿Una pregunta rápida? {agent} responde sin carpeta de proyecto.',
     transcript: 'Conversación',
     working: '{agent} está trabajando…',
+    dropFiles: 'Suelta para adjuntar',
     tool: {
       running: 'En curso',
       done: 'Hecho',
@@ -91,6 +92,10 @@ export default {
     placeholder: 'Describe lo que quieres construir…',
     send: 'Enviar',
     stop: 'Detener',
+    attach: 'Adjuntar archivos',
+    attachments: 'Archivos adjuntos',
+    removeAttachment: 'Quitar {name}',
+    attachFailed: 'No se pudo adjuntar: {detail}',
     default: 'Predeterminado',
     mode: {
       label: 'Modo de permisos',

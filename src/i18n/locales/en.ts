@@ -57,6 +57,7 @@ export default {
     readyNoProject: 'A quick question? {agent} answers without a project folder.',
     transcript: 'Conversation',
     working: '{agent} is working…',
+    dropFiles: 'Drop to attach',
     tool: {
       running: 'Running',
       done: 'Done',
@@ -89,6 +90,10 @@ export default {
     placeholder: 'Describe what you want to build…',
     send: 'Send',
     stop: 'Stop',
+    attach: 'Attach files',
+    attachments: 'Attachments',
+    removeAttachment: 'Remove {name}',
+    attachFailed: 'Could not attach: {detail}',
     default: 'Default',
     mode: {
       label: 'Permission mode',

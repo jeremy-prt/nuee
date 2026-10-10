@@ -2,6 +2,7 @@ use tauri::State;
 
 use crate::error::AppError;
 use crate::services::agent::AgentService;
+use crate::services::attachment::AttachmentService;
 use crate::services::chat::{ChatContent, ChatService, ChatSummary};
 
 #[tauri::command]
@@ -37,9 +38,11 @@ pub async fn chat_delete(
     id: String,
     chats: State<'_, ChatService>,
     agents: State<'_, AgentService>,
+    attachments: State<'_, AttachmentService>,
 ) -> Result<(), AppError> {
     chats.delete(&id)?;
     agents.close(&id);
     agents.discard_scratch(&id);
+    attachments.discard(&id);
     Ok(())
 }

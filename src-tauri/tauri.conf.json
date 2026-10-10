@@ -25,6 +25,10 @@
     ],
     "macOSPrivateApi": true,
     "security": {
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["$APPDATA/attachments/**"]
+      },
       "csp": {
         "default-src": "'self'",
         "connect-src": "ipc: http://ipc.localhost https://api.github.com",

@@ -17,6 +17,7 @@ use ts_rs::TS;
 use self::session::{Session, SessionKey, Sessions, Turn};
 
 use crate::error::AppError;
+use crate::services::attachment::{self, Attached, Attachment};
 use crate::utils::shell_env;
 
 /// Agents qu'on sait lancer. En ajouter un : une variante ici, un `Driver` dans son fichier.
@@ -192,7 +193,7 @@ trait Driver: Send + Sync {
     fn parse_catalog(&self, line: &str) -> Option<Catalog>;
     fn args(&self, spec: &SessionSpec) -> Vec<String>;
     /// Ligne à écrire sur stdin pour lancer un tour.
-    fn user_message(&self, prompt: &str) -> String;
+    fn user_message(&self, prompt: &str, attachments: &[Attached]) -> String;
     /// Ligne qui interrompt le tour en cours sans arrêter le process.
     fn interrupt_message(&self) -> String;
     /// Réponse à une demande `Approval`.
@@ -234,13 +235,15 @@ impl AgentService {
         &self,
         spec: SessionSpec,
         prompt: String,
+        attachments: &[Attachment],
         recap: Option<String>,
         channel: Channel<AgentEvent>,
     ) -> Result<(), AppError> {
-        if prompt.trim().is_empty() {
+        if prompt.trim().is_empty() && attachments.is_empty() {
             return Err(AppError::InvalidInput("message vide".into()));
         }
         let (key, cwd) = self.key(&spec)?;
+        let attached = attachment::load(attachments)?;
         let driver = spec.agent.driver(&cwd);
 
         let mut sessions = lock(&self.sessions);
@@ -271,7 +274,7 @@ impl AgentService {
             stopped: false,
             number: 0,
         });
-        if !session.write(driver.user_message(&text)) {
+        if !session.write(driver.user_message(&text, &attached)) {
             session.abandon();
             return Err(AppError::AgentFailed(format!(
                 "{} s'est arrêté",
@@ -463,7 +466,7 @@ fn valid_dir(path: &str) -> Result<PathBuf, AppError> {
 }
 
 /// L'id finit en argument de la CLI ou en nom de dossier : rien qui puisse passer pour une option.
-fn valid_session_id(id: &str) -> bool {
+pub(crate) fn valid_session_id(id: &str) -> bool {
     !id.is_empty()
         && id.len() <= 128
         && !id.starts_with('-')

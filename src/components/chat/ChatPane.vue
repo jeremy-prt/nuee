@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatApproval from '@/components/chat/ChatApproval.vue'
 import ChatComposer from '@/components/chat/ChatComposer.vue'
 import ChatTranscript from '@/components/chat/ChatTranscript.vue'
+import { useFileDrop } from '@/composables/useFileDrop'
 import { useCatalogStore } from '@/stores/catalog'
 import { DEFAULT_OPTIONS, useConversationsStore } from '@/stores/conversations'
 import { useProjectsStore } from '@/stores/projects'
@@ -36,11 +37,17 @@ const options = computed({
 
 const cwd = computed(() => project.value?.path ?? null)
 const approval = computed(() => conversation.value?.approvals[0] ?? null)
+
+const pane = useTemplateRef('pane')
+const composer = useTemplateRef('composer')
+const { over } = useFileDrop(pane, (paths) => {
+  if (loaded.value) composer.value?.attach(paths)
+})
 </script>
 
 <template>
   <!-- Le champ reste le même élément quand la conversation démarre : il garde le focus. -->
-  <div class="flex flex-col">
+  <div ref="pane" class="relative flex flex-col">
     <ChatTranscript v-if="items.length" :items="items" :running="waiting" :agent="agent" class="min-h-0 flex-1" />
     <div v-else-if="loaded" class="flex flex-1 flex-col items-center justify-end px-6 pb-8 text-center">
       <p class="text-3xl font-semibold tracking-tight">Nuée</p>
@@ -64,16 +71,24 @@ const approval = computed(() => conversation.value?.approvals[0] ?? null)
         @answer="conversations.approve(tab.id, approval.id, $event)"
       />
       <ChatComposer
+        ref="composer"
         class="w-full max-w-3xl"
+        :chat-id="tab.id"
         v-model:options="options"
         :agent-name="agents[agent].name"
         :catalog="catalog.get(agent)"
         :disabled="!loaded"
         :running="answering"
-        @send="conversations.send(tab.id, cwd, $event)"
+        @send="(prompt, attachments) => conversations.send(tab.id, cwd, prompt, attachments)"
         @warm="conversations.warm(tab.id, cwd)"
         @stop="conversations.stop(tab.id)"
       />
+    </div>
+    <div
+      v-if="over"
+      class="pointer-events-none absolute inset-2 grid place-items-center rounded-xl border-2 border-dashed border-accent bg-canvas/70 text-sm"
+    >
+      {{ t('chat.dropFiles') }}
     </div>
   </div>
 </template>

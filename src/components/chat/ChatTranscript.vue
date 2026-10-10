@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { CircleAlert, LoaderCircle } from '@lucide/vue'
+import { CircleAlert, File, Folder, LoaderCircle } from '@lucide/vue'
 import { onMounted, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatMarkdown from '@/components/chat/ChatMarkdown.vue'
 import ChatTool from '@/components/chat/ChatTool.vue'
+import { previewSrc } from '@/ipc/attachment'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { ChatItem } from '@/stores/conversations'
 import { agents } from '@/utils/agents'
@@ -49,11 +50,27 @@ function agentParams() {
 <template>
   <div ref="scroller" class="overflow-y-auto" @scroll.passive="onScroll">
     <ol class="mx-auto flex max-w-3xl flex-col gap-3 px-6 py-6" role="log" :aria-busy="running" :aria-label="t('chat.transcript')">
-      <li v-for="(item, index) in items" :key="item.id" :class="{ 'flex justify-end': item.kind === 'user' }">
-        <p
-          v-if="item.kind === 'user'"
-          class="max-w-[85%] rounded-xl bg-selection px-3 py-2 text-sm whitespace-pre-wrap break-words select-text"
-        >{{ item.text }}</p>
+      <li v-for="(item, index) in items" :key="item.id" :class="{ 'flex flex-col items-end gap-1': item.kind === 'user' }">
+        <template v-if="item.kind === 'user'">
+          <ul v-if="item.attachments?.length" class="flex max-w-[85%] flex-wrap justify-end gap-2" :aria-label="t('composer.attachments')">
+            <li v-for="attachment in item.attachments" :key="attachment.preview ?? attachment.path" :title="attachment.path">
+              <img
+                v-if="attachment.preview"
+                :src="previewSrc(attachment.preview)"
+                :alt="attachment.name"
+                class="max-h-40 max-w-60 rounded-lg border border-stroke object-contain"
+              />
+              <span v-else class="flex max-w-60 items-center gap-2 rounded-lg border border-stroke px-2 py-1.5 text-xs">
+                <component :is="attachment.kind === 'folder' ? Folder : File" class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
+                <span class="min-w-0 truncate">{{ attachment.name }}</span>
+              </span>
+            </li>
+          </ul>
+          <p
+            v-if="item.text"
+            class="max-w-[85%] rounded-xl bg-selection px-3 py-2 text-sm whitespace-pre-wrap break-words select-text"
+          >{{ item.text }}</p>
+        </template>
         <ChatMarkdown v-else-if="item.kind === 'text'" :text="item.text" />
         <ChatTool v-else-if="item.kind === 'tool'" :item="item" />
         <template v-else-if="item.kind === 'end'">

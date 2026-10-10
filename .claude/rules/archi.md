@@ -60,6 +60,7 @@ src-tauri/src/
 - Mode Auto : les demandes d'autorisation passent par `--permission-prompt-tool stdio` (`control_request` `can_use_tool`) et s'affichent dans `ChatApproval` ; Rust garde les paramètres de l'outil pour les renvoyer avec l'accord. Pas de consigne système ajoutée à Claude : une phrase en anglais en fin de prompt le fait répondre en anglais.
 - Fin de tour en deux temps : `answered` dès que la réponse est complète (le front affiche « Terminé »), `turnEnd` quand l'agent a fini de ranger (résumé, hooks : plusieurs secondes). Un message envoyé entre les deux attend `turnEnd`. Après un arrêt, le texte coupé est rappelé à l'agent si son process est neuf (paramètre `recap`).
 - Modèles et efforts : jamais codés en dur, l'agent installé les décrit (Claude : `control_request` `initialize`, lu une fois par lancement). L'interface montre toujours une valeur réelle (« Opus 5.5 », « Élevé »), jamais « par défaut ». Modes de permission : Bypass et Auto seulement (choix de Jérémy), passés en flag à chaque tour : ils priment sur la config Claude de l'utilisateur.
+- Pièces jointes vers Claude : images en bloc base64 (la CLI redimensionne), autres fichiers en `@"chemin"` placé avant le message. Pas d'image en `@` : au-delà de ~3 Mo, elle est ignorée sans erreur.
 - Chat sans projet : Rust le lance dans `<données de l'app>/scratch/<id du chat>`, supprimé avec le chat.
 - Historique : SQLite (`services/chat.rs`), une ligne par chat ; les messages sont un JSON que seul le front lit. Fermer un onglet garde le chat (`layout.tabs` = onglets ouverts, `tabs` = tous les chats) ; seule la corbeille de la barre latérale le supprime. Nouvelle colonne = nouvelle entrée dans `MIGRATIONS`, jamais une modif d'une entrée passée.
 
@@ -81,6 +82,7 @@ src-tauri/src/
 - Barre de titre pleine largeur : une bordure verticale de colonne n'y monte que si elle ne croise pas les boutons de fenêtre macOS (calcul dans `ShellTitleBar`).
 - Transparence et flou : macOS seulement, via la variante `macos:` (classe `is-macos` posée au démarrage). Windows et Linux restent opaques.
 - Raccourcis : déclarés dans `utils/shortcuts.ts`, comparés sur la lettre tapée (en AZERTY, W n'est pas sur la touche physique `KeyW`). Un raccourci ⌘ porté par un élément du menu natif (`src-tauri/src/menu.rs`) n'atteint jamais la webview.
+- Fichiers glissés depuis le Finder : les événements HTML5 ne les reçoivent pas (Tauri capte le dépôt), passer par `useFileDrop` qui teste la position contre la zone.
 - Glisser-déposer des onglets et panneaux : `composables/useLayoutDrag.ts` (seuil de 4 px, Échap annule). Il repère les zones par `data-tab-strip`, `data-tab-id`, `data-pane-index`, `#workspace-area` et `#workspace-column` : renommer l'un casse le dépôt sans erreur.
 - Disposition (panneaux, tailles) mémorisée en localStorage par `stores/layout.ts` : confort local, rien de critique. Une nouvelle valeur par défaut ne touche pas une disposition déjà enregistrée : changer `STORAGE_KEY` pour repartir de zéro.
 
@@ -88,6 +90,7 @@ src-tauri/src/
 
 - Capabilities ciblées sur `"main"`, jamais `"*"`. Pas de permission `fs:` ni `shell:` exposée au front : tout passe par nos commandes, qui canonisent les chemins sous la racine du workspace.
 - Pas de `v-html` sur une sortie d'agent : le markdown passe par `ChatMarkdown` (lexer marked rendu en nœuds Vue). Une XSS dans la webview donne accès aux commandes, donc au lancement de process.
+- La webview n'affiche un fichier local que via le protocole asset, limité à `$APPDATA/attachments/**` : ne pas élargir ce scope, copier l'image dedans.
 - CSP définie dans `tauri.conf.json` : ne pas la repasser à `null`, ne pas charger de CDN. Seul domaine externe autorisé : `api.github.com` (vérification des mises à jour).
 - `opener` n'ouvre que `https://github.com/jeremy-prt/nuee/releases/*` (scope dans la capability) : élargir ce scope au cas par cas.
 
