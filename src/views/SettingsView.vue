@@ -16,21 +16,12 @@ import { useNavigationStore } from '@/stores/navigation'
 const { t } = useI18n()
 const navigation = useNavigationStore()
 const root = useTemplateRef('root')
-const page = useTemplateRef('page')
 const heading = useTemplateRef('heading')
 
-// Changer de section ou de sous-page fait apparaître la nouvelle en fondu, comme dans Brume.
+// Nouvelle section ou sous-page : on repart du haut (le fondu enchaîné est dans stores/navigation.ts).
 watch(
   () => [navigation.settingsSection, navigation.settingsDetail],
-  async () => {
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    await nextTick()
-    root.value?.scrollTo({ top: 0 })
-    page.value?.animate(
-      { opacity: [0, 1], transform: ['translateY(4px)', 'none'] },
-      { duration: 200, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
-    )
-  },
+  () => root.value?.scrollTo({ top: 0 }),
 )
 
 // Le bouton qui a ouvert la sous-page disparaît avec elle : on lui rend le focus au retour.
@@ -44,12 +35,14 @@ watch(
 )
 
 function back() {
-  navigation.settingsDetail = null
+  navigation.showSettingsDetail(null)
 }
 
-// Une fenêtre ou une liste ouverte dans la page consomme Échap avant nous (defaultPrevented).
+// Échap venu d'un menu ouvert ne ferme que ce menu : reka-ui le traite sans marquer l'évènement
+// (defaultPrevented reste faux), d'où le test sur l'élément qui a reçu la touche.
 function onKeydown(event: KeyboardEvent) {
   if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing) return
+  if ((event.target as Element | null)?.closest?.('[data-reka-popper-content-wrapper], [role="dialog"]')) return
   event.preventDefault()
   if (navigation.settingsDetail) back()
   else navigation.closeSettings()
@@ -61,7 +54,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 
 <template>
   <div ref="root" class="@container h-full overflow-y-auto">
-    <div ref="page" class="mx-auto w-full max-w-4xl px-6 py-8 pb-16 @2xl:px-10 @4xl:px-14">
+    <div class="mx-auto w-full max-w-4xl px-6 py-8 pb-16 @2xl:px-10 @4xl:px-14">
       <template v-if="navigation.settingsDetail">
         <div class="-ms-1.5 flex items-center gap-1.5">
           <UiIconButton :label="t('settings.backTo', { section: t('settings.sections.appearance') })" @click="back()">

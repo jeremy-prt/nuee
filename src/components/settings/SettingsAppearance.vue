@@ -14,7 +14,7 @@ const available = isMacosApp()
 // Régler un style l'active aussi : la fenêtre sert d'aperçu pendant qu'on le règle.
 function customize(style: WindowStyle) {
   appearance.windowStyle = style
-  navigation.settingsDetail = style
+  navigation.showSettingsDetail(style)
 }
 
 // Écarts plus marqués que les vrais dosages : à cette taille, Mixte et Transparent se confondraient.

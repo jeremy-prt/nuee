@@ -93,7 +93,7 @@ const spacer = computed(() => Math.max(0, centerStart.value - leftZone.value))
           v-if="navigation.settingsDetail"
           type="button"
           class="shrink-0 rounded text-muted hover:text-content focus-visible:outline-2 focus-visible:outline-accent"
-          @click="navigation.settingsDetail = null"
+          @click="navigation.showSettingsDetail(null)"
         >
           {{ t(`settings.sections.${navigation.settingsSection}`) }}
         </button>

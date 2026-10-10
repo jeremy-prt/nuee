@@ -41,7 +41,7 @@ function orb(id: ThemeId) {
           data-customize="theme"
           class="end-2.5 top-1/2 -translate-y-1/2"
           :label="t('settings.themes.customize')"
-          @click="navigation.settingsDetail = 'theme'"
+          @click="navigation.showSettingsDetail('theme')"
         />
       </div>
     </div>

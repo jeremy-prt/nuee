@@ -28,7 +28,6 @@ const opacity = computed(() => (shown.value ? BACKGROUND_OPACITY[appearance.back
 <template>
   <div
     v-if="appearance.background.path"
-    data-backdrop
     class="pointer-events-none absolute inset-0 -z-10 overflow-hidden transition-opacity duration-500 motion-reduce:transition-none"
     :style="{ opacity }"
   >

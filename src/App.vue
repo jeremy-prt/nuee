@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { TooltipProvider } from 'reka-ui'
-import { computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ShellBackground from '@/components/shell/ShellBackground.vue'
 import ShellDock from '@/components/shell/ShellDock.vue'
@@ -68,21 +68,6 @@ function onKeydown(event: KeyboardEvent) {
   event.preventDefault()
   action[1]()
 }
-
-// Fondu à l'entrée et à la sortie des réglages, comme Brume. Le contenu seul : sur macOS, un fond
-// qui s'efface laisserait voir le bureau à travers la fenêtre transparente.
-const FADED = '#shell-rail > *, #view-area > :not([data-backdrop]), #workspace-area > *'
-
-watch(
-  () => navigation.view === 'settings',
-  async () => {
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    await nextTick()
-    for (const element of document.querySelectorAll(FADED)) {
-      element.animate({ opacity: [0, 1] }, { duration: 280, easing: 'ease-out' })
-    }
-  },
-)
 
 onMounted(() => window.addEventListener('keydown', onKeydown))
 onUnmounted(() => window.removeEventListener('keydown', onKeydown))

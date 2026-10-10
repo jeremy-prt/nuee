@@ -88,7 +88,7 @@ const { over } = useFileDrop(zone, (paths) => use(paths[0]!), true)
           data-customize="background"
           class="top-3 end-3"
           :label="t('settings.background.customize')"
-          @click="navigation.settingsDetail = 'background'"
+          @click="navigation.showSettingsDetail('background')"
         />
       </div>
       <div v-else class="flex flex-col items-center gap-3 py-6 text-center">

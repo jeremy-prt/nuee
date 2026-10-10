@@ -19,17 +19,35 @@ export interface UiSelectOption {
 }
 
 // `ghost` : discret, dans une barre d'outils (zone de saisie). `field` : bouton encadré, dans les réglages.
-withDefaults(
+// `focusAfter` : où rendre le focus une fois le choix fait (la zone de saisie du chat, par exemple).
+const props = withDefaults(
   defineProps<{
     label: string
     options: UiSelectOption[]
     disabled?: boolean
     variant?: 'ghost' | 'field'
     side?: 'top' | 'bottom'
+    focusAfter?: () => void
   }>(),
   { variant: 'ghost', side: 'top' },
 )
 const model = defineModel<string>({ required: true })
+
+// Ouvert à la souris, le menu ne rend pas le focus à son bouton : le contour de focus clavier s'y
+// afficherait sans raison. Au clavier, le focus revient au bouton pour continuer à naviguer.
+let byPointer = false
+const openedBy = (pointer: boolean) => {
+  byPointer = pointer
+}
+
+function onCloseAutoFocus(event: Event) {
+  if (props.focusAfter) {
+    event.preventDefault()
+    props.focusAfter()
+  } else if (byPointer) {
+    event.preventDefault()
+  }
+}
 </script>
 
 <template>
@@ -43,6 +61,8 @@ const model = defineModel<string>({ required: true })
           ? 'h-7 min-w-24 cursor-pointer justify-between gap-2 rounded-md border border-stroke ps-2.5 pe-2 text-xs hover:bg-selection-hover data-[state=open]:bg-selection'
           : 'h-6 gap-1 rounded-md px-1.5 text-xs text-muted hover:bg-selection-hover hover:text-content data-[state=open]:bg-selection data-[state=open]:text-content'
       "
+      @pointerdown="openedBy(true)"
+      @keydown="openedBy(false)"
     >
       <SelectValue />
       <ChevronDown
@@ -55,7 +75,8 @@ const model = defineModel<string>({ required: true })
         position="popper"
         :side="side"
         :side-offset="6"
-        class="ui-pop z-50 max-h-(--reka-select-content-available-height) min-w-(--reka-select-trigger-width) overflow-y-auto rounded-lg border border-stroke bg-popover backdrop-blur-xl p-1 text-xs text-content shadow-xl select-none"
+        class="ui-pop z-50 max-h-(--reka-select-content-available-height) min-w-(--reka-select-trigger-width) overflow-y-auto p-1 text-xs text-content select-none"
+        @close-auto-focus="onCloseAutoFocus"
       >
         <SelectViewport>
           <SelectItem

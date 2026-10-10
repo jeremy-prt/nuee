@@ -54,10 +54,10 @@ html[data-theme-scope='full'] {
 html.is-macos:not([data-window='opaque']) {
   --color-chrome: color-mix(in srgb, var(--color-veil) var(--chrome-alpha, 72%), transparent);
   --color-surface: color-mix(in srgb, var(--color-veil) var(--surface-alpha, 92%), transparent);
-  /* Comme monocode : le menu floute ce qu'il recouvre dans l'app (backdrop-blur) et garde la teinte du style. */
+  /* Comme monocode : presque pas de voile, le menu laisse voir, floutés, l'app et le bureau derrière lui. */
   --color-popover: color-mix(
     in srgb,
-    color-mix(in srgb, var(--color-accent) var(--veil-tint, 0%), var(--color-overlay)) 78%,
+    color-mix(in srgb, var(--color-accent) var(--veil-tint, 0%), var(--color-overlay)) 8%,
     transparent
   );
 }
@@ -69,18 +69,22 @@ html.is-macos:not([data-window='opaque']) {
   background-image: linear-gradient(var(--color-stroke), var(--color-stroke));
 }
 
-/* Menus déroulants (UiSelect) : ils s'ouvrent depuis leur bouton en grandissant, se ferment en fondu. */
+/* Menus déroulants (UiSelect). Le verre (fond, flou, bord) est sur le cadre que reka positionne, qui ne
+   bouge pas : WebKit peint un fond périmé si l'élément flouté est lui-même animé. Seul le contenu grandit
+   depuis son bouton. Fermeture sans animation, sinon le cadre resterait vide un instant. */
+[data-reka-popper-content-wrapper]:has(> .ui-pop) {
+  overflow: hidden;
+  border: 1px solid var(--color-stroke);
+  border-radius: 0.5rem;
+  background: var(--color-popover);
+  box-shadow: 0 12px 32px -8px rgb(0 0 0 / 0.5);
+  backdrop-filter: blur(10px);
+}
+
 @keyframes ui-pop-in {
   from {
     opacity: 0;
     transform: translateY(var(--pop-lift, 0)) scale(0.94);
-  }
-}
-
-@keyframes ui-pop-out {
-  to {
-    opacity: 0;
-    transform: scale(0.97);
   }
 }
 
@@ -97,15 +101,18 @@ html.is-macos:not([data-window='opaque']) {
 }
 
 .ui-pop[data-state='open'] {
-  animation: ui-pop-in 170ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.ui-pop[data-state='closed'] {
-  animation: ui-pop-out 110ms ease-in forwards;
+  animation: ui-pop-in 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .ui-pop[data-state] {
     animation: none;
   }
+}
+
+/* Fondu enchaîné des réglages (stores/navigation.ts) : doux et court, comme Brume. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 170ms;
+  animation-timing-function: ease-out;
 }

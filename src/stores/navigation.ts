@@ -29,11 +29,22 @@ export const useNavigationStore = defineStore('navigation', () => {
 
   const hasPanel = computed(() => PANEL_VIEWS.includes(view.value))
 
+  // Fondu enchaîné à l'entrée, à la sortie et à l'intérieur des réglages, comme Brume : l'ancienne page
+  // s'efface pendant que la nouvelle apparaît (API View Transitions), sans instant vide entre les deux.
+  function crossfade(update: () => void) {
+    if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) return update()
+    document.startViewTransition(update)
+  }
+
   // Arriver sur une vue à liste rouvre toujours le panneau latéral, même s'il avait été fermé ailleurs.
   function go(target: View) {
-    if (target === 'settings' && view.value !== 'settings') beforeSettings.value = view.value
-    view.value = target
-    if (PANEL_VIEWS.includes(target)) layout.panel.open = true
+    const update = () => {
+      if (target === 'settings' && view.value !== 'settings') beforeSettings.value = view.value
+      view.value = target
+      if (PANEL_VIEWS.includes(target)) layout.panel.open = true
+    }
+    if (target === 'settings' || view.value === 'settings') crossfade(update)
+    else update()
   }
 
   function openChats(id: string | null) {
@@ -43,8 +54,16 @@ export const useNavigationStore = defineStore('navigation', () => {
 
   // Recliquer sur la section dans la barre latérale ramène aussi de sa sous-page.
   function showSettingsSection(section: SettingsSection) {
-    settingsSection.value = section
-    settingsDetail.value = null
+    crossfade(() => {
+      settingsSection.value = section
+      settingsDetail.value = null
+    })
+  }
+
+  function showSettingsDetail(detail: SettingsDetail | null) {
+    crossfade(() => {
+      settingsDetail.value = detail
+    })
   }
 
   function closeSettings() {
@@ -61,6 +80,7 @@ export const useNavigationStore = defineStore('navigation', () => {
     go,
     openChats,
     showSettingsSection,
+    showSettingsDetail,
     closeSettings,
   }
 })

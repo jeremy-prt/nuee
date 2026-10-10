@@ -33,6 +33,8 @@ const saving = ref(0)
 const attachError = ref<string | null>(null)
 const id = useId()
 const input = useTemplateRef('input')
+// Après un choix de mode, de modèle ou d'effort, on reprend la saisie là où on l'avait laissée.
+const focusInput = () => input.value?.focus()
 
 const modeOptions = computed(() =>
   (['bypass', 'auto'] as const).map((mode) => ({
@@ -189,13 +191,20 @@ function onEnter(event: KeyboardEvent) {
         <Paperclip class="size-4" aria-hidden="true" />
       </UiIconButton>
       <span class="pe-1 text-xs text-muted">{{ agentName }}</span>
-      <UiSelect v-model="mode" :label="t('composer.mode.label')" :options="modeOptions" :disabled="disabled" />
+      <UiSelect
+        v-model="mode"
+        :label="t('composer.mode.label')"
+        :options="modeOptions"
+        :disabled="disabled"
+        :focus-after="focusInput"
+      />
       <UiSelect
         v-if="modelOptions.length"
         v-model="model"
         :label="t('composer.model.label')"
         :options="modelOptions"
         :disabled="disabled"
+        :focus-after="focusInput"
       />
       <UiSelect
         v-if="effortOptions.length"
@@ -203,6 +212,7 @@ function onEnter(event: KeyboardEvent) {
         :label="t('composer.effort.label')"
         :options="effortOptions"
         :disabled="disabled"
+        :focus-after="focusInput"
       />
       <span class="flex-1" />
       <button
