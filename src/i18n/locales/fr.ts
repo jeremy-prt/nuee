@@ -167,6 +167,33 @@ export default {
       skills: 'Les skills et serveurs MCP que tes agents peuvent utiliser.',
       archive: 'Les chats archivés, à retrouver ou à supprimer.',
     },
+    shortcuts: {
+      groups: {
+        navigation: 'Navigation',
+        chats: 'Chats',
+        message: 'Message',
+        interface: 'Interface',
+      },
+      items: {
+        search: 'Rechercher',
+        settings: 'Ouvrir les réglages',
+        closeSettings: 'Revenir en arrière ou quitter les réglages',
+        newChat: 'Nouveau chat',
+        closeTab: 'Fermer l\'onglet',
+        split: 'Diviser à droite',
+        send: 'Envoyer le message',
+        newline: 'Aller à la ligne',
+        approve: 'Autoriser une fois la demande de l\'agent',
+        deny: 'Refuser la demande de l\'agent',
+        toggleRail: 'Déplier ou replier la barre latérale',
+        togglePanel: 'Afficher ou masquer le panneau latéral',
+        toggleBottomDock: 'Afficher ou masquer le panneau du bas',
+        toggleRightDock: 'Afficher ou masquer le panneau de droite',
+        zoomIn: 'Agrandir l\'interface',
+        zoomOut: 'Réduire l\'interface',
+        zoomReset: 'Rétablir la taille de l\'interface',
+      },
+    },
     general: {
       notifications: {
         title: 'Notifications',

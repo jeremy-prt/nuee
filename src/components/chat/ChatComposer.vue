@@ -12,6 +12,7 @@ import type { Effort } from '@/ipc/bindings/Effort'
 import type { PermissionMode } from '@/ipc/bindings/PermissionMode'
 import type { TurnOptions } from '@/ipc/bindings/TurnOptions'
 import { pickFiles } from '@/ipc/dialog'
+import { matchesShortcut, shortcuts } from '@/utils/shortcuts'
 
 const props = defineProps<{
   chatId: string
@@ -129,9 +130,9 @@ function remove(index: number) {
 
 defineExpose({ attach })
 
-// Entrée envoie, Maj+Entrée va à la ligne. Pendant une saisie IME, Entrée valide le mot.
+// Maj+Entrée va à la ligne (natif). Pendant une saisie IME, Entrée valide le mot.
 function onEnter(event: KeyboardEvent) {
-  if (event.shiftKey || event.isComposing) return
+  if (!matchesShortcut(event, shortcuts.send) || event.isComposing) return
   event.preventDefault()
   submit()
 }

@@ -2,6 +2,7 @@
 import { onMounted, useId, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Approval } from '@/stores/conversations'
+import { matchesShortcut, shortcutLabel, shortcuts } from '@/utils/shortcuts'
 
 defineProps<{ approval: Approval; agentName: string }>()
 const emit = defineEmits<{ answer: [allow: boolean] }>()
@@ -12,13 +13,13 @@ const detailId = useId()
 const deny = useTemplateRef('deny')
 const isMac = navigator.userAgent.includes('Mac')
 
-// Échap refuse, ⌘/Ctrl+Entrée autorise. Écouté sur la carte et non la fenêtre : avec deux panes, seule
-// la demande qui a le focus répond. Le focus va sur Refuser : une Entrée de trop ne lance rien.
+// Écouté sur la carte et non la fenêtre : avec deux panes, seule la demande qui a le focus répond.
+// Le focus va sur Refuser : une Entrée de trop ne lance rien.
 function onKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape') {
+  if (matchesShortcut(event, shortcuts.deny)) {
     event.preventDefault()
     emit('answer', false)
-  } else if (event.key === 'Enter' && (isMac ? event.metaKey : event.ctrlKey)) {
+  } else if (matchesShortcut(event, shortcuts.approve)) {
     event.preventDefault()
     emit('answer', true)
   }
@@ -51,7 +52,7 @@ onMounted(() => deny.value?.focus())
         @click="emit('answer', false)"
       >
         {{ t('approval.deny') }}
-        <kbd class="font-sans text-xs text-muted" aria-hidden="true">Esc</kbd>
+        <kbd class="font-sans text-xs text-muted" aria-hidden="true">{{ shortcutLabel(shortcuts.deny) }}</kbd>
       </button>
       <button
         type="button"
@@ -60,7 +61,7 @@ onMounted(() => deny.value?.focus())
         @click="emit('answer', true)"
       >
         {{ t('approval.allow') }}
-        <kbd class="font-sans text-xs opacity-60" aria-hidden="true">{{ isMac ? '⌘↵' : 'Ctrl+↵' }}</kbd>
+        <kbd class="font-sans text-xs opacity-60" aria-hidden="true">{{ shortcutLabel(shortcuts.approve) }}</kbd>
       </button>
     </div>
   </div>

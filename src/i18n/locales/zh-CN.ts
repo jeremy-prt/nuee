@@ -167,6 +167,33 @@ export default {
       skills: '你的智能体可以使用的技能和 MCP 服务器。',
       archive: '已归档的聊天，可以恢复或删除。',
     },
+    shortcuts: {
+      groups: {
+        navigation: '导航',
+        chats: '聊天',
+        message: '消息',
+        interface: '界面',
+      },
+      items: {
+        search: '搜索',
+        settings: '打开设置',
+        closeSettings: '返回或退出设置',
+        newChat: '新建聊天',
+        closeTab: '关闭标签页',
+        split: '向右拆分',
+        send: '发送消息',
+        newline: '换行',
+        approve: '允许智能体的这次请求',
+        deny: '拒绝智能体的请求',
+        toggleRail: '展开或收起侧边栏',
+        togglePanel: '显示或隐藏侧面板',
+        toggleBottomDock: '显示或隐藏底部面板',
+        toggleRightDock: '显示或隐藏右侧面板',
+        zoomIn: '放大界面',
+        zoomOut: '缩小界面',
+        zoomReset: '重置界面大小',
+      },
+    },
     general: {
       notifications: {
         title: '通知',

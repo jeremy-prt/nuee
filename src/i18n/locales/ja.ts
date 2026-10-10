@@ -167,6 +167,33 @@ export default {
       skills: 'エージェントが使えるスキルと MCP サーバー。',
       archive: 'アーカイブしたチャット。復元または削除できます。',
     },
+    shortcuts: {
+      groups: {
+        navigation: 'ナビゲーション',
+        chats: 'チャット',
+        message: 'メッセージ',
+        interface: 'インターフェース',
+      },
+      items: {
+        search: '検索',
+        settings: '設定を開く',
+        closeSettings: '前に戻る・設定を閉じる',
+        newChat: '新しいチャット',
+        closeTab: 'タブを閉じる',
+        split: '右に分割',
+        send: 'メッセージを送信',
+        newline: '改行',
+        approve: 'エージェントの要求を今回だけ許可',
+        deny: 'エージェントの要求を拒否',
+        toggleRail: 'サイドバーを展開・折りたたむ',
+        togglePanel: 'サイドパネルの表示を切り替え',
+        toggleBottomDock: '下パネルの表示を切り替え',
+        toggleRightDock: '右パネルの表示を切り替え',
+        zoomIn: 'インターフェースを拡大',
+        zoomOut: 'インターフェースを縮小',
+        zoomReset: 'インターフェースのサイズをリセット',
+      },
+    },
     general: {
       notifications: {
         title: '通知',

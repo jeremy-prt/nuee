@@ -8,6 +8,7 @@ import SettingsBackground from '@/components/settings/SettingsBackground.vue'
 import SettingsBackgroundOptions from '@/components/settings/SettingsBackgroundOptions.vue'
 import SettingsGlass from '@/components/settings/SettingsGlass.vue'
 import SettingsInterface from '@/components/settings/SettingsInterface.vue'
+import SettingsShortcuts from '@/components/settings/SettingsShortcuts.vue'
 import SettingsNotifications from '@/components/settings/SettingsNotifications.vue'
 import SettingsSystem from '@/components/settings/SettingsSystem.vue'
 import SettingsThemeOptions from '@/components/settings/SettingsThemeOptions.vue'
@@ -15,6 +16,7 @@ import SettingsThemes from '@/components/settings/SettingsThemes.vue'
 import SettingsUpdates from '@/components/settings/SettingsUpdates.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import { useNavigationStore } from '@/stores/navigation'
+import { matchesShortcut, shortcuts } from '@/utils/shortcuts'
 
 // ===== Initialisation =====
 const { t } = useI18n()
@@ -45,7 +47,7 @@ function back() {
 // Échap venu d'un menu, d'une confirmation ou d'un message ne ferme que lui : reka-ui le traite sans
 // marquer l'évènement (defaultPrevented reste faux), d'où le test sur l'élément qui a reçu la touche.
 function onKeydown(event: KeyboardEvent) {
-  if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing) return
+  if (!matchesShortcut(event, shortcuts.closeSettings) || event.defaultPrevented || event.isComposing) return
   if ((event.target as Element | null)?.closest?.('[data-reka-popper-content-wrapper], [role="dialog"], [role="alertdialog"], .ui-toast')) return
   event.preventDefault()
   if (navigation.settingsDetail) back()
@@ -90,6 +92,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
           <SettingsBackground />
           <SettingsInterface />
         </template>
+        <SettingsShortcuts v-else-if="navigation.settingsSection === 'shortcuts'" />
       </template>
     </div>
   </div>
