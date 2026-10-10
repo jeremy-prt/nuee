@@ -64,7 +64,7 @@ function blurRadius(glass: Glass) {
   return BLUR[glass.blur]
 }
 
-const STORAGE_KEY = 'nuee.appearance.v7'
+const STORAGE_KEY = 'nuee.appearance.v8'
 
 function defaultGlass(): Glass {
   return { opacity: 'medium', centerOpacity: 'medium', blur: 'medium', lightness: 'medium' }

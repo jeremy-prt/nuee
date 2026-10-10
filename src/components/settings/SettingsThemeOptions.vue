@@ -33,8 +33,14 @@ const intensities = themeIntensities.map((value) => ({
     <SettingsRow :label="t('settings.themes.scope.label')">
       <UiSegmented v-model="appearance.themeScope" :label="t('settings.themes.scope.label')" :options="scopes" />
     </SettingsRow>
-    <SettingsRow v-if="appearance.themeScope === 'full'" :label="t('settings.themes.intensity.label')">
-      <UiSegmented v-model="appearance.themeIntensity" :label="t('settings.themes.intensity.label')" :options="intensities" />
+    <!-- Toujours visible, grisée en mode Boutons et liens : on voit qu'un réglage de plus existe. -->
+    <SettingsRow :label="t('settings.themes.intensity.label')" :disabled="appearance.themeScope !== 'full'">
+      <UiSegmented
+        v-model="appearance.themeIntensity"
+        :label="t('settings.themes.intensity.label')"
+        :options="intensities"
+        :disabled="appearance.themeScope !== 'full'"
+      />
     </SettingsRow>
   </SettingsGroup>
 </template>
