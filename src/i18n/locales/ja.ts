@@ -139,6 +139,7 @@ export default {
   },
   settings: {
     nav: '設定のセクション',
+    backTo: '{section} に戻る',
     back: '戻る',
     groups: {
       app: 'アプリ',
@@ -162,6 +163,54 @@ export default {
       connections: 'プロバイダーのアカウントと、GitHub などの接続済みサービス。',
       skills: 'エージェントが使えるスキルと MCP サーバー。',
       archive: 'アーカイブしたチャット。復元または削除できます。',
+    },
+    appearance: {
+      window: 'ウィンドウの透明度',
+      customize: '{style} スタイルを調整',
+      macosOnly: 'ウィンドウの透明化は macOS でのみ利用できます。',
+      styles: {
+        transparent: '透明',
+        mixed: 'ミックス',
+        opaque: '不透明',
+      },
+    },
+    glass: {
+      heading: '{style} スタイル',
+      title: '透明度の設定',
+      backgroundTitle: '背景の設定',
+      opacity: {
+        label: 'ウィンドウの不透明度',
+        bars: 'パネルの不透明度',
+        low: '低',
+        medium: '中',
+        high: '高',
+      },
+      centerOpacity: {
+        label: '中央エリアの不透明度',
+        low: '低',
+        medium: '中',
+        high: '高',
+      },
+      blur: {
+        label: 'デスクトップのぼかし',
+        none: 'なし',
+        low: '弱',
+        medium: '中',
+        high: '強',
+      },
+      lightness: {
+        label: '背景の明るさ',
+        dark: '暗い',
+        medium: '中',
+        light: '明るい',
+      },
+      tint: {
+        label: '背景の色',
+        none: 'なし',
+        light: '控えめ',
+        strong: '色付き',
+      },
+      reset: 'デフォルトに戻す',
     },
   },
   updates: {

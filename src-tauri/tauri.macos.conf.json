@@ -17,13 +17,6 @@
           "x": 16,
           "y": 22
         },
-        "windowEffects": {
-          "effects": [
-            "liquidGlassRegular",
-            "sidebar"
-          ],
-          "state": "active"
-        },
         "visible": false
       }
     ]

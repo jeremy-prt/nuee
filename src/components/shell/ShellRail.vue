@@ -65,7 +65,7 @@ const footer = [
 <template>
   <aside
     id="shell-rail"
-    class="flex shrink-0 flex-col overflow-hidden bg-canvas macos:bg-canvas/40"
+    class="flex shrink-0 flex-col overflow-hidden bg-chrome"
     :style="{ width: `${layout.rail.expanded ? layout.rail.width : RAIL_COLLAPSED_WIDTH}px` }"
   >
     <nav

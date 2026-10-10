@@ -1,8 +1,5 @@
 @import 'tailwindcss';
 
-/* Fenêtre transparente + flou natif : uniquement macOS (voir tauri.macos.conf.json). */
-@custom-variant macos (&:where(.is-macos, .is-macos *));
-
 @theme {
   --color-canvas: hsl(240 0% 9%);
   --color-overlay: hsl(240 0% 14%);
@@ -13,6 +10,9 @@
   --color-selection-hover: color-mix(in srgb, var(--color-content) 15%, transparent);
   --color-accent: hsl(211 92% 62%);
   --color-danger: hsl(0 72% 65%);
+  /* Fonds des barres et panneaux (chrome) et de la zone centrale (surface) : voir le style de fenêtre plus bas. */
+  --color-chrome: var(--color-canvas);
+  --color-surface: var(--color-canvas);
 }
 
 html,
@@ -21,14 +21,35 @@ body,
   height: 100%;
   overflow: hidden;
   overscroll-behavior: none;
-  background: var(--color-canvas);
+  background: var(--color-surface);
   color: var(--color-content);
   user-select: none;
   -webkit-font-smoothing: antialiased;
 }
 
-html.is-macos,
-html.is-macos body,
-html.is-macos #app {
+/* Fenêtre transparente : macOS seulement (tauri.macos.conf.json), flou posé par window_set_blur. Le style
+   vient de Réglages > Apparence (stores/appearance.ts) ; Opaque garde un fond plein derrière les séparateurs. */
+html.is-macos:not([data-window='opaque']),
+html.is-macos:not([data-window='opaque']) body,
+html.is-macos:not([data-window='opaque']) #app {
   background: transparent;
+}
+
+/* Dosages posés par stores/appearance.ts selon les réglages du style en vigueur. Opaque garde le voile plein. */
+html {
+  --color-veil: color-mix(in srgb, var(--color-accent) var(--veil-tint, 0%), hsl(240 0% var(--veil-lightness, 9%)));
+  --color-chrome: var(--color-veil);
+  --color-surface: var(--color-veil);
+}
+
+html.is-macos:not([data-window='opaque']) {
+  --color-chrome: color-mix(in srgb, var(--color-veil) var(--chrome-alpha, 72%), transparent);
+  --color-surface: color-mix(in srgb, var(--color-veil) var(--surface-alpha, 92%), transparent);
+}
+
+/* Trait entre deux colonnes : rien n'est dessous, il pose son propre fond de barre, sinon il laisserait
+   voir le bureau et ne serait pas de la même couleur que les bordures de la barre de titre. */
+@utility separator {
+  background-color: var(--color-chrome);
+  background-image: linear-gradient(var(--color-stroke), var(--color-stroke));
 }

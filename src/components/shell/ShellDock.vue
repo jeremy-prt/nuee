@@ -27,7 +27,7 @@ const active = computed({
 </script>
 
 <template>
-  <section class="flex min-h-0 min-w-0 flex-col" :aria-label="t(`dock.${position}`)">
+  <section class="flex min-h-0 min-w-0 flex-col bg-chrome" :aria-label="t(`dock.${position}`)">
     <TabsRoot
       :model-value="active"
       class="flex min-h-0 flex-1 flex-col"

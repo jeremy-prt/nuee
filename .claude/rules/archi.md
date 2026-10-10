@@ -74,13 +74,14 @@ src-tauri/src/
 ## Interface
 
 - Composants accessibles : reka-ui (headless) habillé dans `components/ui/`, jamais une lib de composants déjà stylés.
-- Couleurs uniquement via les jetons de `main.css` (`canvas`, `content`, `muted`, `stroke`, `selection`, `accent`, `danger`). Pas de couleur nommée `base` : `text-base` est déjà la taille de texte de Tailwind.
+- Couleurs uniquement via les jetons de `main.css` (`canvas`, `chrome`, `surface`, `content`, `muted`, `stroke`, `selection`, `accent`, `danger`). Pas de couleur nommée `base` : `text-base` est déjà la taille de texte de Tailwind.
 - Barre latérale repliable : l'icône reste à 16 px du bord dans les deux états (rail `p-2` + item `px-2`, replié à 48 px), jamais de `justify-center`. Repli instantané, sans animation ; les libellés restent dans le DOM, masqués. Choix de Jérémy : dépliée, son bouton est dans la barre de titre ; repliée, il devient la première icône de la colonne.
 - Boutons de colonne (barre latérale, panneau) : au-dessus du bord droit de leur colonne, sans fond « actif », seulement survol et infobulle. Le bouton de la barre latérale montre l'action (flèche gauche pour replier, droite pour déplier).
 - Navigation : `stores/navigation.ts` choisit la vue centrale. Seule la vue `chats` a des onglets, l'historique des chats et les panneaux bas/droite ; Accueil, Issues, Notes, Réglages… sont des pages pleine largeur dans `views/`.
 - Les onglets de la barre de titre démarrent au bord de la colonne centrale : `ShellTitleBar` additionne les largeurs des colonnes de gauche. Une nouvelle colonne à gauche doit entrer dans ce calcul.
 - Barre de titre pleine largeur : une bordure verticale de colonne n'y monte que si elle ne croise pas les boutons de fenêtre macOS (calcul dans `ShellTitleBar`).
-- Transparence et flou : macOS seulement, via la variante `macos:` (classe `is-macos` posée au démarrage). Windows et Linux restent opaques.
+- Transparence et flou : macOS seulement (classe `is-macos` posée au démarrage), Windows et Linux restent opaques. Fond d'une colonne : `bg-chrome` (cadre : barres, liste des chats, terminal, panneau de droite) ou `bg-surface` (le chat ou la page au centre), jamais une opacité en dur : le style de fenêtre choisi dans les réglages (`stores/appearance.ts`, `data-window` sur `<html>`) les rend transparents dans `main.css`.
+- Flou du bureau : commande `window_set_blur` (API privée `CGSSetWindowBackgroundBlurRadius`, comme monocode et Brume). Pas de `windowEffects` dans `tauri.macos.conf.json` : le matériau natif écrase le rayon choisi. `set_blur` donne aussi à la NSWindow un fond blanc à alpha 0,001, sans quoi le flou déborde des coins arrondis.
 - Raccourcis : déclarés dans `utils/shortcuts.ts`, comparés sur la lettre tapée (en AZERTY, W n'est pas sur la touche physique `KeyW`). Un raccourci ⌘ porté par un élément du menu natif (`src-tauri/src/menu.rs`) n'atteint jamais la webview.
 - Fichiers glissés depuis le Finder : les événements HTML5 ne les reçoivent pas (Tauri capte le dépôt), passer par `useFileDrop` qui teste la position contre la zone.
 - Glisser-déposer des onglets et panneaux : `composables/useLayoutDrag.ts` (seuil de 4 px, Échap annule). Il repère les zones par `data-tab-strip`, `data-tab-id`, `data-pane-index`, `#workspace-area` et `#workspace-column` : renommer l'un casse le dépôt sans erreur.

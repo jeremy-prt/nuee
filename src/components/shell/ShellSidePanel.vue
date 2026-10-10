@@ -23,7 +23,7 @@ const title = computed(() => {
 </script>
 
 <template>
-  <aside id="shell-panel" class="flex shrink-0 flex-col bg-canvas macos:bg-canvas/40" :aria-label="title">
+  <aside id="shell-panel" class="flex shrink-0 flex-col bg-chrome" :aria-label="title">
     <div class="flex h-10 shrink-0 items-center gap-1 px-2">
       <p class="min-w-0 flex-1 truncate px-2 text-sm font-medium">{{ title }}</p>
       <UiIconButton

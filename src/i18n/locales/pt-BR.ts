@@ -139,6 +139,7 @@ export default {
   },
   settings: {
     nav: 'Seções das configurações',
+    backTo: 'Voltar para {section}',
     back: 'Voltar',
     groups: {
       app: 'Aplicativo',
@@ -162,6 +163,54 @@ export default {
       connections: 'Suas contas de provedores e os serviços conectados, como o GitHub.',
       skills: 'As skills e os servidores MCP que seus agentes podem usar.',
       archive: 'Os chats arquivados, para recuperar ou excluir.',
+    },
+    appearance: {
+      window: 'Transparência da janela',
+      customize: 'Ajustar o estilo {style}',
+      macosOnly: 'A transparência da janela só está disponível no macOS.',
+      styles: {
+        transparent: 'Transparente',
+        mixed: 'Misto',
+        opaque: 'Opaco',
+      },
+    },
+    glass: {
+      heading: 'Estilo {style}',
+      title: 'Ajustes de transparência',
+      backgroundTitle: 'Ajustes do fundo',
+      opacity: {
+        label: 'Opacidade da janela',
+        bars: 'Opacidade dos painéis',
+        low: 'Baixa',
+        medium: 'Média',
+        high: 'Alta',
+      },
+      centerOpacity: {
+        label: 'Opacidade da área central',
+        low: 'Baixa',
+        medium: 'Média',
+        high: 'Alta',
+      },
+      blur: {
+        label: 'Desfoque da área de trabalho',
+        none: 'Nenhum',
+        low: 'Leve',
+        medium: 'Médio',
+        high: 'Forte',
+      },
+      lightness: {
+        label: 'Luminosidade do fundo',
+        dark: 'Escura',
+        medium: 'Média',
+        light: 'Clara',
+      },
+      tint: {
+        label: 'Cor do fundo',
+        none: 'Neutra',
+        light: 'Sutil',
+        strong: 'Colorida',
+      },
+      reset: 'Restaurar padrões',
     },
   },
   updates: {

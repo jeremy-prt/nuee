@@ -23,6 +23,9 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             if let Some(main) = app.get_webview_window("main") {
+                // Flou « Moyen » dès l'ouverture : le réglage choisi n'arrive qu'une fois la page chargée.
+                #[cfg(target_os = "macos")]
+                window::set_blur(&main, 48);
                 window::fit_to_screen(&main)?;
             }
             let data = app.path().app_data_dir()?;
@@ -49,6 +52,7 @@ pub fn run() {
             commands::chat::chat_save,
             commands::chat::chat_title,
             commands::chat::chat_delete,
+            commands::window::window_set_blur,
         ])
         .build(tauri::generate_context!())
         .expect("échec au lancement de l'application Tauri")

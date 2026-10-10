@@ -8,6 +8,7 @@ import ShellResizeHandle from '@/components/shell/ShellResizeHandle.vue'
 import ShellSidePanel from '@/components/shell/ShellSidePanel.vue'
 import ShellTitleBar from '@/components/shell/ShellTitleBar.vue'
 import { useNewChat } from '@/composables/useNewChat'
+import { useAppearanceStore } from '@/stores/appearance'
 import { useDragStore } from '@/stores/drag'
 import { SIZES, useLayoutStore } from '@/stores/layout'
 import { useNavigationStore } from '@/stores/navigation'
@@ -27,6 +28,8 @@ const navigation = useNavigationStore()
 const workspace = useWorkspaceStore()
 const drag = useDragStore()
 const newChat = useNewChat()
+// Pose le style de fenêtre sur <html> dès le démarrage, pas seulement à l'ouverture des réglages.
+useAppearanceStore()
 
 const inChats = computed(() => navigation.view === 'chats')
 const showBottomDock = computed(() => layout.bottom.open && layout.viewsIn('bottom').length > 0)
@@ -94,7 +97,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
           orientation="vertical"
           :label="t('rail.resize')"
         />
-        <div v-else class="w-px shrink-0 bg-stroke" />
+        <div v-else class="separator w-px shrink-0" />
 
         <template v-if="navigation.hasPanel && layout.panel.open">
           <ShellSidePanel :style="{ width: `${layout.panel.width}px` }" />
@@ -109,10 +112,11 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
         <div
           v-if="navigation.view === 'chats'"
           id="workspace-area"
-          class="flex min-w-0 flex-1 bg-canvas macos:bg-canvas/70"
+          class="flex min-w-0 flex-1"
         >
           <div id="workspace-column" class="flex min-w-0 flex-1 flex-col">
-            <main class="min-h-0 flex-1">
+            <!-- Seul le chat prend le fond de la zone centrale : terminal et panneau de droite font partie du cadre. -->
+            <main class="min-h-0 flex-1 bg-surface">
               <WorkspaceView />
             </main>
             <template v-if="showBottomDock">
@@ -138,7 +142,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
           </template>
         </div>
 
-        <main v-else id="view-area" class="min-w-0 flex-1 bg-canvas macos:bg-canvas/70">
+        <main v-else id="view-area" class="min-w-0 flex-1 bg-surface">
           <HomeView v-if="navigation.view === 'home'" />
           <SearchView v-else-if="navigation.view === 'search'" />
           <UpdatesView v-else-if="navigation.view === 'updates'" />

@@ -39,7 +39,7 @@ const spacer = computed(() => Math.max(0, centerStart.value - leftZone.value))
 
 <template>
   <header
-    class="flex h-10 shrink-0 items-center border-b border-stroke bg-canvas macos:bg-canvas/40"
+    class="flex h-10 shrink-0 items-center border-b border-stroke bg-chrome"
     data-tauri-drag-region
   >
     <div
@@ -84,7 +84,19 @@ const spacer = computed(() => Math.max(0, centerStart.value - leftZone.value))
       <p v-if="navigation.view === 'settings'" class="flex min-w-0 items-center gap-2 px-1 text-xs" data-tauri-drag-region>
         <span class="shrink-0 text-muted" data-tauri-drag-region>{{ t('rail.settings') }}</span>
         <span class="shrink-0 text-muted/60" aria-hidden="true">/</span>
-        <span class="truncate" data-tauri-drag-region>{{ t(`settings.sections.${navigation.settingsSection}`) }}</span>
+        <button
+          v-if="navigation.settingsDetail"
+          type="button"
+          class="shrink-0 rounded text-muted hover:text-content focus-visible:outline-2 focus-visible:outline-accent"
+          @click="navigation.settingsDetail = null"
+        >
+          {{ t(`settings.sections.${navigation.settingsSection}`) }}
+        </button>
+        <span v-else class="truncate" data-tauri-drag-region>{{ t(`settings.sections.${navigation.settingsSection}`) }}</span>
+        <template v-if="navigation.settingsDetail">
+          <span class="shrink-0 text-muted/60" aria-hidden="true">/</span>
+          <span class="truncate" data-tauri-drag-region>{{ t(`settings.appearance.styles.${navigation.settingsDetail}`) }}</span>
+        </template>
       </p>
 
       <template v-if="navigation.view === 'chats'">

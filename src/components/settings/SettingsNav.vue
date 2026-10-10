@@ -46,7 +46,7 @@ onMounted(() => root.value?.querySelector<HTMLElement>('[aria-current="page"]')?
         :label="t(`settings.sections.${section}`)"
         :expanded="layout.rail.expanded"
         :active="navigation.settingsSection === section"
-        @click="navigation.settingsSection = section"
+        @click="navigation.showSettingsSection(section)"
       />
     </div>
   </div>

@@ -37,3 +37,48 @@ pub fn fit_to_screen(window: &WebviewWindow) -> tauri::Result<()> {
 
     window.show()
 }
+
+// Flou du bureau derrière la fenêtre transparente. Aucune API publique ne règle son rayon : comme
+// monocode et Brume, on passe par la fonction privée de WindowServer, cherchée à l'exécution pour
+// qu'une version de macOS qui la retirerait laisse simplement la fenêtre sans flou.
+#[cfg(target_os = "macos")]
+pub fn set_blur(window: &WebviewWindow, radius: u8) {
+    use std::ffi::{c_int, c_void};
+    use std::sync::OnceLock;
+
+    type ConnectionFn = unsafe extern "C" fn() -> c_int;
+    type SetBlurFn = unsafe extern "C" fn(c_int, c_int, c_int) -> c_int;
+
+    fn lookup(symbol: &std::ffi::CStr) -> Option<*mut c_void> {
+        let ptr = unsafe { libc::dlsym(libc::RTLD_DEFAULT, symbol.as_ptr()) };
+        (!ptr.is_null()).then_some(ptr)
+    }
+
+    static FUNCTIONS: OnceLock<Option<(ConnectionFn, SetBlurFn)>> = OnceLock::new();
+    let functions = FUNCTIONS.get_or_init(|| {
+        let connection = lookup(c"CGSMainConnectionID")?;
+        let set_blur = lookup(c"CGSSetWindowBackgroundBlurRadius")?;
+        Some(unsafe {
+            (
+                std::mem::transmute::<*mut c_void, ConnectionFn>(connection),
+                std::mem::transmute::<*mut c_void, SetBlurFn>(set_blur),
+            )
+        })
+    });
+    let (Some((connection, set_blur)), Ok(ns_window)) = (functions, window.ns_window()) else {
+        return;
+    };
+
+    let ns_window = unsafe { &*ns_window.cast::<objc2::runtime::AnyObject>() };
+    // Comme Brume : sur un fond tout à fait transparent, le flou déborde des coins arrondis de la fenêtre.
+    unsafe {
+        let color: *mut objc2::runtime::AnyObject =
+            objc2::msg_send![objc2::class!(NSColor), colorWithWhite: 1.0f64, alpha: 0.001f64];
+        let _: () = objc2::msg_send![ns_window, setBackgroundColor: color];
+        let _: () = objc2::msg_send![ns_window, invalidateShadow];
+    }
+    let number: isize = unsafe { objc2::msg_send![ns_window, windowNumber] };
+    if number > 0 {
+        unsafe { set_blur(connection(), number as c_int, c_int::from(radius)) };
+    }
+}

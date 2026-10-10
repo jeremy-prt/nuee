@@ -137,6 +137,7 @@ export default {
   },
   settings: {
     nav: 'Settings sections',
+    backTo: 'Back to {section}',
     back: 'Back',
     groups: {
       app: 'App',
@@ -160,6 +161,54 @@ export default {
       connections: 'Your provider accounts and connected services, such as GitHub.',
       skills: 'The skills and MCP servers your agents can use.',
       archive: 'Archived chats, to bring back or delete.',
+    },
+    appearance: {
+      window: 'Window transparency',
+      customize: 'Adjust the {style} style',
+      macosOnly: 'Window transparency is only available on macOS.',
+      styles: {
+        transparent: 'Transparent',
+        mixed: 'Mixed',
+        opaque: 'Opaque',
+      },
+    },
+    glass: {
+      heading: 'Style {style}',
+      title: 'Transparency settings',
+      backgroundTitle: 'Background settings',
+      opacity: {
+        label: 'Window opacity',
+        bars: 'Panel opacity',
+        low: 'Low',
+        medium: 'Medium',
+        high: 'High',
+      },
+      centerOpacity: {
+        label: 'Center opacity',
+        low: 'Low',
+        medium: 'Medium',
+        high: 'High',
+      },
+      blur: {
+        label: 'Desktop blur',
+        none: 'None',
+        low: 'Light',
+        medium: 'Medium',
+        high: 'Strong',
+      },
+      lightness: {
+        label: 'Background brightness',
+        dark: 'Dark',
+        medium: 'Medium',
+        light: 'Light',
+      },
+      tint: {
+        label: 'Background color',
+        none: 'Neutral',
+        light: 'Subtle',
+        strong: 'Colored',
+      },
+      reset: 'Restore defaults',
     },
   },
   updates: {

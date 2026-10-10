@@ -139,6 +139,7 @@ export default {
   },
   settings: {
     nav: '设置分区',
+    backTo: '返回{section}',
     back: '返回',
     groups: {
       app: '应用',
@@ -162,6 +163,54 @@ export default {
       connections: '你的提供商账户和已连接的服务，例如 GitHub。',
       skills: '你的智能体可以使用的技能和 MCP 服务器。',
       archive: '已归档的聊天，可以恢复或删除。',
+    },
+    appearance: {
+      window: '窗口透明度',
+      customize: '调整{style}样式',
+      macosOnly: '窗口透明仅在 macOS 上可用。',
+      styles: {
+        transparent: '透明',
+        mixed: '混合',
+        opaque: '不透明',
+      },
+    },
+    glass: {
+      heading: '{style} 样式',
+      title: '透明度设置',
+      backgroundTitle: '背景设置',
+      opacity: {
+        label: '窗口不透明度',
+        bars: '面板不透明度',
+        low: '低',
+        medium: '中',
+        high: '高',
+      },
+      centerOpacity: {
+        label: '中央区域不透明度',
+        low: '低',
+        medium: '中',
+        high: '高',
+      },
+      blur: {
+        label: '桌面模糊',
+        none: '无',
+        low: '轻',
+        medium: '中',
+        high: '强',
+      },
+      lightness: {
+        label: '背景亮度',
+        dark: '暗',
+        medium: '中',
+        light: '亮',
+      },
+      tint: {
+        label: '背景颜色',
+        none: '无',
+        light: '淡',
+        strong: '彩色',
+      },
+      reset: '恢复默认',
     },
   },
   updates: {

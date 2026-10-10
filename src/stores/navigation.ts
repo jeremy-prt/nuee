@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import type { WindowStyle } from '@/stores/appearance'
 import { useLayoutStore } from '@/stores/layout'
 import type { SettingsSection } from '@/utils/settings'
 
@@ -14,6 +15,8 @@ export const useNavigationStore = defineStore('navigation', () => {
   // Contexte des chats : un projet, ou null pour les chats sans projet.
   const projectId = ref<string | null>(null)
   const settingsSection = ref<SettingsSection>('general')
+  // Sous-page de la section : pour l'instant, les réglages d'un style de fenêtre dans Apparence.
+  const settingsDetail = ref<WindowStyle | null>(null)
   // Vue que le bouton Retour des réglages retrouve.
   const beforeSettings = ref<View>('home')
 
@@ -31,9 +34,15 @@ export const useNavigationStore = defineStore('navigation', () => {
     go('chats')
   }
 
+  // Recliquer sur la section dans la barre latérale ramène aussi de sa sous-page.
+  function showSettingsSection(section: SettingsSection) {
+    settingsSection.value = section
+    settingsDetail.value = null
+  }
+
   function closeSettings() {
     go(beforeSettings.value)
   }
 
-  return { view, projectId, settingsSection, hasPanel, go, openChats, closeSettings }
+  return { view, projectId, settingsSection, settingsDetail, hasPanel, go, openChats, showSettingsSection, closeSettings }
 })
