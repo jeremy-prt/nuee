@@ -83,6 +83,7 @@ pub fn run() {
             commands::github::github_status,
             commands::github::github_login,
             commands::github::github_avatar,
+            commands::github::github_switch,
             commands::github::github_login_open,
             commands::github::github_login_cancel,
             commands::install::install_open,

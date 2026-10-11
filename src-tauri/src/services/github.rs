@@ -143,6 +143,13 @@ impl GithubService {
         Some(avatar)
     }
 
+    /// Rend `login` actif dans gh pour `host` : ça vaut pour tous les terminaux, donc seulement sur un clic
+    /// explicite. Seul un compte que gh liste comme utilisable est accepté ; rend l'état relu.
+    pub async fn switch(&self, host: &str, login: &str) -> Result<GithubStatus, AppError> {
+        let program = shell_env::find_binary(BINARY).ok_or(AppError::AgentNotFound(BINARY))?;
+        switch_with(&program, host, login).await
+    }
+
     pub fn cancel_login(&self) {
         if let Some(login) = lock(&self.login).take() {
             process::kill_tree(login.pid, true);
@@ -289,6 +296,35 @@ fn fetch_avatar(login: &str) -> Option<String> {
         .read_to_vec()
         .ok()?;
     Some(format!("data:{mime};base64,{}", STANDARD.encode(bytes)))
+}
+
+async fn switch_with(program: &Path, host: &str, login: &str) -> Result<GithubStatus, AppError> {
+    let usable = match status_of(program).await? {
+        GithubStatus::Ready { accounts, .. } => accounts.iter().any(|account| {
+            account.host == host
+                && account.login == login
+                && account.state == GithubAccountState::Ok
+        }),
+        _ => false,
+    };
+    if !usable {
+        return Err(AppError::InvalidInput(format!(
+            "compte GitHub inutilisable : {login}"
+        )));
+    }
+    let args = ["auth", "switch", "--hostname", host, "--user", login];
+    let output = timeout(STATUS_TIMEOUT, command(program, &args).output())
+        .await
+        .map_err(|_| AppError::AgentFailed("gh auth switch n'a pas répondu".into()))??;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_owned();
+        return Err(AppError::AgentFailed(if stderr.is_empty() {
+            "gh auth switch a échoué".into()
+        } else {
+            stderr
+        }));
+    }
+    status_of(program).await
 }
 
 async fn status_of(program: &Path) -> Result<GithubStatus, AppError> {
@@ -665,6 +701,7 @@ mod tests {
             let _ = std::fs::remove_dir_all(&dir);
             std::fs::create_dir_all(&dir).unwrap();
             let program = dir.join("gh");
+            let state = if name == "switch" { "success" } else { "error" };
             let script = format!(
                 r#"#!/bin/sh
 [ "$GH_PROMPT_DISABLED" = 1 ] && [ "$GH_PAGER" = cat ] && [ "$GIT_TERMINAL_PROMPT" = 0 ] && [ "${{GH_DEBUG-unset}}" = "" ] || {{ echo "bad env" >&2; exit 3; }}
@@ -672,10 +709,11 @@ case "$*" in
   --version) echo "gh version 2.88.1 (2026-03-12)";;
   "auth status --json hosts")
     echo "one account is broken" >&2
-    printf '{{"hosts":{{"github.com":[{{"state":"error","error":"bad credentials","active":true,"host":"github.com","login":"a","tokenSource":"keyring"}}]}}}}\n'
+    printf '{{"hosts":{{"github.com":[{{"state":"{state}","error":"bad credentials","active":true,"host":"github.com","login":"a","tokenSource":"keyring"}}]}}}}\n'
     exit 1;;
   "auth login --hostname github.com --web")
 {login};;
+  "auth switch --hostname github.com --user a") touch "$(dirname "$0")/switched";;
 esac
 "#
             );
@@ -687,6 +725,27 @@ esac
         const CODE: &str = r#"    echo >&2
     echo "! First copy your one-time code: AB12-CD34" >&2
     echo "Open this URL to continue in your web browser: https://github.com/login/device" >&2"#;
+
+        #[test]
+        fn switch_only_targets_a_usable_account() {
+            let broken = fake_gh("broken", "");
+            let refused = tauri::async_runtime::block_on(switch_with(&broken, "github.com", "a"));
+            assert!(matches!(refused, Err(AppError::InvalidInput(_))));
+            assert!(!broken.with_file_name("switched").exists());
+
+            let program = fake_gh("switch", "");
+            let unknown = tauri::async_runtime::block_on(switch_with(&program, "github.com", "b"));
+            assert!(matches!(unknown, Err(AppError::InvalidInput(_))));
+            let status = tauri::async_runtime::block_on(switch_with(&program, "github.com", "a"));
+            assert!(
+                matches!(status, Ok(GithubStatus::Ready { .. })),
+                "{status:?}"
+            );
+            assert!(program.with_file_name("switched").exists());
+            for fake in [broken, program] {
+                let _ = std::fs::remove_dir_all(fake.parent().unwrap());
+            }
+        }
 
         #[test]
         fn status_reads_the_json_despite_the_exit_code() {

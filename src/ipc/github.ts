@@ -18,6 +18,11 @@ export function githubAvatar(login: string) {
   return invoke<string | null>('github_avatar', { login })
 }
 
+// Rend ce compte actif dans gh, pour tous les terminaux ; renvoie l'état relu.
+export function githubSwitch(host: string, login: string) {
+  return invoke<GithubStatus>('github_switch', { host, login })
+}
+
 // Ouvre la page du code de la connexion en cours : l'adresse reste côté Rust.
 export function githubLoginOpen() {
   return invoke<void>('github_login_open')

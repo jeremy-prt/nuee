@@ -5,7 +5,7 @@ import { isAppError } from '@/ipc/agent'
 import type { GithubAccount } from '@/ipc/bindings/GithubAccount'
 import type { GithubDeviceCode } from '@/ipc/bindings/GithubDeviceCode'
 import type { GithubStatus } from '@/ipc/bindings/GithubStatus'
-import { githubAvatar, githubLogin, githubLoginCancel, githubLoginOpen, githubStatus } from '@/ipc/github'
+import { githubAvatar, githubLogin, githubLoginCancel, githubLoginOpen, githubStatus, githubSwitch } from '@/ipc/github'
 import { useToastsStore } from '@/stores/toasts'
 
 export type { GithubAccount, GithubStatus }
@@ -42,6 +42,8 @@ export const useIntegrationsStore = defineStore('integrations', () => {
   const login = ref<{ code: GithubDeviceCode | null } | null>(null)
   const loginError = ref<string | null>(null)
   const avatars = reactive(new Map<string, string>())
+  // Compte en train de devenir l'actif de gh (`hôte/login`).
+  const switching = ref<string | null>(null)
 
   watch(
     prefs,
@@ -98,6 +100,25 @@ export const useIntegrationsStore = defineStore('integrations', () => {
     prefs.githubOff = on ? others : [...others, key]
   }
 
+  async function makeActive(account: GithubAccount) {
+    if (switching.value) return
+    switching.value = accountKey(account)
+    const { t } = i18nGlobal()
+    try {
+      const status = await githubSwitch(account.host, account.login)
+      // Une relecture partie avant le changement n'écrasera pas cet état plus récent.
+      run++
+      checking.value = false
+      github.value = status
+      error.value = null
+      useToastsStore().push({ title: t('settings.github.switched'), body: t('settings.github.switchedBody', { login: account.login }) })
+    } catch (failure) {
+      useToastsStore().push({ title: t('settings.github.switchFailed'), body: message(failure) })
+    } finally {
+      switching.value = null
+    }
+  }
+
   // Une connexion annulée ou remplacée ne touche plus à l'état.
   let attempt = 0
   async function connect() {
@@ -134,5 +155,5 @@ export const useIntegrationsStore = defineStore('integrations', () => {
     }
   }
 
-  return { github, checking, error, prefs, login, loginError, load, avatar, used, setUsed, connect, cancelLogin, openLoginPage }
+  return { github, checking, error, prefs, login, loginError, switching, load, avatar, used, setUsed, makeActive, connect, cancelLogin, openLoginPage }
 })

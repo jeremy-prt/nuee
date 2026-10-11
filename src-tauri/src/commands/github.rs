@@ -31,6 +31,15 @@ pub async fn github_avatar(
 }
 
 #[tauri::command]
+pub async fn github_switch(
+    host: String,
+    login: String,
+    github: State<'_, GithubService>,
+) -> Result<GithubStatus, AppError> {
+    github.switch(&host, &login).await
+}
+
+#[tauri::command]
 pub fn github_login_open(github: State<'_, GithubService>) -> Result<(), AppError> {
     github.open_login_page()
 }
