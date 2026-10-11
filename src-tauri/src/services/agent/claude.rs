@@ -4,8 +4,8 @@ use std::path::{Path, PathBuf};
 use serde_json::Value;
 
 use super::{
-    AgentEvent, Attached, Catalog, Driver, Effort, ModelInfo, PermissionMode, SessionSpec,
-    ToolKind, TurnStatus,
+    Account, AgentEvent, Attached, Catalog, Driver, Effort, ModelInfo, PermissionMode, Probe,
+    Quota, SessionSpec, ToolKind, TurnStatus, Usage,
 };
 
 const OUTPUT_LIMIT: usize = 4000;
@@ -171,7 +171,7 @@ impl Driver for Claude {
         "claude"
     }
 
-    fn catalog_probe(&self) -> (Vec<String>, String) {
+    fn probe(&self, usage: bool) -> (Vec<String>, Vec<String>) {
         let args = [
             "-p",
             "--input-format",
@@ -180,53 +180,65 @@ impl Driver for Claude {
             "stream-json",
             "--verbose",
             "--no-session-persistence",
+            // La sonde repart à chaque visite des réglages : les hooks de l'utilisateur n'ont rien à y faire.
+            "--settings",
+            r#"{"disableAllHooks":true}"#,
             // Sans serveurs MCP : la réponse arrive sans attendre qu'ils démarrent.
             "--strict-mcp-config",
             "--mcp-config",
             r#"{"mcpServers":{}}"#,
         ];
-        let request = r#"{"type":"control_request","request_id":"nuee-catalog","request":{"subtype":"initialize"}}"#;
-        (args.map(String::from).into(), request.to_owned())
+        let mut lines = vec![
+            r#"{"type":"control_request","request_id":"nuee-init","request":{"subtype":"initialize"}}"#.to_owned(),
+        ];
+        // `skip_behaviors` : sans lui, la CLI parcourt tout l'historique local pour des statistiques inutiles ici.
+        if usage {
+            lines.push(r#"{"type":"control_request","request_id":"nuee-usage","request":{"subtype":"get_usage","skip_behaviors":true}}"#.to_owned());
+        }
+        (args.map(String::from).into(), lines)
     }
 
-    fn parse_catalog(&self, line: &str) -> Option<Catalog> {
-        let line: Value = serde_json::from_str(line).ok()?;
-        let response = &line["response"];
-        if line["type"] != "control_response" || response["request_id"] != "nuee-catalog" {
-            return None;
+    fn parse_probe(&self, line: &str, probe: &mut Probe) {
+        let Ok(line) = serde_json::from_str::<Value>(line) else {
+            return;
+        };
+        if line["type"] != "control_response" {
+            return;
         }
-        let rows = response["response"]["models"].as_array()?;
-        // La ligne « default » ne sert qu'à dire lequel des vrais modèles est choisi par défaut.
-        let default_target = rows
-            .iter()
-            .find(|row| row["value"] == "default")
-            .map(|row| &row["resolvedModel"]);
-        let models: Vec<ModelInfo> = rows
-            .iter()
-            .filter(|row| row["value"] != "default" && row["disabled"] != true)
-            .map(|row| ModelInfo {
-                value: str_of(&row["value"]).to_owned(),
-                label: str_of(&row["displayName"]).to_owned(),
-                description: str_of(&row["description"]).to_owned(),
-                efforts: row["supportedEffortLevels"]
-                    .as_array()
-                    .into_iter()
-                    .flatten()
-                    .filter_map(|level| effort_of(level.as_str()?))
-                    .collect(),
-            })
-            .filter(|model| !model.value.is_empty())
-            .collect();
-        let default_model = default_target.and_then(|target| {
-            rows.iter()
-                .find(|row| row["value"] != "default" && &row["resolvedModel"] == target)
-                .map(|row| str_of(&row["value"]).to_owned())
-        });
-        Some(Catalog {
-            models,
-            default_model,
-            default_effort: user_effort().unwrap_or(Effort::High),
-        })
+        let response = &line["response"]["response"];
+        match line["response"]["request_id"].as_str() {
+            Some("nuee-init") => {
+                probe.described = true;
+                probe.catalog = catalog_of(response);
+                probe.version = response["claude_code_version"].as_str().map(str::to_owned);
+                probe.account = account_of(&response["account"]);
+            }
+            Some("nuee-usage") => {
+                probe.usage_read = true;
+                probe.usage = usage_of(response);
+            }
+            _ => {}
+        }
+    }
+
+    fn release(&self, program: &Path) -> (&'static str, &'static str) {
+        let real = std::fs::canonicalize(program).unwrap_or_else(|_| program.to_owned());
+        let real = real.to_string_lossy();
+        // Homebrew ignore `autoUpdatesChannel` : le cask `claude-code` suit stable, `claude-code@latest` latest.
+        let tag = if real.contains("claude-code@latest") {
+            "latest"
+        } else if real.contains("Caskroom/claude-code/")
+            || user_settings().is_some_and(|settings| settings["autoUpdatesChannel"] == "stable")
+        {
+            "stable"
+        } else {
+            "latest"
+        };
+        ("@anthropic-ai/claude-code", tag)
+    }
+
+    fn update_args(&self) -> Vec<String> {
+        vec!["update".to_owned()]
     }
 
     fn title_args(&self) -> Vec<String> {
@@ -472,14 +484,89 @@ fn effort_of(level: &str) -> Option<Effort> {
     }
 }
 
-/// Effort réglé dans la config Claude de l'utilisateur : Nuée l'affiche comme valeur de départ.
-fn user_effort() -> Option<Effort> {
+/// Réponse à `initialize` : modèles proposés par la CLI installée.
+fn catalog_of(response: &Value) -> Option<Catalog> {
+    let rows = response["models"].as_array()?;
+    // La ligne « default » ne sert qu'à dire lequel des vrais modèles est choisi par défaut.
+    let default_target = rows
+        .iter()
+        .find(|row| row["value"] == "default")
+        .map(|row| &row["resolvedModel"]);
+    let models: Vec<ModelInfo> = rows
+        .iter()
+        .filter(|row| row["value"] != "default" && row["disabled"] != true)
+        .map(|row| ModelInfo {
+            value: str_of(&row["value"]).to_owned(),
+            label: str_of(&row["displayName"]).to_owned(),
+            description: str_of(&row["description"]).to_owned(),
+            efforts: row["supportedEffortLevels"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(|level| effort_of(level.as_str()?))
+                .collect(),
+        })
+        .filter(|model| !model.value.is_empty())
+        .collect();
+    let default_model = default_target.and_then(|target| {
+        rows.iter()
+            .find(|row| row["value"] != "default" && &row["resolvedModel"] == target)
+            .map(|row| str_of(&row["value"]).to_owned())
+    });
+    let default_effort = user_settings()
+        .and_then(|settings| effort_of(settings["effortLevel"].as_str()?))
+        .unwrap_or(Effort::High);
+    Some(Catalog {
+        models,
+        default_model,
+        default_effort,
+    })
+}
+
+/// Comme T3 Code : seul `tokenSource: "none"` prouve qu'on est déconnecté. Une clé d'API ou un
+/// fournisseur tiers (Bedrock, Vertex) donnent un compte sans e-mail.
+fn account_of(account: &Value) -> Option<Account> {
+    let text = |key: &str| {
+        account[key]
+            .as_str()
+            .map(str::trim)
+            .filter(|text| !text.is_empty())
+            .map(str::to_owned)
+    };
+    let email = text("email");
+    let plan = text("subscriptionType");
+    let third_party = text("apiProvider").is_some_and(|provider| provider != "firstParty");
+    let api_key = text("apiKeySource").is_some_and(|source| source != "none");
+    let signed_out = account.is_null()
+        || (account["tokenSource"] == "none" && !api_key && !third_party && email.is_none());
+    (!signed_out).then_some(Account { email, plan })
+}
+
+/// Réponse à `get_usage` : pourcentages de 0 à 100, dates ISO 8601.
+fn usage_of(response: &Value) -> Option<Usage> {
+    if response["rate_limits_available"] != true {
+        return None;
+    }
+    let quota = |key: &str| {
+        let window = &response["rate_limits"][key];
+        Some(Quota {
+            used: (window["utilization"].as_f64()? / 100.0).clamp(0.0, 1.0),
+            resets_at: window["resets_at"].as_str().map(str::to_owned),
+        })
+    };
+    let usage = Usage {
+        session: quota("five_hour"),
+        weekly: quota("seven_day"),
+    };
+    (usage.session.is_some() || usage.weekly.is_some()).then_some(usage)
+}
+
+/// `settings.json` de l'utilisateur, là où la CLI le lit.
+fn user_settings() -> Option<Value> {
     let dir = std::env::var_os("CLAUDE_CONFIG_DIR")
         .map(PathBuf::from)
         .or_else(|| std::env::home_dir().map(|home| home.join(".claude")))?;
-    let settings: Value =
-        serde_json::from_str(&std::fs::read_to_string(dir.join("settings.json")).ok()?).ok()?;
-    effort_of(settings["effortLevel"].as_str()?)
+    serde_json::from_str(&std::fs::read_to_string(dir.join("settings.json")).ok()?).ok()
 }
 
 fn str_of(value: &Value) -> &str {
@@ -509,6 +596,7 @@ fn truncate(text: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     fn parse(lines: &[&str]) -> (Claude, Vec<AgentEvent>) {
         let mut claude = Claude::new(Path::new("/projet"));
@@ -639,13 +727,13 @@ mod tests {
 
     #[test]
     fn catalog_hides_the_default_row_but_remembers_its_target() {
-        let line = r#"{"type":"control_response","response":{"subtype":"success","request_id":"nuee-catalog","response":{"models":[
+        let line = r#"{"type":"control_response","response":{"subtype":"success","request_id":"nuee-init","response":{"models":[
             {"value":"default","resolvedModel":"claude-opus-5-5","displayName":"Default (recommended)"},
             {"value":"opus","resolvedModel":"claude-opus-5-5","displayName":"Opus 5.5","description":"Complexe","supportedEffortLevels":["low","high","xhigh"]},
             {"value":"claude-haiku-4-5","resolvedModel":"claude-haiku-4-5","displayName":"Haiku 4.5","description":"Rapide"}
         ]}}}"#;
-        let catalog = Claude::new(Path::new("/"))
-            .parse_catalog(&line.replace('\n', ""))
+        let catalog = probe(&[&line.replace('\n', "")])
+            .catalog
             .expect("catalogue");
         assert_eq!(catalog.default_model.as_deref(), Some("opus"));
         let labels: Vec<&str> = catalog
@@ -743,5 +831,78 @@ mod tests {
             r#"{"type":"assistant","parent_tool_use_id":"t1","message":{"id":"m2","content":[{"type":"text","text":"interne"}]}}"#,
         ]);
         assert!(events.is_empty());
+    }
+
+    fn probe(lines: &[&str]) -> Probe {
+        let claude = Claude::new(Path::new("/projet"));
+        let mut probe = Probe::default();
+        for line in lines {
+            claude.parse_probe(line, &mut probe);
+        }
+        probe
+    }
+
+    #[test]
+    fn probe_reads_version_account_and_quotas() {
+        let probe = probe(&[
+            r#"{"type":"control_response","response":{"subtype":"success","request_id":"nuee-init","response":{"models":[],"claude_code_version":"2.1.296","account":{"email":"moi@exemple.com","organization":"Ulyssoft","subscriptionType":"Claude Team","apiProvider":"firstParty"}}}}"#,
+            r#"{"type":"control_response","response":{"subtype":"success","request_id":"nuee-usage","response":{"rate_limits_available":true,"rate_limits":{"five_hour":{"utilization":42,"resets_at":"2026-10-11T14:09:59.797000+00:00"},"seven_day":{"utilization":59,"resets_at":null}}}}}"#,
+        ]);
+        assert!(probe.described && probe.usage_read);
+        assert_eq!(probe.version.as_deref(), Some("2.1.296"));
+        assert_eq!(
+            probe.account,
+            Some(Account {
+                email: Some("moi@exemple.com".into()),
+                plan: Some("Claude Team".into())
+            })
+        );
+        assert_eq!(
+            probe.usage,
+            Some(Usage {
+                session: Some(Quota {
+                    used: 0.42,
+                    resets_at: Some("2026-10-11T14:09:59.797000+00:00".into())
+                }),
+                weekly: Some(Quota {
+                    used: 0.59,
+                    resets_at: None
+                }),
+            })
+        );
+    }
+
+    #[test]
+    fn probe_sees_a_signed_out_cli() {
+        let probe = probe(&[
+            r#"{"type":"control_response","response":{"subtype":"success","request_id":"nuee-init","response":{"claude_code_version":"2.1.296","account":{"tokenSource":"none","apiProvider":"firstParty"}}}}"#,
+            r#"{"type":"control_response","response":{"subtype":"success","request_id":"nuee-usage","response":{"rate_limits_available":false,"rate_limits":null}}}"#,
+        ]);
+        assert!(probe.described);
+        assert_eq!(probe.account, None);
+        assert_eq!(probe.usage, None);
+    }
+
+    #[test]
+    fn api_key_and_third_party_count_as_signed_in() {
+        let api_key = json!({ "tokenSource": "none", "apiKeySource": "ANTHROPIC_API_KEY" });
+        assert_eq!(
+            account_of(&api_key),
+            Some(Account {
+                email: None,
+                plan: None
+            })
+        );
+        assert!(account_of(&json!({ "apiProvider": "bedrock", "tokenSource": "none" })).is_some());
+        assert!(account_of(&json!({ "apiKeySource": "none", "tokenSource": "none" })).is_none());
+    }
+
+    #[test]
+    fn older_cli_without_usage_still_answers() {
+        let probe = probe(&[
+            r#"{"type":"control_response","response":{"subtype":"error","request_id":"nuee-usage","error":"Unknown subtype"}}"#,
+        ]);
+        assert!(probe.usage_read && !probe.described);
+        assert_eq!(probe.usage, None);
     }
 }

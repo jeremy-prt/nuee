@@ -373,7 +373,7 @@ async fn read_tail(stream: impl AsyncRead + Unpin) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::super::{Catalog, PermissionMode, SessionSpec};
+    use super::super::{PermissionMode, Probe, SessionSpec};
     use super::*;
 
     struct Silent;
@@ -382,11 +382,15 @@ mod tests {
         fn binary(&self) -> &'static str {
             "sh"
         }
-        fn catalog_probe(&self) -> (Vec<String>, String) {
-            (Vec::new(), String::new())
+        fn probe(&self, _: bool) -> (Vec<String>, Vec<String>) {
+            (Vec::new(), Vec::new())
         }
-        fn parse_catalog(&self, _: &str) -> Option<Catalog> {
-            None
+        fn parse_probe(&self, _: &str, _: &mut Probe) {}
+        fn release(&self, _: &Path) -> (&'static str, &'static str) {
+            ("sh", "latest")
+        }
+        fn update_args(&self) -> Vec<String> {
+            Vec::new()
         }
         fn title_args(&self) -> Vec<String> {
             Vec::new()

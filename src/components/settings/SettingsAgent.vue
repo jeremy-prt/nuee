@@ -21,6 +21,8 @@ const { t, locale } = useI18n()
 const store = useAgentsStore()
 const catalog = useCatalogStore()
 catalog.load(props.kind)
+// Les quotas bougent à chaque message : relus à chaque ouverture de la page.
+if (store.status[props.kind].state === 'found') store.detect(props.kind, true)
 
 const name = agents[props.kind].name
 const settings = computed(() => store.settings[props.kind])
@@ -28,6 +30,17 @@ const status = computed(() => store.status[props.kind])
 const models = computed(() => catalog.get(props.kind)?.models ?? [])
 // Valeurs réellement appliquées : un réglage laissé à null montre ce que l'agent choisira.
 const resolved = computed(() => catalog.resolve(props.kind, settings.value.defaults))
+
+const quotas = computed(() =>
+  (['session', 'weekly'] as const).flatMap((key) => {
+    const quota = status.value.usage?.[key]
+    return quota ? [{ key, ...quota }] : []
+  }),
+)
+const account = computed(() => {
+  const { email, plan } = status.value.account ?? {}
+  return [email, plan].filter(Boolean).join(' · ')
+})
 
 const modelOptions = computed(() => models.value.map((model) => ({ value: model.value, label: model.label })))
 const effortOptions = computed(() =>
@@ -55,15 +68,17 @@ function percent(value: number) {
   return new Intl.NumberFormat(locale.value, { style: 'percent' }).format(value)
 }
 
-// Session : « dans 2 heures ». Semaine : le jour et l'heure de la remise à zéro.
-function resetsAt(quota: 'session' | 'weekly') {
-  const at = status.value.usage?.[quota].resetsAt ?? Date.now()
-  if (quota === 'weekly') {
-    return new Intl.DateTimeFormat(locale.value, { weekday: 'long', hour: 'numeric', minute: '2-digit' }).format(at)
-  }
+// Dans moins d'un jour : « dans 2 heures ». Au-delà : le jour et l'heure de la remise à zéro.
+function resetsAt(iso: string | null) {
+  const at = iso ? Date.parse(iso) : NaN
+  if (Number.isNaN(at)) return undefined
   const minutes = Math.max(1, Math.round((at - Date.now()) / 60_000))
   const relative = new Intl.RelativeTimeFormat(locale.value, { numeric: 'auto' })
-  return minutes < 60 ? relative.format(minutes, 'minute') : relative.format(Math.round(minutes / 60), 'hour')
+  let when: string
+  if (minutes < 60) when = relative.format(minutes, 'minute')
+  else if (minutes < 24 * 60) when = relative.format(Math.round(minutes / 60), 'hour')
+  else when = new Intl.DateTimeFormat(locale.value, { weekday: 'long', hour: 'numeric', minute: '2-digit' }).format(at)
+  return t('settings.agents.resets', { when })
 }
 
 async function choosePath() {
@@ -78,6 +93,7 @@ async function choosePath() {
       <template #hint>
         <template v-if="status.state === 'checking'">{{ t('settings.agents.checking', { agent: name }) }}</template>
         <span v-else-if="status.state === 'missing'" class="text-danger">{{ t('settings.agents.missing', { agent: name }) }}</span>
+        <span v-else-if="status.state === 'error'" class="text-danger">{{ t('settings.agents.error', { agent: name, command: agents[kind].command }) }}</span>
         <template v-else>
           <span class="font-mono break-all">{{ status.path }}</span>
           · {{ settings.path ? t('settings.agents.custom') : t('settings.agents.found') }}
@@ -87,7 +103,7 @@ async function choosePath() {
         <LoaderCircle v-if="status.state === 'checking'" class="size-4 animate-spin text-muted" aria-hidden="true" />
         <div v-else class="flex flex-wrap justify-end gap-2">
           <UiButton v-if="settings.path" size="sm" variant="ghost" @click="store.setPath(kind, null)">{{ t('settings.agents.auto') }}</UiButton>
-          <UiButton v-if="status.state === 'missing'" size="sm" :aria-describedby="hintId" @click="store.detect(kind)">
+          <UiButton v-if="status.state === 'missing' || status.state === 'error'" size="sm" :aria-describedby="hintId" @click="store.detect(kind)">
             {{ t('settings.agents.retry') }}
           </UiButton>
           <UiButton size="sm" :aria-describedby="hintId" @click="choosePath()">
@@ -115,7 +131,7 @@ async function choosePath() {
       v-slot="{ hintId }"
       :data-setting="`${kind}-account`"
       :label="t('settings.agents.account')"
-      :hint="status.account ? t('settings.agents.connectedAs', { account: status.account }) : t('settings.agents.signedOut', { command: agents[kind].command })"
+      :hint="status.account ? (account ? t('settings.agents.connectedAs', { account }) : undefined) : t('settings.agents.signedOut', { command: agents[kind].command })"
     >
       <span v-if="status.account" class="flex items-center gap-1.5 text-xs text-success">
         <CircleCheck class="size-3.5" aria-hidden="true" />{{ t('settings.agents.status.connected') }}
@@ -124,23 +140,23 @@ async function choosePath() {
     </SettingsRow>
   </SettingsGroup>
 
-  <SettingsGroup v-if="status.usage" :title="t('settings.agents.usage')">
+  <SettingsGroup v-if="quotas.length" :title="t('settings.agents.usage')">
     <SettingsRow
-      v-for="quota in (['session', 'weekly'] as const)"
-      :key="quota"
-      :data-setting="`${kind}-${quota}`"
-      :label="t(`settings.agents.${quota}`)"
-      :hint="t('settings.agents.resets', { when: resetsAt(quota) })"
+      v-for="quota in quotas"
+      :key="quota.key"
+      :data-setting="`${kind}-${quota.key}`"
+      :label="t(`settings.agents.${quota.key}`)"
+      :hint="resetsAt(quota.resetsAt)"
     >
       <div class="flex items-center gap-3">
         <span class="h-1.5 w-32 overflow-hidden rounded-full bg-content/10" aria-hidden="true">
           <span
             class="block h-full rounded-full"
-            :class="status.usage[quota].used >= 0.8 ? 'bg-danger' : 'bg-content/60'"
-            :style="{ width: `${status.usage[quota].used * 100}%` }"
+            :class="quota.used >= 0.8 ? 'bg-danger' : 'bg-content/60'"
+            :style="{ width: `${quota.used * 100}%` }"
           />
         </span>
-        <span class="min-w-20 text-end text-xs whitespace-nowrap text-muted tabular-nums">{{ t('settings.agents.used', { percent: percent(status.usage[quota].used) }) }}</span>
+        <span class="min-w-20 text-end text-xs whitespace-nowrap text-muted tabular-nums">{{ t('settings.agents.used', { percent: percent(quota.used) }) }}</span>
       </div>
     </SettingsRow>
   </SettingsGroup>

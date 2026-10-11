@@ -1,9 +1,12 @@
 import { defineStore } from 'pinia'
 import { reactive, watch } from 'vue'
 import { i18nGlobal } from '@/i18n'
+import { agentProbe, agentUpdate, isAppError } from '@/ipc/agent'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
+import type { AgentStatus as Probed } from '@/ipc/bindings/AgentStatus'
 import type { PermissionMode } from '@/ipc/bindings/PermissionMode'
 import type { TurnOptions } from '@/ipc/bindings/TurnOptions'
+import type { TurnStatus } from '@/ipc/bindings/TurnStatus'
 import { useToastsStore } from '@/stores/toasts'
 import { agents } from '@/utils/agents'
 
@@ -15,24 +18,15 @@ interface AgentSettings {
   defaults: TurnOptions
 }
 
-export interface AgentStatus {
-  state: 'checking' | 'found' | 'missing'
+// Ce que Rust renvoie, plus l'état de la détection : introuvable, ou trouvé mais muet.
+export interface AgentStatus extends Omit<Probed, 'path'> {
+  state: 'checking' | 'found' | 'missing' | 'error'
   path: string | null
-  version: string | null
-  latest: string | null
-  // Compte connecté à la CLI (son e-mail), null si personne n'est connecté.
-  account: string | null
-  // Part des quotas consommée (0 à 1) et date de remise à zéro, null si l'abonnement n'en a pas.
-  usage: { session: Quota; weekly: Quota } | null
   updating: boolean
 }
 
-export interface Quota {
-  used: number
-  resetsAt: number
-}
-
 const STORAGE_KEY = 'nuee.agents.v1'
+const BLANK = { path: null, version: null, latest: null, account: null, usage: null }
 const MODES: PermissionMode[] = ['bypass', 'auto']
 const kinds = Object.keys(agents) as AgentKind[]
 
@@ -59,39 +53,13 @@ function load() {
   return settings
 }
 
-// Maquette en attendant la commande Rust `agent_probe` (emplacement trouvé, version installée, dernière
-// version publiée, compte connecté) et la mise à jour de la CLI : seules ces deux fonctions simulent.
-function probe(path: string | null) {
-  const hour = 3_600_000
-  const monday = new Date()
-  monday.setDate(monday.getDate() + ((8 - monday.getDay()) % 7 || 7))
-  monday.setHours(9, 0, 0, 0)
-  return new Promise<Pick<AgentStatus, 'path' | 'version' | 'latest' | 'account' | 'usage'>>((resolve) =>
-    setTimeout(
-      () =>
-        resolve({
-          path: path ?? '/opt/homebrew/bin/claude',
-          version: '2.1.4',
-          latest: '2.1.7',
-          account: 'toi@exemple.com',
-          usage: { session: { used: 0.42, resetsAt: Date.now() + 2.2 * hour }, weekly: { used: 0.18, resetsAt: monday.getTime() } },
-        }),
-      600,
-    ),
-  )
-}
-
-function install(version: string) {
-  return new Promise<string>((resolve) => setTimeout(() => resolve(version), 1500))
-}
-
 // Agents de Réglages > Agents : activés ou non, emplacement de leur CLI, réglages de départ des chats.
 // La détection part au lancement de l'app.
 export const useAgentsStore = defineStore('agents', () => {
   const settings = reactive(load())
   const status = reactive(
     Object.fromEntries(
-      kinds.map((kind) => [kind, { state: 'checking', path: null, version: null, latest: null, account: null, usage: null, updating: false }]),
+      kinds.map((kind) => [kind, { state: 'checking', ...BLANK, updating: false }]),
     ) as Record<AgentKind, AgentStatus>,
   )
 
@@ -107,31 +75,53 @@ export const useAgentsStore = defineStore('agents', () => {
     { deep: true },
   )
 
-  async function detect(kind: AgentKind) {
+  // La dernière détection lancée l'emporte : une réponse plus ancienne (autre chemin) est ignorée.
+  const runs: Partial<Record<AgentKind, number>> = {}
+
+  // quiet : rafraîchir (quotas) sans repasser par « Recherche… » quand l'agent est déjà trouvé.
+  async function detect(kind: AgentKind, quiet = false) {
     const current = status[kind]
-    current.state = 'checking'
+    const run = (runs[kind] ?? 0) + 1
+    runs[kind] = run
+    if (!quiet || current.state !== 'found') current.state = 'checking'
     try {
-      Object.assign(current, await probe(settings[kind].path), { state: 'found' })
-    } catch {
-      Object.assign(current, { state: 'missing', path: null, version: null, latest: null, account: null, usage: null })
+      const probed = await agentProbe(kind, settings[kind].path)
+      if (runs[kind] === run) Object.assign(current, probed, { state: 'found' })
+    } catch (error) {
+      if (runs[kind] !== run) return
+      const state = isAppError(error) && error.kind === 'agentFailed' ? 'error' : 'missing'
+      Object.assign(current, BLANK, { state })
     }
   }
 
   async function update(kind: AgentKind) {
     const current = status[kind]
     if (!current.latest || current.updating) return
+    const target = current.latest
     current.updating = true
+    const { t } = i18nGlobal()
+    const toasts = useToastsStore()
+    const name = agents[kind].name
     try {
-      current.version = await install(current.latest)
-      current.latest = null
-      const { t } = i18nGlobal()
-      useToastsStore().push({
-        title: t('settings.agents.updatedTitle', { agent: agents[kind].name }),
-        body: t('settings.agents.updatedBody', { version: current.version }),
-      })
+      const message = await agentUpdate(kind)
+      await detect(kind, true)
+      // La CLI peut réussir sans rien installer (Homebrew, canal stable) : sa phrase dit pourquoi.
+      if (current.latest) toasts.push({ title: t('settings.agents.notUpdatedTitle', { agent: name }), body: message })
+      else toasts.push({ title: t('settings.agents.updatedTitle', { agent: name }), body: t('settings.agents.updatedBody', { version: current.version ?? target }) })
+    } catch (error) {
+      toasts.push({ title: t('settings.agents.notUpdatedTitle', { agent: name }), body: isAppError(error) ? error.message : String(error) })
     } finally {
       current.updating = false
     }
+  }
+
+  // Un tour réel fait foi : s'il contredit le compte affiché (connexion ou déconnexion faite
+  // depuis un terminal), Réglages > Agents se remet à jour.
+  function confirm(kind: AgentKind, outcome: TurnStatus) {
+    const current = status[kind]
+    if (current.state !== 'found') return
+    const signedIn = current.account !== null
+    if ((outcome === 'completed' && !signedIn) || (outcome === 'unauthenticated' && signedIn)) detect(kind, true)
   }
 
   function setPath(kind: AgentKind, path: string | null) {
@@ -145,5 +135,5 @@ export const useAgentsStore = defineStore('agents', () => {
 
   for (const kind of kinds) detect(kind)
 
-  return { settings, status, detect, update, setPath, chatDefaults }
+  return { settings, status, detect, update, confirm, setPath, chatDefaults }
 })

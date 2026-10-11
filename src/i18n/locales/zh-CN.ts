@@ -188,6 +188,7 @@ export default {
       custom: '手动指定',
       checking: '正在这台电脑上查找 {agent}…',
       missing: '在这台电脑上未找到 {agent}。请安装后重新查找，或选择它的位置。',
+      error: '{agent} 没有响应。请重新查找，或确认能在终端中运行“{command}”。',
       version: '版本',
       upToDate: '已是最新版本。',
       updateHint: '版本 {version} 可用。',
@@ -201,6 +202,7 @@ export default {
       unavailable: '找到 {agent} 后显示。',
       updatedTitle: '{agent} 已更新',
       updatedBody: '已安装版本 {version}。',
+      notUpdatedTitle: '{agent} 未更新',
       usage: '用量',
       session: '5 小时限额',
       weekly: '每周限额',
@@ -211,6 +213,7 @@ export default {
       versionShort: '版本 {version}',
       status: {
         connected: '已连接',
+        error: '无响应',
         signedOut: '未登录',
         checking: '正在查找…',
         missing: '在这台电脑上未找到',

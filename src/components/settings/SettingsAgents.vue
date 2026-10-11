@@ -25,7 +25,7 @@ function action(kind: AgentKind) {
       : t('settings.agents.updateTo', { version: current.latest })
     return { label, icon: current.updating ? LoaderCircle : Download, tone: 'text-info', run: () => store.update(kind) }
   }
-  if (current.state === 'missing') return { label: t('settings.agents.retry'), icon: RefreshCw, tone: '', run: () => store.detect(kind) }
+  if (current.state === 'missing' || current.state === 'error') return { label: t('settings.agents.retry'), icon: RefreshCw, tone: '', run: () => store.detect(kind) }
   if (current.state === 'found' && !current.account) {
     return { label: t('settings.agents.recheck'), icon: RefreshCw, tone: '', run: () => store.detect(kind) }
   }
@@ -42,6 +42,7 @@ function action(kind: AgentKind) {
           <template v-if="!store.settings[kind].enabled">{{ t('settings.agents.status.off') }}</template>
           <template v-else-if="store.status[kind].state === 'checking'">{{ t('settings.agents.status.checking') }}</template>
           <span v-else-if="store.status[kind].state === 'missing'" class="text-danger">{{ t('settings.agents.status.missing') }}</span>
+          <span v-else-if="store.status[kind].state === 'error'" class="text-danger">{{ t('settings.agents.status.error') }}</span>
           <template v-else>
             <span v-if="store.status[kind].account" class="inline-flex items-center gap-1">
               <CircleCheck class="size-3 text-success" aria-hidden="true" />{{ t('settings.agents.status.connected') }}

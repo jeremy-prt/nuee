@@ -1,6 +1,7 @@
 import { Channel, invoke } from '@tauri-apps/api/core'
 import type { AgentEvent } from '@/ipc/bindings/AgentEvent'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
+import type { AgentStatus } from '@/ipc/bindings/AgentStatus'
 import type { AppError } from '@/ipc/bindings/AppError'
 import type { Attachment } from '@/ipc/bindings/Attachment'
 import type { Catalog } from '@/ipc/bindings/Catalog'
@@ -36,6 +37,16 @@ export function agentApprove(chatId: string, requestId: string, allow: boolean) 
 // Modèles de l'agent installé ; Rust le lit une fois par lancement de l'app.
 export function agentCatalog(agent: AgentKind) {
   return invoke<Catalog>('agent_catalog', { agent })
+}
+
+// Emplacement, version, compte et quotas de l'agent. `path` : celui choisi à la main, repris par tous ses chats.
+export function agentProbe(agent: AgentKind, path: string | null) {
+  return invoke<AgentStatus>('agent_probe', { agent, path })
+}
+
+// Mise à jour par la CLI elle-même ; renvoie sa dernière ligne (« déjà à jour », renvoi vers brew...).
+export function agentUpdate(agent: AgentKind) {
+  return invoke<string>('agent_update', { agent })
 }
 
 export function isAppError(error: unknown): error is AppError {

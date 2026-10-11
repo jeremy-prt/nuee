@@ -188,6 +188,7 @@ export default {
       custom: 'choisi à la main',
       checking: 'Recherche de {agent} sur cet ordinateur…',
       missing: '{agent} est introuvable sur cet ordinateur. Installe-le puis relance la recherche, ou choisis où il se trouve.',
+      error: '{agent} ne répond pas. Relance la recherche, ou vérifie que « {command} » se lance dans un terminal.',
       version: 'Version',
       upToDate: 'À jour.',
       updateHint: 'La version {version} est disponible.',
@@ -201,6 +202,7 @@ export default {
       unavailable: 'Affiché une fois {agent} trouvé.',
       updatedTitle: '{agent} mis à jour',
       updatedBody: 'La version {version} est installée.',
+      notUpdatedTitle: '{agent} n\'a pas été mis à jour',
       usage: 'Utilisation',
       session: 'Limite sur 5 heures',
       weekly: 'Limite hebdomadaire',
@@ -211,6 +213,7 @@ export default {
       versionShort: 'Version {version}',
       status: {
         connected: 'Connecté',
+        error: 'Ne répond pas',
         signedOut: 'Non connecté',
         checking: 'Recherche…',
         missing: 'Introuvable sur cet ordinateur',

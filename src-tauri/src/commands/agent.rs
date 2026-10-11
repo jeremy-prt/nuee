@@ -2,7 +2,9 @@ use tauri::State;
 use tauri::ipc::Channel;
 
 use crate::error::AppError;
-use crate::services::agent::{AgentEvent, AgentKind, AgentService, Catalog, SessionSpec};
+use crate::services::agent::{
+    AgentEvent, AgentKind, AgentService, AgentStatus, Catalog, SessionSpec,
+};
 use crate::services::attachment::Attachment;
 
 /// Rend la main dès que le message est parti ; la suite arrive sur `on_event` jusqu'à `turnEnd`.
@@ -37,6 +39,25 @@ pub async fn agent_catalog(
     agents: State<'_, AgentService>,
 ) -> Result<Catalog, AppError> {
     agents.catalog(agent).await
+}
+
+/// `path` : emplacement choisi dans les réglages, repris ensuite par tous les chats de l'agent.
+#[tauri::command]
+pub async fn agent_probe(
+    agent: AgentKind,
+    path: Option<String>,
+    agents: State<'_, AgentService>,
+) -> Result<AgentStatus, AppError> {
+    agents.set_path(agent, path)?;
+    agents.status(agent).await
+}
+
+#[tauri::command]
+pub async fn agent_update(
+    agent: AgentKind,
+    agents: State<'_, AgentService>,
+) -> Result<String, AppError> {
+    agents.update(agent).await
 }
 
 #[tauri::command]

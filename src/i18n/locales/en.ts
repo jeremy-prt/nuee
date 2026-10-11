@@ -186,6 +186,7 @@ export default {
       custom: 'chosen by hand',
       checking: 'Looking for {agent} on this computer…',
       missing: '{agent} was not found on this computer. Install it and search again, or choose where it is.',
+      error: '{agent} isn\'t responding. Try the search again, or check that “{command}” starts in a terminal.',
       version: 'Version',
       upToDate: 'Up to date.',
       updateHint: 'Version {version} is available.',
@@ -199,6 +200,7 @@ export default {
       unavailable: 'Shown once {agent} is found.',
       updatedTitle: '{agent} updated',
       updatedBody: 'Version {version} is installed.',
+      notUpdatedTitle: '{agent} was not updated',
       usage: 'Usage',
       session: '5-hour limit',
       weekly: 'Weekly limit',
@@ -209,6 +211,7 @@ export default {
       versionShort: 'Version {version}',
       status: {
         connected: 'Connected',
+        error: 'Not responding',
         signedOut: 'Not signed in',
         checking: 'Looking…',
         missing: 'Not found on this computer',

@@ -291,6 +291,7 @@ export const useConversationsStore = defineStore('conversations', () => {
       if (!conversation) continue
       const { ended, signal } = apply(conversation, events)
       save(chatId)
+      for (const event of events) if (event.type === 'turnEnd') agentSettings.confirm(conversation.agent, event.status)
       if (signal) useAttentionStore().signal(chatId, signal)
       const queued = conversation.queued
       if (ended && queued) {

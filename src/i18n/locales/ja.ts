@@ -188,6 +188,7 @@ export default {
       custom: '手動で指定',
       checking: 'このコンピュータで {agent} を探しています…',
       missing: 'このコンピュータに {agent} が見つかりません。インストールして再検索するか、場所を選択してください。',
+      error: '{agent} が応答しません。もう一度検索するか、ターミナルで「{command}」が起動するか確認してください。',
       version: 'バージョン',
       upToDate: '最新です。',
       updateHint: 'バージョン {version} が利用できます。',
@@ -201,6 +202,7 @@ export default {
       unavailable: '{agent} が見つかると表示されます。',
       updatedTitle: '{agent} をアップデートしました',
       updatedBody: 'バージョン {version} をインストールしました。',
+      notUpdatedTitle: '{agent} を更新できませんでした',
       usage: '使用状況',
       session: '5 時間の上限',
       weekly: '週間の上限',
@@ -211,6 +213,7 @@ export default {
       versionShort: 'バージョン {version}',
       status: {
         connected: '接続済み',
+        error: '応答なし',
         signedOut: '未ログイン',
         checking: '検索中…',
         missing: 'このコンピュータに見つかりません',

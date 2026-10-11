@@ -188,6 +188,7 @@ export default {
       custom: 'elegido a mano',
       checking: 'Buscando {agent} en este ordenador…',
       missing: 'No se encontró {agent} en este ordenador. Instálalo y vuelve a buscar, o elige dónde está.',
+      error: '{agent} no responde. Vuelve a buscar o comprueba que «{command}» se abre en un terminal.',
       version: 'Versión',
       upToDate: 'Actualizado.',
       updateHint: 'La versión {version} está disponible.',
@@ -201,6 +202,7 @@ export default {
       unavailable: 'Se muestra cuando se encuentre {agent}.',
       updatedTitle: '{agent} actualizado',
       updatedBody: 'La versión {version} está instalada.',
+      notUpdatedTitle: '{agent} no se ha actualizado',
       usage: 'Uso',
       session: 'Límite de 5 horas',
       weekly: 'Límite semanal',
@@ -211,6 +213,7 @@ export default {
       versionShort: 'Versión {version}',
       status: {
         connected: 'Conectado',
+        error: 'No responde',
         signedOut: 'Sin sesión',
         checking: 'Buscando…',
         missing: 'No encontrado en este ordenador',

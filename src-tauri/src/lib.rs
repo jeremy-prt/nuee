@@ -64,6 +64,8 @@ pub fn run() {
             commands::agent::agent_stop,
             commands::agent::agent_approve,
             commands::agent::agent_catalog,
+            commands::agent::agent_probe,
+            commands::agent::agent_update,
             commands::attachment::attachment_save,
             commands::attachment::attachment_import,
             commands::autostart::autostart_enabled,

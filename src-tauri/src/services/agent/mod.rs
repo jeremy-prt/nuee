@@ -1,5 +1,6 @@
 mod claude;
 mod process;
+mod release;
 mod session;
 
 use std::collections::HashMap;
@@ -11,7 +12,7 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use tauri::ipc::Channel;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
-use tokio::time::timeout;
+use tokio::time::{Instant, timeout, timeout_at};
 use ts_rs::TS;
 
 use self::session::{Session, SessionKey, Sessions, Turn};
@@ -128,6 +129,60 @@ pub struct ModelInfo {
     pub efforts: Vec<Effort>,
 }
 
+/// Ce que Réglages > Agents montre d'un agent installé.
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct AgentStatus {
+    pub path: String,
+    pub version: Option<String>,
+    /// Version publiée plus récente que celle installée, sur le canal que suit l'installation.
+    pub latest: Option<String>,
+    /// `None` : personne n'est connecté à la CLI.
+    pub account: Option<Account>,
+    /// `None` : l'abonnement n'a pas de quotas (clé d'API) ou l'agent ne les a pas donnés.
+    pub usage: Option<Usage>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct Account {
+    pub email: Option<String>,
+    /// Abonnement tel que l'agent le nomme (« Claude Max »).
+    pub plan: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct Usage {
+    pub session: Option<Quota>,
+    pub weekly: Option<Quota>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct Quota {
+    /// Part consommée, de 0 à 1.
+    pub used: f64,
+    /// Date ISO 8601.
+    pub resets_at: Option<String>,
+}
+
+/// Ce que l'agent dit de lui quand on le lance sans tour.
+#[derive(Default)]
+struct Probe {
+    /// L'agent a répondu à la première question : sans ça, il est cassé ou trop lent.
+    described: bool,
+    catalog: Option<Catalog>,
+    version: Option<String>,
+    account: Option<Account>,
+    usage_read: bool,
+    usage: Option<Usage>,
+}
+
 /// Flux commun à tous les agents : chaque driver traduit sa sortie dans ces événements.
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
 #[serde(
@@ -188,9 +243,14 @@ pub enum AgentEvent {
 /// lecture de sa sortie. Un driver vit autant que le process du chat.
 trait Driver: Send + Sync {
     fn binary(&self) -> &'static str;
-    /// Lance l'agent sans tour pour qu'il décrive ses modèles : ses arguments et la ligne à lui écrire.
-    fn catalog_probe(&self) -> (Vec<String>, String);
-    fn parse_catalog(&self, line: &str) -> Option<Catalog>;
+    /// Lance l'agent sans tour pour qu'il se décrive : ses arguments et les lignes à lui écrire.
+    /// `usage` : demander aussi les quotas, qui passent par le réseau.
+    fn probe(&self, usage: bool) -> (Vec<String>, Vec<String>);
+    fn parse_probe(&self, line: &str, probe: &mut Probe);
+    /// Paquet npm où l'agent publie ses versions, et l'étiquette que suit cette installation.
+    fn release(&self, program: &Path) -> (&'static str, &'static str);
+    /// Mise à jour par la CLI elle-même : elle sait mieux que Nuée comment elle a été installée.
+    fn update_args(&self) -> Vec<String>;
     /// Lance l'agent hors de tout chat pour résumer un message en titre ; le message part sur stdin.
     fn title_args(&self) -> Vec<String>;
     fn parse_title(&self, output: &str) -> Option<String>;
@@ -207,7 +267,11 @@ trait Driver: Send + Sync {
 
 /// Temps laissé à l'agent pour obéir avant de passer au signal suivant.
 const GRACE: Duration = Duration::from_secs(2);
-const CATALOG_TIMEOUT: Duration = Duration::from_secs(20);
+const PROBE_TIMEOUT: Duration = Duration::from_secs(20);
+/// Les quotas viennent du réseau : passé ce délai après la description, on s'en passe.
+const USAGE_TIMEOUT: Duration = Duration::from_secs(8);
+/// Téléchargement, plus une installation npm complète pour une CLI installée par npm.
+const UPDATE_TIMEOUT: Duration = Duration::from_secs(300);
 const TITLE_TIMEOUT: Duration = Duration::from_secs(45);
 /// Assez pour comprendre la demande ; un long message collé n'apporte rien de plus au titre.
 const TITLE_INPUT_LIMIT: usize = 8000;
@@ -221,6 +285,8 @@ pub struct AgentService {
     /// Parent des dossiers de travail des chats sans projet.
     scratch: PathBuf,
     catalogs: Mutex<HashMap<AgentKind, Catalog>>,
+    /// Emplacement choisi à la main dans les réglages, à la place de celui trouvé dans le PATH.
+    paths: Mutex<HashMap<AgentKind, PathBuf>>,
 }
 
 impl AgentService {
@@ -232,6 +298,7 @@ impl AgentService {
             next_session: AtomicU64::new(0),
             scratch,
             catalogs: Mutex::default(),
+            paths: Mutex::default(),
         }
     }
 
@@ -336,61 +403,137 @@ impl AgentService {
         }
     }
 
-    /// Lu une fois par lancement de l'app : l'agent met une à deux secondes à répondre.
+    /// Lu une fois par lancement de l'app (ou par sonde des réglages) : l'agent met une à deux secondes à répondre.
     pub async fn catalog(&self, kind: AgentKind) -> Result<Catalog, AppError> {
-        if let Some(catalog) = self
-            .catalogs
-            .lock()
-            .unwrap_or_else(|p| p.into_inner())
-            .get(&kind)
-        {
+        if let Some(catalog) = lock(&self.catalogs).get(&kind) {
             return Ok(catalog.clone());
         }
+        let driver = kind.driver(&self.scratch);
+        let probe = self.probe(kind, false).await?;
+        probe.catalog.ok_or_else(|| {
+            AppError::AgentFailed(format!("{} n'a pas décrit ses modèles", driver.binary()))
+        })
+    }
+
+    /// Emplacement, version, compte et quotas, plus la dernière version publiée.
+    pub async fn status(&self, kind: AgentKind) -> Result<AgentStatus, AppError> {
+        let driver = kind.driver(&self.scratch);
+        let program = self.program(kind)?;
+        let (package, tag) = driver.release(&program);
+        let (probe, latest) = tokio::join!(self.probe(kind, true), release::latest(package, tag));
+        let probe = probe?;
+        if !probe.described {
+            return Err(AppError::AgentFailed(format!(
+                "{} ne répond pas",
+                driver.binary()
+            )));
+        }
+        let latest = latest.filter(|latest| {
+            probe
+                .version
+                .as_deref()
+                .is_some_and(|version| release::is_newer(latest, version))
+        });
+        Ok(AgentStatus {
+            path: program.to_string_lossy().into_owned(),
+            version: probe.version,
+            latest,
+            account: probe.account,
+            usage: probe.usage,
+        })
+    }
+
+    /// `None` : retour à la détection automatique. Un chemin choisi doit mener à un fichier qui porte
+    /// le nom de l'agent : la webview ne fait pas lancer n'importe quel exécutable.
+    pub fn set_path(&self, kind: AgentKind, path: Option<String>) -> Result<(), AppError> {
+        let mut paths = lock(&self.paths);
+        paths.remove(&kind);
+        if let Some(path) = path {
+            let driver = kind.driver(&self.scratch);
+            paths.insert(kind, valid_binary(&path, driver.binary())?);
+        }
+        Ok(())
+    }
+
+    /// Renvoie la dernière ligne écrite par la CLI : elle dit ce qui s'est passé, même quand la
+    /// commande réussit sans rien installer (Homebrew renvoie vers `brew upgrade`).
+    pub async fn update(&self, kind: AgentKind) -> Result<String, AppError> {
+        let driver = kind.driver(&self.scratch);
+        let program = self.program(kind)?;
+        std::fs::create_dir_all(&self.scratch)?;
+        let mut child = session::spawn(&program, driver.update_args(), &self.scratch)?;
+        // stdin fermé : une CLI qui voudrait poser une question échoue au lieu d'attendre.
+        drop(child.stdin.take());
+        let output = timeout(UPDATE_TIMEOUT, child.wait_with_output())
+            .await
+            .map_err(|_| AppError::AgentFailed("mise à jour trop longue".into()))??;
+        let message = last_line(&output.stderr)
+            .or_else(|| last_line(&output.stdout))
+            .unwrap_or_default();
+        if output.status.success() {
+            Ok(last_line(&output.stdout).unwrap_or(message))
+        } else {
+            Err(AppError::AgentFailed(message))
+        }
+    }
+
+    /// Lance l'agent sans tour et lit ce qu'il dit de lui ; le catalogue au passage est gardé.
+    async fn probe(&self, kind: AgentKind, usage: bool) -> Result<Probe, AppError> {
         std::fs::create_dir_all(&self.scratch)?;
         let driver = kind.driver(&self.scratch);
-        let program = shell_env::find_binary(driver.binary())
-            .ok_or(AppError::AgentNotFound(driver.binary()))?;
-        let (args, line) = driver.catalog_probe();
+        let program = self.program(kind)?;
+        let (args, requests) = driver.probe(usage);
         let mut child = session::spawn(&program, args, &self.scratch)?;
 
         // stdin reste ouvert : à sa fermeture l'agent quitterait avant d'avoir répondu.
         let mut stdin = child.stdin.take();
         if let Some(stdin) = stdin.as_mut() {
-            stdin.write_all(format!("{line}\n").as_bytes()).await?;
+            for request in requests {
+                stdin.write_all(format!("{request}\n").as_bytes()).await?;
+            }
             stdin.flush().await?;
         }
-        let read = async {
-            let stdout = child.stdout.take()?;
+        let mut probe = Probe::default();
+        if let Some(stdout) = child.stdout.take() {
             let mut lines = BufReader::new(stdout).lines();
-            while let Ok(Some(line)) = lines.next_line().await {
-                if let Some(catalog) = driver.parse_catalog(&line) {
-                    return Some(catalog);
+            let mut deadline = Instant::now() + PROBE_TIMEOUT;
+            while let Ok(Ok(Some(line))) = timeout_at(deadline, lines.next_line()).await {
+                let described = probe.described;
+                driver.parse_probe(&line, &mut probe);
+                // Déconnecté : pas de quotas à attendre.
+                if probe.described && (!usage || probe.usage_read || probe.account.is_none()) {
+                    break;
+                }
+                if !described && probe.described {
+                    deadline = deadline.min(Instant::now() + USAGE_TIMEOUT);
                 }
             }
-            None
-        };
-        let catalog = timeout(CATALOG_TIMEOUT, read).await.ok().flatten();
+        }
         drop(stdin);
         if let Some(pid) = child.id() {
             process::kill_tree(pid, true);
         }
         let _ = child.wait().await;
 
-        let catalog = catalog.ok_or_else(|| {
-            AppError::AgentFailed(format!("{} n'a pas décrit ses modèles", driver.binary()))
-        })?;
-        self.catalogs
-            .lock()
-            .unwrap_or_else(|p| p.into_inner())
-            .insert(kind, catalog.clone());
-        Ok(catalog)
+        if let Some(catalog) = &probe.catalog {
+            lock(&self.catalogs).insert(kind, catalog.clone());
+        }
+        Ok(probe)
+    }
+
+    fn program(&self, kind: AgentKind) -> Result<PathBuf, AppError> {
+        if let Some(path) = lock(&self.paths).get(&kind) {
+            return Ok(path.clone());
+        }
+        let driver = kind.driver(&self.scratch);
+        shell_env::find_binary(driver.binary()).ok_or(AppError::AgentNotFound(driver.binary()))
     }
 
     /// Titre court tiré du premier message d'un chat. `None` si l'agent n'a pas su répondre.
     pub async fn title(&self, kind: AgentKind, prompt: &str) -> Option<String> {
         std::fs::create_dir_all(&self.scratch).ok()?;
         let driver = kind.driver(&self.scratch);
-        let program = shell_env::find_binary(driver.binary())?;
+        let program = self.program(kind).ok()?;
         let mut child = session::spawn(&program, driver.title_args(), &self.scratch).ok()?;
         let input: String = prompt.chars().take(TITLE_INPUT_LIMIT).collect();
         // stdin fermé après le message : l'agent sait qu'il n'y en aura pas d'autre.
@@ -424,8 +567,7 @@ impl AgentService {
 
     fn start(&self, spec: &SessionSpec, key: SessionKey, cwd: &Path) -> Result<Session, AppError> {
         let driver = spec.agent.driver(cwd);
-        let program = shell_env::find_binary(driver.binary())
-            .ok_or(AppError::AgentNotFound(driver.binary()))?;
+        let program = self.program(spec.agent)?;
         let args = driver.args(spec);
         let id = self.next_session.fetch_add(1, Ordering::Relaxed);
         Ok(Session::start(session::Launch {
@@ -497,6 +639,30 @@ fn with_recap(recap: &str, prompt: &str) -> String {
         "[Nuée] Your previous reply was interrupted by the user before it finished. \
          This is what you had written so far:\n\n{recap}\n\n[End of the interrupted reply]\n\n{prompt}"
     )
+}
+
+fn valid_binary(path: &str, name: &str) -> Result<PathBuf, AppError> {
+    let path = PathBuf::from(path);
+    // Le nom tel que choisi : un lien `claude` mène souvent à un fichier nommé d'après sa version.
+    let named = path
+        .file_stem()
+        .and_then(|stem| stem.to_str())
+        .is_some_and(|stem| stem == name);
+    if !path.is_absolute() || !named || !path.is_file() {
+        return Err(AppError::InvalidInput(format!(
+            "pas un exécutable `{name}` : {}",
+            path.display()
+        )));
+    }
+    Ok(path)
+}
+
+fn last_line(output: &[u8]) -> Option<String> {
+    String::from_utf8_lossy(output)
+        .lines()
+        .map(str::trim)
+        .rfind(|line| !line.is_empty())
+        .map(str::to_owned)
 }
 
 fn valid_dir(path: &str) -> Result<PathBuf, AppError> {
