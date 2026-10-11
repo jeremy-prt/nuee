@@ -757,14 +757,17 @@ fn command_instructions(kind: AgentKind, command: &ChatCommand) -> Result<String
     let task = match command {
         ChatCommand::CreateSkill => {
             "The user wants to create a new skill. Pick a folder name that does not exist yet: never \
-             overwrite an existing skill."
+             overwrite an existing skill. Your first reply: one short sentence saying you will write the \
+             skill properly from their answers, then ask for the name they will type to call it and, in a \
+             line, what it should do."
                 .to_owned()
         }
         ChatCommand::EditSkill { id } => {
             let file = crate::services::skills::skill_file(kind, id)?;
             format!(
-                "The user wants to change the skill in `{}`. Read it first, change what they ask plus \
-                 clear mistakes, and keep its folder name.",
+                "The user wants to change the skill in `{}`. Read it first. Your first reply: one or two \
+                 short sentences on what it does today, then ask what they want to change. Change only \
+                 that plus clear mistakes, and keep its folder name.",
                 file.display()
             )
         }

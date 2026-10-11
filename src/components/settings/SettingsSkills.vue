@@ -2,21 +2,24 @@
 import { Check, ChevronRight, Copy, Eye, FolderOpen, RefreshCw, Search, SlidersHorizontal, Sparkles } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import SettingsAgentLogo from '@/components/settings/SettingsAgentLogo.vue'
 import SettingsMcpRow from '@/components/settings/SettingsMcpRow.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiSwitch from '@/components/ui/UiSwitch.vue'
-import { useNewChat } from '@/composables/useNewChat'
+import UiTooltip from '@/components/ui/UiTooltip.vue'
+import { useSkillChat } from '@/composables/useSkillChat'
 import { isMacosApp } from '@/ipc/system'
 import { useNavigationStore } from '@/stores/navigation'
 import { type Group, type McpServer, type Skill, useSkillsStore } from '@/stores/skills'
+import { agents, upcomingAgents } from '@/utils/agents'
 import { normalize } from '@/utils/search'
 
 const { t } = useI18n()
 const revealLabel = isMacosApp() ? 'settings.skills.reveal' : 'settings.skills.revealFolder'
 const store = useSkillsStore()
 const navigation = useNavigationStore()
-const newChat = useNewChat()
+const skillChat = useSkillChat()
 const query = ref('')
 const copied = ref<string | null>(null)
 
@@ -29,27 +32,17 @@ const busy = computed(() => store.loading || store.checking)
 const on = (skill: Skill) => store.mode(skill) !== 'off'
 const command = (skill: Skill) => store.mode(skill) === 'userInvocableOnly' || (skill.manual && on(skill))
 
-// Les connecteurs viennent du compte claude.ai, pas de la config : à part, ceux qui servent en tête.
-const isConnector = (server: McpServer) => server.scope === 'claudeai'
-const rank = (server: McpServer) => (server.status === 'connected' ? 0 : server.status === 'disabled' ? 2 : 1)
-const servers = computed(() => store.servers.filter((server) => !isConnector(server) && matches(server.name, server.target)))
-const connectors = computed(() =>
-  store.servers.filter((server) => isConnector(server) && matches(server.name)).sort((a, b) => rank(a) - rank(b)),
-)
+const servers = computed(() => store.servers.filter((server) => matches(server.name, server.target)))
 
-const groups = computed(() => {
-  const count = (list: McpServer[]) => ({ total: list.length, on: list.filter((server) => store.serverOn(server)).length })
-  return [
-    { kind: 'skills' as Group, title: t('settings.skills.skills'), total: store.skills.length, on: store.skills.filter(on).length, hint: null },
-    { kind: 'servers' as Group, title: t('settings.skills.servers'), ...count(store.servers.filter((server) => !isConnector(server))), hint: null },
-    {
-      kind: 'connectors' as Group,
-      title: t('settings.skills.connectors'),
-      ...count(store.servers.filter(isConnector)),
-      hint: t('settings.skills.connectorsHint'),
-    },
-  ].filter((group) => group.kind !== 'connectors' || group.total)
-})
+const groups = computed(() => [
+  { kind: 'skills' as Group, title: t('settings.skills.skills'), total: store.skills.length, on: store.skills.filter(on).length },
+  {
+    kind: 'servers' as Group,
+    title: t('settings.skills.servers'),
+    total: store.servers.length,
+    on: store.servers.filter((server: McpServer) => store.serverOn(server)).length,
+  },
+])
 
 function empty(kind: Group) {
   if (needle.value) return t('settings.skills.noMatch')
@@ -74,7 +67,29 @@ function onFilterKeydown(event: KeyboardEvent) {
 </script>
 
 <template>
-  <div class="flex items-center gap-2 pt-8">
+  <div class="flex flex-wrap gap-1.5 pt-8" role="group" :aria-label="t('settings.skills.agentLabel')">
+    <button
+      v-for="(agent, kind) in agents"
+      :key="kind"
+      type="button"
+      aria-pressed="true"
+      class="flex h-8 items-center gap-1.5 rounded-lg border border-stroke-focus bg-selection ps-1 pe-3 text-xs font-medium focus-visible:outline-2 focus-visible:outline-ring"
+    >
+      <SettingsAgentLogo :id="kind" />{{ agent.name }}
+    </button>
+    <UiTooltip v-for="agent in upcomingAgents" :key="agent.id" :label="t('settings.skills.soon')">
+      <button
+        type="button"
+        aria-pressed="false"
+        aria-disabled="true"
+        class="flex h-8 cursor-not-allowed items-center gap-1.5 rounded-lg border border-stroke ps-1 pe-3 text-xs text-muted focus-visible:outline-2 focus-visible:outline-ring"
+      >
+        <SettingsAgentLogo :id="agent.id" muted />{{ agent.name }}
+      </button>
+    </UiTooltip>
+  </div>
+
+  <div class="flex items-center gap-2 pt-5">
     <label class="flex h-7 max-w-80 min-w-0 flex-1 items-center gap-1.5 rounded-md border border-stroke bg-selection/50 px-2 focus-within:border-stroke-focus">
       <Search class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
       <input
@@ -96,7 +111,7 @@ function onFilterKeydown(event: KeyboardEvent) {
     </UiIconButton>
     <span class="flex-1" />
     <!-- Pas de création à la main : l'IA pose les bonnes questions et écrit un SKILL.md propre. -->
-    <UiButton size="sm" :title="t('settings.skills.createHint')" @click="newChat(null, { kind: 'createSkill' })">
+    <UiButton size="sm" @click="skillChat({ kind: 'createSkill' })">
       <Sparkles class="size-3.5" aria-hidden="true" />{{ t('settings.skills.create') }}
     </UiButton>
   </div>
@@ -133,7 +148,6 @@ function onFilterKeydown(event: KeyboardEvent) {
         :inert="!store.expanded(group.kind)"
       >
         <div class="min-h-0 overflow-hidden">
-          <p v-if="group.hint" class="-mt-1 pb-2.5 text-xs/relaxed text-muted">{{ group.hint }}</p>
           <div class="overflow-hidden rounded-xl border border-stroke bg-content/3">
             <template v-if="group.kind === 'skills'">
               <p v-if="!skills.length" class="px-4 py-3 text-xs" :class="store.errors.skills ? 'text-danger' : 'text-muted'">{{ empty('skills') }}</p>
@@ -201,14 +215,8 @@ function onFilterKeydown(event: KeyboardEvent) {
             </template>
 
             <template v-else>
-              <p
-                v-if="!(group.kind === 'servers' ? servers : connectors).length"
-                class="px-4 py-3 text-xs"
-                :class="store.errors.servers ? 'text-danger' : 'text-muted'"
-              >
-                {{ empty(group.kind) }}
-              </p>
-              <SettingsMcpRow v-for="server in group.kind === 'servers' ? servers : connectors" :key="server.name" :server="server" />
+              <p v-if="!servers.length" class="px-4 py-3 text-xs" :class="store.errors.servers ? 'text-danger' : 'text-muted'">{{ empty(group.kind) }}</p>
+              <SettingsMcpRow v-for="server in servers" :key="server.name" :server="server" />
             </template>
           </div>
         </div>

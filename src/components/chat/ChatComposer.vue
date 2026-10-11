@@ -1,21 +1,18 @@
 <script setup lang="ts">
 import { ArrowUp, File, Folder, Paperclip, Square, X } from '@lucide/vue'
-import { computed, onMounted, ref, useId, useTemplateRef } from 'vue'
+import { computed, ref, useId, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
-import ChatCommandChip from '@/components/chat/ChatCommandChip.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
 import { attachmentImport, attachmentSave, previewSrc } from '@/ipc/attachment'
 import { isAppError } from '@/ipc/agent'
 import type { Attachment } from '@/ipc/bindings/Attachment'
 import type { Catalog } from '@/ipc/bindings/Catalog'
-import type { ChatCommand } from '@/ipc/bindings/ChatCommand'
 import type { Effort } from '@/ipc/bindings/Effort'
 import type { PermissionMode } from '@/ipc/bindings/PermissionMode'
 import type { TurnOptions } from '@/ipc/bindings/TurnOptions'
 import { pickFiles } from '@/ipc/dialog'
 import { useShortcutsStore } from '@/stores/shortcuts'
-import { useSkillsStore } from '@/stores/skills'
 
 const props = defineProps<{
   chatId: string
@@ -24,16 +21,13 @@ const props = defineProps<{
   catalog: Catalog | null
   disabled: boolean
   running: boolean
-  // Commande posée par un bouton de Nuée (Nouveau skill...) : elle part avec le prochain message.
-  command: ChatCommand | null
 }>()
 // Réglages résolus : modèle et effort sont toujours des valeurs réelles du catalogue.
 const options = defineModel<TurnOptions>('options', { required: true })
-const emit = defineEmits<{ send: [prompt: string, attachments: Attachment[]]; stop: []; warm: []; clearCommand: [] }>()
+const emit = defineEmits<{ send: [prompt: string, attachments: Attachment[]]; stop: []; warm: [] }>()
 
 const { t } = useI18n()
 const shortcuts = useShortcutsStore()
-const skills = useSkillsStore()
 const prompt = ref('')
 const attachments = ref<Attachment[]>([])
 // Fichiers en cours d'écriture sur disque : envoyer avant les perdrait.
@@ -81,30 +75,6 @@ const effort = computed({
 })
 
 const canSend = computed(() => (!!prompt.value.trim() || attachments.value.length > 0) && !saving.value)
-const placeholder = computed(() => {
-  const command = props.command
-  if (!command) return t('composer.placeholder')
-  if (command.kind === 'createSkill') return t('composer.commands.createSkillPlaceholder')
-  return t('composer.commands.editSkillPlaceholder', { name: skills.find(command.id)?.name ?? command.id })
-})
-
-// Le chat vient d'être ouvert par le bouton d'une commande : il est là pour qu'on écrive.
-onMounted(() => {
-  if (props.command) input.value?.focus()
-})
-
-function clearCommand() {
-  emit('clearCommand')
-  input.value?.focus()
-}
-
-// Effacer au début d'un champ vide retire la commande, comme on retire un mot.
-function onBackspace(event: KeyboardEvent) {
-  const field = event.target as HTMLTextAreaElement
-  if (!props.command || prompt.value || field.selectionStart !== 0) return
-  event.preventDefault()
-  emit('clearCommand')
-}
 
 function submit() {
   if (!canSend.value || props.disabled || props.running) return
@@ -175,9 +145,6 @@ function onEnter(event: KeyboardEvent) {
     :class="{ 'opacity-60': disabled }"
     @submit.prevent="submit"
   >
-    <div v-if="command" class="mb-2 flex">
-      <ChatCommandChip :command="command" removable @remove="clearCommand" />
-    </div>
     <ul v-if="attachments.length" class="mb-2 flex flex-wrap gap-2" :aria-label="t('composer.attachments')">
       <li
         v-for="(attachment, index) in attachments"
@@ -219,9 +186,8 @@ function onEnter(event: KeyboardEvent) {
       writingsuggestions="false"
       :disabled="disabled"
       class="w-full resize-none bg-transparent text-sm select-text outline-none placeholder:text-muted"
-      :placeholder="placeholder"
+      :placeholder="t('composer.placeholder')"
       @keydown.enter="onEnter"
-      @keydown.backspace="onBackspace"
       @focus="emit('warm')"
       @paste="onPaste"
     />

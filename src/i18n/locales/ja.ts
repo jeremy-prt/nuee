@@ -58,6 +58,12 @@ export default {
     },
   },
   chat: {
+    commands: {
+      createSkill: 'スキルを作成中',
+      editSkill: '{name} を編集中',
+      createSkillPrompt: '新しいスキルの作成を手伝ってください。',
+      editSkillPrompt: 'スキル {name} の編集を手伝ってください。',
+    },
     ready: '{project} について {agent} に何でも聞いてください。',
     readyNoProject: 'ちょっとした質問ですか？{agent} がプロジェクトフォルダーなしで答えます。',
     transcript: '会話',
@@ -91,13 +97,6 @@ export default {
     deny: '拒否',
   },
   composer: {
-    commands: {
-      createSkill: 'new-skill',
-      editSkill: 'edit-skill',
-      remove: '{command} を外す',
-      createSkillPlaceholder: '作りたいスキルを説明してください。AI が足りない点を質問してから書きます。',
-      editSkillPlaceholder: '{name} で変えたいことを書いてください。',
-    },
     label: 'メッセージ',
     placeholder: '作りたいものを説明してください…',
     send: '送信',
@@ -172,7 +171,7 @@ export default {
       shortcuts: 'Nuée のすべてのキーボードショートカット。クリックすると変更できます。',
       agents: '使うエージェントを選び、それぞれを設定します。',
       connections: 'GitHub など Nuée と連携するサービス。',
-      skills: 'Claude Code のスキルと MCP サーバー。スイッチは Nuée だけに適用され、それぞれの設定からは Claude Code 全体も変更できます。',
+      skills: 'エージェントのスキルと MCP サーバー。スイッチは Nuée だけに適用され、それぞれの設定からはエージェント全体も変更できます。',
       archive: 'アーカイブしたチャット。復元または削除できます。',
     },
     agents: {
@@ -247,8 +246,6 @@ export default {
       },
       skills: 'スキル',
       servers: 'MCP サーバー',
-      connectors: 'claude.ai コネクタ',
-      connectorsHint: 'claude.ai アカウントのコネクタです。ログインが必要なものは、接続するまで使われません。',
       enabledCount: '{total} 件中 {enabled} 件がオン',
       preview: 'スキルを見る',
       panel: '{name} のプレビュー',
@@ -273,7 +270,6 @@ export default {
       cancelConnect: '{name} へのログインを取り消す',
       reconnect: '再接続',
       create: '新しいスキル',
-      createHint: '必要なことを書くと、AI が足りない点を質問してスキルを書きます。',
       skillsError: 'スキルを読み込めませんでした。{error}',
       serversError: 'MCP サーバーを読み込めませんでした。{error}',
       noSkills: 'まだスキルがありません。',
@@ -333,7 +329,6 @@ export default {
       details: '詳細',
       origin: '提供元',
       origins: {
-        claudeai: 'claude.ai アカウント',
         plugin: 'Claude Code のプラグイン',
         config: 'Claude Code の設定',
       },
@@ -342,6 +337,12 @@ export default {
       serverMissing: 'このサーバーはもう設定にありません。',
       serverEnabledHint: 'オフにすると Claude からツールが見えなくなります。',
       lockedHint: 'すべてでオフになっています。「すべて」に切り替えるとオンに戻せます。',
+      agentLabel: 'エージェント',
+      soon: '近日対応',
+      createTitle: 'AI でスキルを作成',
+      createMessage: 'チャットが開きます。AI がスキルの名前と役割を尋ね、承認すると設定に書き込みます。',
+      createConfirm: 'チャットを開く',
+      fileHint: 'ファイルはどこでも共通です。編集や削除は Claude Code にも反映されます。',
     },
     search: {
       label: '設定を検索',

@@ -212,7 +212,6 @@ const entries: SettingEntry[] = [
   ]),
   { id: 'skills-list', section: 'skills', label: 'settings.skills.skills', keywords: ['skills'] },
   { id: 'servers-list', section: 'skills', label: 'settings.skills.servers', keywords: ['mcp'] },
-  { id: 'connectors-list', section: 'skills', label: 'settings.skills.connectors', keywords: ['mcp', 'claude.ai', 'connectors'] },
   { id: 'zoom', section: 'appearance', label: 'settings.interface.zoom', keywords: ['zoom'] },
   {
     id: 'chatWidth',

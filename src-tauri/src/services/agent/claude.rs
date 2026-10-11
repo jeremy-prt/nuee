@@ -290,7 +290,6 @@ impl Driver for Claude {
         let auth = &response["response"];
         Some(Ok(McpAuth {
             url: auth["authUrl"].as_str().map(str::to_owned),
-            callback: auth["callbackExpected"] == true,
         }))
     }
 
@@ -1236,9 +1235,6 @@ mod tests {
             auth.url.as_deref(),
             Some("https://mcp.notion.com/authorize?x=1")
         );
-        assert!(auth.callback);
-        let connector = r#"{"type":"control_response","response":{"subtype":"success","request_id":"nuee-mcp-auth","response":{"authUrl":"https://claude.ai/settings/connectors","requiresUserAction":true,"callbackExpected":false}}}"#;
-        assert!(!claude.parse_mcp_auth(connector).unwrap().unwrap().callback);
         let error = r#"{"type":"control_response","response":{"subtype":"error","request_id":"nuee-mcp-auth","error":"Server type \"stdio\" does not support OAuth authentication"}}"#;
         assert!(claude.parse_mcp_auth(error).unwrap().is_err());
     }

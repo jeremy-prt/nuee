@@ -29,8 +29,7 @@ const enabled = computed({
 const status = computed(() => (server.value ? mcpStatus(server.value, enabled.value, t).text : ''))
 const action = computed(() => enabled.value && (server.value?.status === 'needsAuth' || server.value?.status === 'failed'))
 const origin = computed(() => {
-  const scope = server.value?.scope
-  return t(`settings.skills.origins.${scope === 'claudeai' || scope === 'plugin' ? scope : 'config'}`)
+  return t(`settings.skills.origins.${server.value?.scope === 'plugin' ? 'plugin' : 'config'}`)
 })
 </script>
 
@@ -39,11 +38,8 @@ const origin = computed(() => {
     {{ store.loaded && !store.checking ? t('settings.skills.serverMissing') : t('settings.skills.loading') }}
   </p>
   <template v-else>
-    <div class="pt-8">
-      <SettingsSkillsScope />
-    </div>
-
-    <SettingsGroup :title="t('settings.skills.behavior')">
+    <SettingsGroup :title="t('settings.skills.behavior')" :hint="t(`settings.skills.scopeHints.${store.scope}`)" :danger="store.scope === 'everywhere'">
+      <template #action><SettingsSkillsScope /></template>
       <SettingsRow
         v-slot="{ hintId }"
         :label="t('settings.skills.enabled')"

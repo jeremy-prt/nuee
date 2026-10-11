@@ -49,8 +49,6 @@ export interface Conversation {
   pausedAt: number | null
   // Message envoyé pendant que l'agent range son tour : il part dès que le tour se clôt.
   queued: { cwd: string | null; prompt: string; attachments: Attachment[]; command: ChatCommand | null } | null
-  // Commande posée dans le champ (Nouveau skill...) : elle part avec le prochain message. Non enregistrée.
-  command: ChatCommand | null
   // Demandes d'autorisation (mode Auto) en attente de réponse, la plus ancienne d'abord. Non enregistrées.
   approvals: readonly Approval[]
   // Faux tant que l'historique n'est pas lu : envoyer avant écraserait la conversation chargée.
@@ -231,7 +229,6 @@ export const useConversationsStore = defineStore('conversations', () => {
       pausedMs: 0,
       pausedAt: null,
       queued: null,
-      command: null,
       approvals: [],
       loaded,
       items: [],
@@ -281,11 +278,6 @@ export const useConversationsStore = defineStore('conversations', () => {
       .finally(() => {
         conversation.loaded = true
       })
-  }
-
-  function setCommand(chatId: string, command: ChatCommand | null) {
-    const conversation = conversations.get(chatId)
-    if (conversation) conversation.command = command
   }
 
   function setOptions(chatId: string, options: TurnOptions) {
@@ -360,12 +352,11 @@ export const useConversationsStore = defineStore('conversations', () => {
     }
   }
 
-  // cwd null : chat sans projet, Rust lui donne un dossier vide à lui.
-  function send(chatId: string, cwd: string | null, prompt: string, attachments: Attachment[]) {
+  // cwd null : chat sans projet, Rust lui donne un dossier vide à lui. `command` : outil de Nuée qui ouvre le
+  // chat (création de skill...), affiché à la place du message.
+  function send(chatId: string, cwd: string | null, prompt: string, attachments: Attachment[], command: ChatCommand | null = null) {
     const conversation = conversations.get(chatId)
     if (!conversation?.loaded || conversation.phase === 'answering' || conversation.queued) return
-    const command = conversation.command
-    conversation.command = null
     push(conversation, { kind: 'user', id: crypto.randomUUID(), text: prompt, attachments, ...(command && { command }) })
     save(chatId)
     if (conversation.phase === 'finishing') conversation.queued = { cwd, prompt, attachments, command }
@@ -400,5 +391,5 @@ export const useConversationsStore = defineStore('conversations', () => {
     write(chatId, () => chatDelete(chatId))
   }
 
-  return { busy, find, create, open, setOptions, setCommand, send, warm, approve, stop, remove }
+  return { busy, find, create, open, setOptions, send, warm, approve, stop, remove }
 })

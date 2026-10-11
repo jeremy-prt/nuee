@@ -56,6 +56,12 @@ export default {
     },
   },
   chat: {
+    commands: {
+      createSkill: 'Creating a skill',
+      editSkill: 'Editing {name}',
+      createSkillPrompt: 'Help me create a new skill.',
+      editSkillPrompt: 'Help me edit the skill {name}.',
+    },
     ready: 'Ask {agent} anything about {project}.',
     readyNoProject: 'A quick question? {agent} answers without a project folder.',
     transcript: 'Conversation',
@@ -89,13 +95,6 @@ export default {
     deny: 'Deny',
   },
   composer: {
-    commands: {
-      createSkill: 'new-skill',
-      editSkill: 'edit-skill',
-      remove: 'Remove {command}',
-      createSkillPlaceholder: 'Describe the skill you want. The AI asks what is missing, then writes it.',
-      editSkillPlaceholder: 'Say what should change in {name}.',
-    },
     label: 'Message',
     placeholder: 'Describe what you want to build…',
     send: 'Send',
@@ -170,7 +169,7 @@ export default {
       shortcuts: 'Every keyboard shortcut in Nuée. Click one to change it.',
       agents: 'Choose which agents to use and set each one up.',
       connections: 'GitHub and the other services Nuée connects to.',
-      skills: 'The skills and MCP servers of Claude Code. The switches only apply to Nuée, the settings of each one can also change Claude Code everywhere.',
+      skills: 'The skills and MCP servers of your agents. The switches only apply to Nuée, the settings of each one can also change the agent everywhere.',
       archive: 'Archived chats, to bring back or delete.',
     },
     agents: {
@@ -245,8 +244,6 @@ export default {
       },
       skills: 'Skills',
       servers: 'MCP servers',
-      connectors: 'claude.ai connectors',
-      connectorsHint: 'They come from your claude.ai account. A connector that needs sign-in stays unused until you connect it.',
       enabledCount: '{enabled} of {total} on',
       preview: 'View the skill',
       panel: 'Preview of {name}',
@@ -271,7 +268,6 @@ export default {
       cancelConnect: 'Cancel sign-in to {name}',
       reconnect: 'Reconnect',
       create: 'New skill',
-      createHint: 'Describe what you need, the AI asks what is missing and writes the skill.',
       skillsError: 'Could not read the skills. {error}',
       serversError: 'Could not read the MCP servers. {error}',
       noSkills: 'No skills yet.',
@@ -331,7 +327,6 @@ export default {
       details: 'Details',
       origin: 'Origin',
       origins: {
-        claudeai: 'Your claude.ai account',
         plugin: 'A Claude Code plugin',
         config: 'Your Claude Code configuration',
       },
@@ -340,6 +335,12 @@ export default {
       serverMissing: 'This server is no longer in the configuration.',
       serverEnabledHint: 'When off, Claude no longer sees its tools.',
       lockedHint: 'It is off everywhere. Switch to Everywhere to turn it back on.',
+      agentLabel: 'Agent',
+      soon: 'Coming soon',
+      createTitle: 'Create a skill with AI',
+      createMessage: 'A chat opens. The AI asks for the skill\'s name and what it should do, then writes it to your configuration once you approve.',
+      createConfirm: 'Open the chat',
+      fileHint: 'The file is the same everywhere, editing or deleting it also changes Claude Code.',
     },
     search: {
       label: 'Search settings',

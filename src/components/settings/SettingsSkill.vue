@@ -9,7 +9,7 @@ import UiButton from '@/components/ui/UiButton.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiSegmented from '@/components/ui/UiSegmented.vue'
 import UiSwitch from '@/components/ui/UiSwitch.vue'
-import { useNewChat } from '@/composables/useNewChat'
+import { useSkillChat } from '@/composables/useSkillChat'
 import type { SkillMode } from '@/ipc/bindings/SkillMode'
 import { isMacosApp } from '@/ipc/system'
 import { useNavigationStore } from '@/stores/navigation'
@@ -20,7 +20,7 @@ const props = defineProps<{ id: string }>()
 const { t } = useI18n()
 const store = useSkillsStore()
 const navigation = useNavigationStore()
-const newChat = useNewChat()
+const skillChat = useSkillChat()
 const revealLabel = isMacosApp() ? 'settings.skills.reveal' : 'settings.skills.revealFolder'
 const copied = ref(false)
 
@@ -79,11 +79,8 @@ async function remove() {
   <template v-else>
     <p v-if="skill.description" class="mt-1.5 max-w-3xl text-sm text-muted">{{ skill.description }}</p>
 
-    <div class="pt-8">
-      <SettingsSkillsScope />
-    </div>
-
-    <SettingsGroup :title="t('settings.skills.behavior')">
+    <SettingsGroup :title="t('settings.skills.behavior')" :hint="t(`settings.skills.scopeHints.${store.scope}`)" :danger="store.scope === 'everywhere'">
+      <template #action><SettingsSkillsScope /></template>
       <SettingsRow v-slot="{ hintId }" :label="t('settings.skills.enabled')" :hint="t('settings.skills.enabledHint', { name: skill.name })">
         <UiSwitch v-model="enabled" :label="t('settings.skills.enabled')" :aria-describedby="hintId" />
       </SettingsRow>
@@ -95,7 +92,7 @@ async function remove() {
       </SettingsRow>
     </SettingsGroup>
 
-    <SettingsGroup :title="t('settings.skills.file')">
+    <SettingsGroup :title="t('settings.skills.file')" :hint="t('settings.skills.fileHint')">
       <SettingsRow :label="t('settings.skills.location')">
         <template #hint><span class="font-mono break-all select-text">{{ skill.path }}</span></template>
         <div class="flex items-center gap-1">
@@ -109,7 +106,7 @@ async function remove() {
       </SettingsRow>
       <SettingsRow v-slot="{ hintId }" :label="t('settings.skills.content')" :hint="t('settings.skills.contentHint')">
         <div class="flex flex-wrap justify-end gap-2">
-          <UiButton size="sm" :aria-describedby="hintId" @click="newChat(null, { kind: 'editSkill', id: skill.id })">
+          <UiButton size="sm" :aria-describedby="hintId" @click="skillChat({ kind: 'editSkill', id: skill.id })">
             <Sparkles class="size-3.5" aria-hidden="true" />{{ t('settings.skills.editWithAi') }}
           </UiButton>
           <UiButton size="sm" :aria-describedby="hintId" @click="store.edit(skill)">{{ t('settings.skills.edit') }}</UiButton>

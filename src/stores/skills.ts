@@ -19,11 +19,10 @@ const AGENT: AgentKind = 'claude'
 const MODES: SkillMode[] = ['on', 'nameOnly', 'userInvocableOnly', 'off']
 // nuee : un réglage ne vaut que pour les chats de Nuée. everywhere : il modifie la config de l'agent.
 export type Scope = 'nuee' | 'everywhere'
-export type Group = 'skills' | 'servers' | 'connectors'
+export type Group = 'skills' | 'servers'
 
 function loadPrefs() {
-  // Les connecteurs claude.ai sont nombreux et rarement réglés : repliés au départ.
-  const prefs = { skills: {} as Record<string, SkillMode>, servers: [] as string[], collapsed: ['connectors'] as Group[] }
+  const prefs = { skills: {} as Record<string, SkillMode>, servers: [] as string[], collapsed: [] as Group[] }
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}')
     const list = (value: unknown) => (Array.isArray(value) ? value.filter((item) => typeof item === 'string') : [])

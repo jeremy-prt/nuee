@@ -58,6 +58,12 @@ export default {
     },
   },
   chat: {
+    commands: {
+      createSkill: 'Criação de skill',
+      editSkill: 'Edição de {name}',
+      createSkillPrompt: 'Me ajude a criar um novo skill.',
+      editSkillPrompt: 'Me ajude a editar o skill {name}.',
+    },
     ready: 'Pergunte ao {agent} o que quiser sobre {project}.',
     readyNoProject: 'Uma pergunta rápida? {agent} responde sem pasta de projeto.',
     transcript: 'Conversa',
@@ -91,13 +97,6 @@ export default {
     deny: 'Recusar',
   },
   composer: {
-    commands: {
-      createSkill: 'novo-skill',
-      editSkill: 'editar-skill',
-      remove: 'Remover {command}',
-      createSkillPlaceholder: 'Descreva o skill que você quer. A IA pergunta o que falta e depois o escreve.',
-      editSkillPlaceholder: 'Diga o que mudar em {name}.',
-    },
     label: 'Mensagem',
     placeholder: 'Descreva o que você quer construir…',
     send: 'Enviar',
@@ -172,7 +171,7 @@ export default {
       shortcuts: 'Todos os atalhos de teclado do Nuée. Clique em um para alterá-lo.',
       agents: 'Escolha quais agentes usar e configure cada um.',
       connections: 'GitHub e os outros serviços conectados ao Nuée.',
-      skills: 'Os skills e servidores MCP do Claude Code. Os interruptores só valem para o Nuée, as configurações de cada um também podem mudar o Claude Code em todo lugar.',
+      skills: 'Os skills e servidores MCP dos seus agentes. Os interruptores só valem para o Nuée, as configurações de cada um também podem mudar o agente em todo lugar.',
       archive: 'Os chats arquivados, para recuperar ou excluir.',
     },
     agents: {
@@ -247,8 +246,6 @@ export default {
       },
       skills: 'Skills',
       servers: 'Servidores MCP',
-      connectors: 'Conectores do claude.ai',
-      connectorsHint: 'Eles vêm da sua conta do claude.ai. Um conector que pede login fica sem uso até você se conectar.',
       enabledCount: '{enabled} de {total} ativados',
       preview: 'Ver o skill',
       panel: 'Prévia de {name}',
@@ -273,7 +270,6 @@ export default {
       cancelConnect: 'Cancelar o login em {name}',
       reconnect: 'Reconectar',
       create: 'Novo skill',
-      createHint: 'Descreva o que você precisa, a IA pergunta o que falta e escreve o skill.',
       skillsError: 'Não foi possível ler os skills. {error}',
       serversError: 'Não foi possível ler os servidores MCP. {error}',
       noSkills: 'Nenhum skill por enquanto.',
@@ -333,7 +329,6 @@ export default {
       details: 'Detalhes',
       origin: 'Origem',
       origins: {
-        claudeai: 'Sua conta do claude.ai',
         plugin: 'Um plugin do Claude Code',
         config: 'Sua configuração do Claude Code',
       },
@@ -342,6 +337,12 @@ export default {
       serverMissing: 'Este servidor não está mais na configuração.',
       serverEnabledHint: 'Desativado, o Claude não vê mais suas ferramentas.',
       lockedHint: 'Ele está desativado em todo lugar. Mude para Em todo lugar para reativá-lo.',
+      agentLabel: 'Agente',
+      soon: 'Em breve',
+      createTitle: 'Criar um skill com IA',
+      createMessage: 'Um chat se abre. A IA pede o nome do skill e o que ele deve fazer, e o escreve na sua configuração quando você aprovar.',
+      createConfirm: 'Abrir o chat',
+      fileHint: 'O arquivo é o mesmo em todo lugar, editá-lo ou excluí-lo também muda o Claude Code.',
     },
     search: {
       label: 'Pesquisar nas configurações',

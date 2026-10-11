@@ -19,10 +19,9 @@ const on = computed(() => store.serverOn(props.server))
 
 const status = computed(() => mcpStatus(props.server, on.value, t))
 
-// Connecteur claude.ai : son origine est déjà le titre du groupe, le transport n'apprend rien.
 const origin = computed(() => {
   const { scope, transport } = props.server
-  if (scope === 'claudeai' || !transport) return null
+  if (!transport) return null
   return scope === 'plugin' ? `plugin · ${transport}` : transport
 })
 const action = computed(() => on.value && (props.server.status === 'needsAuth' || props.server.status === 'failed'))

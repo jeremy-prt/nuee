@@ -2,7 +2,8 @@
 import type { McpStatus } from "./McpStatus";
 
 /**
- * Serveur MCP de la config globale de l'agent, tel qu'un nouveau chat le verrait.
+ * Serveur MCP de la config de l'agent, tel qu'un nouveau chat le verrait. Les connecteurs de son compte
+ * claude.ai n'en font pas partie : ils ne se règlent pas d'ici (choix de Jérémy).
  */
 export type McpServer = { name: string, status: McpStatus, 
 /**

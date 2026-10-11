@@ -11,24 +11,21 @@ use crate::error::AppError;
 
 const MCP_TIMEOUT: Duration = Duration::from_secs(30);
 const MCP_POLL: Duration = Duration::from_millis(400);
-/// Les connecteurs claude.ai n'arrivent dans la liste qu'après un aller-retour réseau (près d'une
-/// seconde) : une liste sans serveur en attente avant ce délai peut encore s'allonger.
+/// Certains serveurs (plugins) n'arrivent dans la liste qu'après un aller-retour réseau : une liste sans
+/// serveur en attente avant ce délai peut encore s'allonger.
 const MCP_SETTLE: Duration = Duration::from_secs(2);
 /// Le temps de valider la page d'autorisation du serveur dans le navigateur.
 const LOGIN_TIMEOUT: Duration = Duration::from_secs(5 * 60);
 const LOGIN_POLL: Duration = Duration::from_secs(1);
-/// Connecteur claude.ai : chaque relevé coûte un process neuf.
-const CONNECTOR_POLL: Duration = Duration::from_secs(5);
 
 pub(super) struct McpAuth {
-    /// Page d'autorisation à ouvrir ; `None` quand le serveur n'en demande pas.
+    /// Page d'autorisation à ouvrir ; `None` quand le serveur n'en demande pas. L'agent reçoit
+    /// lui-même le retour du navigateur (port local), puis reconnecte le serveur.
     pub url: Option<String>,
-    /// L'agent reçoit lui-même le retour du navigateur (port local) et reconnecte le serveur. Sinon
-    /// (connecteur claude.ai), l'autorisation se fait sur claude.ai et seul un process neuf la voit.
-    pub callback: bool,
 }
 
-/// Serveur MCP de la config globale de l'agent, tel qu'un nouveau chat le verrait.
+/// Serveur MCP de la config de l'agent, tel qu'un nouveau chat le verrait. Les connecteurs de son compte
+/// claude.ai n'en font pas partie : ils ne se règlent pas d'ici (choix de Jérémy).
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
@@ -67,13 +64,13 @@ impl AgentService {
         let denied = denied_servers(kind);
         let servers = self
             .watch_mcp(kind, |servers| {
-                on_update(&with_denied(servers, &denied));
+                on_update(&visible(servers, &denied));
                 servers
                     .iter()
                     .all(|server| server.status != McpStatus::Pending)
             })
             .await?;
-        Ok(with_denied(&servers, &denied))
+        Ok(visible(&servers, &denied))
     }
 
     pub fn mcp_set_enabled(
@@ -107,7 +104,7 @@ impl AgentService {
                 }
             })
             .await?;
-        let server = with_denied(&servers, &denied_servers(kind))
+        let server = visible(&servers, &denied_servers(kind))
             .into_iter()
             .find(|server| server.name == name)
             .ok_or_else(|| AppError::InvalidInput(format!("serveur MCP inconnu : {name}")))?;
@@ -132,7 +129,7 @@ impl AgentService {
         lock(&self.logins).insert(name.to_owned(), pid);
 
         let result = self
-            .authorize(kind, driver.as_ref(), &mut child, &requests, name, pid)
+            .authorize(driver.as_ref(), &mut child, &requests, name, pid)
             .await;
         {
             let mut logins = lock(&self.logins);
@@ -166,7 +163,6 @@ impl AgentService {
     /// l'utilisateur annule (son entrée quitte `logins`) ou que le délai passe.
     async fn authorize(
         &self,
-        kind: AgentKind,
         driver: &dyn Driver,
         child: &mut Child,
         requests: &[String],
@@ -189,8 +185,8 @@ impl AgentService {
         for request in requests {
             sent = sent && send(stdin, request).await;
         }
-        // Un connecteur claude.ai n'existe pour la CLI qu'une fois sa liste reçue du réseau : le
-        // demander avant donne « Server not found ».
+        // Un serveur de plugin n'existe pour la CLI qu'une fois chargé : le demander avant donne
+        // « Server not found ».
         let deadline = Instant::now() + MCP_TIMEOUT;
         loop {
             if !sent || !send(stdin, &driver.mcp_status_message()).await {
@@ -229,36 +225,22 @@ impl AgentService {
 
         let deadline = Instant::now() + LOGIN_TIMEOUT;
         loop {
-            sleep(if auth.callback {
-                LOGIN_POLL
-            } else {
-                CONNECTOR_POLL
-            })
-            .await;
+            sleep(LOGIN_POLL).await;
             if cancelled() {
                 return Err(stopped());
             }
             if Instant::now() >= deadline {
                 return Err(AppError::AgentFailed("connexion trop longue".into()));
             }
-            let servers = if auth.callback {
-                if !send(stdin, &driver.mcp_status_message()).await {
-                    return Err(stopped());
-                }
-                read_until(&mut lines, Instant::now() + MCP_TIMEOUT, |line| {
-                    driver.parse_mcp_status(line)
-                })
-                .await
-                .ok_or_else(stopped)?
-                .map_err(AppError::AgentFailed)?
-            } else {
-                self.watch_mcp(kind, |servers| {
-                    servers
-                        .iter()
-                        .all(|server| server.status != McpStatus::Pending)
-                })
-                .await?
-            };
+            if !send(stdin, &driver.mcp_status_message()).await {
+                return Err(stopped());
+            }
+            let servers = read_until(&mut lines, Instant::now() + MCP_TIMEOUT, |line| {
+                driver.parse_mcp_status(line)
+            })
+            .await
+            .ok_or_else(stopped)?
+            .map_err(AppError::AgentFailed)?;
             if let Some(server) = servers
                 .into_iter()
                 .find(|server| server.name == name && server.status == McpStatus::Connected)
@@ -333,16 +315,20 @@ fn denied_servers(kind: AgentKind) -> Vec<String> {
         .unwrap_or_default()
 }
 
-/// La CLI tait les serveurs coupés partout : ils reviennent dans la liste pour pouvoir être rallumés.
-fn with_denied(servers: &[McpServer], denied: &[String]) -> Vec<McpServer> {
-    let mut all = servers.to_vec();
+/// Sans les connecteurs claude.ai. La CLI tait les serveurs coupés partout : ils reviennent dans la
+/// liste pour pouvoir être rallumés.
+fn visible(servers: &[McpServer], denied: &[String]) -> Vec<McpServer> {
+    let connector = |name: &str| name.starts_with("claude.ai ");
+    let mut all: Vec<McpServer> = servers
+        .iter()
+        .filter(|server| server.scope != "claudeai" && !connector(&server.name))
+        .cloned()
+        .collect();
     for name in denied {
-        if all.iter().any(|server| &server.name == name) {
+        if connector(name) || all.iter().any(|server| &server.name == name) {
             continue;
         }
-        let scope = if name.starts_with("claude.ai ") {
-            "claudeai"
-        } else if name.starts_with("plugin:") {
+        let scope = if name.starts_with("plugin:") {
             "plugin"
         } else {
             ""
@@ -504,7 +490,7 @@ done
     }
 
     #[test]
-    fn servers_denied_everywhere_stay_listed() {
+    fn connectors_hidden_and_denied_servers_listed() {
         let servers = [McpServer {
             name: "good".into(),
             status: McpStatus::Connected,
@@ -514,9 +500,18 @@ done
             tools: Some(1),
             error: None,
         }];
-        let all = with_denied(&servers, &["good".into(), "claude.ai Notion".into()]);
-        assert_eq!(all.len(), 2);
+        let connector = McpServer {
+            name: "claude.ai Linear".into(),
+            scope: "claudeai".into(),
+            ..servers[0].clone()
+        };
+        let all = visible(
+            &[servers[0].clone(), connector],
+            &["claude.ai Notion".into(), "plugin:figma:figma".into()],
+        );
+        let names: Vec<&str> = all.iter().map(|server| server.name.as_str()).collect();
+        assert_eq!(names, ["good", "plugin:figma:figma"]);
         assert_eq!(all[1].status, McpStatus::Disabled);
-        assert_eq!(all[1].scope, "claudeai");
+        assert_eq!(all[1].scope, "plugin");
     }
 }

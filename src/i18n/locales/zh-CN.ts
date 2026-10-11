@@ -58,6 +58,12 @@ export default {
     },
   },
   chat: {
+    commands: {
+      createSkill: '创建技能',
+      editSkill: '编辑 {name}',
+      createSkillPrompt: '帮我创建一个新技能。',
+      editSkillPrompt: '帮我编辑技能 {name}。',
+    },
     ready: '关于 {project}，尽管向 {agent} 提问。',
     readyNoProject: '有个小问题？{agent} 无需项目文件夹即可回答。',
     transcript: '对话',
@@ -91,13 +97,6 @@ export default {
     deny: '拒绝',
   },
   composer: {
-    commands: {
-      createSkill: 'new-skill',
-      editSkill: 'edit-skill',
-      remove: '移除 {command}',
-      createSkillPlaceholder: '描述你想要的技能。AI 会先询问缺少的信息，然后写好它。',
-      editSkillPlaceholder: '说明 {name} 需要修改什么。',
-    },
     label: '消息',
     placeholder: '描述你想要构建的内容…',
     send: '发送',
@@ -172,7 +171,7 @@ export default {
       shortcuts: 'Nuée 的所有键盘快捷键。点击即可修改。',
       agents: '选择要使用的智能体，并分别进行设置。',
       connections: 'GitHub 及其他与 Nuée 连接的服务。',
-      skills: 'Claude Code 的技能和 MCP 服务器。开关只对 Nuée 生效，每一项的设置也可以处处修改 Claude Code。',
+      skills: '你的代理的技能和 MCP 服务器。开关只对 Nuée 生效，每一项的设置也可以处处修改代理。',
       archive: '已归档的聊天，可以恢复或删除。',
     },
     agents: {
@@ -247,8 +246,6 @@ export default {
       },
       skills: '技能',
       servers: 'MCP 服务器',
-      connectors: 'claude.ai 连接器',
-      connectorsHint: '它们来自你的 claude.ai 账户。需要登录的连接器在你连接之前不会被使用。',
       enabledCount: '{total} 个中已开启 {enabled} 个',
       preview: '查看技能',
       panel: '{name} 预览',
@@ -273,7 +270,6 @@ export default {
       cancelConnect: '取消登录 {name}',
       reconnect: '重新连接',
       create: '新技能',
-      createHint: '描述你的需要，AI 会询问缺少的信息并写好技能。',
       skillsError: '无法读取技能。{error}',
       serversError: '无法读取 MCP 服务器。{error}',
       noSkills: '还没有技能。',
@@ -333,7 +329,6 @@ export default {
       details: '详情',
       origin: '来源',
       origins: {
-        claudeai: '你的 claude.ai 账户',
         plugin: 'Claude Code 插件',
         config: '你的 Claude Code 配置',
       },
@@ -342,6 +337,12 @@ export default {
       serverMissing: '这个服务器已不在配置中。',
       serverEnabledHint: '关闭后 Claude 将看不到它的工具。',
       lockedHint: '它已处处关闭。切换到“处处”即可重新开启。',
+      agentLabel: '代理',
+      soon: '即将推出',
+      createTitle: '用 AI 创建技能',
+      createMessage: '会打开一个聊天。AI 会询问技能名称和用途，在你确认后写入配置。',
+      createConfirm: '打开聊天',
+      fileHint: '文件处处相同，修改或删除也会改变 Claude Code。',
     },
     search: {
       label: '搜索设置',
