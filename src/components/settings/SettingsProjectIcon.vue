@@ -8,7 +8,6 @@ import ProjectMascot from '@/components/project/ProjectMascot.vue'
 import SettingsRow from '@/components/settings/SettingsRow.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiSegmented from '@/components/ui/UiSegmented.vue'
-import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { isAppError } from '@/ipc/agent'
 import { ICON_EXTENSIONS, pickImage } from '@/ipc/dialog'
 import { type IconMode, type Project, useProjectsStore } from '@/stores/projects'
@@ -88,17 +87,16 @@ async function importImage() {
 
   <template v-if="showsMascot">
     <SettingsRow data-setting="project-mascot" :label="t('settings.projects.mascot')">
-      <!-- aria-checked plutôt que data-state : l'infobulle autour de chaque case pose son propre data-state. -->
       <RadioGroupRoot v-model="mascot" :aria-label="t('settings.projects.mascot')" orientation="horizontal" class="flex flex-wrap justify-end gap-1">
-        <UiTooltip v-for="id in mascotIds" :key="id" :label="t(`settings.projects.mascots.${id}`)">
-          <RadioGroupItem
-            :value="id"
-            :aria-label="t(`settings.projects.mascots.${id}`)"
-            class="grid size-12 cursor-pointer place-items-center rounded-lg hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring aria-checked:bg-signal/15"
-          >
-            <ProjectMascot :mascot="id" :color="project.color" class="size-8" />
-          </RadioGroupItem>
-        </UiTooltip>
+        <RadioGroupItem
+          v-for="id in mascotIds"
+          :key="id"
+          :value="id"
+          :aria-label="t(`settings.projects.mascots.${id}`)"
+          class="grid size-12 cursor-pointer place-items-center rounded-lg hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring data-[state=checked]:bg-signal/15"
+        >
+          <ProjectMascot :mascot="id" :color="project.color" class="size-8" />
+        </RadioGroupItem>
       </RadioGroupRoot>
     </SettingsRow>
     <SettingsRow data-setting="project-color" :label="t('settings.projects.color')">
@@ -108,16 +106,16 @@ async function importImage() {
         orientation="horizontal"
         class="flex flex-wrap justify-end gap-1.5"
       >
-        <UiTooltip v-for="color in projectColors" :key="color" :label="t(`settings.projects.colors.${color}`)">
-          <RadioGroupItem
-            :value="color"
-            :aria-label="t(`settings.projects.colors.${color}`)"
-            class="grid size-6 cursor-pointer place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            :style="{ background: colorVar(color) }"
-          >
-            <RadioGroupIndicator><Check class="size-3.5 text-canvas" aria-hidden="true" /></RadioGroupIndicator>
-          </RadioGroupItem>
-        </UiTooltip>
+        <RadioGroupItem
+          v-for="color in projectColors"
+          :key="color"
+          :value="color"
+          :aria-label="t(`settings.projects.colors.${color}`)"
+          class="grid size-6 cursor-pointer place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          :style="{ background: colorVar(color) }"
+        >
+          <RadioGroupIndicator><Check class="size-3.5 text-canvas" aria-hidden="true" /></RadioGroupIndicator>
+        </RadioGroupItem>
       </RadioGroupRoot>
     </SettingsRow>
   </template>
