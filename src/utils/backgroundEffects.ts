@@ -86,8 +86,39 @@ function halftone({ width, height, data }: Pixels, level: EffectLevel) {
   return out
 }
 
-// Lignes de balayage d'écran cathodique, plus épaisses et plus sombres avec l'intensité.
-function scanlines({ width, height, data }: Pixels, level: EffectLevel) {
+// Flou en boîte, deux passes par axe : proche d'un gaussien, en temps linéaire quel que soit le rayon.
+function soften({ width, height, data }: Pixels, radius: number) {
+  const out = new Uint8ClampedArray(data)
+  const line = new Float32Array(Math.max(width, height) * 3)
+  const pass = (count: number, length: number, index: (outer: number, i: number) => number) => {
+    const span = radius * 2 + 1
+    for (let outer = 0; outer < count; outer++) {
+      for (let i = 0; i < length; i++) for (let c = 0; c < 3; c++) line[i * 3 + c] = out[index(outer, i) + c]!
+      const sum = [0, 0, 0]
+      for (let i = -radius; i <= radius; i++) {
+        const k = Math.min(length - 1, Math.max(0, i)) * 3
+        for (let c = 0; c < 3; c++) sum[c]! += line[k + c]!
+      }
+      for (let i = 0; i < length; i++) {
+        for (let c = 0; c < 3; c++) out[index(outer, i) + c] = sum[c]! / span
+        const add = Math.min(length - 1, i + radius + 1) * 3
+        const drop = Math.max(0, i - radius) * 3
+        for (let c = 0; c < 3; c++) sum[c]! += line[add + c]! - line[drop + c]!
+      }
+    }
+  }
+  for (let round = 0; round < 2; round++) {
+    pass(height, width, (y, x) => (y * width + x) * 4)
+    pass(width, height, (x, y) => (y * width + x) * 4)
+  }
+  return out
+}
+
+// Lignes de balayage d'écran cathodique, plus épaisses et plus sombres avec l'intensité. L'image est
+// d'abord adoucie : sous du texte, une image nette se lit mal (choix de Jérémy).
+function scanlines(pixels: Pixels, level: EffectLevel) {
+  const { width, height } = pixels
+  const data = soften(pixels, Math.max(1, Math.round((width / 1600) * [2, 4, 6][level]!)))
   const period = [4, 5, 6][level]!
   const dark = [1, 2, 3][level]!
   const gain = [0.55, 0.35, 0.2][level]!

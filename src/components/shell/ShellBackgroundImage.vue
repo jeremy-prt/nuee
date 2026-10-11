@@ -18,8 +18,12 @@ const style = computed(() => ({
 </script>
 
 <template>
-  <div v-if="url" class="absolute inset-0 bg-cover bg-center" :style="style" aria-hidden="true" />
-  <div v-else class="absolute inset-0 animate-pulse bg-content/5 motion-reduce:animate-none" aria-hidden="true" />
+  <div v-if="!url" class="absolute inset-0 animate-pulse bg-content/5 motion-reduce:animate-none" aria-hidden="true" />
+  <!-- Fondu seulement si l'image arrive après coup (lancement, nouvel effet), comme monocode : déjà en cache, elle
+       est là dès le premier rendu et Transition, sans `appear`, ne joue rien. -->
+  <Transition enter-from-class="opacity-0" enter-active-class="transition-opacity duration-500 ease-out motion-reduce:transition-none">
+    <div v-if="url" class="absolute inset-0 bg-cover bg-center" :style="style" aria-hidden="true" />
+  </Transition>
   <!-- Plus sombre en bas, où sont le chat et la zone de saisie. -->
   <div v-if="darken" class="absolute inset-0 bg-linear-to-b from-black/15 to-black/55" aria-hidden="true" />
 </template>
