@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import ShellBackgroundImage from '@/components/shell/ShellBackgroundImage.vue'
 import { preloadBackground } from '@/composables/useBackgroundImage'
 import { BACKGROUND_OPACITY, INTENSITY_LEVEL, useAppearanceStore } from '@/stores/appearance'
@@ -23,12 +23,25 @@ watch(
 )
 
 const opacity = computed(() => (shown.value ? BACKGROUND_OPACITY[appearance.background.visibility] / 100 : 0))
+
+// Un changement de vue a déjà son fondu enchaîné (View Transitions) : un second fondu sur l'opacité finirait après
+// lui, et le fond remonterait d'un coup à la fin de la capture (clignotement). Seuls les réglages d'Apparence l'animent.
+const animated = ref(true)
+watch(
+  () => navigation.view,
+  () => {
+    animated.value = false
+    requestAnimationFrame(() => requestAnimationFrame(() => (animated.value = true)))
+  },
+  { flush: 'sync' },
+)
 </script>
 
 <template>
   <div
     v-if="appearance.background.path"
-    class="pointer-events-none absolute inset-0 -z-10 overflow-hidden transition-opacity duration-500 motion-reduce:transition-none"
+    class="pointer-events-none absolute inset-0 -z-10 overflow-hidden motion-reduce:transition-none"
+    :class="{ 'transition-opacity duration-500': animated }"
     :style="{ opacity }"
   >
     <ShellBackgroundImage

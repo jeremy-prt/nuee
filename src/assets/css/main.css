@@ -133,6 +133,9 @@ html:has([data-edge='panel']:focus-visible) [data-title-edge='panel'] {
 .ui-glass-raised {
   --raised: color-mix(in srgb, var(--color-content) 7%, transparent);
   border-color: color-mix(in srgb, var(--color-content) 14%, transparent);
+  /* Une confirmation doit se lire d'un coup d'œil, même sur une image de fond chargée : bien plus couvrante
+     qu'un menu (8 % en verre). En opaque, popover vaut déjà overlay et rien ne change. */
+  background-color: color-mix(in srgb, var(--color-overlay) 85%, var(--color-popover));
   background-image: linear-gradient(var(--raised), var(--raised));
   box-shadow: 0 24px 64px -12px rgb(0 0 0 / 0.6);
 }
