@@ -58,7 +58,7 @@ const usages = computed(() =>
 )
 const contexts = computed(() => (['full', 'name'] as const).map((value) => ({ value, label: t(`settings.skills.contexts.${value}`) })))
 const usageHint = computed(() =>
-  manual.value ? t('settings.skills.manualHint') : t(`settings.skills.usageHints.${usage.value}`, { name: skill.value?.name ?? '' }),
+  manual.value ? t('settings.skills.manualHint') : t(`settings.skills.usageHints.${usage.value}`, { name: skill.value?.name ?? '', agent: store.agentName }),
 )
 
 async function copy() {
@@ -79,20 +79,20 @@ async function remove() {
   <template v-else>
     <p v-if="skill.description" class="mt-1.5 max-w-3xl text-sm text-muted">{{ skill.description }}</p>
 
-    <SettingsGroup :title="t('settings.skills.behavior')" :hint="t(`settings.skills.scopeHints.${store.scope}`)" :danger="store.scope === 'everywhere'">
+    <SettingsGroup :title="t('settings.skills.behavior')" :hint="t(`settings.skills.scopeHints.${store.scope}`, { agent: store.agentName })" :danger="store.scope === 'everywhere'">
       <template #action><SettingsSkillsScope /></template>
-      <SettingsRow v-slot="{ hintId }" :label="t('settings.skills.enabled')" :hint="t('settings.skills.enabledHint', { name: skill.name })">
+      <SettingsRow v-slot="{ hintId }" :label="t('settings.skills.enabled')" :hint="t('settings.skills.enabledHint', { name: skill.name, agent: store.agentName })">
         <UiSwitch v-model="enabled" :label="t('settings.skills.enabled')" :aria-describedby="hintId" />
       </SettingsRow>
       <SettingsRow v-slot="{ hintId }" :label="t('settings.skills.usage')" :hint="usageHint" :disabled="!enabled">
         <UiSegmented v-model="usage" :label="t('settings.skills.usage')" :options="usages" :disabled="!enabled" :aria-describedby="hintId" />
       </SettingsRow>
-      <SettingsRow v-if="enabled && usage === 'auto'" v-slot="{ hintId }" :label="t('settings.skills.context')" :hint="t('settings.skills.contextHint')">
-        <UiSegmented v-model="context" :label="t('settings.skills.context')" :options="contexts" :aria-describedby="hintId" />
+      <SettingsRow v-if="enabled && usage === 'auto'" v-slot="{ hintId }" :label="t('settings.skills.context', { agent: store.agentName })" :hint="t('settings.skills.contextHint', { agent: store.agentName })">
+        <UiSegmented v-model="context" :label="t('settings.skills.context', { agent: store.agentName })" :options="contexts" :aria-describedby="hintId" />
       </SettingsRow>
     </SettingsGroup>
 
-    <SettingsGroup :title="t('settings.skills.file')" :hint="t('settings.skills.fileHint')">
+    <SettingsGroup :title="t('settings.skills.file')" :hint="t('settings.skills.fileHint', { agent: store.agentName })">
       <SettingsRow :label="t('settings.skills.location')">
         <template #hint><span class="font-mono break-all select-text">{{ skill.path }}</span></template>
         <div class="flex items-center gap-1">

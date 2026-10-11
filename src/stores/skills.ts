@@ -10,12 +10,14 @@ import { mcpCancelLogin, mcpCheck, mcpLogin, mcpSetEnabled, mcpStatus } from '@/
 import { skillsList, skillsRead, skillsReveal, skillsSetMode, skillsTrash, skillsWrite } from '@/ipc/skills'
 import { useDialogStore } from '@/stores/dialog'
 import { useToastsStore } from '@/stores/toasts'
+import { agents } from '@/utils/agents'
 
 export type { McpServer, Skill }
 
 const STORAGE_KEY = 'nuee.skills.v2'
 // Seul Claude Code est branché : la page montre sa config.
 const AGENT: AgentKind = 'claude'
+const AGENT_NAME = agents[AGENT].name
 const MODES: SkillMode[] = ['on', 'nameOnly', 'userInvocableOnly', 'off']
 // nuee : un réglage ne vaut que pour les chats de Nuée. everywhere : il modifie la config de l'agent.
 export type Scope = 'nuee' | 'everywhere'
@@ -261,7 +263,7 @@ export const useSkillsStore = defineStore('skills', () => {
     const { t } = i18nGlobal()
     const confirmed = await useDialogStore().confirm({
       title: t('settings.skills.deleteTitle', { name: skill.name }),
-      message: t('settings.skills.deleteMessage'),
+      message: t('settings.skills.deleteMessage', { agent: AGENT_NAME }),
       confirmLabel: t('settings.skills.deleteConfirm'),
       danger: true,
     })
@@ -363,6 +365,7 @@ export const useSkillsStore = defineStore('skills', () => {
   }
 
   return {
+    agentName: AGENT_NAME,
     skills,
     servers,
     loaded,

@@ -31,7 +31,7 @@ const enabled = computed({
 const status = computed(() => (server.value ? mcpStatus(server.value, enabled.value, t).text : ''))
 const action = computed(() => enabled.value && (server.value?.status === 'needsAuth' || server.value?.status === 'failed'))
 const origin = computed(() => {
-  return t(`settings.skills.origins.${server.value?.scope === 'plugin' ? 'plugin' : 'config'}`)
+  return t(`settings.skills.origins.${server.value?.scope === 'plugin' ? 'plugin' : 'config'}`, { agent: store.agentName })
 })
 
 // Connecté, le bouton disparaît : validé au clavier, le focus passe à l'interrupteur du serveur.
@@ -45,12 +45,12 @@ function act(event: MouseEvent, name: string, status: McpServer['status']) {
     {{ store.loaded && !store.checking ? t('settings.skills.serverMissing') : t('settings.skills.loading') }}
   </p>
   <template v-else>
-    <SettingsGroup :title="t('settings.skills.behavior')" :hint="t(`settings.skills.scopeHints.${store.scope}`)" :danger="store.scope === 'everywhere'">
+    <SettingsGroup :title="t('settings.skills.behavior')" :hint="t(`settings.skills.scopeHints.${store.scope}`, { agent: store.agentName })" :danger="store.scope === 'everywhere'">
       <template #action><SettingsSkillsScope /></template>
       <SettingsRow
         v-slot="{ hintId }"
         :label="t('settings.skills.enabled')"
-        :hint="locked ? t('settings.skills.lockedHint') : t('settings.skills.serverEnabledHint')"
+        :hint="locked ? t('settings.skills.lockedHint') : t('settings.skills.serverEnabledHint', { agent: store.agentName })"
       >
         <UiSwitch v-model="enabled" data-server-enabled :disabled="locked || store.pending.has(server.name)" :label="t('settings.skills.enabled')" :aria-describedby="hintId" />
       </SettingsRow>

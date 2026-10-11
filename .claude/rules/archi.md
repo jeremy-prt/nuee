@@ -72,6 +72,7 @@ src-tauri/src/
 ## Textes et langues
 
 - Aucun texte d'interface en dur : la clé va dans `src/i18n/locales/en.ts`, puis traduite dans toutes les autres langues. vue-tsc bloque si une traduction manque, mais pas si `t('...')` cite une clé qui n'existe pas : la copier depuis `en.ts`.
+- Aucun nom d'agent ni de service en dur dans un texte générique : `{agent}` (`agents[kind].name`), ou une formule neutre (« tes agents », « tes comptes connectés »). Nuée branchera plusieurs agents et services (choix de Jérémy) ; seule la page d'un service précis (GitHub) le nomme.
 - Traductions précompilées au build (`@intlify/unplugin-vue-i18n`, compilateur retiré du bundle) : un texte chargé à l'exécution (API, fichier) ne sera pas interprété en production.
 - Langue du système : la commande Rust `system_locales`, jamais `navigator.language` (WebView2 renvoie toujours en-US). Dates et nombres : `Intl.*` avec la locale de vue-i18n, jamais `undefined`.
 - Marges et positions en propriétés logiques Tailwind (`ms-`/`me-`, `ps-`/`pe-`, `start-`/`end-`) plutôt que gauche/droite : ça garde la porte ouverte aux langues écrites de droite à gauche.
