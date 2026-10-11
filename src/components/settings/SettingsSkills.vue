@@ -163,7 +163,7 @@ function onFilterKeydown(event: KeyboardEvent) {
                       {{ t('settings.skills.status.disabled') }}
                     </span>
                   </p>
-                  <p :id="`skill-${index}`" class="line-clamp-2 text-xs/relaxed text-muted" :title="skill.description">{{ skill.description }}</p>
+                  <p :id="`skill-${index}`" class="line-clamp-2 text-xs/relaxed text-muted">{{ skill.description }}</p>
                 </div>
                 <div class="flex shrink-0 items-center">
                   <!-- Aperçu et dossier visibles au survol ou quand le clavier entre dans la ligne : la liste reste calme. -->

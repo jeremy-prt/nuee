@@ -1,7 +1,11 @@
+#[cfg(debug_assertions)]
+use std::collections::HashSet;
 use std::env;
 use std::ffi::{OsStr, OsString};
 use std::path::PathBuf;
 use std::sync::OnceLock;
+#[cfg(debug_assertions)]
+use std::sync::{Mutex, MutexGuard, PoisonError};
 
 static SEARCH_PATH: OnceLock<OsString> = OnceLock::new();
 
@@ -12,8 +16,54 @@ pub fn search_path() -> &'static OsStr {
 }
 
 pub fn find_binary(name: &str) -> Option<PathBuf> {
+    if is_hidden(name) {
+        return None;
+    }
     let cwd = env::current_dir().unwrap_or_else(|_| PathBuf::from("/"));
     which::which_in(name, Some(search_path()), cwd).ok()
+}
+
+/// Debug seulement : `NUEE_HIDE_BINARIES=gh,claude` fait passer ces outils pour absents.
+#[cfg(debug_assertions)]
+pub fn is_hidden(name: &str) -> bool {
+    hidden().contains(name)
+}
+
+#[cfg(not(debug_assertions))]
+pub fn is_hidden(_name: &str) -> bool {
+    false
+}
+
+#[cfg(debug_assertions)]
+fn hidden() -> MutexGuard<'static, HashSet<String>> {
+    static HIDDEN: OnceLock<Mutex<HashSet<String>>> = OnceLock::new();
+    HIDDEN
+        .get_or_init(|| {
+            let names = env::var("NUEE_HIDE_BINARIES").unwrap_or_default();
+            Mutex::new(parse_hidden(&names))
+        })
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+}
+
+#[cfg(debug_assertions)]
+fn parse_hidden(names: &str) -> HashSet<String> {
+    names
+        .split(',')
+        .map(str::trim)
+        .filter(|name| !name.is_empty())
+        .map(str::to_owned)
+        .collect()
+}
+
+#[cfg(all(test, debug_assertions))]
+pub(crate) fn hide(name: &str) {
+    hidden().insert(name.to_owned());
+}
+
+#[cfg(all(test, debug_assertions))]
+pub(crate) fn reveal(name: &str) {
+    hidden().remove(name);
 }
 
 fn build() -> OsString {
@@ -57,6 +107,8 @@ fn fallback_dirs() -> Vec<PathBuf> {
         "AppData\\Roaming\\npm",
         ".bun\\bin",
         ".volta\\bin",
+        // gh posé par winget : son installeur ne change le PATH que des process lancés après lui.
+        "C:\\Program Files\\GitHub CLI",
     ];
     dirs.iter().map(|dir| home.join(dir)).collect()
 }
@@ -94,4 +146,27 @@ fn login_shell_path() -> Option<OsString> {
     let out = out.ok()?;
     let path = out.split(MARK).nth(1)?;
     (!path.is_empty()).then(|| path.into())
+}
+
+#[cfg(all(test, debug_assertions))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn hidden_names_are_trimmed() {
+        let names = parse_hidden(" gh, claude ,,");
+        assert_eq!(names, HashSet::from(["gh".to_owned(), "claude".to_owned()]));
+        assert!(parse_hidden("").is_empty());
+    }
+
+    #[test]
+    fn a_hidden_binary_is_missing_until_revealed() {
+        let name = if cfg!(windows) { "cmd" } else { "true" };
+        assert!(find_binary(name).is_some());
+        hide(name);
+        assert!(is_hidden(name));
+        assert!(find_binary(name).is_none());
+        reveal(name);
+        assert!(find_binary(name).is_some());
+    }
 }

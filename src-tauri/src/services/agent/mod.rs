@@ -1,6 +1,6 @@
 mod claude;
 mod mcp;
-mod process;
+pub(crate) mod process;
 mod release;
 mod session;
 pub mod settings;
@@ -603,11 +603,14 @@ impl AgentService {
     }
 
     fn program(&self, kind: AgentKind) -> Result<PathBuf, AppError> {
-        if let Some(path) = lock(&self.paths).get(&kind) {
+        let binary = kind.driver(&self.scratch).binary();
+        // Un chemin choisi porte le nom de l'agent : `NUEE_HIDE_BINARIES` le masque aussi.
+        if let Some(path) = lock(&self.paths).get(&kind)
+            && !shell_env::is_hidden(binary)
+        {
             return Ok(path.clone());
         }
-        let driver = kind.driver(&self.scratch);
-        shell_env::find_binary(driver.binary()).ok_or(AppError::AgentNotFound(driver.binary()))
+        shell_env::find_binary(binary).ok_or(AppError::AgentNotFound(binary))
     }
 
     /// Titre court tiré du premier message d'un chat. `None` si l'agent n'a pas su répondre.

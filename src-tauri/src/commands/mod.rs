@@ -4,6 +4,8 @@ pub mod attachment;
 pub mod autostart;
 pub mod background;
 pub mod chat;
+pub mod github;
+pub mod install;
 pub mod mcp;
 pub mod notification;
 pub mod power;

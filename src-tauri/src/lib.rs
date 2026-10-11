@@ -13,6 +13,7 @@ use crate::services::attachment::AttachmentService;
 use crate::services::autostart::AutostartService;
 use crate::services::background::BackgroundService;
 use crate::services::chat::ChatService;
+use crate::services::github::GithubService;
 use crate::services::power::PowerService;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -51,6 +52,7 @@ pub fn run() {
             // Même contrainte que les pièces jointes : ce dossier est dans le scope `assetProtocol`.
             app.manage(BackgroundService::new(data.join("backgrounds")));
             app.manage(PowerService::default());
+            app.manage(GithubService::default());
             app.manage(AutostartService::new(&app.package_info().name));
             // Le login shell met parfois une seconde à répondre : autant que ce ne soit pas au premier message.
             std::thread::spawn(utils::shell_env::search_path);
@@ -78,6 +80,12 @@ pub fn run() {
             commands::chat::chat_save,
             commands::chat::chat_title,
             commands::chat::chat_delete,
+            commands::github::github_status,
+            commands::github::github_login,
+            commands::github::github_avatar,
+            commands::github::github_login_open,
+            commands::github::github_login_cancel,
+            commands::install::install_open,
             commands::mcp::mcp_status,
             commands::mcp::mcp_check,
             commands::mcp::mcp_login,
@@ -102,7 +110,10 @@ pub fn run() {
         .run(|app, event| match event {
             #[cfg(target_os = "macos")]
             RunEvent::Ready => services::notification::install_delegate(app),
-            RunEvent::Exit => app.state::<AgentService>().stop_all(),
+            RunEvent::Exit => {
+                app.state::<AgentService>().stop_all();
+                app.state::<GithubService>().cancel_login();
+            }
             _ => {}
         });
 }

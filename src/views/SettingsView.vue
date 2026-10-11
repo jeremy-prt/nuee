@@ -8,6 +8,8 @@ import SettingsAgents from '@/components/settings/SettingsAgents.vue'
 import SettingsAppearance from '@/components/settings/SettingsAppearance.vue'
 import SettingsBackground from '@/components/settings/SettingsBackground.vue'
 import SettingsBackgroundOptions from '@/components/settings/SettingsBackgroundOptions.vue'
+import SettingsGithub from '@/components/settings/SettingsGithub.vue'
+import SettingsIntegrations from '@/components/settings/SettingsIntegrations.vue'
 import SettingsGlass from '@/components/settings/SettingsGlass.vue'
 import SettingsInterface from '@/components/settings/SettingsInterface.vue'
 import SettingsResetButton from '@/components/settings/SettingsResetButton.vue'
@@ -143,6 +145,7 @@ onUnmounted(() => {
         <SettingsAgent v-else-if="isAgentDetail(navigation.settingsDetail)" :kind="navigation.settingsDetail" />
         <SettingsSkill v-else-if="isSkillDetail(navigation.settingsDetail)" :id="skillOfDetail(navigation.settingsDetail)" />
         <SettingsMcpServer v-else-if="isServerDetail(navigation.settingsDetail)" :name="serverOfDetail(navigation.settingsDetail)" />
+        <SettingsGithub v-else-if="navigation.settingsDetail === 'github'" />
         <SettingsGlass v-else :window-style="navigation.settingsDetail" />
       </template>
       <template v-else>
@@ -171,6 +174,7 @@ onUnmounted(() => {
         </template>
         <SettingsShortcuts v-else-if="navigation.settingsSection === 'shortcuts'" />
         <SettingsAgents v-else-if="navigation.settingsSection === 'agents'" />
+        <SettingsIntegrations v-else-if="navigation.settingsSection === 'connections'" />
         <SettingsSkills v-else-if="navigation.settingsSection === 'skills'" />
       </template>
     </div>

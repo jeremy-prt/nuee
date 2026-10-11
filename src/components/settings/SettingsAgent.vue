@@ -3,6 +3,7 @@ import { CircleCheck, LoaderCircle } from '@lucide/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsGroup from '@/components/settings/SettingsGroup.vue'
+import SettingsInstall from '@/components/settings/SettingsInstall.vue'
 import SettingsRow from '@/components/settings/SettingsRow.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiSegmented from '@/components/ui/UiSegmented.vue'
@@ -120,6 +121,7 @@ async function choosePath() {
         </div>
       </template>
     </SettingsRow>
+    <SettingsInstall v-if="status.state === 'missing' && !settings.path" :tool="kind" :name="name" />
     <SettingsRow
       v-if="status.state === 'found'"
       v-slot="{ hintId }"

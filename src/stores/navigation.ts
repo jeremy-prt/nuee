@@ -8,8 +8,8 @@ import { agents } from '@/utils/agents'
 import type { SettingsSection } from '@/utils/settings'
 
 // Sous-page d'une section : réglages du thème, de l'image de fond, d'un style de fenêtre, d'un agent, d'un
-// skill (`skill:` suivi du nom de son dossier) ou d'un serveur MCP (`mcp:` suivi de son nom).
-export type SettingsDetail = WindowStyle | 'theme' | 'background' | AgentKind | `skill:${string}` | `mcp:${string}`
+// skill (`skill:` suivi du nom de son dossier), d'un serveur MCP (`mcp:` suivi de son nom) ou d'un service relié.
+export type SettingsDetail = WindowStyle | 'theme' | 'background' | AgentKind | `skill:${string}` | `mcp:${string}` | 'github'
 
 export function isAgentDetail(detail: SettingsDetail | null): detail is AgentKind {
   return !!detail && detail in agents
@@ -39,6 +39,7 @@ export function settingsDetailTitle(detail: SettingsDetail, t: (key: string) => 
     return useSkillsStore().find(id)?.name ?? id
   }
   if (isServerDetail(detail)) return serverOfDetail(detail)
+  if (detail === 'github') return 'GitHub'
   if (detail === 'theme') return t('settings.themes.title')
   if (detail === 'background') return t('settings.background.title')
   return t(`settings.appearance.styles.${detail}`)
