@@ -49,11 +49,15 @@ onUnmounted(() => clearTimeout(timer))
           </p>
         </div>
       </div>
-      <UiButton v-if="store.login" size="sm" variant="ghost" :aria-describedby="hintId" @click="store.cancelLogin()">
-        {{ t('settings.github.cancel') }}
-      </UiButton>
-      <UiButton v-else size="sm" :disabled="!store.prefs.github" :aria-describedby="hintId" @click="store.connect()">
-        {{ store.loginError ? t('settings.github.retry') : t('settings.github.connectButton') }}
+      <!-- Un seul bouton qui devient Annuler : validé au clavier, il garde le focus pendant la connexion. -->
+      <UiButton
+        size="sm"
+        :variant="store.login ? 'ghost' : 'secondary'"
+        :disabled="!store.login && !store.prefs.github"
+        :aria-describedby="hintId"
+        @click="store.login ? store.cancelLogin() : store.connect()"
+      >
+        {{ store.login ? t('settings.github.cancel') : store.loginError ? t('settings.github.retry') : t('settings.github.connectButton') }}
       </UiButton>
     </div>
 

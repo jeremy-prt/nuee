@@ -20,8 +20,8 @@ const status = computed(() => store.github)
 <template>
   <SettingsGroup :title="t('settings.github.accounts')" :hint="t(store.prefs.github ? 'settings.github.hint' : 'settings.github.offHint')">
     <template #action>
-      <UiIconButton :label="t('settings.github.refresh')" :aria-busy="store.checking" :disabled="store.checking" @click="store.load()">
-        <RefreshCw class="size-3.5" :class="{ 'animate-spin': store.checking }" aria-hidden="true" />
+      <UiIconButton :label="t('settings.github.refresh')" :loading="store.checking" @click="store.refresh()">
+        <RefreshCw class="size-3.5" aria-hidden="true" />
       </UiIconButton>
     </template>
     <template v-if="status?.state === 'ready'">

@@ -20,6 +20,7 @@ const zone = useTemplateRef('zone')
 const error = ref('')
 // Une grosse image met une seconde à être copiée : le bouton le montre.
 const importing = ref(false)
+const removing = ref(false)
 
 async function use(path: string) {
   error.value = ''
@@ -51,11 +52,14 @@ async function choose() {
 async function remove() {
   error.value = ''
   const previous = appearance.background.path
+  removing.value = true
   try {
     await backgroundRemove()
   } catch (cause) {
     error.value = t('settings.background.failedRemove', { detail: (cause as { message?: string }).message ?? String(cause) })
     return
+  } finally {
+    removing.value = false
   }
   appearance.setBackground(null)
   if (previous) forgetBackground(previous)
@@ -71,13 +75,13 @@ const { over } = useFileDrop(zone, (paths) => use(paths[0]!), true)
       ref="zone"
       data-setting="background"
       class="relative rounded-xl border p-3 transition-colors motion-reduce:transition-none"
-      :class="over ? 'border-ring bg-selection/40' : appearance.background.path ? 'border-stroke' : 'border-dashed border-stroke'"
+      :class="over ? 'border-ring bg-signal/10' : appearance.background.path ? 'border-stroke' : 'border-dashed border-stroke'"
     >
       <div v-if="appearance.background.path" class="flex flex-wrap items-center gap-4">
         <SettingsBackgroundThumb :path="appearance.background.path" class="w-48" />
         <div class="flex flex-wrap gap-2">
-          <UiButton :loading="importing" @click="choose()">{{ t('settings.background.change') }}</UiButton>
-          <UiButton variant="ghost" :disabled="importing" @click="remove()">{{ t('settings.background.remove') }}</UiButton>
+          <UiButton :loading="importing" :disabled="removing" @click="choose()">{{ t('settings.background.change') }}</UiButton>
+          <UiButton :loading="removing" :disabled="importing" @click="remove()">{{ t('settings.background.remove') }}</UiButton>
         </div>
         <SettingsCustomizeButton
           show

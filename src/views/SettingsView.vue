@@ -24,6 +24,7 @@ import SettingsThemes from '@/components/settings/SettingsThemes.vue'
 import SettingsUpdates from '@/components/settings/SettingsUpdates.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
+import { useResetToast } from '@/composables/useResetToast'
 import { useSkillChat } from '@/composables/useSkillChat'
 import {
   isAgentDetail,
@@ -40,6 +41,7 @@ import { useSkillsStore } from '@/stores/skills'
 
 // ===== Initialisation =====
 const { t } = useI18n()
+const resetToast = useResetToast()
 const navigation = useNavigationStore()
 const shortcuts = useShortcutsStore()
 const skills = useSkillsStore()
@@ -154,7 +156,7 @@ onUnmounted(() => {
             <h2 class="text-xl font-semibold">{{ t(`settings.sections.${navigation.settingsSection}`) }}</h2>
             <p class="mt-1.5 max-w-xl text-sm text-muted">{{ t(`settings.hints.${navigation.settingsSection}`) }}</p>
           </div>
-          <SettingsResetButton v-if="navigation.settingsSection === 'shortcuts'" @click="shortcuts.reset()" />
+          <SettingsResetButton v-if="navigation.settingsSection === 'shortcuts'" @click="shortcuts.reset(); resetToast('shortcuts')" />
           <!-- Pas de création à la main : l'IA pose les bonnes questions et écrit un SKILL.md propre. -->
           <UiButton v-else-if="navigation.settingsSection === 'skills'" variant="primary" @click="skillChat({ kind: 'createSkill' })">
             <Sparkles class="size-4" aria-hidden="true" />{{ t('settings.skills.create') }}

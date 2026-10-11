@@ -1,10 +1,14 @@
 <script setup lang="ts">
+import { SquarePen } from '@lucide/vue'
 import { useI18n } from 'vue-i18n'
+import UiButton from '@/components/ui/UiButton.vue'
 import WorkspacePane from '@/components/workspace/WorkspacePane.vue'
 import { useNewChat } from '@/composables/useNewChat'
+import { useShortcutsStore } from '@/stores/shortcuts'
 import { useWorkspaceStore } from '@/stores/workspace'
 
 const { t } = useI18n()
+const shortcuts = useShortcutsStore()
 const workspace = useWorkspaceStore()
 const newChat = useNewChat()
 </script>
@@ -18,12 +22,9 @@ const newChat = useNewChat()
   </div>
   <div v-else class="flex h-full flex-col items-center justify-center gap-3">
     <p class="text-sm text-muted">{{ t('workspace.empty') }}</p>
-    <button
-      type="button"
-      class="h-8 rounded-md border border-stroke px-3 text-sm hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring"
-      @click="newChat()"
-    >
-      {{ t('chats.newChat') }}
-    </button>
+    <UiButton variant="primary" :aria-keyshortcuts="shortcuts.aria('newChat')" @click="newChat()">
+      <SquarePen class="size-4" aria-hidden="true" />{{ t('chats.newChat') }}
+      <kbd v-if="shortcuts.label('newChat')" class="font-sans text-xs opacity-60" aria-hidden="true">{{ shortcuts.label('newChat') }}</kbd>
+    </UiButton>
   </div>
 </template>

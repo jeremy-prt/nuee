@@ -186,7 +186,7 @@ function footerLabel(id: (typeof footer)[number]['id']) {
             <component :is="item.icon" class="size-4" aria-hidden="true" />
             <span
               v-if="item.id === 'updates' && updates.status === 'available'"
-              class="absolute end-1.5 top-1.5 size-1.5 rounded-full bg-accent"
+              class="absolute end-1.5 top-1.5 size-1.5 rounded-full bg-signal"
               aria-hidden="true"
             />
           </button>

@@ -8,13 +8,23 @@
   --color-stroke: color-mix(in srgb, var(--color-content) 8%, transparent);
   --color-selection: color-mix(in srgb, var(--color-content) 10%, transparent);
   --color-selection-hover: color-mix(in srgb, var(--color-content) 15%, transparent);
-  /* Focus et éléments choisis : l'accent du thème adouci, l'accent plein ressort trop (blanc vif dans Nuée). */
-  --color-ring: color-mix(in srgb, var(--color-accent) 45%, transparent);
+  /* Focus et éléments choisis : le signal adouci, juste assez pour garder 3:1 sur les fonds de la fenêtre. */
+  --color-ring: color-mix(in srgb, var(--color-signal) 90%, transparent);
   /* Bordure d'un champ de saisie qui a le focus : le trait s'éclaircit à peine, comme dans monocode. */
   --color-stroke-focus: color-mix(in srgb, var(--color-content) 20%, transparent);
+  /* Bord de colonne survolé pour l'élargir : un gris, pas le signal (choix de Jérémy). Opaque : là où la poignée
+     et la barre de titre se chevauchent, un gris transparent s'additionnerait en point clair. */
+  --color-edge-hover: color-mix(in srgb, var(--color-content) 35%, var(--color-canvas));
   --color-accent: hsl(240 0% 92%);
+  /* Ce qui signale un état (interrupteur allumé, non lu, actif) : l'accent d'un thème coloré, ce bleu dans un
+     thème neutre (#0A7AF2), où l'accent est la couleur du texte (choix de Jérémy). Posé par stores/appearance.ts. */
+  --color-signal: hsl(211 92% 49%);
+  /* Le signal en texte (badge, « mise à jour disponible ») : éclairci pour rester lisible en petit. */
+  --color-signal-text: color-mix(in srgb, var(--color-signal) 70%, white);
+  --color-on-signal: hsl(0 0% 100%);
   --color-danger: hsl(0 72% 65%);
   --color-success: hsl(145 50% 55%);
+  --color-warning: hsl(40 90% 60%);
   --color-info: hsl(210 85% 65%);
   /* Fonds des barres et panneaux (chrome) et de la zone centrale (surface) : voir le style de fenêtre plus bas. */
   --color-chrome: var(--color-canvas);
@@ -87,9 +97,25 @@ html.is-macos:not([data-window='opaque']) {
   background-image: linear-gradient(var(--color-stroke), var(--color-stroke));
 }
 
+/* Le bord d'une colonne continue dans la barre de titre : ce segment s'allume avec la poignée, et descend
+   d'un pixel pour passer sur la bordure basse de la barre, sinon la ligne allumée est coupée à la jonction. */
+html:has([data-edge='rail']:is(:hover, :active, :focus-visible)) [data-title-edge='rail'],
+html:has([data-edge='panel']:is(:hover, :active, :focus-visible)) [data-title-edge='panel'] {
+  --edge: var(--color-edge-hover);
+  margin-bottom: -1px;
+  border-color: var(--edge);
+  /* Même épaisseur que la poignée (3 px, centrés sur le trait). */
+  box-shadow: inset -1px 0 0 0 var(--edge), 1px 0 0 0 var(--edge);
+}
+html:has([data-edge='rail']:focus-visible) [data-title-edge='rail'],
+html:has([data-edge='panel']:focus-visible) [data-title-edge='panel'] {
+  --edge: var(--color-ring);
+}
+
 /* Verre des menus (UiSelect), confirmations (UiConfirmDialog) et messages (UiToasts). Fond, flou et bord sont
    sur un cadre qui ne bouge pas : WebKit peint un fond périmé si l'élément flouté est lui-même animé. Seul le
-   contenu s'anime dedans. Fermeture sans animation, sinon le cadre resterait vide un instant. */
+   contenu s'anime dedans. Menus et confirmations se ferment sans animation, sinon le cadre resterait vide un
+   instant ; les messages partagent un cadre commun, ce sont leurs lignes qui se replient. */
 [data-reka-popper-content-wrapper]:has(> .ui-pop),
 .ui-glass {
   overflow: hidden;

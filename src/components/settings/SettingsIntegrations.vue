@@ -22,8 +22,8 @@ const status = computed(() => store.github)
 const accounts = computed(() => (status.value?.state === 'ready' ? status.value.accounts : []))
 const active = computed(() => accounts.value.find((account) => account.active && account.state === 'ok') ?? null)
 const missing = computed(() => store.prefs.github && status.value?.state === 'missing')
-// Revérifier n'a de sens que si gh manque ou ne connaît aucun compte utilisable.
-const retry = computed(() => store.prefs.github && !store.checking && (!!store.error || (!!status.value && !active.value)))
+// Actualiser n'a de sens que si gh manque ou ne connaît aucun compte utilisable. Il reste en place pendant la relecture.
+const retry = computed(() => store.prefs.github && (!!store.error || (!!status.value && !active.value)))
 </script>
 
 <template>
@@ -54,8 +54,8 @@ const retry = computed(() => store.prefs.github && !store.checking && (!!store.e
           <UiButton v-if="missing" size="sm" class="me-1" :aria-label="t('settings.install.installTool', { tool: 'GitHub CLI' })" @click="openInstall('gh')">
             <ExternalLink class="size-3.5" aria-hidden="true" />{{ t('settings.install.install') }}
           </UiButton>
-          <UiIconButton v-if="retry" :label="t('settings.github.refresh')" @click="store.load()">
-            <RefreshCw class="size-4" aria-hidden="true" />
+          <UiIconButton v-if="retry" :label="t('settings.github.refresh')" :loading="store.checking" @click="store.refresh()">
+            <RefreshCw class="size-3.5" aria-hidden="true" />
           </UiIconButton>
           <UiIconButton :label="t('settings.github.configure')" @click="navigation.showSettingsDetail('github')">
             <SlidersHorizontal class="size-3.5" aria-hidden="true" />

@@ -5,6 +5,7 @@ import SettingsGroup from '@/components/settings/SettingsGroup.vue'
 import SettingsRow from '@/components/settings/SettingsRow.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import { forgetBackground } from '@/composables/useBackgroundImage'
+import { useResetToast } from '@/composables/useResetToast'
 import { backgroundRemove } from '@/ipc/background'
 import { isTauriApp, openGithubPage } from '@/ipc/system'
 import { useAppearanceStore } from '@/stores/appearance'
@@ -21,6 +22,7 @@ const links = [
 ] as const
 
 const { t } = useI18n()
+const resetToast = useResetToast()
 const appearance = useAppearanceStore()
 const dialog = useDialogStore()
 const general = useGeneralStore()
@@ -42,6 +44,7 @@ async function resetAll() {
     backgroundRemove().catch((error) => console.error('image de fond', error))
     forgetBackground(image)
   }
+  resetToast('all')
 }
 </script>
 
@@ -50,8 +53,7 @@ async function resetAll() {
     <SettingsRow data-setting="about" :label="t('settings.general.about.openSource')">
       <div class="flex flex-wrap items-center gap-2">
         <UiButton v-for="link in links" :key="link.key" size="sm" @click="openGithubPage(link.url)">
-          {{ t(`settings.general.about.${link.key}`) }}
-          <ExternalLink class="size-3 text-muted" aria-hidden="true" />
+          <ExternalLink class="size-3.5" aria-hidden="true" />{{ t(`settings.general.about.${link.key}`) }}
         </UiButton>
       </div>
     </SettingsRow>

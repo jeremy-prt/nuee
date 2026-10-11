@@ -129,6 +129,7 @@ onUnmounted(() => {
         <ShellResizeHandle
           v-if="layout.rail.expanded"
           v-model="layout.rail.width"
+          data-edge="rail"
           v-bind="SIZES.rail"
           orientation="vertical"
           :label="t('rail.resize')"
@@ -139,6 +140,7 @@ onUnmounted(() => {
           <ShellSidePanel :style="{ width: `${layout.panel.width}px` }" />
           <ShellResizeHandle
             v-model="layout.panel.width"
+            data-edge="panel"
             v-bind="SIZES.panel"
             orientation="vertical"
             :label="t('chats.resize')"
@@ -201,7 +203,7 @@ onUnmounted(() => {
 
     <div
       v-if="drag.preview"
-      class="pointer-events-none fixed z-50 rounded-lg border-2 border-ring bg-accent/15 transition-all duration-100 ease-out motion-reduce:transition-none"
+      class="pointer-events-none fixed z-50 rounded-lg border-2 border-ring bg-signal/15 transition-all duration-100 ease-out motion-reduce:transition-none"
       :style="{
         left: `${drag.preview.left + 4}px`,
         top: `${drag.preview.top + 4}px`,

@@ -83,7 +83,7 @@ export const useAttentionStore = defineStore('attention', () => {
     }
     // Aussi quand la fenêtre est en arrière-plan : reka suspend sa disparition jusqu'au retour dans l'app.
     if (general.appNotifications) {
-      toasts.push({ title, body, topic: chatId, action: { label: t('attention.open'), run: () => open(tab) } })
+      toasts.push({ kind: ({ done: 'success', failed: 'error', approval: 'info' } as const)[kind], title, body, topic: chatId, action: { label: t('attention.open'), run: () => open(tab) } })
     }
   }
 

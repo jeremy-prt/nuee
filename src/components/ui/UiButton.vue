@@ -3,8 +3,9 @@ import { LoaderCircle } from '@lucide/vue'
 
 // primary : l'action principale, à la couleur du thème. danger : une action qu'on ne défait pas. ghost : discret.
 // loading : le libellé reste en place (invisible) sous l'indicateur, le bouton ne change pas de largeur.
+// disabled est une prop : en attribut, il passerait après le nôtre et rendrait cliquable un bouton en chargement.
 withDefaults(
-  defineProps<{ variant?: 'primary' | 'secondary' | 'danger' | 'ghost'; size?: 'xs' | 'sm' | 'md'; loading?: boolean }>(),
+  defineProps<{ variant?: 'primary' | 'secondary' | 'danger' | 'ghost'; size?: 'xs' | 'sm' | 'md'; loading?: boolean; disabled?: boolean }>(),
   { variant: 'secondary', size: 'md' },
 )
 </script>
@@ -23,10 +24,10 @@ withDefaults(
         'disabled:opacity-50': !loading,
       },
     ]"
-    :disabled="loading || undefined"
+    :disabled="disabled || loading || undefined"
     :aria-busy="loading || undefined"
   >
     <span class="inline-flex items-center gap-1.5" :class="{ invisible: loading }"><slot /></span>
-    <LoaderCircle v-if="loading" class="absolute size-3.5 animate-spin" aria-hidden="true" />
+    <LoaderCircle v-if="loading" class="absolute size-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
   </button>
 </template>

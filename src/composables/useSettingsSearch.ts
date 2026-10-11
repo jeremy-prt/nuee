@@ -162,7 +162,7 @@ const entries: SettingEntry[] = [
       section: 'agents' as const,
       detail: kind as AgentKind,
       label: 'settings.agents.location',
-      terms: ['settings.agents.retry', 'settings.agents.choose'],
+      terms: ['settings.agents.refresh', 'settings.agents.choose'],
       keywords: ['cli'],
       names: [agents[kind as AgentKind].name],
     },

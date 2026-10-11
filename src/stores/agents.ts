@@ -111,9 +111,9 @@ export const useAgentsStore = defineStore('agents', () => {
       await detect(kind, true)
       // La CLI peut réussir sans rien installer (Homebrew, canal stable) : sa phrase dit pourquoi.
       if (current.latest) toasts.push({ title: t('settings.agents.notUpdatedTitle', { agent: name }), body: message })
-      else toasts.push({ title: t('settings.agents.updatedTitle', { agent: name }), body: t('settings.agents.updatedBody', { version: current.version ?? target }) })
+      else toasts.push({ kind: 'success', title: t('settings.agents.updatedTitle', { agent: name }), body: t('settings.agents.updatedBody', { version: current.version ?? target }) })
     } catch (error) {
-      toasts.push({ title: t('settings.agents.notUpdatedTitle', { agent: name }), body: isAppError(error) ? error.message : String(error) })
+      toasts.push({ kind: 'error', title: t('settings.agents.notUpdatedTitle', { agent: name }), body: isAppError(error) ? error.message : String(error) })
     } finally {
       current.updating = false
     }
@@ -142,7 +142,7 @@ export const useAgentsStore = defineStore('agents', () => {
 
   function setPath(kind: AgentKind, path: string | null) {
     settings[kind].path = path
-    detect(kind)
+    return detect(kind)
   }
 
   function chatDefaults(kind: AgentKind): TurnOptions {
@@ -151,5 +151,27 @@ export const useAgentsStore = defineStore('agents', () => {
 
   for (const kind of kinds) detect(kind)
 
-  return { settings, status, detect, update, confirm, track, setPath, chatDefaults }
+  // Nouvelle recherche demandée par un clic : le message dit si l'agent est là.
+  async function refresh(kind: AgentKind) {
+    await detect(kind, true)
+    const { t } = i18nGlobal()
+    const name = agents[kind].name
+    const current = status[kind]
+    // Encore en cours : une autre recherche, lancée depuis, donnera le résultat.
+    if (current.state === 'checking') return
+    if (current.state === 'error') {
+      return useToastsStore().push({ kind: 'error', title: t('feedback.refreshFailed'), body: t('settings.agents.error', { agent: name, command: agents[kind].command }) })
+    }
+    if (current.state !== 'found') {
+      return useToastsStore().push({ kind: 'error', title: t('feedback.agentMissing', { agent: name }), body: t('settings.install.notInstalled', { tool: name }) })
+    }
+    const version = t('settings.agents.versionShort', { version: current.version })
+    useToastsStore().push(
+      current.account
+        ? { kind: 'success', title: t('feedback.agentFound', { agent: name }), body: version }
+        : { kind: 'error', title: t('feedback.agentFound', { agent: name }), body: `${version} · ${t('settings.agents.status.signedOut')}` },
+    )
+  }
+
+  return { settings, status, detect, refresh, update, confirm, track, setPath, chatDefaults }
 })

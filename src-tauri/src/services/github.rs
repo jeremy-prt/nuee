@@ -835,10 +835,17 @@ esac
                 tokio::join!(
                     service.login_with(&program, Duration::from_secs(60), &|_| {}),
                     async {
-                        tokio::time::sleep(Duration::from_millis(500)).await;
-                        let url = lock(&service.login)
-                            .as_ref()
-                            .and_then(|login| login.url.clone());
+                        // Sous la charge de tous les tests en parallèle, le faux gh peut tarder à écrire.
+                        let deadline = std::time::Instant::now() + Duration::from_secs(5);
+                        let url = loop {
+                            let url = lock(&service.login)
+                                .as_ref()
+                                .and_then(|login| login.url.clone());
+                            if url.is_some() || std::time::Instant::now() > deadline {
+                                break url;
+                            }
+                            tokio::time::sleep(Duration::from_millis(50)).await;
+                        };
                         assert_eq!(url.as_deref(), Some("https://github.com/login/device"));
                         service.cancel_login();
                     }

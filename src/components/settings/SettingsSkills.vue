@@ -95,8 +95,8 @@ function onFilterKeydown(event: KeyboardEvent) {
         @keydown="onFilterKeydown"
       />
     </label>
-    <UiIconButton :label="t('settings.skills.refresh')" :aria-busy="busy" :disabled="busy" @click="store.load()">
-      <RefreshCw class="size-3.5" :class="{ 'animate-spin': busy }" aria-hidden="true" />
+    <UiIconButton :label="t('settings.skills.refresh')" :loading="busy" @click="store.refresh()">
+      <RefreshCw class="size-3.5" aria-hidden="true" />
     </UiIconButton>
   </div>
 

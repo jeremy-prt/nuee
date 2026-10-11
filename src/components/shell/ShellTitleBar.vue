@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import SettingsSearch from '@/components/settings/SettingsSearch.vue'
 import ShellRailToggle from '@/components/shell/ShellRailToggle.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
+import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { useLayoutDrag } from '@/composables/useLayoutDrag'
 import { useTabTitle } from '@/composables/useTabTitle'
 import { isMacosApp } from '@/ipc/system'
@@ -54,6 +55,7 @@ const spacer = computed(() => Math.max(0, centerStart.value - leftZone.value))
     <div
       class="flex shrink-0 items-center justify-end self-stretch pe-2"
       :class="{ 'border-e border-stroke': railBorderUp }"
+      data-title-edge="rail"
       :style="{ width: `${leftZone}px` }"
       data-tauri-drag-region
     >
@@ -63,6 +65,7 @@ const spacer = computed(() => Math.max(0, centerStart.value - leftZone.value))
     <div
       class="flex shrink-0 items-center justify-end self-stretch pe-2"
       :class="{ 'border-e border-stroke': panelOpen && spacer > 0 }"
+      data-title-edge="panel"
       :style="{ width: `${spacer}px` }"
       data-tauri-drag-region
     >
@@ -142,20 +145,21 @@ const spacer = computed(() => Math.max(0, centerStart.value - leftZone.value))
           >
             <MessageSquare class="size-3.5 shrink-0" aria-hidden="true" />
             <span class="truncate">{{ tabTitle(tab) }}</span>
-            <span v-if="attention.isUnseen(tab.id)" class="size-1.5 shrink-0 rounded-full bg-accent">
+            <span v-if="attention.isUnseen(tab.id)" class="size-1.5 shrink-0 rounded-full bg-signal">
               <span class="sr-only">{{ t('attention.unseen') }}</span>
             </span>
-            <button
-              type="button"
-              tabindex="-1"
-              class="grid size-5 shrink-0 place-items-center rounded group-hover:opacity-100 hover:bg-selection-hover"
-              :class="tab.id === workspace.activeTabId ? 'opacity-100' : 'opacity-0'"
-              :aria-label="t('workspace.closeTab')"
-              :title="shortcuts.label('closeTab') ? `${t('workspace.closeTab')} (${shortcuts.label('closeTab')})` : t('workspace.closeTab')"
-              @click.stop="workspace.closeTab(tab.id)"
-            >
-              <X class="size-3" aria-hidden="true" />
-            </button>
+            <UiTooltip :label="t('workspace.closeTab')" :shortcut="shortcuts.label('closeTab')">
+              <button
+                type="button"
+                tabindex="-1"
+                class="grid size-5 shrink-0 place-items-center rounded group-hover:opacity-100 hover:bg-selection-hover"
+                :class="tab.id === workspace.activeTabId ? 'opacity-100' : 'opacity-0'"
+                :aria-label="t('workspace.closeTab')"
+                @click.stop="workspace.closeTab(tab.id)"
+              >
+                <X class="size-3" aria-hidden="true" />
+              </button>
+            </UiTooltip>
           </div>
 
         </div>

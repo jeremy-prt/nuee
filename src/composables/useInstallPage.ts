@@ -10,7 +10,7 @@ export function useInstallPage() {
 
   return function open(tool: InstallTool) {
     installOpen(tool).catch((error) => {
-      toasts.push({ title: t('settings.install.openFailed'), body: isAppError(error) ? error.message : String(error) })
+      toasts.push({ kind: 'error', title: t('settings.install.openFailed'), body: isAppError(error) ? error.message : String(error) })
     })
   }
 }

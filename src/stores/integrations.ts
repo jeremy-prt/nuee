@@ -100,6 +100,25 @@ export const useIntegrationsStore = defineStore('integrations', () => {
     prefs.githubOff = on ? others : [...others, key]
   }
 
+  // Relecture demandée par un clic : le message dit ce que GitHub CLI a répondu.
+  async function refresh() {
+    await load()
+    const { t } = i18nGlobal()
+    const toasts = useToastsStore()
+    const status = github.value
+    if (error.value) return toasts.push({ kind: 'error', title: t('feedback.refreshFailed'), body: error.value })
+    if (status?.state === 'missing') {
+      return toasts.push({ kind: 'error', title: t('feedback.githubRefreshed'), body: t('settings.install.notInstalled', { tool: 'GitHub CLI' }) })
+    }
+    if (status?.state === 'outdated') return toasts.push({ kind: 'error', title: t('feedback.githubRefreshed'), body: t('settings.github.outdatedShort') })
+    const count = status?.state === 'ready' ? status.accounts.length : 0
+    toasts.push({
+      kind: 'success',
+      title: t('feedback.githubRefreshed'),
+      body: count ? t('settings.github.accountsCount', count) : t('settings.github.signedOut'),
+    })
+  }
+
   async function makeActive(account: GithubAccount) {
     if (switching.value) return
     switching.value = accountKey(account)
@@ -111,9 +130,9 @@ export const useIntegrationsStore = defineStore('integrations', () => {
       checking.value = false
       github.value = status
       error.value = null
-      useToastsStore().push({ title: t('settings.github.switched'), body: t('settings.github.switchedBody', { login: account.login }) })
+      useToastsStore().push({ kind: 'success', title: t('settings.github.switched'), body: t('settings.github.switchedBody', { login: account.login }) })
     } catch (failure) {
-      useToastsStore().push({ title: t('settings.github.switchFailed'), body: message(failure) })
+      useToastsStore().push({ kind: 'error', title: t('settings.github.switchFailed'), body: message(failure) })
     } finally {
       switching.value = null
     }
@@ -132,7 +151,7 @@ export const useIntegrationsStore = defineStore('integrations', () => {
       })
       if (current !== attempt) return
       const { t } = i18nGlobal()
-      useToastsStore().push({ title: t('settings.github.connected'), body: t('settings.github.connectedBody') })
+      useToastsStore().push({ kind: 'success', title: t('settings.github.connected'), body: t('settings.github.connectedBody') })
       void load()
     } catch (failure) {
       if (current === attempt) loginError.value = message(failure)
@@ -155,5 +174,5 @@ export const useIntegrationsStore = defineStore('integrations', () => {
     }
   }
 
-  return { github, checking, error, prefs, login, loginError, switching, load, avatar, used, setUsed, makeActive, connect, cancelLogin, openLoginPage }
+  return { github, checking, error, prefs, login, loginError, switching, load, refresh, avatar, used, setUsed, makeActive, connect, cancelLogin, openLoginPage }
 })

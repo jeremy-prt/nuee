@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import ChatSlashMenu from '@/components/chat/ChatSlashMenu.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
+import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { attachmentImport, attachmentSave, previewSrc } from '@/ipc/attachment'
 import { isAppError } from '@/ipc/agent'
 import type { Attachment } from '@/ipc/bindings/Attachment'
@@ -184,15 +185,16 @@ function onKeydown(event: KeyboardEvent) {
           <component :is="attachment.kind === 'folder' ? Folder : File" class="size-4 shrink-0 text-muted" aria-hidden="true" />
           <span class="min-w-0 truncate text-xs">{{ attachment.name }}</span>
         </template>
-        <button
-          type="button"
-          class="absolute -end-1.5 -top-1.5 grid size-5 place-items-center rounded-full border border-stroke bg-overlay text-muted hover:text-content focus-visible:outline-2 focus-visible:outline-ring"
-          :aria-label="t('composer.removeAttachment', { name: attachment.name })"
-          :title="t('composer.removeAttachment', { name: attachment.name })"
-          @click="remove(index)"
-        >
-          <X class="size-3" aria-hidden="true" />
-        </button>
+        <UiTooltip :label="t('composer.removeAttachment', { name: attachment.name })">
+          <button
+            type="button"
+            class="absolute -end-1.5 -top-1.5 grid size-5 place-items-center rounded-full border border-stroke bg-overlay text-muted hover:text-content focus-visible:outline-2 focus-visible:outline-ring"
+            :aria-label="t('composer.removeAttachment', { name: attachment.name })"
+            @click="remove(index)"
+          >
+            <X class="size-3" aria-hidden="true" />
+          </button>
+        </UiTooltip>
       </li>
     </ul>
     <label :for="id" class="sr-only">{{ t('composer.label') }}</label>
@@ -223,7 +225,7 @@ function onKeydown(event: KeyboardEvent) {
     <p v-if="attachError" class="mb-1 text-xs text-danger" role="alert">{{ attachError }}</p>
     <!-- Étroite (petite fenêtre, écran partagé) : le nom de l'agent s'efface, les menus passent à la ligne entiers. -->
     <div class="flex flex-wrap items-center gap-1">
-      <UiIconButton :label="t('composer.attach')" :disabled="disabled" @click="pick">
+      <UiIconButton :label="t('composer.attach')" :disabled="disabled" :loading="saving > 0" @click="pick">
         <Paperclip class="size-4" aria-hidden="true" />
       </UiIconButton>
       <span class="pe-1 text-xs whitespace-nowrap text-muted @max-sm:hidden">{{ agentName }}</span>
@@ -251,26 +253,26 @@ function onKeydown(event: KeyboardEvent) {
         :focus-after="focusInput"
       />
       <span class="flex-1" />
-      <button
-        v-if="running"
-        type="button"
-        class="grid size-7 place-items-center rounded-md bg-accent text-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        :aria-label="t('composer.stop')"
-        :title="t('composer.stop')"
-        @click="emit('stop')"
-      >
-        <Square class="size-3 fill-current" aria-hidden="true" />
-      </button>
-      <button
-        v-else
-        type="submit"
-        :disabled="disabled || !canSend"
-        class="grid size-7 place-items-center rounded-md bg-accent text-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-30"
-        :aria-label="t('composer.send')"
-        :title="t('composer.send')"
-      >
-        <ArrowUp class="size-4" aria-hidden="true" />
-      </button>
+      <UiTooltip v-if="running" :label="t('composer.stop')">
+        <button
+          type="button"
+          class="grid size-7 place-items-center rounded-md bg-accent text-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          :aria-label="t('composer.stop')"
+          @click="emit('stop')"
+        >
+          <Square class="size-3 fill-current" aria-hidden="true" />
+        </button>
+      </UiTooltip>
+      <UiTooltip v-else :label="t('composer.send')" :shortcut="shortcuts.label('send')">
+        <button
+          type="submit"
+          :disabled="disabled || !canSend"
+          class="grid size-7 place-items-center rounded-md bg-accent text-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-30"
+          :aria-label="t('composer.send')"
+        >
+          <ArrowUp class="size-4" aria-hidden="true" />
+        </button>
+      </UiTooltip>
     </div>
   </form>
 </template>

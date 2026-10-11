@@ -32,7 +32,7 @@ const problem = computed(() => {
     <div class="min-w-0 flex-1">
       <p class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-medium">
         <span class="truncate">{{ name }}</span>
-        <span v-if="account.active" class="shrink-0 rounded bg-content/8 px-1.5 py-px text-[11px] font-normal text-muted">
+        <span v-if="account.active" class="shrink-0 rounded bg-signal/15 px-1.5 py-px text-[11px] font-medium text-signal-text">
           {{ t('settings.github.active') }}
         </span>
       </p>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ExternalLink } from '@lucide/vue'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsGroup from '@/components/settings/SettingsGroup.vue'
@@ -25,10 +26,18 @@ const result = computed(() => {
   if (updates.status === 'upToDate') return { text: t('updates.upToDate'), tone: 'text-muted' }
   if (updates.status === 'failed') return { text: t('updates.failed'), tone: 'text-danger' }
   if (updates.status === 'available' && updates.latest) {
-    return { text: t('updates.available', { version: updates.latest.version }), tone: 'text-accent' }
+    return { text: t('updates.available', { version: updates.latest.version }), tone: 'text-signal-text' }
   }
   return null
 })
+
+// Un seul bouton qui devient « Voir la version » : validé au clavier, il garde le focus après la recherche.
+const release = computed(() => (updates.status === 'available' ? updates.latest : null))
+
+function checkOrView() {
+  if (release.value) openGithubPage(release.value.url)
+  else updates.check()
+}
 </script>
 
 <template>
@@ -46,17 +55,11 @@ const result = computed(() => {
         </span>
       </template>
       <div class="flex items-center gap-2">
-        <UiButton size="sm" @click="openGithubPage(RELEASES)">{{ t('settings.general.updates.notes') }}</UiButton>
-        <UiButton
-          v-if="updates.status === 'available' && updates.latest"
-          size="sm"
-          variant="primary"
-          @click="openGithubPage(updates.latest.url)"
-        >
-          {{ t('updates.view') }}
+        <UiButton size="sm" @click="openGithubPage(RELEASES)">
+          <ExternalLink class="size-3.5" aria-hidden="true" />{{ t('settings.general.updates.notes') }}
         </UiButton>
-        <UiButton v-else size="sm" :loading="updates.status === 'checking'" @click="updates.check()">
-          {{ t('updates.check') }}
+        <UiButton size="sm" :variant="release ? 'primary' : 'secondary'" :loading="updates.status === 'checking'" @click="checkOrView()">
+          <ExternalLink v-if="release" class="size-3.5" aria-hidden="true" />{{ release ? t('updates.view') : t('updates.check') }}
         </UiButton>
       </div>
     </SettingsRow>

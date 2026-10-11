@@ -7,9 +7,11 @@ import SettingsRow from '@/components/settings/SettingsRow.vue'
 import ShellBackgroundImage from '@/components/shell/ShellBackgroundImage.vue'
 import UiChoiceCard from '@/components/ui/UiChoiceCard.vue'
 import UiSegmented from '@/components/ui/UiSegmented.vue'
+import { useResetToast } from '@/composables/useResetToast'
 import { backgroundEffects, backgroundOptions, INTENSITY_LEVEL, useAppearanceStore } from '@/stores/appearance'
 
 const { t } = useI18n()
+const resetToast = useResetToast()
 const appearance = useAppearanceStore()
 
 const rows = ['where', 'visibility', 'intensity'] as const
@@ -22,7 +24,7 @@ function options(setting: (typeof rows)[number]) {
 <template>
   <SettingsGroup :title="t('settings.background.settingsTitle')">
     <template #action>
-      <SettingsResetButton @click="appearance.resetBackground()" />
+      <SettingsResetButton @click="appearance.resetBackground(); resetToast('section')" />
     </template>
     <SettingsRow
       v-for="setting in rows"

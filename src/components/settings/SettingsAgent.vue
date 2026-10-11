@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CircleCheck, LoaderCircle } from '@lucide/vue'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsGroup from '@/components/settings/SettingsGroup.vue'
 import SettingsInstall from '@/components/settings/SettingsInstall.vue'
@@ -90,9 +90,21 @@ function resetsAt(at: number | null) {
   return t('settings.agents.resets', { when })
 }
 
+// Le bouton cliqué reste en place, en chargement, le temps de la sonde ; les autres attendent.
+const running = ref<'auto' | 'refresh' | 'choose' | 'account' | null>(null)
+
+async function run(action: NonNullable<typeof running.value>, task: () => Promise<unknown>) {
+  running.value = action
+  try {
+    await task()
+  } finally {
+    running.value = null
+  }
+}
+
 async function choosePath() {
   const path = await pickFile(t('settings.agents.pickTitle', { agent: name }))
-  if (path) store.setPath(props.kind, path)
+  if (path) await run('choose', () => store.setPath(props.kind, path))
 }
 </script>
 
@@ -109,14 +121,29 @@ async function choosePath() {
         </template>
       </template>
       <template #default="{ hintId }">
-        <LoaderCircle v-if="status.state === 'checking'" class="size-4 animate-spin text-muted" aria-hidden="true" />
+        <LoaderCircle v-if="status.state === 'checking' && !running" class="size-4 animate-spin text-muted motion-reduce:animate-none" aria-hidden="true" />
         <div v-else class="flex flex-wrap justify-end gap-2">
-          <UiButton v-if="settings.path" size="sm" variant="ghost" @click="store.setPath(kind, null)">{{ t('settings.agents.auto') }}</UiButton>
-          <UiButton v-if="status.state === 'missing' || status.state === 'error'" size="sm" :aria-describedby="hintId" @click="store.detect(kind)">
-            {{ t('settings.agents.retry') }}
+          <UiButton
+            v-if="settings.path || running === 'auto'"
+            size="sm"
+            :loading="running === 'auto'"
+            :disabled="!!running"
+            @click="run('auto', () => store.setPath(kind, null))"
+          >
+            {{ t('settings.agents.auto') }}
           </UiButton>
-          <UiButton size="sm" :aria-describedby="hintId" @click="choosePath()">
-            {{ status.state === 'missing' ? t('settings.agents.choose') : t('settings.agents.change') }}
+          <UiButton
+            v-if="running === 'refresh' || status.state === 'missing' || status.state === 'error'"
+            size="sm"
+            :loading="running === 'refresh'"
+            :disabled="!!running"
+            :aria-describedby="hintId"
+            @click="run('refresh', () => store.refresh(kind))"
+          >
+            {{ t('settings.agents.refresh') }}
+          </UiButton>
+          <UiButton size="sm" :loading="running === 'choose'" :disabled="!!running" :aria-describedby="hintId" @click="choosePath()">
+            {{ status.path ? t('settings.agents.change') : t('settings.agents.choose') }}
           </UiButton>
         </div>
       </template>
@@ -131,7 +158,7 @@ async function choosePath() {
     >
       <div class="flex items-center gap-3">
         <span class="text-xs text-muted tabular-nums">{{ status.version }}</span>
-        <UiButton v-if="status.latest" size="xs" variant="primary" :loading="status.updating" :aria-describedby="hintId" @click="store.update(kind)">
+        <UiButton v-if="status.latest" size="sm" variant="primary" :loading="status.updating" :aria-describedby="hintId" @click="store.update(kind)">
           {{ t('settings.agents.update') }}
         </UiButton>
       </div>
@@ -146,7 +173,9 @@ async function choosePath() {
       <span v-if="status.account" class="flex items-center gap-1.5 text-xs text-success">
         <CircleCheck class="size-3.5" aria-hidden="true" />{{ t('settings.agents.status.connected') }}
       </span>
-      <UiButton v-else size="sm" :aria-describedby="hintId" @click="store.detect(kind)">{{ t('settings.agents.recheck') }}</UiButton>
+      <UiButton v-else size="sm" :loading="running === 'account'" :aria-describedby="hintId" @click="run('account', () => store.refresh(kind))">
+        {{ t('settings.agents.refresh') }}
+      </UiButton>
     </SettingsRow>
   </SettingsGroup>
 

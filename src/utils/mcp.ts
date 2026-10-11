@@ -8,7 +8,7 @@ export function mcpStatus(server: McpServer, on: boolean, t: (key: string, value
     case 'connected':
       return { tone: 'bg-success', text: server.tools === null ? t('settings.skills.status.connected') : t('settings.skills.tools', server.tools) }
     case 'pending':
-      return { tone: 'bg-muted animate-pulse motion-reduce:animate-none', text: t('settings.skills.status.pending') }
+      return { tone: 'bg-warning animate-pulse motion-reduce:animate-none', text: t('settings.skills.status.pending') }
     case 'needsAuth':
       return { tone: 'bg-info', text: t('settings.skills.status.needsAuth') }
     default:

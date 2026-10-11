@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, useId, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
+import UiButton from '@/components/ui/UiButton.vue'
 import type { Approval } from '@/stores/conversations'
 import { useShortcutsStore } from '@/stores/shortcuts'
 
@@ -10,7 +11,7 @@ const emit = defineEmits<{ answer: [allow: boolean] }>()
 const { t } = useI18n()
 const titleId = useId()
 const detailId = useId()
-const deny = useTemplateRef('deny')
+const deny = useTemplateRef<{ $el: HTMLElement }>('deny')
 const shortcuts = useShortcutsStore()
 
 // Écouté sur la carte et non la fenêtre : avec deux panes, seule la demande qui a le focus répond.
@@ -25,7 +26,7 @@ function onKeydown(event: KeyboardEvent) {
   }
 }
 
-onMounted(() => deny.value?.focus())
+onMounted(() => deny.value?.$el.focus())
 </script>
 
 <template>
@@ -44,25 +45,14 @@ onMounted(() => deny.value?.focus())
     >{{ approval.detail }}</pre>
     <p v-if="approval.description" class="mt-2 text-xs text-muted">{{ approval.description }}</p>
     <div class="mt-4 flex items-center justify-between gap-2">
-      <button
-        ref="deny"
-        type="button"
-        :aria-keyshortcuts="shortcuts.aria('deny')"
-        class="flex h-8 items-center gap-2 rounded-md bg-selection px-3 text-sm hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring"
-        @click="emit('answer', false)"
-      >
+      <UiButton ref="deny" :aria-keyshortcuts="shortcuts.aria('deny')" @click="emit('answer', false)">
         {{ t('approval.deny') }}
         <kbd v-if="shortcuts.label('deny')" class="font-sans text-xs text-muted" aria-hidden="true">{{ shortcuts.label('deny') }}</kbd>
-      </button>
-      <button
-        type="button"
-        :aria-keyshortcuts="shortcuts.aria('approve')"
-        class="flex h-8 items-center gap-2 rounded-md bg-accent px-3 text-sm text-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        @click="emit('answer', true)"
-      >
+      </UiButton>
+      <UiButton variant="primary" :aria-keyshortcuts="shortcuts.aria('approve')" @click="emit('answer', true)">
         {{ t('approval.allow') }}
         <kbd v-if="shortcuts.label('approve')" class="font-sans text-xs opacity-60" aria-hidden="true">{{ shortcuts.label('approve') }}</kbd>
-      </button>
+      </UiButton>
     </div>
   </div>
 </template>

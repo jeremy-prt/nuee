@@ -39,7 +39,7 @@ function onOpenAutoFocus(event: Event) {
           <AlertDialogTitle class="text-sm font-semibold">{{ dialog.request.title }}</AlertDialogTitle>
           <AlertDialogDescription class="mt-1.5 text-sm/relaxed text-muted">{{ dialog.request.message }}</AlertDialogDescription>
           <div class="mt-5 flex justify-end gap-2">
-            <UiButton @click="dialog.answer(false)">{{ t('dialog.cancel') }}</UiButton>
+            <UiButton variant="ghost" @click="dialog.answer(false)">{{ t('dialog.cancel') }}</UiButton>
             <UiButton ref="confirmButton" :variant="dialog.request.danger ? 'danger' : 'primary'" @click="dialog.answer(true)">
               {{ dialog.request.confirmLabel }}
             </UiButton>

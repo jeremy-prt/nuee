@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { MessageSquare, Trash2 } from '@lucide/vue'
 import { useI18n } from 'vue-i18n'
+import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { useTabTitle } from '@/composables/useTabTitle'
 import { useAttentionStore } from '@/stores/attention'
 import { useDialogStore } from '@/stores/dialog'
@@ -48,18 +49,19 @@ async function remove() {
     >
       <MessageSquare class="size-4 shrink-0 text-muted" aria-hidden="true" />
       <span class="truncate">{{ tabTitle(props.tab) }}</span>
-      <span v-if="attention.isUnseen(props.tab.id)" class="ms-auto size-1.5 shrink-0 rounded-full bg-accent">
+      <span v-if="attention.isUnseen(props.tab.id)" class="ms-auto size-1.5 shrink-0 rounded-full bg-signal">
         <span class="sr-only">{{ t('attention.unseen') }}</span>
       </span>
     </button>
-    <button
-      type="button"
-      class="absolute end-1 top-1 grid size-6 place-items-center rounded text-muted opacity-0 group-hover:opacity-100 hover:bg-selection-hover hover:text-content focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-ring"
-      :aria-label="t('chats.delete')"
-      :title="t('chats.delete')"
-      @click="remove"
-    >
-      <Trash2 class="size-3.5" aria-hidden="true" />
-    </button>
+    <UiTooltip :label="t('chats.delete')">
+      <button
+        type="button"
+        class="absolute end-1 top-1 grid size-6 place-items-center rounded text-muted opacity-0 group-hover:opacity-100 hover:bg-selection-hover hover:text-content focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-ring"
+        :aria-label="t('chats.delete')"
+        @click="remove"
+      >
+        <Trash2 class="size-3.5" aria-hidden="true" />
+      </button>
+    </UiTooltip>
   </div>
 </template>

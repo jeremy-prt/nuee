@@ -4,9 +4,11 @@ import SettingsGroup from '@/components/settings/SettingsGroup.vue'
 import SettingsResetButton from '@/components/settings/SettingsResetButton.vue'
 import SettingsRow from '@/components/settings/SettingsRow.vue'
 import UiSegmented from '@/components/ui/UiSegmented.vue'
+import { useResetToast } from '@/composables/useResetToast'
 import { themeIntensities, themeScopes, useAppearanceStore, veilTint } from '@/stores/appearance'
 
 const { t } = useI18n()
+const resetToast = useResetToast()
 const appearance = useAppearanceStore()
 
 const scopes = themeScopes.map((value) => ({ value, label: t(`settings.themes.scope.${value}`) }))
@@ -21,7 +23,7 @@ const intensities = themeIntensities.map((value) => ({
 <template>
   <SettingsGroup :title="t('settings.themes.settingsTitle')">
     <template #action>
-      <SettingsResetButton @click="appearance.resetTheme()" />
+      <SettingsResetButton @click="appearance.resetTheme(); resetToast('section')" />
     </template>
     <SettingsRow data-setting="themeScope" :label="t('settings.themes.scope.label')">
       <UiSegmented v-model="appearance.themeScope" :label="t('settings.themes.scope.label')" :options="scopes" />

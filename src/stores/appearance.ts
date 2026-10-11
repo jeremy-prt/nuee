@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, reactive, ref, watch, watchEffect } from 'vue'
 import { isMacosApp, isTauriApp } from '@/ipc/system'
 import { windowSetBlur, windowSetZoom } from '@/ipc/window'
-import { type ThemeId, themeAccent, themeIds } from '@/utils/themes'
+import { type ThemeId, themeAccent, themeIds, themeOnSignal, themeSignal } from '@/utils/themes'
 
 export const windowStyles = ['transparent', 'mixed', 'opaque'] as const
 export type WindowStyle = (typeof windowStyles)[number]
@@ -197,6 +197,8 @@ export const useAppearanceStore = defineStore('appearance', () => {
     root.dataset.window = effectiveStyle.value
     root.dataset.themeScope = themeScope.value
     root.style.setProperty('--color-accent', themeAccent(theme.value))
+    root.style.setProperty('--color-signal', themeSignal(theme.value))
+    root.style.setProperty('--color-on-signal', themeOnSignal(theme.value))
     root.style.setProperty('--selection-tint', `${THEME_TINT[themeIntensity.value].selection}%`)
     root.style.setProperty('--selection-hover-tint', `${THEME_TINT[themeIntensity.value].hover}%`)
     const values = glassValues(effectiveStyle.value, active.value, veilTint(themeScope.value, themeIntensity.value))

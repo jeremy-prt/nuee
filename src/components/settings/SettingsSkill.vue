@@ -113,7 +113,9 @@ async function remove() {
         </div>
       </SettingsRow>
       <SettingsRow v-slot="{ hintId }" :label="t('settings.skills.delete')" :hint="t('settings.skills.deleteHint')">
-        <UiButton size="sm" variant="danger" :aria-describedby="hintId" @click="remove()">{{ t('settings.skills.deleteButton') }}</UiButton>
+        <UiButton size="sm" variant="danger" :loading="store.trashing === skill.id" :aria-describedby="hintId" @click="remove()">
+          {{ t('settings.skills.deleteButton') }}
+        </UiButton>
       </SettingsRow>
     </SettingsGroup>
   </template>

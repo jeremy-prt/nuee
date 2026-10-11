@@ -5,11 +5,13 @@ import SettingsGroup from '@/components/settings/SettingsGroup.vue'
 import SettingsResetButton from '@/components/settings/SettingsResetButton.vue'
 import SettingsRow from '@/components/settings/SettingsRow.vue'
 import UiSegmented from '@/components/ui/UiSegmented.vue'
+import { useResetToast } from '@/composables/useResetToast'
 import { type GlassSetting, glassOptions, glassSettings, useAppearanceStore, type WindowStyle } from '@/stores/appearance'
 
 const props = defineProps<{ windowStyle: WindowStyle }>()
 
 const { t } = useI18n()
+const resetToast = useResetToast()
 const appearance = useAppearanceStore()
 
 const settings = computed(() => glassSettings(props.windowStyle))
@@ -35,7 +37,7 @@ function options(setting: GlassSetting) {
 <template>
   <SettingsGroup :title="props.windowStyle === 'opaque' ? t('settings.glass.backgroundTitle') : t('settings.glass.title')">
     <template #action>
-      <SettingsResetButton @click="appearance.resetGlass(props.windowStyle)" />
+      <SettingsResetButton @click="appearance.resetGlass(props.windowStyle); resetToast('section')" />
     </template>
     <SettingsRow v-for="setting in settings" :key="setting" v-slot="{ hintId }" :data-setting="`glass-${setting}`" :label="label(setting)" :hint="hint(setting)">
       <UiSegmented

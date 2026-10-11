@@ -57,6 +57,7 @@ export const useSkillsStore = defineStore('skills', () => {
   // Serveurs en connexion ou en nouvel essai ; `logins` : ceux qui attendent le navigateur.
   const pending = reactive(new Set<string>())
   const logins = reactive(new Set<string>())
+  const trashing = ref<string | null>(null)
   // Panneau de droite des réglages : le skill montré, et son éditeur. Le brouillon vit ici : quitter les
   // réglages démonte le panneau, il doit retrouver ses modifications au retour.
   const previewed = ref<Skill | null>(null)
@@ -120,6 +121,19 @@ export const useSkillsStore = defineStore('skills', () => {
 
   function load() {
     return Promise.all([loadSkills(), loadServers()])
+  }
+
+  // Relecture demandée par un clic : le message dit ce qui a été trouvé.
+  async function refresh() {
+    await load()
+    const { t } = i18nGlobal()
+    const failed = errors.skills ?? errors.servers
+    if (failed) return useToastsStore().push({ kind: 'error', title: t('feedback.refreshFailed'), body: failed })
+    const found = skills.value.length + servers.value.length
+    const body = found
+      ? `${t('feedback.skills', skills.value.length)} · ${t('feedback.servers', servers.value.length)}`
+      : t('feedback.nothingFound')
+    useToastsStore().push({ kind: 'success', title: t('feedback.listRefreshed'), body })
   }
 
   // Réglage d'un skill à une portée : pour Nuée, le sien s'il en a un, sinon celui de l'agent.
@@ -243,16 +257,19 @@ export const useSkillsStore = defineStore('skills', () => {
       danger: true,
     })
     if (!confirmed) return false
+    trashing.value = skill.id
     try {
       await skillsTrash(AGENT, skill.id)
     } catch (error) {
       fail('settings.skills.deleteFailed', skill.name, error)
       return false
+    } finally {
+      trashing.value = null
     }
     if (previewed.value?.id === skill.id) close(true)
     delete prefs.skills[skill.id]
     skills.value = skills.value.filter((item) => item.id !== skill.id)
-    useToastsStore().push({ title: t('settings.skills.deleted', { name: skill.name }), body: t('settings.skills.deletedBody') })
+    useToastsStore().push({ kind: 'success', title: t('settings.skills.deleted', { name: skill.name }), body: t('settings.skills.deletedBody') })
     return true
   }
 
@@ -294,7 +311,7 @@ export const useSkillsStore = defineStore('skills', () => {
 
   function fail(key: string, name: string, error: unknown) {
     const { t } = i18nGlobal()
-    useToastsStore().push({ title: t(key, { name }), body: message(error) })
+    useToastsStore().push({ kind: 'error', title: t(key, { name }), body: message(error) })
   }
 
   // Un autre skill ouvert avec des modifications non enregistrées fait demander d'abord.
@@ -345,13 +362,14 @@ export const useSkillsStore = defineStore('skills', () => {
     errors,
     pending,
     logins,
+    trashing,
     previewed,
     editing,
     draft,
     dirty,
     prefs,
     scope,
-    load,
+    load, refresh,
     loadSkills,
     loadServers,
     mode,
