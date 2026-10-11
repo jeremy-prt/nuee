@@ -24,6 +24,7 @@ pub(super) struct SessionKey {
     pub agent: AgentKind,
     pub cwd: PathBuf,
     pub options: TurnOptions,
+    pub hooks: bool,
 }
 
 pub(super) struct Turn {
@@ -432,6 +433,7 @@ mod tests {
                     model: None,
                     effort: None,
                 },
+                hooks: true,
             };
             let session = Session::start(Launch {
                 program: Path::new("/bin/sh"),

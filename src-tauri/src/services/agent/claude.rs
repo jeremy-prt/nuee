@@ -4,8 +4,8 @@ use std::path::{Path, PathBuf};
 use serde_json::Value;
 
 use super::{
-    Account, AgentEvent, Attached, Catalog, Driver, Effort, ModelInfo, PermissionMode, Probe,
-    Quota, SessionSpec, ToolKind, TurnStatus, Usage,
+    Account, AgentEvent, Attached, Catalog, Driver, Effort, ModelInfo, ModelQuota, PermissionMode,
+    Probe, Quota, SessionSpec, ToolKind, TurnStatus, Usage,
 };
 
 const OUTPUT_LIMIT: usize = 4000;
@@ -308,6 +308,10 @@ impl Driver for Claude {
             };
             args.extend(["--effort".into(), level.into()]);
         }
+        // Prime sur la config de l'utilisateur sans la modifier : seuls les chats de Nuée sont concernés.
+        if !spec.hooks {
+            args.extend(["--settings".into(), r#"{"disableAllHooks":true}"#.into()]);
+        }
         if let Some(id) = &spec.session_id {
             args.extend(["--resume".to_owned(), id.clone()]);
         }
@@ -394,6 +398,7 @@ impl Driver for Claude {
             Some("assistant") => self.assistant(&line, &mut events),
             Some("user") => self.tool_results(&line["message"]["content"], &mut events),
             Some("result") => self.result(&line, &mut events),
+            Some("rate_limit_event") => events.extend(rate_limit_of(&line["rate_limit_info"])),
             Some("control_request") if line["request"]["subtype"] == "can_use_tool" => {
                 events.push(self.approval(&line));
             }
@@ -547,18 +552,61 @@ fn usage_of(response: &Value) -> Option<Usage> {
     if response["rate_limits_available"] != true {
         return None;
     }
-    let quota = |key: &str| {
-        let window = &response["rate_limits"][key];
+    let limits = &response["rate_limits"];
+    let quota = |window: &Value| {
         Some(Quota {
             used: (window["utilization"].as_f64()? / 100.0).clamp(0.0, 1.0),
-            resets_at: window["resets_at"].as_str().map(str::to_owned),
+            resets_at: window["resets_at"]
+                .as_str()
+                .and_then(|date| chrono::DateTime::parse_from_rfc3339(date).ok())
+                .map(|date| date.timestamp_millis()),
         })
     };
+    let models = limits["model_scoped"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|window| {
+            Some(ModelQuota {
+                model: window["display_name"].as_str()?.to_owned(),
+                quota: quota(window)?,
+            })
+        })
+        .collect();
     let usage = Usage {
-        session: quota("five_hour"),
-        weekly: quota("seven_day"),
+        session: quota(&limits["five_hour"]),
+        weekly: quota(&limits["seven_day"]),
+        models,
     };
     (usage.session.is_some() || usage.weekly.is_some()).then_some(usage)
+}
+
+/// `rate_limit_event` d'un tour : fractions de 0 à 1, remises à zéro en secondes. `unifiedWindows`
+/// donne les deux fenêtres communes ; la fenêtre qui a déclenché l'événement peut être celle d'un modèle.
+fn rate_limit_of(info: &Value) -> Option<AgentEvent> {
+    let quota = |window: &Value| {
+        Some(Quota {
+            used: window["utilization"].as_f64()?.clamp(0.0, 1.0),
+            resets_at: window["resetsAt"].as_i64().map(|seconds| seconds * 1000),
+        })
+    };
+    let windows = &info["unifiedWindows"];
+    let mut session = quota(&windows["five_hour"]);
+    let mut weekly = quota(&windows["seven_day"]);
+    let mut model = None;
+    if let Some(current) = quota(info) {
+        match info["rateLimitType"].as_str() {
+            Some("five_hour") => session = Some(current),
+            Some("seven_day") => weekly = Some(current),
+            Some("seven_day_overage_included") => model = Some(current),
+            _ => {}
+        }
+    }
+    (session.is_some() || weekly.is_some() || model.is_some()).then_some(AgentEvent::Usage {
+        session,
+        weekly,
+        model,
+    })
 }
 
 /// `settings.json` de l'utilisateur, là où la CLI le lit.
@@ -707,6 +755,7 @@ mod tests {
                 model: Some("opus".into()),
                 effort: Some(Effort::Xhigh),
             },
+            hooks: false,
         };
         let args = Claude::new(Path::new("/projet")).args(&request);
         let tail: Vec<&str> = args.iter().skip(9).map(String::as_str).collect();
@@ -719,6 +768,8 @@ mod tests {
                 "opus",
                 "--effort",
                 "xhigh",
+                "--settings",
+                r#"{"disableAllHooks":true}"#,
                 "--resume",
                 "s1"
             ]
@@ -846,7 +897,7 @@ mod tests {
     fn probe_reads_version_account_and_quotas() {
         let probe = probe(&[
             r#"{"type":"control_response","response":{"subtype":"success","request_id":"nuee-init","response":{"models":[],"claude_code_version":"2.1.296","account":{"email":"moi@exemple.com","organization":"Ulyssoft","subscriptionType":"Claude Team","apiProvider":"firstParty"}}}}"#,
-            r#"{"type":"control_response","response":{"subtype":"success","request_id":"nuee-usage","response":{"rate_limits_available":true,"rate_limits":{"five_hour":{"utilization":42,"resets_at":"2026-10-11T14:09:59.797000+00:00"},"seven_day":{"utilization":59,"resets_at":null}}}}}"#,
+            r#"{"type":"control_response","response":{"subtype":"success","request_id":"nuee-usage","response":{"rate_limits_available":true,"rate_limits":{"five_hour":{"utilization":42,"resets_at":"2026-10-11T14:09:59.797000+00:00"},"seven_day":{"utilization":59,"resets_at":null},"model_scoped":[{"display_name":"Fable","utilization":10,"resets_at":"2026-10-11T20:00:00+00:00"}]}}}}"#,
         ]);
         assert!(probe.described && probe.usage_read);
         assert_eq!(probe.version.as_deref(), Some("2.1.296"));
@@ -862,12 +913,19 @@ mod tests {
             Some(Usage {
                 session: Some(Quota {
                     used: 0.42,
-                    resets_at: Some("2026-10-11T14:09:59.797000+00:00".into())
+                    resets_at: Some(1_791_727_799_797)
                 }),
                 weekly: Some(Quota {
                     used: 0.59,
                     resets_at: None
                 }),
+                models: vec![ModelQuota {
+                    model: "Fable".into(),
+                    quota: Quota {
+                        used: 0.1,
+                        resets_at: Some(1_791_748_800_000)
+                    }
+                }],
             })
         );
     }
@@ -904,5 +962,37 @@ mod tests {
         ]);
         assert!(probe.usage_read && !probe.described);
         assert_eq!(probe.usage, None);
+    }
+
+    #[test]
+    fn rate_limit_event_updates_quotas_during_a_turn() {
+        let (_, events) = parse(&[
+            r#"{"type":"rate_limit_event","rate_limit_info":{"status":"allowed","resetsAt":1791727800,"rateLimitType":"five_hour","unifiedWindows":{"five_hour":{"utilization":0.03,"resetsAt":1791727800},"seven_day":{"utilization":0.59,"resetsAt":1791748800}}}}"#,
+            r#"{"type":"rate_limit_event","rate_limit_info":{"rateLimitType":"seven_day_overage_included","utilization":0.2,"resetsAt":1791748800}}"#,
+        ]);
+        assert_eq!(
+            events,
+            vec![
+                AgentEvent::Usage {
+                    session: Some(Quota {
+                        used: 0.03,
+                        resets_at: Some(1_791_727_800_000)
+                    }),
+                    weekly: Some(Quota {
+                        used: 0.59,
+                        resets_at: Some(1_791_748_800_000)
+                    }),
+                    model: None,
+                },
+                AgentEvent::Usage {
+                    session: None,
+                    weekly: None,
+                    model: Some(Quota {
+                        used: 0.2,
+                        resets_at: Some(1_791_748_800_000)
+                    }),
+                },
+            ]
+        );
     }
 }

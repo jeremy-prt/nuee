@@ -49,6 +49,8 @@ pub struct SessionSpec {
     /// Session renvoyée par l'agent : la reprendre garde le fil quand le process doit être relancé.
     pub session_id: Option<String>,
     pub options: TurnOptions,
+    /// `false` : les hooks de la config de l'utilisateur ne tournent pas dans les chats de Nuée.
+    pub hooks: bool,
 }
 
 /// Réglages d'un chat, repris à chaque tour : en changer en cours de conversation est possible.
@@ -159,6 +161,16 @@ pub struct Account {
 pub struct Usage {
     pub session: Option<Quota>,
     pub weekly: Option<Quota>,
+    /// Quotas hebdomadaires propres à un modèle (Claude en a un pour Fable).
+    pub models: Vec<ModelQuota>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct ModelQuota {
+    pub model: String,
+    pub quota: Quota,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
@@ -167,8 +179,9 @@ pub struct Usage {
 pub struct Quota {
     /// Part consommée, de 0 à 1.
     pub used: f64,
-    /// Date ISO 8601.
-    pub resets_at: Option<String>,
+    /// En millisecondes depuis 1970.
+    #[ts(type = "number | null")]
+    pub resets_at: Option<i64>,
 }
 
 /// Ce que l'agent dit de lui quand on le lance sans tour.
@@ -228,6 +241,13 @@ pub enum AgentEvent {
     },
     ApprovalCancelled {
         id: String,
+    },
+    /// Quotas relus pendant le tour : seules les valeurs présentes changent.
+    Usage {
+        session: Option<Quota>,
+        weekly: Option<Quota>,
+        /// Quota du modèle à part ; l'agent ne le nomme pas ici, la sonde l'a déjà fait.
+        model: Option<Quota>,
     },
     /// La réponse est complète. L'agent range encore son tour (résumé, hooks) avant `turnEnd`.
     Answered,
@@ -604,6 +624,7 @@ impl AgentService {
             agent: spec.agent,
             cwd: cwd.clone(),
             options: spec.options.clone(),
+            hooks: spec.hooks,
         };
         Ok((key, cwd))
     }

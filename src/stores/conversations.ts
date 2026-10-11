@@ -291,7 +291,10 @@ export const useConversationsStore = defineStore('conversations', () => {
       if (!conversation) continue
       const { ended, signal } = apply(conversation, events)
       save(chatId)
-      for (const event of events) if (event.type === 'turnEnd') agentSettings.confirm(conversation.agent, event.status)
+      for (const event of events) {
+        if (event.type === 'turnEnd') agentSettings.confirm(conversation.agent, event.status)
+        else if (event.type === 'usage') agentSettings.track(conversation.agent, event)
+      }
       if (signal) useAttentionStore().signal(chatId, signal)
       const queued = conversation.queued
       if (ended && queued) {
@@ -315,7 +318,8 @@ export const useConversationsStore = defineStore('conversations', () => {
 
   function spec(chatId: string, conversation: Conversation, cwd: string | null): SessionSpec {
     const { agent, sessionId } = conversation
-    return { chatId, agent, cwd, sessionId, options: catalog.resolve(agent, conversation.options) }
+    const { hooks } = agentSettings.settings[agent]
+    return { chatId, agent, cwd, sessionId, options: catalog.resolve(agent, conversation.options), hooks }
   }
 
   async function dispatch(chatId: string, conversation: Conversation, cwd: string | null, prompt: string, attachments: Attachment[]) {

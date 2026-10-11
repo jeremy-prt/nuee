@@ -183,6 +183,14 @@ const entries: SettingEntry[] = [
       keywords: ['account'],
       names: [agents[kind as AgentKind].name],
     },
+    {
+      id: `${kind}-hooks`,
+      section: 'agents' as const,
+      detail: kind as AgentKind,
+      label: 'settings.agents.hooks',
+      keywords: ['hooks'],
+      names: [agents[kind as AgentKind].name],
+    },
     ...(['session', 'weekly'] as const).map((quota) => ({
       id: `${kind}-${quota}`,
       section: 'agents' as const,

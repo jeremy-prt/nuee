@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { reactive, watch } from 'vue'
 import { i18nGlobal } from '@/i18n'
 import { agentProbe, agentUpdate, isAppError } from '@/ipc/agent'
+import type { AgentEvent } from '@/ipc/bindings/AgentEvent'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { AgentStatus as Probed } from '@/ipc/bindings/AgentStatus'
 import type { PermissionMode } from '@/ipc/bindings/PermissionMode'
@@ -16,6 +17,8 @@ interface AgentSettings {
   path: string | null
   // Réglages de départ d'un nouveau chat ; null laisse l'agent choisir.
   defaults: TurnOptions
+  // false : les hooks de la config de l'agent ne tournent pas dans les chats de Nuée.
+  hooks: boolean
 }
 
 // Ce que Rust renvoie, plus l'état de la détection : introuvable, ou trouvé mais muet.
@@ -31,7 +34,7 @@ const MODES: PermissionMode[] = ['bypass', 'auto']
 const kinds = Object.keys(agents) as AgentKind[]
 
 function defaults(): AgentSettings {
-  return { enabled: true, path: null, defaults: { mode: 'bypass', model: null, effort: null } }
+  return { enabled: true, path: null, defaults: { mode: 'bypass', model: null, effort: null }, hooks: true }
 }
 
 function load() {
@@ -43,6 +46,7 @@ function load() {
       if (!value) continue
       if (typeof value.enabled === 'boolean') settings[kind].enabled = value.enabled
       if (typeof value.path === 'string') settings[kind].path = value.path
+      if (typeof value.hooks === 'boolean') settings[kind].hooks = value.hooks
       if (MODES.includes(value.defaults?.mode)) settings[kind].defaults.mode = value.defaults.mode
       if (typeof value.defaults?.model === 'string') settings[kind].defaults.model = value.defaults.model
       if (typeof value.defaults?.effort === 'string') settings[kind].defaults.effort = value.defaults.effort
@@ -124,6 +128,18 @@ export const useAgentsStore = defineStore('agents', () => {
     if ((outcome === 'completed' && !signedIn) || (outcome === 'unauthenticated' && signedIn)) detect(kind, true)
   }
 
+  // Quotas envoyés par l'agent pendant un tour : la page Agents suit sans relancer la sonde.
+  function track(kind: AgentKind, { session, weekly, model }: Extract<AgentEvent, { type: 'usage' }>) {
+    const current = status[kind]
+    const usage = current.usage ?? { session: null, weekly: null, models: [] }
+    if (session) usage.session = session
+    if (weekly) usage.weekly = weekly
+    // L'événement ne nomme pas le modèle : seul celui que la sonde a vu peut le recevoir.
+    const [only, ...others] = usage.models
+    if (model && only && !others.length) usage.models = [{ ...only, quota: model }]
+    current.usage = usage
+  }
+
   function setPath(kind: AgentKind, path: string | null) {
     settings[kind].path = path
     detect(kind)
@@ -135,5 +151,5 @@ export const useAgentsStore = defineStore('agents', () => {
 
   for (const kind of kinds) detect(kind)
 
-  return { settings, status, detect, update, confirm, setPath, chatDefaults }
+  return { settings, status, detect, update, confirm, track, setPath, chatDefaults }
 })

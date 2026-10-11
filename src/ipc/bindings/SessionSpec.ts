@@ -13,4 +13,8 @@ cwd: string | null,
 /**
  * Session renvoyée par l'agent : la reprendre garde le fil quand le process doit être relancé.
  */
-sessionId: string | null, options: TurnOptions, };
+sessionId: string | null, options: TurnOptions, 
+/**
+ * `false` : les hooks de la config de l'utilisateur ne tournent pas dans les chats de Nuée.
+ */
+hooks: boolean, };

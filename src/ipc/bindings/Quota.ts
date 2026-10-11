@@ -6,6 +6,6 @@ export type Quota = {
  */
 used: number, 
 /**
- * Date ISO 8601.
+ * En millisecondes depuis 1970.
  */
-resetsAt: string | null, };
+resetsAt: number | null, };

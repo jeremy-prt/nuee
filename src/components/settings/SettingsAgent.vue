@@ -7,6 +7,7 @@ import SettingsRow from '@/components/settings/SettingsRow.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiSegmented from '@/components/ui/UiSegmented.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
+import UiSwitch from '@/components/ui/UiSwitch.vue'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { Effort } from '@/ipc/bindings/Effort'
 import type { PermissionMode } from '@/ipc/bindings/PermissionMode'
@@ -31,12 +32,20 @@ const models = computed(() => catalog.get(props.kind)?.models ?? [])
 // Valeurs réellement appliquées : un réglage laissé à null montre ce que l'agent choisira.
 const resolved = computed(() => catalog.resolve(props.kind, settings.value.defaults))
 
-const quotas = computed(() =>
-  (['session', 'weekly'] as const).flatMap((key) => {
-    const quota = status.value.usage?.[key]
-    return quota ? [{ key, ...quota }] : []
-  }),
-)
+const quotas = computed(() => {
+  const usage = status.value.usage
+  if (!usage) return []
+  const shared = (['session', 'weekly'] as const).flatMap((key) => {
+    const quota = usage[key]
+    return quota ? [{ key: key as string, label: t(`settings.agents.${key}`), quota }] : []
+  })
+  const models = usage.models.map(({ model, quota }) => ({
+    key: `weekly-${model}`,
+    label: t('settings.agents.weeklyModel', { model }),
+    quota,
+  }))
+  return [...shared, ...models]
+})
 const account = computed(() => {
   const { email, plan } = status.value.account ?? {}
   return [email, plan].filter(Boolean).join(' · ')
@@ -69,9 +78,8 @@ function percent(value: number) {
 }
 
 // Dans moins d'un jour : « dans 2 heures ». Au-delà : le jour et l'heure de la remise à zéro.
-function resetsAt(iso: string | null) {
-  const at = iso ? Date.parse(iso) : NaN
-  if (Number.isNaN(at)) return undefined
+function resetsAt(at: number | null) {
+  if (at === null) return undefined
   const minutes = Math.max(1, Math.round((at - Date.now()) / 60_000))
   const relative = new Intl.RelativeTimeFormat(locale.value, { numeric: 'auto' })
   let when: string
@@ -142,22 +150,28 @@ async function choosePath() {
 
   <SettingsGroup v-if="quotas.length" :title="t('settings.agents.usage')">
     <SettingsRow
-      v-for="quota in quotas"
-      :key="quota.key"
-      :data-setting="`${kind}-${quota.key}`"
-      :label="t(`settings.agents.${quota.key}`)"
-      :hint="resetsAt(quota.resetsAt)"
+      v-for="row in quotas"
+      :key="row.key"
+      :data-setting="`${kind}-${row.key}`"
+      :label="row.label"
+      :hint="resetsAt(row.quota.resetsAt)"
     >
       <div class="flex items-center gap-3">
         <span class="h-1.5 w-32 overflow-hidden rounded-full bg-content/10" aria-hidden="true">
           <span
             class="block h-full rounded-full"
-            :class="quota.used >= 0.8 ? 'bg-danger' : 'bg-content/60'"
-            :style="{ width: `${quota.used * 100}%` }"
+            :class="row.quota.used >= 0.8 ? 'bg-danger' : 'bg-content/60'"
+            :style="{ width: `${row.quota.used * 100}%` }"
           />
         </span>
-        <span class="min-w-20 text-end text-xs whitespace-nowrap text-muted tabular-nums">{{ t('settings.agents.used', { percent: percent(quota.used) }) }}</span>
+        <span class="min-w-20 text-end text-xs whitespace-nowrap text-muted tabular-nums">{{ t('settings.agents.used', { percent: percent(row.quota.used) }) }}</span>
       </div>
+    </SettingsRow>
+  </SettingsGroup>
+
+  <SettingsGroup :title="t('settings.agents.config', { agent: name })">
+    <SettingsRow v-slot="{ hintId }" :data-setting="`${kind}-hooks`" :label="t('settings.agents.hooks')" :hint="t('settings.agents.hooksHint', { agent: name })">
+      <UiSwitch v-model="settings.hooks" :label="t('settings.agents.hooks')" :aria-describedby="hintId" />
     </SettingsRow>
   </SettingsGroup>
 
