@@ -158,7 +158,7 @@ onUnmounted(() => {
           </div>
           <SettingsResetButton v-if="navigation.settingsSection === 'shortcuts'" @click="shortcuts.reset(); resetToast('shortcuts')" />
           <!-- Pas de création à la main : l'IA pose les bonnes questions et écrit un SKILL.md propre. -->
-          <UiButton v-else-if="navigation.settingsSection === 'skills'" variant="primary" @click="skillChat({ kind: 'createSkill' })">
+          <UiButton v-else-if="navigation.settingsSection === 'skills'" :variant="skills.editing ? 'secondary' : 'primary'" @click="skillChat({ kind: 'createSkill' })">
             <Sparkles class="size-4" aria-hidden="true" />{{ t('settings.skills.create') }}
           </UiButton>
         </div>

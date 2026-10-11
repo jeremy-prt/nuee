@@ -91,6 +91,7 @@ onMounted(() => {
         :catalog="catalog.get(agent)"
         :disabled="!loaded"
         :running="answering"
+        :approving="!!approval"
         @send="send"
         @warm="conversations.warm(tab.id, cwd)"
         @stop="conversations.stop(tab.id)"

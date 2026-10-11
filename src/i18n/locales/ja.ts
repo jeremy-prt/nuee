@@ -674,6 +674,7 @@ export default {
     githubRefreshed: 'GitHub を再読み込みしました',
     agentFound: '{agent} が見つかりました',
     agentMissing: '{agent} が見つかりません',
+    pathMissing: '選んだパスが使えなくなりました（{path}）。別のパスを選ぶか、自動に戻してください。',
     reset: {
       shortcuts: 'ショートカットを元に戻しました',
       shortcutsBody: 'すべてのショートカットが元のキーに戻りました。',

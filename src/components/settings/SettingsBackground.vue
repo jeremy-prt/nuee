@@ -80,8 +80,8 @@ const { over } = useFileDrop(zone, (paths) => use(paths[0]!), true)
       <div v-if="appearance.background.path" class="flex flex-wrap items-center gap-4">
         <SettingsBackgroundThumb :path="appearance.background.path" class="w-48" />
         <div class="flex flex-wrap gap-2">
-          <UiButton :loading="importing" :disabled="removing" @click="choose()">{{ t('settings.background.change') }}</UiButton>
-          <UiButton :loading="removing" :disabled="importing" @click="remove()">{{ t('settings.background.remove') }}</UiButton>
+          <UiButton size="sm" :loading="importing" :disabled="removing" @click="choose()">{{ t('settings.background.change') }}</UiButton>
+          <UiButton size="sm" :loading="removing" :disabled="importing" @click="remove()">{{ t('settings.background.remove') }}</UiButton>
         </div>
         <SettingsCustomizeButton
           show
@@ -94,7 +94,7 @@ const { over } = useFileDrop(zone, (paths) => use(paths[0]!), true)
       <div v-else class="flex flex-col items-center gap-3 py-6 text-center">
         <ImagePlus class="size-6 text-muted" aria-hidden="true" />
         <p class="text-sm text-muted">{{ t('settings.background.drop') }}</p>
-        <UiButton :loading="importing" @click="choose()">{{ t('settings.background.choose') }}</UiButton>
+        <UiButton size="sm" :loading="importing" @click="choose()">{{ t('settings.background.choose') }}</UiButton>
       </div>
     </div>
     <p aria-live="polite" class="mt-2 min-h-5 text-sm text-danger">{{ error }}</p>

@@ -8,13 +8,15 @@ import SettingsSkillsScope from '@/components/settings/SettingsSkillsScope.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiSwitch from '@/components/ui/UiSwitch.vue'
-import { useSkillsStore } from '@/stores/skills'
+import { useRefocus } from '@/composables/useRefocus'
+import { type McpServer, useSkillsStore } from '@/stores/skills'
 import { mcpStatus } from '@/utils/mcp'
 
 const props = defineProps<{ name: string }>()
 
 const { t } = useI18n()
 const store = useSkillsStore()
+const refocusAfter = useRefocus()
 
 if (!store.loaded) store.load()
 store.scope = 'nuee'
@@ -31,6 +33,11 @@ const action = computed(() => enabled.value && (server.value?.status === 'needsA
 const origin = computed(() => {
   return t(`settings.skills.origins.${server.value?.scope === 'plugin' ? 'plugin' : 'config'}`)
 })
+
+// Connecté, le bouton disparaît : validé au clavier, le focus passe à l'interrupteur du serveur.
+function act(event: MouseEvent, name: string, status: McpServer['status']) {
+  refocusAfter(event, () => (status === 'needsAuth' ? store.connect(name) : store.reconnect(name)), '[data-server-enabled]')
+}
 </script>
 
 <template>
@@ -45,7 +52,7 @@ const origin = computed(() => {
         :label="t('settings.skills.enabled')"
         :hint="locked ? t('settings.skills.lockedHint') : t('settings.skills.serverEnabledHint')"
       >
-        <UiSwitch v-model="enabled" :disabled="locked || store.pending.has(server.name)" :label="t('settings.skills.enabled')" :aria-describedby="hintId" />
+        <UiSwitch v-model="enabled" data-server-enabled :disabled="locked || store.pending.has(server.name)" :label="t('settings.skills.enabled')" :aria-describedby="hintId" />
       </SettingsRow>
       <SettingsRow :label="t('settings.skills.state')">
         <template #hint>
@@ -60,7 +67,7 @@ const origin = computed(() => {
               size="sm"
               :loading="store.pending.has(server.name)"
               :aria-describedby="hintId"
-              @click="server.status === 'needsAuth' ? store.connect(server.name) : store.reconnect(server.name)"
+              @click="act($event, server.name, server.status)"
             >
               {{ server.status === 'needsAuth' ? t('settings.skills.connect') : t('settings.skills.reconnect') }}
             </UiButton>

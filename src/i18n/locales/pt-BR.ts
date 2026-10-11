@@ -674,6 +674,7 @@ export default {
     githubRefreshed: 'GitHub recarregado',
     agentFound: '{agent} encontrado',
     agentMissing: '{agent} não encontrado',
+    pathMissing: 'O caminho escolhido não funciona mais ({path}). Escolha outro ou volte para o automático.',
     reset: {
       shortcuts: 'Atalhos restaurados',
       shortcutsBody: 'Cada atalho voltou à tecla original.',

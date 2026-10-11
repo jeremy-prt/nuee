@@ -163,7 +163,8 @@ export const useAgentsStore = defineStore('agents', () => {
       return useToastsStore().push({ kind: 'error', title: t('feedback.refreshFailed'), body: t('settings.agents.error', { agent: name, command: agents[kind].command }) })
     }
     if (current.state !== 'found') {
-      return useToastsStore().push({ kind: 'error', title: t('feedback.agentMissing', { agent: name }), body: t('settings.install.notInstalled', { tool: name }) })
+      const body = settings[kind].path ? t('feedback.pathMissing', { path: settings[kind].path }) : t('settings.install.notInstalled', { tool: name })
+      return useToastsStore().push({ kind: 'error', title: t('feedback.agentMissing', { agent: name }), body })
     }
     const version = t('settings.agents.versionShort', { version: current.version })
     useToastsStore().push(

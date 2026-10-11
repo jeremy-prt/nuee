@@ -674,6 +674,7 @@ export default {
     githubRefreshed: 'GitHub 已刷新',
     agentFound: '已找到 {agent}',
     agentMissing: '找不到 {agent}',
+    pathMissing: '所选路径已不可用（{path}）。请另选一个，或改回自动。',
     reset: {
       shortcuts: '快捷键已恢复',
       shortcutsBody: '每个快捷键都恢复为原来的按键。',

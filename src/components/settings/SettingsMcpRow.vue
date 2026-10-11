@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiSwitch from '@/components/ui/UiSwitch.vue'
+import { useRefocus } from '@/composables/useRefocus'
 import { useNavigationStore } from '@/stores/navigation'
 import { type McpServer, useSkillsStore } from '@/stores/skills'
 import { mcpStatus } from '@/utils/mcp'
@@ -13,6 +14,7 @@ const props = defineProps<{ server: McpServer }>()
 
 const { t } = useI18n()
 const store = useSkillsStore()
+const refocusAfter = useRefocus()
 const navigation = useNavigationStore()
 const hintId = useId()
 const on = computed(() => store.serverOn(props.server))
@@ -25,6 +27,12 @@ const origin = computed(() => {
   return scope === 'plugin' ? `plugin · ${transport}` : transport
 })
 const action = computed(() => on.value && (props.server.status === 'needsAuth' || props.server.status === 'failed'))
+
+// Connecté, le bouton disparaît : validé au clavier, le focus passe au bouton de réglages de la ligne.
+function act(event: MouseEvent) {
+  const { name, status } = props.server
+  refocusAfter(event, () => (status === 'needsAuth' ? store.connect(name) : store.reconnect(name)), `[data-customize="mcp:${CSS.escape(name)}"]`)
+}
 </script>
 
 <template>
@@ -47,7 +55,7 @@ const action = computed(() => on.value && (props.server.status === 'needsAuth' |
         size="xs"
         :loading="store.pending.has(server.name)"
         :aria-describedby="hintId"
-        @click="server.status === 'needsAuth' ? store.connect(server.name) : store.reconnect(server.name)"
+        @click="act($event)"
       >
         {{ server.status === 'needsAuth' ? t('settings.skills.connect') : t('settings.skills.reconnect') }}
       </UiButton>

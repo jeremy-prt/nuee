@@ -23,6 +23,8 @@ const props = defineProps<{
   catalog: Catalog | null
   disabled: boolean
   running: boolean
+  // Une demande d'autorisation attend : son bouton Autoriser est l'action principale, Arrêter passe au second plan.
+  approving?: boolean
 }>()
 // Réglages résolus : modèle et effort sont toujours des valeurs réelles du catalogue.
 const options = defineModel<TurnOptions>('options', { required: true })
@@ -256,7 +258,8 @@ function onKeydown(event: KeyboardEvent) {
       <UiTooltip v-if="running" :label="t('composer.stop')">
         <button
           type="button"
-          class="grid size-7 place-items-center rounded-md bg-accent text-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          class="grid size-7 place-items-center rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          :class="approving ? 'bg-selection text-content hover:bg-selection-hover' : 'bg-accent text-canvas'"
           :aria-label="t('composer.stop')"
           @click="emit('stop')"
         >

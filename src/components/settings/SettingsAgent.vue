@@ -9,6 +9,7 @@ import UiButton from '@/components/ui/UiButton.vue'
 import UiSegmented from '@/components/ui/UiSegmented.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
 import UiSwitch from '@/components/ui/UiSwitch.vue'
+import { useRefocus } from '@/composables/useRefocus'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { Effort } from '@/ipc/bindings/Effort'
 import type { PermissionMode } from '@/ipc/bindings/PermissionMode'
@@ -92,19 +93,22 @@ function resetsAt(at: number | null) {
 
 // Le bouton cliqué reste en place, en chargement, le temps de la sonde ; les autres attendent.
 const running = ref<'auto' | 'refresh' | 'choose' | 'account' | null>(null)
+const refocusAfter = useRefocus()
 
-async function run(action: NonNullable<typeof running.value>, task: () => Promise<unknown>) {
+// Les boutons Automatique, Actualiser et Mettre à jour disparaissent une fois leur action réussie : validés au
+// clavier, le focus passe au bouton Choisir/Changer, toujours là.
+async function run(event: MouseEvent, action: NonNullable<typeof running.value>, task: () => Promise<unknown>) {
   running.value = action
   try {
-    await task()
+    await refocusAfter(event, task, '[data-agent-choose]')
   } finally {
     running.value = null
   }
 }
 
-async function choosePath() {
+async function choosePath(event: MouseEvent) {
   const path = await pickFile(t('settings.agents.pickTitle', { agent: name }))
-  if (path) await run('choose', () => store.setPath(props.kind, path))
+  if (path) await run(event, 'choose', () => store.setPath(props.kind, path))
 }
 </script>
 
@@ -128,7 +132,7 @@ async function choosePath() {
             size="sm"
             :loading="running === 'auto'"
             :disabled="!!running"
-            @click="run('auto', () => store.setPath(kind, null))"
+            @click="run($event, 'auto', () => store.setPath(kind, null))"
           >
             {{ t('settings.agents.auto') }}
           </UiButton>
@@ -138,11 +142,11 @@ async function choosePath() {
             :loading="running === 'refresh'"
             :disabled="!!running"
             :aria-describedby="hintId"
-            @click="run('refresh', () => store.refresh(kind))"
+            @click="run($event, 'refresh', () => store.refresh(kind))"
           >
             {{ t('settings.agents.refresh') }}
           </UiButton>
-          <UiButton size="sm" :loading="running === 'choose'" :disabled="!!running" :aria-describedby="hintId" @click="choosePath()">
+          <UiButton size="sm" data-agent-choose :loading="running === 'choose'" :disabled="!!running" :aria-describedby="hintId" @click="choosePath($event)">
             {{ status.path ? t('settings.agents.change') : t('settings.agents.choose') }}
           </UiButton>
         </div>
@@ -158,7 +162,7 @@ async function choosePath() {
     >
       <div class="flex items-center gap-3">
         <span class="text-xs text-muted tabular-nums">{{ status.version }}</span>
-        <UiButton v-if="status.latest" size="sm" variant="primary" :loading="status.updating" :aria-describedby="hintId" @click="store.update(kind)">
+        <UiButton v-if="status.latest" size="sm" variant="primary" :loading="status.updating" :aria-describedby="hintId" @click="refocusAfter($event, () => store.update(kind), '[data-agent-choose]')">
           {{ t('settings.agents.update') }}
         </UiButton>
       </div>
@@ -173,7 +177,7 @@ async function choosePath() {
       <span v-if="status.account" class="flex items-center gap-1.5 text-xs text-success">
         <CircleCheck class="size-3.5" aria-hidden="true" />{{ t('settings.agents.status.connected') }}
       </span>
-      <UiButton v-else size="sm" :loading="running === 'account'" :aria-describedby="hintId" @click="run('account', () => store.refresh(kind))">
+      <UiButton v-else size="sm" :loading="running === 'account'" :aria-describedby="hintId" @click="run($event, 'account', () => store.refresh(kind))">
         {{ t('settings.agents.refresh') }}
       </UiButton>
     </SettingsRow>

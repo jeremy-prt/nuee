@@ -5,6 +5,7 @@ import SettingsGithubAvatar from '@/components/settings/SettingsGithubAvatar.vue
 import UiButton from '@/components/ui/UiButton.vue'
 import UiSwitch from '@/components/ui/UiSwitch.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
+import { useRefocus } from '@/composables/useRefocus'
 import { accountKey, type GithubAccount, useIntegrationsStore } from '@/stores/integrations'
 
 const props = defineProps<{ account: GithubAccount }>()
@@ -12,6 +13,7 @@ const props = defineProps<{ account: GithubAccount }>()
 const { t } = useI18n()
 const store = useIntegrationsStore()
 const hintId = useId()
+const refocusAfter = useRefocus()
 const name = computed(() => props.account.login || t('settings.github.unknownLogin'))
 
 // gh ne sait rendre actif qu'un compte qui marche.
@@ -24,6 +26,11 @@ const problem = computed(() => {
   if (state === 'failed') return error ?? t('settings.github.failed')
   return null
 })
+
+// Devenu actif, le bouton disparaît et la liste se réordonne : validé au clavier, le focus suit l'interrupteur du compte.
+function makeActive(event: MouseEvent) {
+  refocusAfter(event, () => store.makeActive(props.account), `[data-account-switch="${CSS.escape(accountKey(props.account))}"]`)
+}
 </script>
 
 <template>
@@ -49,12 +56,13 @@ const problem = computed(() => {
         :loading="switching"
         :disabled="!!store.switching && !switching"
         :aria-label="t('settings.github.makeActiveLabel', { login: name })"
-        @click="store.makeActive(account)"
+        @click="makeActive($event)"
       >
         {{ t('settings.github.makeActive') }}
       </UiButton>
     </UiTooltip>
     <UiSwitch
+      :data-account-switch="accountKey(account)"
       :model-value="store.used(account)"
       :disabled="!store.prefs.github"
       :label="t('settings.github.use', { login: name })"

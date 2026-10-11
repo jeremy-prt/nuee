@@ -7,7 +7,7 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <UiButton variant="ghost" size="sm" class="-me-2 -mb-1">
+  <UiButton size="sm">
     <RotateCcw class="size-3.5" aria-hidden="true" />{{ t('settings.reset') }}
   </UiButton>
 </template>

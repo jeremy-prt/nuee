@@ -672,6 +672,7 @@ export default {
     githubRefreshed: 'GitHub refreshed',
     agentFound: '{agent} found',
     agentMissing: '{agent} not found',
+    pathMissing: 'The chosen path no longer works ({path}). Choose another one or go back to automatic.',
     reset: {
       shortcuts: 'Shortcuts restored',
       shortcutsBody: 'Every shortcut is back to its original key.',

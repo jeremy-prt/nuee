@@ -8,6 +8,7 @@ import UiButton from '@/components/ui/UiButton.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiSwitch from '@/components/ui/UiSwitch.vue'
 import { useInstallPage } from '@/composables/useInstallPage'
+import { useRefocus } from '@/composables/useRefocus'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import { useAgentsStore } from '@/stores/agents'
 import { useNavigationStore } from '@/stores/navigation'
@@ -17,6 +18,7 @@ const { t } = useI18n()
 const store = useAgentsStore()
 const navigation = useNavigationStore()
 const openInstall = useInstallPage()
+const refocusAfter = useRefocus()
 const kinds = Object.keys(agents) as AgentKind[]
 // Agents actualisés depuis cette page : leur bouton reste en place, en chargement, le temps de la sonde.
 const refreshing = reactive(new Set<AgentKind>())
@@ -78,7 +80,7 @@ function action(kind: AgentKind) {
           <UiButton v-if="installable(kind)" size="sm" class="me-1" :aria-label="t('settings.install.installTool', { tool: agents[kind].name })" @click="openInstall(kind)">
             <ExternalLink class="size-3.5" aria-hidden="true" />{{ t('settings.install.install') }}
           </UiButton>
-          <UiIconButton v-if="action(kind)" :label="action(kind)!.label" :loading="action(kind)!.loading" @click="action(kind)!.run()">
+          <UiIconButton v-if="action(kind)" :label="action(kind)!.label" :loading="action(kind)!.loading" @click="refocusAfter($event, () => action(kind)!.run(), `[data-customize='${kind}']`)">
             <component :is="action(kind)!.icon" class="size-3.5" :class="action(kind)!.tone" aria-hidden="true" />
           </UiIconButton>
           <UiIconButton
