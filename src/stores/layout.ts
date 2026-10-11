@@ -96,5 +96,9 @@ export const useLayoutStore = defineStore('layout', () => {
     if (!remaining.length) state[from].open = false
   }
 
-  return { ...toRefs(state), viewsIn, toggleRail, togglePanel, toggleDock, moveView }
+  function reset() {
+    Object.assign(state, defaults())
+  }
+
+  return { ...toRefs(state), viewsIn, toggleRail, togglePanel, toggleDock, moveView, reset }
 })

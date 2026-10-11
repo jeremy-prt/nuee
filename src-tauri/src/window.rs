@@ -1,11 +1,28 @@
-use tauri::{PhysicalPosition, PhysicalSize, WebviewWindow};
+use tauri::{Manager, PhysicalPosition, PhysicalSize, WebviewWindow};
+use tauri_plugin_window_state::{AppHandleExt, StateFlags, WindowExt};
+
+// Retenus d'une ouverture à l'autre. Pas VISIBLE : la fenêtre, créée invisible, s'affiche ici une fois placée.
+pub const SAVED_STATE: StateFlags = StateFlags::SIZE
+    .union(StateFlags::POSITION)
+    .union(StateFlags::MAXIMIZED);
 
 // Marge autour de la fenêtre au lancement, en points logiques.
 const MARGIN: f64 = 16.0;
 
+// Fenêtre remise comme à la dernière fermeture ; au premier lancement, elle occupe l'écran. Le plugin ne retrouve
+// pas un écran débranché depuis : la position est alors laissée à l'OS.
+pub fn restore_or_fit(window: &WebviewWindow) -> tauri::Result<()> {
+    let app = window.app_handle();
+    if app.path().app_config_dir()?.join(app.filename()).exists() {
+        window.restore_state(SAVED_STATE)?;
+        return window.show();
+    }
+    fit_to_screen(window)
+}
+
 // Occupe tout l'écran utile (hors barre des menus et Dock) moins la marge, puis affiche la fenêtre,
 // créée invisible pour éviter un saut de taille.
-pub fn fit_to_screen(window: &WebviewWindow) -> tauri::Result<()> {
+fn fit_to_screen(window: &WebviewWindow) -> tauri::Result<()> {
     let monitor = match window.current_monitor()? {
         Some(monitor) => Some(monitor),
         None => window.primary_monitor()?,

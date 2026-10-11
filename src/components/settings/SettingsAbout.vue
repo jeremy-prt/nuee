@@ -13,6 +13,7 @@ import { useAppearanceStore } from '@/stores/appearance'
 import { useDialogStore } from '@/stores/dialog'
 import { useGeneralStore } from '@/stores/general'
 import { useIntegrationsStore } from '@/stores/integrations'
+import { useLayoutStore } from '@/stores/layout'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { useSkillsStore } from '@/stores/skills'
 
@@ -33,6 +34,7 @@ const shortcuts = useShortcutsStore()
 const agents = useAgentsStore()
 const skills = useSkillsStore()
 const integrations = useIntegrationsStore()
+const layout = useLayoutStore()
 
 async function resetAll() {
   const confirmed = await dialog.confirm({
@@ -47,6 +49,7 @@ async function resetAll() {
   agents.reset()
   skills.reset()
   integrations.reset()
+  layout.reset()
   const image = appearance.background.path
   appearance.resetAll()
   if (image && isTauriApp()) {

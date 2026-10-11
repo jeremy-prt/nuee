@@ -14,7 +14,7 @@ import { playCue } from '@/utils/sounds'
 // done : réponse complète. failed : arrêt sur une erreur. approval : l'agent attend une autorisation.
 export type Signal = 'done' | 'failed' | 'approval'
 
-// Prévient quand un agent a fini ou attend dans un chat qu'on ne regarde pas : son, message dans la fenêtre,
+// Prévient quand un agent a fini ou attend dans un chat qu'on ne regarde pas : message dans la fenêtre, son et
 // notification du système si l'app est en arrière-plan, et pastille du Dock tant que le chat n'est pas vu.
 export const useAttentionStore = defineStore('attention', () => {
   const general = useGeneralStore()
@@ -69,7 +69,8 @@ export const useAttentionStore = defineStore('attention', () => {
   }
 
   function signal(chatId: string, kind: Signal) {
-    if (general.sounds) playCue(kind === 'done' ? 'done' : 'attention')
+    // Au premier plan, le message dans la fenêtre suffit (choix de Jérémy).
+    if (general.sounds && !focused.value) playCue(kind === 'done' ? 'done' : 'attention')
     if (shown.value.includes(chatId)) return
     unseen.add(chatId)
 

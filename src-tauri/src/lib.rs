@@ -31,6 +31,12 @@ pub fn run() {
     builder
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(
+            tauri_plugin_window_state::Builder::new()
+                .with_state_flags(window::SAVED_STATE)
+                .skip_initial_state("main")
+                .build(),
+        )
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
@@ -42,7 +48,7 @@ pub fn run() {
                 // Flou « Moyen » dès l'ouverture : le réglage choisi n'arrive qu'une fois la page chargée.
                 #[cfg(target_os = "macos")]
                 window::set_blur(&main, 48);
-                window::fit_to_screen(&main)?;
+                window::restore_or_fit(&main)?;
             }
             let data = app.path().app_data_dir()?;
             app.manage(ChatService::open(&data.join("nuee.db"))?);

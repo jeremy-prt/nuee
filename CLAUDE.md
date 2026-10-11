@@ -12,6 +12,7 @@ App desktop Tauri 2 + Vue pour piloter des agents de code, open source (MIT). In
 - Lancée depuis une session Claude Code, `pnpm tauri dev` hérite de ses variables `CLAUDE_*` et `ANTHROPIC_*`, que les agents de Nuée reprennent : les retirer (`env -u ...`) pour tester comme depuis le Finder
 - Réglages › Skills et MCP écrit dans la config de Claude Code (`settings.json`, `skills/`) : tester les écritures avec `CLAUDE_CONFIG_DIR=<dossier leurre>`, jamais sur la vraie (la CLI n'y est pas connectée, les tours de chat échouent)
 - Simuler un outil absent : `NUEE_HIDE_BINARIES=gh,claude pnpm tauri dev` (debug seulement)
+- Taille et position de la fenêtre retenues dans `.window-state.json` (dossier de données de l'app) : le supprimer pour retester le premier lancement, où la fenêtre occupe l'écran
 - `pnpm tauri build` : ne builde que pour l'OS courant. Les trois OS passent par le workflow `.github/workflows/build.yml`
 
 ## Pièges
