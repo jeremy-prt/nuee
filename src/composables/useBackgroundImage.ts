@@ -8,6 +8,9 @@ let worker: Worker | null = null
 let nextId = 0
 const pending = new Map<number, { resolve: (blob: Blob) => void; reject: (error: Error) => void }>()
 const cache = new Map<string, Promise<string>>()
+// Les mêmes, une fois finis, lisibles sans attendre : un fond remonté par un changement de vue s'affiche dès sa
+// première image au lieu de passer un instant par le fond d'attente (clignotement).
+const done = new Map<string, string>()
 // Le fichier n'est lu qu'une fois : chaque calcul en reçoit une copie, transférée au worker.
 const files = new Map<string, Promise<ArrayBuffer>>()
 
@@ -51,12 +54,21 @@ export function backgroundUrl(path: string, effect: BackgroundEffect, level: Eff
   if (!url) {
     url = read(src)
       .then((bytes) => render(bytes, effect as PixelEffect, level, size))
-      .then((blob) => URL.createObjectURL(blob))
+      .then((blob) => {
+        const objectUrl = URL.createObjectURL(blob)
+        done.set(key, objectUrl)
+        return objectUrl
+      })
     // Un échec (image supprimée entre-temps) ne doit pas rester en cache.
     url.catch(() => cache.delete(key))
     cache.set(key, url)
   }
   return url
+}
+
+function readyUrl(path: string, effect: BackgroundEffect, level: EffectLevel, size: BackgroundSize) {
+  if (!(effect in pixelEffects)) return previewSrc(path)
+  return done.get(`${path}|${effect}|${level}|${size}`) ?? null
 }
 
 // Vignettes de la page des réglages calculées d'avance, quand l'app n'a rien d'autre à faire : sans ça
@@ -75,6 +87,7 @@ export function forgetBackground(path: string) {
   for (const [key, url] of cache) {
     if (!key.startsWith(`${path}|`)) continue
     cache.delete(key)
+    done.delete(key)
     url.then((objectUrl) => URL.revokeObjectURL(objectUrl)).catch(() => {})
   }
 }
@@ -94,6 +107,11 @@ export function useBackgroundImage(
     })
     if (!path.value) {
       url.value = null
+      return
+    }
+    const ready = readyUrl(path.value, effect.value, level.value, size)
+    if (ready) {
+      url.value = ready
       return
     }
     backgroundUrl(path.value, effect.value, level.value, size)
