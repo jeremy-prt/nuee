@@ -749,33 +749,56 @@ pub(crate) fn valid_name(name: &str) -> bool {
         && !name.chars().any(char::is_control)
 }
 
-/// Consignes d'une commande, avec les vrais chemins : l'agent écrit où la CLI ira lire.
+/// Consignes d'une commande, avec les vrais chemins : l'agent écrit où la CLI ira lire. Elles partent avec
+/// la première réponse de l'utilisateur au formulaire que Nuée affiche seule.
 fn command_instructions(kind: AgentKind, command: &ChatCommand) -> Result<String, AppError> {
     let skills_dir = kind
         .skills_dir()
         .ok_or_else(|| std::io::Error::other("dossier de config introuvable"))?;
     let task = match command {
-        ChatCommand::CreateSkill => {
-            "The user wants to create a new skill. Pick a folder name that does not exist yet: never \
-             overwrite an existing skill. Your first reply: one short sentence saying you will write the \
-             skill properly from their answers, then ask for the name they will type to call it and, in a \
-             line, what it should do."
-                .to_owned()
-        }
+        ChatCommand::CreateSkill => CREATE_SKILL.to_owned(),
         ChatCommand::EditSkill { id } => {
             let file = crate::services::skills::skill_file(kind, id)?;
-            format!(
-                "The user wants to change the skill in `{}`. Read it first. Your first reply: one or two \
-                 short sentences on what it does today, then ask what they want to change. Change only \
-                 that plus clear mistakes, and keep its folder name.",
-                file.display()
-            )
+            EDIT_SKILL.replace("{file}", &file.to_string_lossy())
         }
     };
     Ok(include_str!("skill_writer.md")
         .replace("{task}", &task)
         .replace("{skills_dir}", &skills_dir.to_string_lossy()))
 }
+
+// Le formulaire décrit ici est celui des clés `chat.commands.form` de l'interface : les garder d'accord.
+const CREATE_SKILL: &str = r#"The user wants to create a new skill. Nuée has already shown them this form, translated into their language:
+
+Skill name: to fill in
+Description: to fill in (what it does and when to use it)
+Automatic invocation: yes or no (yes = Claude runs it on its own when it helps; no = only when you type /name)
+
+Their answer comes after these instructions, maybe loose or partial. The name and what the skill does cannot be guessed; automatic invocation can: yes unless they say no. Then write the skill right away, following the rules below: the name normalized to lowercase letters, digits and hyphens, a description that triggers, `disable-model-invocation: true` if they answered no. Never overwrite an existing folder: if `{skills_dir}/<name>` already exists, the name is taken, ask for another one and suggest a free one.
+
+Once it is written, the block is:
+
+```nuee-skill
+{"action":"created","name":"<name>","summary":"<two or three sentences: what it does and when it triggers>","automatic":true}
+```
+
+with `"automatic":false` when the skill has `disable-model-invocation: true`."#;
+
+const EDIT_SKILL: &str = r#"The user wants to change the skill in `{file}`. Nuée has already shown them this form, translated into their language:
+
+Skill summary: <the description from the file>
+Automatic invocation: yes or no (no when the file has `disable-model-invocation: true`)
+What you want to change: to fill in
+
+Their answer comes after these instructions. Read the file, then apply the change right away, following the rules below: only what they asked plus clear mistakes, in the same folder with the same `name`. An answer that turns automatic invocation on or off removes or adds `disable-model-invocation: true`.
+
+Once it is saved, the block is:
+
+```nuee-skill
+{"action":"modified","name":"<name>","changes":"<one to three sentences on what changed>","summary":"<two or three sentences: what it does now and when it triggers>","automatic":true}
+```
+
+with `"automatic":false` when the skill has `disable-model-invocation: true`."#;
 
 fn with_recap(recap: &str, prompt: &str) -> String {
     format!(
@@ -851,8 +874,9 @@ mod tests {
     fn skill_commands_point_to_the_real_folder() {
         let text = command_instructions(AgentKind::Claude, &ChatCommand::CreateSkill).unwrap();
         let dir = AgentKind::Claude.skills_dir().unwrap();
-        assert!(text.contains(&*dir.to_string_lossy()));
-        assert!(text.contains("never overwrite"));
+        assert!(text.contains(&format!("{}/<name>", dir.to_string_lossy())));
+        assert!(text.contains("Never overwrite"));
+        assert!(text.contains("```nuee-skill\n{\"action\":\"created\""));
         assert!(!text.contains("{task}") && !text.contains("{skills_dir}"));
         let edit = ChatCommand::EditSkill {
             id: "../settings.json".into(),

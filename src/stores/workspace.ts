@@ -117,11 +117,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return number
   }
 
-  function createChat() {
+  // `title` : titre fixé d'avance (chat ouvert par une commande), l'agent n'en propose pas d'autre.
+  function createChat(title: string | null = null) {
     const projectId = navigation.projectId
-    const tab: Tab = { id: crypto.randomUUID(), kind: 'chat', number: nextChatNumber(projectId), projectId, agent: 'claude', title: null, started: false }
+    const tab: Tab = { id: crypto.randomUUID(), kind: 'chat', number: nextChatNumber(projectId), projectId, agent: 'claude', title, started: false }
     tabs.value.push(tab)
-    conversations.create({ id: tab.id, projectId, number: tab.number, agent: tab.agent, title: null, started: false })
+    conversations.create({ id: tab.id, projectId, number: tab.number, agent: tab.agent, title, started: false })
     current().tabs.push(tab.id)
     return tab
   }
@@ -140,8 +141,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
-  function openChat() {
-    const tab = createChat()
+  function openChat(title: string | null = null) {
+    const tab = createChat(title)
     show(tab.id)
     return tab
   }

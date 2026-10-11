@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, useTemplateRef } from 'vue'
+import { computed, onMounted, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatApproval from '@/components/chat/ChatApproval.vue'
 import ChatComposer from '@/components/chat/ChatComposer.vue'
@@ -49,6 +49,11 @@ const pane = useTemplateRef('pane')
 const composer = useTemplateRef('composer')
 const { over } = useFileDrop(pane, (paths) => {
   if (loaded.value) composer.value?.attach(paths)
+})
+
+// Chat de skill qui attend la réponse à son formulaire : il vient d'être ouvert pour qu'on y écrive.
+onMounted(() => {
+  if (loaded.value && items.value.length === 1 && items.value[0]?.kind === 'command') composer.value?.focus()
 })
 </script>
 

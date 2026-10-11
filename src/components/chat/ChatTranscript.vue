@@ -4,6 +4,7 @@ import { computed, onMounted, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatCommandRow from '@/components/chat/ChatCommandRow.vue'
 import ChatMarkdown from '@/components/chat/ChatMarkdown.vue'
+import ChatSkillForm from '@/components/chat/ChatSkillForm.vue'
 import ChatTool from '@/components/chat/ChatTool.vue'
 import { previewSrc } from '@/ipc/attachment'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
@@ -52,8 +53,11 @@ function agentParams() {
 <template>
   <div ref="scroller" class="overflow-y-auto" @scroll.passive="onScroll">
     <ol class="mx-auto flex max-w-(--chat-width) flex-col gap-3 px-6 py-6" role="log" :aria-busy="running" :aria-label="t('chat.transcript')">
-      <li v-for="(item, index) in items" :key="item.id" :class="{ 'flex flex-col items-end gap-1': item.kind === 'user' && !item.command }">
-        <ChatCommandRow v-if="item.kind === 'user' && item.command" :command="item.command" :running="running && index === lastUser" />
+      <li v-for="(item, index) in items" :key="item.id" :class="{ 'flex flex-col items-end gap-1': item.kind === 'user' }">
+        <template v-if="item.kind === 'command'">
+          <ChatCommandRow :item="item" :running="running" />
+          <ChatSkillForm :item="item" :agent-name="agents[agent].name" />
+        </template>
         <template v-else-if="item.kind === 'user'">
           <ul v-if="item.attachments?.length" class="flex max-w-[85%] flex-wrap justify-end gap-2" :aria-label="t('composer.attachments')">
             <li v-for="attachment in item.attachments" :key="attachment.preview ?? attachment.path" :title="attachment.path">
@@ -74,7 +78,7 @@ function agentParams() {
             class="max-w-[85%] rounded-xl bg-selection px-3 py-2 text-sm whitespace-pre-wrap break-words select-text"
           >{{ item.text }}</p>
         </template>
-        <ChatMarkdown v-else-if="item.kind === 'text'" :text="item.text" />
+        <ChatMarkdown v-else-if="item.kind === 'text'" :text="item.text" :streaming="running && index > lastUser" />
         <ChatTool v-else-if="item.kind === 'tool'" :item="item" />
         <template v-else-if="item.kind === 'end'">
           <p v-if="item.status === 'completed'" class="text-xs text-muted">

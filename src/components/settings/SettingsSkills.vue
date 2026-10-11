@@ -1,14 +1,12 @@
 <script setup lang="ts">
-import { Check, ChevronRight, Copy, Eye, FolderOpen, RefreshCw, Search, SlidersHorizontal, Sparkles } from '@lucide/vue'
+import { ChevronRight, Eye, FolderOpen, RefreshCw, Search, SlidersHorizontal } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsAgentLogo from '@/components/settings/SettingsAgentLogo.vue'
 import SettingsMcpRow from '@/components/settings/SettingsMcpRow.vue'
-import UiButton from '@/components/ui/UiButton.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiSwitch from '@/components/ui/UiSwitch.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
-import { useSkillChat } from '@/composables/useSkillChat'
 import { isMacosApp } from '@/ipc/system'
 import { useNavigationStore } from '@/stores/navigation'
 import { type Group, type McpServer, type Skill, useSkillsStore } from '@/stores/skills'
@@ -19,11 +17,10 @@ const { t } = useI18n()
 const revealLabel = isMacosApp() ? 'settings.skills.reveal' : 'settings.skills.revealFolder'
 const store = useSkillsStore()
 const navigation = useNavigationStore()
-const skillChat = useSkillChat()
 const query = ref('')
-const copied = ref<string | null>(null)
 
 if (!store.loaded) store.load()
+else store.loadSkills()
 
 const needle = computed(() => normalize(query.value.trim()))
 const matches = (...texts: string[]) => !needle.value || texts.some((text) => normalize(text).includes(needle.value))
@@ -51,14 +48,6 @@ function empty(kind: Group) {
   return store.checking ? t('settings.skills.loading') : t('settings.skills.noServers')
 }
 
-async function copy(skill: Skill) {
-  if (!(await store.copy(skill))) return
-  copied.value = skill.id
-  setTimeout(() => {
-    if (copied.value === skill.id) copied.value = null
-  }, 1500)
-}
-
 function onFilterKeydown(event: KeyboardEvent) {
   if (event.key !== 'Escape' || !query.value) return
   event.stopPropagation()
@@ -73,24 +62,24 @@ function onFilterKeydown(event: KeyboardEvent) {
       :key="kind"
       type="button"
       aria-pressed="true"
-      class="flex h-8 items-center gap-1.5 rounded-lg border border-stroke-focus bg-selection ps-1 pe-3 text-xs font-medium focus-visible:outline-2 focus-visible:outline-ring"
+      class="flex h-8 items-center gap-1.5 rounded-lg border border-stroke-focus bg-selection ps-1.5 pe-3 text-xs font-medium focus-visible:outline-2 focus-visible:outline-ring"
     >
-      <SettingsAgentLogo :id="kind" />{{ agent.name }}
+      <SettingsAgentLogo :id="kind" small />{{ agent.name }}
     </button>
     <UiTooltip v-for="agent in upcomingAgents" :key="agent.id" :label="t('settings.skills.soon')">
       <button
         type="button"
         aria-pressed="false"
         aria-disabled="true"
-        class="flex h-8 cursor-not-allowed items-center gap-1.5 rounded-lg border border-stroke ps-1 pe-3 text-xs text-muted focus-visible:outline-2 focus-visible:outline-ring"
+        class="flex h-8 cursor-not-allowed items-center gap-1.5 rounded-lg border border-stroke ps-1.5 pe-3 text-xs text-muted focus-visible:outline-2 focus-visible:outline-ring"
       >
-        <SettingsAgentLogo :id="agent.id" muted />{{ agent.name }}
+        <SettingsAgentLogo :id="agent.id" muted small />{{ agent.name }}
       </button>
     </UiTooltip>
   </div>
 
-  <div class="flex items-center gap-2 pt-5">
-    <label class="flex h-7 max-w-80 min-w-0 flex-1 items-center gap-1.5 rounded-md border border-stroke bg-selection/50 px-2 focus-within:border-stroke-focus">
+  <div class="flex items-center gap-1.5 pt-4">
+    <label class="flex h-7 min-w-0 flex-1 items-center gap-1.5 rounded-md border border-stroke bg-selection/50 px-2 focus-within:border-stroke-focus">
       <Search class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
       <input
         v-model="query"
@@ -101,7 +90,7 @@ function onFilterKeydown(event: KeyboardEvent) {
         spellcheck="false"
         writingsuggestions="false"
         :aria-label="t('settings.skills.filterLabel')"
-        :placeholder="t('settings.skills.filter')"
+        :placeholder="t('settings.skills.filterLabel')"
         class="min-w-0 flex-1 bg-transparent text-xs outline-none select-text placeholder:text-muted [&::-webkit-search-cancel-button]:hidden"
         @keydown="onFilterKeydown"
       />
@@ -109,11 +98,6 @@ function onFilterKeydown(event: KeyboardEvent) {
     <UiIconButton :label="t('settings.skills.refresh')" :aria-busy="busy" :disabled="busy" @click="store.load()">
       <RefreshCw class="size-3.5" :class="{ 'animate-spin': busy }" aria-hidden="true" />
     </UiIconButton>
-    <span class="flex-1" />
-    <!-- Pas de création à la main : l'IA pose les bonnes questions et écrit un SKILL.md propre. -->
-    <UiButton size="sm" @click="skillChat({ kind: 'createSkill' })">
-      <Sparkles class="size-3.5" aria-hidden="true" />{{ t('settings.skills.create') }}
-    </UiButton>
   </div>
 
   <p v-if="!store.loaded" class="pt-6 text-xs text-muted" role="status">{{ t('settings.skills.loading') }}</p>
@@ -182,16 +166,13 @@ function onFilterKeydown(event: KeyboardEvent) {
                   <p :id="`skill-${index}`" class="line-clamp-2 text-xs/relaxed text-muted" :title="skill.description">{{ skill.description }}</p>
                 </div>
                 <div class="flex shrink-0 items-center">
-                  <!-- Aperçu, chemin et dossier visibles au survol ou quand le clavier entre dans la ligne : la liste reste calme. -->
+                  <!-- Aperçu et dossier visibles au survol ou quand le clavier entre dans la ligne : la liste reste calme. -->
                   <div
                     class="flex items-center opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 motion-reduce:transition-none"
                     :class="{ 'opacity-100': store.previewed?.id === skill.id }"
                   >
                     <UiIconButton :label="t('settings.skills.preview')" :data-skill-preview="skill.id" @click="store.preview(skill)">
                       <Eye class="size-3.5" aria-hidden="true" />
-                    </UiIconButton>
-                    <UiIconButton :label="copied === skill.id ? t('settings.skills.copied') : t('settings.skills.copyPath')" @click="copy(skill)">
-                      <component :is="copied === skill.id ? Check : Copy" class="size-3.5" :class="{ 'text-success': copied === skill.id }" aria-hidden="true" />
                     </UiIconButton>
                     <UiIconButton :label="t(revealLabel)" @click="store.reveal(skill)">
                       <FolderOpen class="size-3.5" aria-hidden="true" />

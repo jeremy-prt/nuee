@@ -18,7 +18,10 @@ import { useCatalogStore } from '@/stores/catalog'
 import { useSkillsStore } from '@/stores/skills'
 
 export type ChatItem =
-  | { kind: 'user'; id: string; text: string; attachments?: Attachment[]; command?: ChatCommand }
+  | { kind: 'user'; id: string; text: string; attachments?: Attachment[] }
+  // Chat ouvert par une commande de Nuée : son message d'ouverture est rendu depuis cet élément, sans tour
+  // d'agent. `skill` : le skill à modifier tel qu'il était à l'ouverture.
+  | { kind: 'command'; id: string; command: ChatCommand; skill?: { name: string; description: string; automatic: boolean } }
   | { kind: 'text'; id: string; text: string }
   | {
       kind: 'tool'
@@ -31,6 +34,8 @@ export type ChatItem =
     }
   | { kind: 'end'; id: string; status: TurnStatus; error: string | null; durationMs: number | null }
   | { kind: 'error'; id: string; error: AppError }
+
+export type CommandItem = Extract<ChatItem, { kind: 'command' }>
 
 export type Approval = Omit<Extract<AgentEvent, { type: 'approval' }>, 'type'>
 
@@ -48,7 +53,7 @@ export interface Conversation {
   pausedMs: number
   pausedAt: number | null
   // Message envoyé pendant que l'agent range son tour : il part dès que le tour se clôt.
-  queued: { cwd: string | null; prompt: string; attachments: Attachment[]; command: ChatCommand | null } | null
+  queued: { cwd: string | null; prompt: string; attachments: Attachment[] } | null
   // Demandes d'autorisation (mode Auto) en attente de réponse, la plus ancienne d'abord. Non enregistrées.
   approvals: readonly Approval[]
   // Faux tant que l'historique n'est pas lu : envoyer avant écraserait la conversation chargée.
@@ -197,7 +202,7 @@ function interruptedText(items: readonly ChatItem[]) {
 // Un tour coupé par la fermeture de l'app n'a jamais reçu sa fin : on la pose au chargement.
 function settleInterrupted(saved: ChatItem[]) {
   const last = saved.at(-1)
-  if (!last || last.kind === 'end' || last.kind === 'error') return saved
+  if (!last || last.kind === 'end' || last.kind === 'error' || last.kind === 'command') return saved
   const items = [...saved]
   settleTools(items, 'failed')
   items.push({ kind: 'end', id: crypto.randomUUID(), status: 'stopped', error: null, durationMs: null })
@@ -299,13 +304,12 @@ export const useConversationsStore = defineStore('conversations', () => {
         else if (event.type === 'usage') agentSettings.track(conversation.agent, event)
       }
       if (signal) useAttentionStore().signal(chatId, signal)
-      // Un chat ouvert par une commande de skill écrit le fichier plusieurs tours plus tard, une fois le
-      // brouillon validé : chaque fin de tour de ce chat fait relire la config.
-      if (ended && conversation.items.some((item) => item.kind === 'user' && item.command)) skills.loadSkills()
+      // Un chat de skill peut écrire le fichier à n'importe quel tour : chaque fin de tour fait relire la config.
+      if (ended && conversation.items.some((item) => item.kind === 'command')) skills.loadSkills()
       const queued = conversation.queued
       if (ended && queued) {
         conversation.queued = null
-        dispatch(chatId, conversation, queued.cwd, queued.prompt, queued.attachments, queued.command)
+        dispatch(chatId, conversation, queued.cwd, queued.prompt, queued.attachments)
       }
     }
     pending.clear()
@@ -334,10 +338,12 @@ export const useConversationsStore = defineStore('conversations', () => {
     cwd: string | null,
     prompt: string,
     attachments: Attachment[],
-    command: ChatCommand | null,
   ) {
     // Calculé avant que le nouveau message ne s'ajoute : il porte sur le tour précédent.
     const recap = interruptedText(conversation.items.slice(0, lastIndex(conversation.items, (item) => item.kind === 'user')))
+    // Les consignes partent tant qu'aucun tour n'a abouti : la session les garde ensuite, `--resume` compris.
+    const opening = conversation.sessionId ? undefined : conversation.items.find((item) => item.kind === 'command')
+    const command = opening?.kind === 'command' ? opening.command : null
     conversation.phase = 'answering'
     conversation.startedAt = performance.now()
     conversation.pausedMs = 0
@@ -352,15 +358,23 @@ export const useConversationsStore = defineStore('conversations', () => {
     }
   }
 
-  // cwd null : chat sans projet, Rust lui donne un dossier vide à lui. `command` : outil de Nuée qui ouvre le
-  // chat (création de skill...), affiché à la place du message.
-  function send(chatId: string, cwd: string | null, prompt: string, attachments: Attachment[], command: ChatCommand | null = null) {
+  // cwd null : chat sans projet, Rust lui donne un dossier vide à lui.
+  function send(chatId: string, cwd: string | null, prompt: string, attachments: Attachment[]) {
     const conversation = conversations.get(chatId)
     if (!conversation?.loaded || conversation.phase === 'answering' || conversation.queued) return
-    push(conversation, { kind: 'user', id: crypto.randomUUID(), text: prompt, attachments, ...(command && { command }) })
+    push(conversation, { kind: 'user', id: crypto.randomUUID(), text: prompt, attachments })
     save(chatId)
-    if (conversation.phase === 'finishing') conversation.queued = { cwd, prompt, attachments, command }
-    else dispatch(chatId, conversation, cwd, prompt, attachments, command)
+    if (conversation.phase === 'finishing') conversation.queued = { cwd, prompt, attachments }
+    else dispatch(chatId, conversation, cwd, prompt, attachments)
+  }
+
+  // Chat ouvert par une commande de Nuée (création de skill...) : le message d'ouverture s'affiche aussitôt,
+  // la commande part avec la première réponse de l'utilisateur.
+  function begin(chatId: string, command: ChatCommand, skill?: CommandItem['skill']) {
+    const conversation = conversations.get(chatId)
+    if (!conversation) return
+    push(conversation, { kind: 'command', id: crypto.randomUUID(), command, ...(skill && { skill }) })
+    save(chatId)
   }
 
   // Appelé quand l'utilisateur commence à écrire ; Rust ignore l'appel si le process tourne déjà.
@@ -391,5 +405,5 @@ export const useConversationsStore = defineStore('conversations', () => {
     write(chatId, () => chatDelete(chatId))
   }
 
-  return { busy, find, create, open, setOptions, send, warm, approve, stop, remove }
+  return { busy, find, create, open, setOptions, send, begin, warm, approve, stop, remove }
 })

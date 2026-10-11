@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, Copy, FolderOpen, Pencil, Sparkles, X } from '@lucide/vue'
+import { Check, Copy, FolderOpen, Sparkles, X } from '@lucide/vue'
 import { computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatMarkdown from '@/components/chat/ChatMarkdown.vue'
@@ -46,7 +46,7 @@ watch(
   { immediate: true },
 )
 
-// L'éditeur part du fichier lu et prend le focus : « Modifier », c'est pour écrire tout de suite.
+// L'éditeur part du fichier lu et prend le focus : « Modifier » (sous-page du skill), c'est pour écrire tout de suite.
 watch(
   () => store.editing && text.value !== null,
   async (open) => {
@@ -108,9 +108,6 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
         <span class="truncate">{{ skill.name }}</span>
       </span>
       <span class="flex-1" />
-      <UiIconButton v-if="!store.editing" :label="t('settings.skills.editLabel', { name: skill.name })" :disabled="text === null" @click="store.edit(skill)">
-        <Pencil class="size-3.5" aria-hidden="true" />
-      </UiIconButton>
       <UiIconButton :label="copied ? t('settings.skills.copied') : t('settings.skills.copyPath')" @click="copy()">
         <component :is="copied ? Check : Copy" class="size-3.5" :class="{ 'text-success': copied }" aria-hidden="true" />
       </UiIconButton>

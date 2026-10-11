@@ -2,18 +2,16 @@
 import { Sparkles } from '@lucide/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { ChatCommand } from '@/ipc/bindings/ChatCommand'
-import { useSkillsStore } from '@/stores/skills'
+import type { CommandItem } from '@/stores/conversations'
 
-// Affiché à la place du premier message, qui n'est qu'un déclencheur : les consignes viennent de Rust.
-const props = defineProps<{ command: ChatCommand; running: boolean }>()
+// Scintille tant que l'agent travaille dans ce chat : tout tour y sert le skill.
+const props = defineProps<{ item: CommandItem; running: boolean }>()
 
 const { t } = useI18n()
-const skills = useSkillsStore()
 const label = computed(() =>
-  props.command.kind === 'createSkill'
+  props.item.command.kind === 'createSkill'
     ? t('chat.commands.createSkill')
-    : t('chat.commands.editSkill', { name: skills.find(props.command.id)?.name ?? props.command.id }),
+    : t('chat.commands.editSkill', { name: props.item.skill?.name ?? props.item.command.id }),
 )
 </script>
 

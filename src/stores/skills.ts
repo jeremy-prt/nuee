@@ -22,7 +22,7 @@ export type Scope = 'nuee' | 'everywhere'
 export type Group = 'skills' | 'servers'
 
 function loadPrefs() {
-  const prefs = { skills: {} as Record<string, SkillMode>, servers: [] as string[], collapsed: [] as Group[] }
+  const prefs = { skills: {} as Record<string, SkillMode>, servers: [] as string[] }
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}')
     const list = (value: unknown) => (Array.isArray(value) ? value.filter((item) => typeof item === 'string') : [])
@@ -30,7 +30,6 @@ function loadPrefs() {
       if (MODES.includes(mode as SkillMode)) prefs.skills[id] = mode as SkillMode
     }
     prefs.servers = list(saved.servers)
-    if (Array.isArray(saved.collapsed)) prefs.collapsed = list(saved.collapsed) as Group[]
   } catch {
     // Choix illisibles : on repart des valeurs par défaut.
   }
@@ -52,6 +51,8 @@ export const useSkillsStore = defineStore('skills', () => {
   const checking = ref(false)
   const errors = reactive<{ skills: string | null; servers: string | null }>({ skills: null, servers: null })
   const prefs = reactive(loadPrefs())
+  // Groupes repliés : le temps de la session seulement, jamais mémorisés (choix de Jérémy).
+  const collapsed = reactive(new Set<Group>())
   const scope = ref<Scope>('nuee')
   // Serveurs en connexion ou en nouvel essai ; `logins` : ceux qui attendent le navigateur.
   const pending = reactive(new Set<string>())
@@ -75,18 +76,27 @@ export const useSkillsStore = defineStore('skills', () => {
     { deep: true },
   )
 
+  // Relue à chaque ouverture du menu « / » ou de la page (quelques fichiers, comme monocode) plutôt que
+  // surveillée. Seule la dernière lecture lancée écrit la liste : une lecture partie avant une écriture
+  // ne l'écrase pas.
+  let reading = 0
   async function loadSkills() {
+    const current = ++reading
     loading.value = true
     try {
-      skills.value = await skillsList(AGENT)
+      const list = await skillsList(AGENT)
+      if (current !== reading) return
+      skills.value = list
       errors.skills = null
       const shown = previewed.value
       if (shown) previewed.value = skills.value.find((skill) => skill.id === shown.id) ?? shown
     } catch (error) {
-      errors.skills = message(error)
+      if (current === reading) errors.skills = message(error)
     } finally {
-      loading.value = false
-      loaded.value = true
+      if (current === reading) {
+        loading.value = false
+        loaded.value = true
+      }
     }
   }
 
@@ -179,11 +189,12 @@ export const useSkillsStore = defineStore('skills', () => {
   }
 
   function expanded(group: Group) {
-    return !prefs.collapsed.includes(group)
+    return !collapsed.has(group)
   }
 
   function toggle(group: Group) {
-    prefs.collapsed = expanded(group) ? [...prefs.collapsed, group] : prefs.collapsed.filter((item) => item !== group)
+    if (collapsed.has(group)) collapsed.delete(group)
+    else collapsed.add(group)
   }
 
   function find(id: string) {

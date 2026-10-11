@@ -86,11 +86,14 @@ export const useNavigationStore = defineStore('navigation', () => {
     go('chats')
   }
 
-  // Ouvre les réglages directement sur une section (le bouton Mises à jour mène à Général).
-  function openSettings(section: SettingsSection) {
-    if (view.value === 'settings') return showSettingsSection(section)
-    settingsSection.value = section
-    settingsDetail.value = null
+  // Ouvre les réglages directement sur une section (le bouton Mises à jour mène à Général), ou sur une sous-page.
+  function openSettings(section: SettingsSection, detail: SettingsDetail | null = null) {
+    const update = () => {
+      settingsSection.value = section
+      settingsDetail.value = detail
+    }
+    if (view.value === 'settings') return crossfade(update)
+    update()
     go('settings')
   }
 

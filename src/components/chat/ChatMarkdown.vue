@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Lexer, type Token, type Tokens } from 'marked'
 import { computed, h, type VNodeChild } from 'vue'
+import ChatSkillResult from '@/components/chat/ChatSkillResult.vue'
+import { parseSkillResult } from '@/utils/skillResult'
 
 // Markdown d'agent rendu en nœuds Vue, jamais en HTML brut : le HTML du texte reste du texte.
 // Les liens ne sont pas cliquables : un clic ferait naviguer la webview elle-même.
@@ -20,8 +22,16 @@ function block(token: Token): VNodeChild {
       const size = heading.depth === 1 ? 'text-base' : 'text-sm'
       return h(`h${Math.min(heading.depth + 1, 6)}`, { class: `mt-4 mb-2 font-semibold ${size}` }, inline(heading.tokens))
     }
-    case 'code':
-      return h('pre', { class: CODE_BLOCK }, h('code', (token as Tokens.Code).text))
+    case 'code': {
+      const code = token as Tokens.Code
+      if (code.lang === 'nuee-skill') {
+        const result = parseSkillResult(code.text)
+        if (result) return h(ChatSkillResult, { result })
+        // JSON encore incomplet pendant la réponse ; s'il reste illisible à la fin, le bloc brut s'affiche.
+        if (props.streaming) return null
+      }
+      return h('pre', { class: CODE_BLOCK }, h('code', code.text))
+    }
     case 'blockquote':
       return h('blockquote', { class: 'my-2 border-s-2 border-stroke ps-3 text-muted' }, blocks((token as Tokens.Blockquote).tokens))
     case 'list': {
@@ -89,7 +99,8 @@ function table(token: Tokens.Table) {
   ])
 }
 
-const props = defineProps<{ text: string }>()
+// streaming : l'agent écrit encore ce texte.
+const props = defineProps<{ text: string; streaming?: boolean }>()
 
 const tokens = computed(() => Lexer.lex(props.text))
 const Rendered = () => blocks(tokens.value)

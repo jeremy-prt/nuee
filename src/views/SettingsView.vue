@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft } from '@lucide/vue'
+import { ArrowLeft, Sparkles } from '@lucide/vue'
 import { nextTick, onMounted, onUnmounted, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsAbout from '@/components/settings/SettingsAbout.vue'
@@ -20,7 +20,9 @@ import SettingsSystem from '@/components/settings/SettingsSystem.vue'
 import SettingsThemeOptions from '@/components/settings/SettingsThemeOptions.vue'
 import SettingsThemes from '@/components/settings/SettingsThemes.vue'
 import SettingsUpdates from '@/components/settings/SettingsUpdates.vue'
+import UiButton from '@/components/ui/UiButton.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
+import { useSkillChat } from '@/composables/useSkillChat'
 import {
   isAgentDetail,
   isServerDetail,
@@ -39,6 +41,7 @@ const { t } = useI18n()
 const navigation = useNavigationStore()
 const shortcuts = useShortcutsStore()
 const skills = useSkillsStore()
+const skillChat = useSkillChat()
 const root = useTemplateRef('root')
 const heading = useTemplateRef('heading')
 
@@ -149,6 +152,10 @@ onUnmounted(() => {
             <p class="mt-1.5 max-w-xl text-sm text-muted">{{ t(`settings.hints.${navigation.settingsSection}`) }}</p>
           </div>
           <SettingsResetButton v-if="navigation.settingsSection === 'shortcuts'" @click="shortcuts.reset()" />
+          <!-- Pas de création à la main : l'IA pose les bonnes questions et écrit un SKILL.md propre. -->
+          <UiButton v-else-if="navigation.settingsSection === 'skills'" variant="primary" @click="skillChat({ kind: 'createSkill' })">
+            <Sparkles class="size-4" aria-hidden="true" />{{ t('settings.skills.create') }}
+          </UiButton>
         </div>
         <template v-if="navigation.settingsSection === 'general'">
           <SettingsSystem />

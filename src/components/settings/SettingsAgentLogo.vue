@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import antigravity from '@/assets/agents/antigravity.svg'
 import claude from '@/assets/agents/claude.svg'
 import codex from '@/assets/agents/codex.svg'
@@ -9,24 +10,30 @@ import grok from '@/assets/agents/grok.svg'
 // masque, ils prennent la couleur du texte. Les trois premiers ont une marge dans leur dessin, d'où
 // une boîte plus grande pour la même taille à l'œil.
 const logos = {
-  claude: { src: claude, mono: false, size: 'size-6' },
-  codex: { src: codex, mono: false, size: 'size-6' },
-  cursor: { src: cursor, mono: true, size: 'size-6' },
-  antigravity: { src: antigravity, mono: false, size: 'size-4.5' },
-  grok: { src: grok, mono: true, size: 'size-4.5' },
+  claude: { src: claude, mono: false, padded: true },
+  codex: { src: codex, mono: false, padded: true },
+  cursor: { src: cursor, mono: true, padded: true },
+  antigravity: { src: antigravity, mono: false, padded: false },
+  grok: { src: grok, mono: true, padded: false },
 }
 
-defineProps<{ id: keyof typeof logos; muted?: boolean }>()
+const props = defineProps<{ id: keyof typeof logos; muted?: boolean; small?: boolean }>()
+
+const box = computed(() => (props.small ? 'size-5' : 'size-6'))
+const size = computed(() => {
+  if (logos[props.id].padded) return box.value
+  return props.small ? 'size-3.75' : 'size-4.5'
+})
 </script>
 
 <template>
-  <span class="grid size-6 shrink-0 place-items-center" :class="{ 'opacity-50': muted }" aria-hidden="true">
+  <span class="grid shrink-0 place-items-center" :class="[box, { 'opacity-50': muted }]" aria-hidden="true">
     <span
       v-if="logos[id].mono"
       class="bg-current"
-      :class="logos[id].size"
+      :class="size"
       :style="{ mask: `url(&quot;${logos[id].src}&quot;) center / contain no-repeat` }"
     />
-    <img v-else :src="logos[id].src" alt="" :class="logos[id].size" />
+    <img v-else :src="logos[id].src" alt="" :class="size" />
   </span>
 </template>

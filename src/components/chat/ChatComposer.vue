@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ArrowUp, File, Folder, Paperclip, Square, X } from '@lucide/vue'
-import { computed, ref, useId, useTemplateRef } from 'vue'
+import { computed, nextTick, ref, useId, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
+import ChatSlashMenu from '@/components/chat/ChatSlashMenu.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
 import { attachmentImport, attachmentSave, previewSrc } from '@/ipc/attachment'
@@ -74,6 +75,26 @@ const effort = computed({
   set: (value: string) => (options.value = { ...options.value, effort: value as Effort }),
 })
 
+// Position du curseur, null hors du champ : le menu des skills ne suit que la frappe en cours.
+const caret = ref<number | null>(null)
+const syncCaret = () => (caret.value = input.value?.selectionStart ?? null)
+const slashMenu = useTemplateRef('slashMenu')
+const slashQuery = computed(() => {
+  const word = /^\/\S*/.exec(prompt.value)?.[0]
+  if (!word || caret.value === null || caret.value > word.length) return null
+  return word.slice(1)
+})
+
+async function chooseSkill(name: string) {
+  const head = `/${name}`
+  const rest = prompt.value.replace(/^\/\S*/, '')
+  prompt.value = head + (/^\s/.test(rest) ? rest : ` ${rest}`)
+  const position = head.length + 1
+  caret.value = position
+  await nextTick()
+  input.value?.setSelectionRange(position, position)
+}
+
 const canSend = computed(() => (!!prompt.value.trim() || attachments.value.length > 0) && !saving.value)
 
 function submit() {
@@ -129,11 +150,11 @@ function remove(index: number) {
   input.value?.focus()
 }
 
-defineExpose({ attach })
+defineExpose({ attach, focus: focusInput })
 
 // Maj+Entrée va à la ligne (natif). Pendant une saisie IME, Entrée valide le mot.
-function onEnter(event: KeyboardEvent) {
-  if (!shortcuts.matches(event, 'send') || event.isComposing) return
+function onKeydown(event: KeyboardEvent) {
+  if (event.isComposing || slashMenu.value?.keydown(event) || !shortcuts.matches(event, 'send')) return
   event.preventDefault()
   submit()
 }
@@ -141,7 +162,7 @@ function onEnter(event: KeyboardEvent) {
 
 <template>
   <form
-    class="@container rounded-xl border border-stroke bg-selection/50 p-3 focus-within:border-stroke-focus"
+    class="@container relative rounded-xl border border-stroke bg-selection/50 p-3 focus-within:border-stroke-focus"
     :class="{ 'opacity-60': disabled }"
     @submit.prevent="submit"
   >
@@ -180,6 +201,9 @@ function onEnter(event: KeyboardEvent) {
       ref="input"
       v-model="prompt"
       rows="3"
+      aria-autocomplete="list"
+      :aria-controls="slashMenu?.open ? `${id}-skills` : undefined"
+      :aria-activedescendant="slashMenu?.activeId"
       autocorrect="off"
       autocapitalize="off"
       spellcheck="false"
@@ -187,10 +211,15 @@ function onEnter(event: KeyboardEvent) {
       :disabled="disabled"
       class="w-full resize-none bg-transparent text-sm select-text outline-none placeholder:text-muted"
       :placeholder="t('composer.placeholder')"
-      @keydown.enter="onEnter"
-      @focus="emit('warm')"
+      @keydown="onKeydown"
+      @input="syncCaret"
+      @keyup="syncCaret"
+      @click="syncCaret"
+      @focus="syncCaret(); emit('warm')"
+      @blur="caret = null"
       @paste="onPaste"
     />
+    <ChatSlashMenu ref="slashMenu" :id="`${id}-skills`" :query="slashQuery" @choose="chooseSkill" />
     <p v-if="attachError" class="mb-1 text-xs text-danger" role="alert">{{ attachError }}</p>
     <!-- Étroite (petite fenêtre, écran partagé) : le nom de l'agent s'efface, les menus passent à la ligne entiers. -->
     <div class="flex flex-wrap items-center gap-1">
