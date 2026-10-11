@@ -1,0 +1,23 @@
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+<defs>
+<radialGradient id="__ID__-g" cx="7.5" cy="4.5" r="14" gradientUnits="userSpaceOnUse">
+<stop offset="0" style="stop-color:var(--tint-hi)"/>
+<stop offset="0.32" style="stop-color:var(--tint)"/>
+<stop offset="1" style="stop-color:var(--tint-lo)"/>
+</radialGradient>
+<path id="__ID__-c" d="M6.1 15A3.7 3.7 0 1 1 6.22 7.6A5.2 5.2 0 0 1 15.86 5.43A4.1 4.1 0 0 1 21 9.4A3.5 3.5 0 0 1 18.2 15Z"/>
+<clipPath id="__ID__-k"><use href="#__ID__-c"/></clipPath>
+<g id="__ID__-d" transform="scale(1.3)"><path d="M0-1.85C.42-1.2 1-.45 1 .4A1 1 0 0 1-1 .4C-1-.45-.42-1.2 0-1.85Z" style="fill:var(--mist)"/><path d="M.98.25A1 1 0 0 1-.6 1.2 1.3 1.3 0 0 0 .98.25Z" style="fill:var(--tint)" opacity="0.3"/><ellipse cx="-.4" cy=".1" rx=".24" ry=".42" style="fill:var(--glint)" opacity=".9"/></g>
+</defs>
+<g clip-path="url(#__ID__-k)">
+<use href="#__ID__-c" fill="url(#__ID__-g)"/>
+<use href="#__ID__-c" style="fill:var(--tint-lo)" opacity="0.55"/>
+<use href="#__ID__-c" x="-.4" y="-1.1" fill="url(#__ID__-g)"/>
+<path d="M7.7 8.4A4.5 4.5 0 0 1 10.9 4.2 4.2 4.2 0 0 0 8.7 8.6Z" style="fill:var(--glint)" opacity="0.55"/>
+</g>
+<g style="fill:var(--eye)"><path d="M9.11 10.35A.95 1.25 0 1 0 10.99 10.35Q10.05 10.59 9.11 10.35Z"/><path d="M13.01 10.35A.95 1.25 0 1 0 14.89 10.35Q13.95 10.59 13.01 10.35Z"/></g>
+<path d="M11.35 12.6Q12 13.02 12.65 12.6" fill="none" style="stroke:var(--eye)" stroke-width="0.7" stroke-linecap="round"/>
+<use href="#__ID__-d" transform="translate(7.4 18.7) rotate(12)"/>
+<use href="#__ID__-d" transform="translate(12 20.1) rotate(12)"/>
+<use href="#__ID__-d" transform="translate(16.6 18.7) rotate(12)"/>
+</svg>

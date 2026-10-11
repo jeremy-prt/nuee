@@ -3,13 +3,23 @@ import { computed, ref } from 'vue'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { WindowStyle } from '@/stores/appearance'
 import { useLayoutStore } from '@/stores/layout'
+import { useProjectsStore } from '@/stores/projects'
 import { useSkillsStore } from '@/stores/skills'
 import { agents } from '@/utils/agents'
 import type { SettingsSection } from '@/utils/settings'
 
 // Sous-page d'une section : réglages du thème, de l'image de fond, d'un style de fenêtre, d'un agent, d'un
-// skill (`skill:` suivi du nom de son dossier), d'un serveur MCP (`mcp:` suivi de son nom) ou d'un service relié.
-export type SettingsDetail = WindowStyle | 'theme' | 'background' | AgentKind | `skill:${string}` | `mcp:${string}` | 'github'
+// skill (`skill:` suivi du nom de son dossier), d'un serveur MCP (`mcp:` suivi de son nom), d'un service relié
+// ou d'un projet (`project:` suivi de son id).
+export type SettingsDetail =
+  | WindowStyle
+  | 'theme'
+  | 'background'
+  | AgentKind
+  | `skill:${string}`
+  | `mcp:${string}`
+  | 'github'
+  | `project:${string}`
 
 export function isAgentDetail(detail: SettingsDetail | null): detail is AgentKind {
   return !!detail && detail in agents
@@ -31,6 +41,14 @@ export function serverOfDetail(detail: `mcp:${string}`) {
   return detail.slice('mcp:'.length)
 }
 
+export function isProjectDetail(detail: SettingsDetail | null): detail is `project:${string}` {
+  return !!detail?.startsWith('project:')
+}
+
+export function projectOfDetail(detail: `project:${string}`) {
+  return detail.slice('project:'.length)
+}
+
 // Un agent garde son nom de produit, un skill le nom qu'on tape, un serveur le sien : rien ne se traduit.
 export function settingsDetailTitle(detail: SettingsDetail, t: (key: string) => string) {
   if (isAgentDetail(detail)) return agents[detail].name
@@ -39,6 +57,7 @@ export function settingsDetailTitle(detail: SettingsDetail, t: (key: string) => 
     return useSkillsStore().find(id)?.name ?? id
   }
   if (isServerDetail(detail)) return serverOfDetail(detail)
+  if (isProjectDetail(detail)) return useProjectsStore().byId(projectOfDetail(detail))?.name ?? ''
   if (detail === 'github') return 'GitHub'
   if (detail === 'theme') return t('settings.themes.title')
   if (detail === 'background') return t('settings.background.title')
@@ -66,9 +85,10 @@ export const useNavigationStore = defineStore('navigation', () => {
 
   // Fondu enchaîné à l'entrée, à la sortie et à l'intérieur des réglages : l'ancienne page s'efface pendant
   // que la nouvelle apparaît (API View Transitions), sans instant vide entre les deux.
-  function crossfade(update: () => void) {
+  // La promesse se résout une fois la nouvelle page en place.
+  async function crossfade(update: () => void) {
     if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) return update()
-    document.startViewTransition(update)
+    await document.startViewTransition(update).updateCallbackDone
   }
 
   // Arriver sur une vue à liste rouvre toujours le panneau latéral, même s'il avait été fermé ailleurs.
@@ -107,7 +127,7 @@ export const useNavigationStore = defineStore('navigation', () => {
   }
 
   function showSettingsDetail(detail: SettingsDetail | null) {
-    crossfade(() => {
+    return crossfade(() => {
       settingsDetail.value = detail
     })
   }

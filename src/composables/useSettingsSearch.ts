@@ -4,6 +4,7 @@ import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import { isMacosApp } from '@/ipc/system'
 import { backgroundOptions, glassOptions, glassSettings, useAppearanceStore, type WindowStyle } from '@/stores/appearance'
 import { type SettingsDetail, settingsDetailTitle } from '@/stores/navigation'
+import { type Project, useProjectsStore } from '@/stores/projects'
 import { type SettingsSection, settingsGroups } from '@/utils/settings'
 import { matchScore, normalize, searchField } from '@/utils/search'
 import { agents } from '@/utils/agents'
@@ -240,6 +241,7 @@ const entries: SettingEntry[] = [
   },
   { id: 'skills-list', section: 'skills', label: 'settings.skills.skills', keywords: ['skills'] },
   { id: 'servers-list', section: 'skills', label: 'settings.skills.servers', keywords: ['mcp'] },
+  { id: 'projects-list', section: 'projects', label: 'settings.projects.add', keywords: ['projects'] },
   { id: 'zoom', section: 'appearance', label: 'settings.interface.zoom', keywords: ['zoom'] },
   {
     id: 'chatWidth',
@@ -256,11 +258,48 @@ const entries: SettingEntry[] = [
   })),
 ]
 
+// Une sous-page par projet : ses lignes se cherchent aussi par le nom du projet.
+const projectRows: (Pick<SettingEntry, 'label' | 'hint' | 'terms' | 'keywords'> & { row: string })[] = [
+  { row: 'name', label: 'settings.projects.name' },
+  { row: 'folder', label: 'settings.projects.folder', terms: ['settings.projects.reveal', 'settings.projects.copyPath'] },
+  {
+    row: 'icon',
+    label: 'settings.projects.icon',
+    terms: ['settings.projects.iconModes.auto', 'settings.projects.iconModes.mascot', 'settings.projects.iconModes.image', 'settings.projects.chooseIcon'],
+  },
+  // Mascotte et couleur n'apparaissent qu'avec une mascotte : la recherche mène à la ligne Icône, toujours là.
+  { row: 'icon', label: 'settings.projects.mascot' },
+  { row: 'icon', label: 'settings.projects.color' },
+  { row: 'agent', label: 'settings.projects.agent', hint: 'settings.projects.defaults', keywords: ['agentDefaults'] },
+  { row: 'model', label: 'settings.projects.model', hint: 'settings.projects.defaults', keywords: ['agentDefaults'] },
+  { row: 'effort', label: 'settings.projects.effort', hint: 'settings.projects.defaults', keywords: ['agentDefaults'] },
+  { row: 'worktree', label: 'settings.projects.worktree', hint: 'settings.projects.worktreeHint', keywords: ['worktree'] },
+  {
+    row: 'mute',
+    label: 'settings.projects.notifications',
+    terms: ['settings.projects.mute.hour', 'settings.projects.mute.tomorrow', 'settings.projects.mute.always'],
+    keywords: ['notifications', 'sounds'],
+  },
+  { row: 'delete', label: 'settings.projects.delete', hint: 'settings.projects.deleteHint' },
+]
+
+function projectEntries(project: Project): SettingEntry[] {
+  return projectRows.map(({ row, keywords = [], ...entry }) => ({
+    ...entry,
+    id: `project-${row}`,
+    section: 'projects',
+    detail: `project:${project.id}`,
+    keywords: ['projects', ...keywords],
+    names: [project.name],
+  }))
+}
+
 const LIMIT = 8
 
 export function useSettingsSearch(query: Ref<string>) {
   const { t, locale } = useI18n()
   const appearance = useAppearanceStore()
+  const projects = useProjectsStore()
 
   // Sans image de fond, ses réglages mènent à la section qui permet d'en choisir une.
   const background = entries.find((entry) => entry.id === 'background')!
@@ -282,7 +321,7 @@ export function useSettingsSearch(query: Ref<string>) {
 
   // Le libellé anglais reste cherchable dans toutes les langues : « zoom » ou « shortcuts » trouvent toujours.
   const index = computed(() =>
-    entries.map((entry) => {
+    [...entries, ...projects.projects.flatMap(projectEntries)].map((entry) => {
       const label = t(entry.label)
       const fields = [
         searchField(label, 0),

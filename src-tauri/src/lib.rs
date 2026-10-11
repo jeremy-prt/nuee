@@ -15,6 +15,8 @@ use crate::services::background::BackgroundService;
 use crate::services::chat::ChatService;
 use crate::services::github::GithubService;
 use crate::services::power::PowerService;
+use crate::services::project::ProjectService;
+use crate::services::worktree::WorktreeService;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -57,6 +59,8 @@ pub fn run() {
             app.manage(AttachmentService::new(data.join("attachments")));
             // Même contrainte que les pièces jointes : ce dossier est dans le scope `assetProtocol`.
             app.manage(BackgroundService::new(data.join("backgrounds")));
+            app.manage(ProjectService::new(data.join("project-icons")));
+            app.manage(WorktreeService::new(data.join("worktrees")));
             app.manage(PowerService::default());
             app.manage(GithubService::default());
             app.manage(AutostartService::new(&app.package_info().name));
@@ -85,6 +89,7 @@ pub fn run() {
             commands::chat::chat_content,
             commands::chat::chat_save,
             commands::chat::chat_title,
+            commands::chat::chat_set_worktree,
             commands::chat::chat_delete,
             commands::github::github_status,
             commands::github::github_login,
@@ -104,6 +109,10 @@ pub fn run() {
             commands::notification::notification_permission,
             commands::notification::notification_open_settings,
             commands::power::power_keep_awake,
+            commands::project::project_icon,
+            commands::project::project_icon_set,
+            commands::project::project_icon_reset,
+            commands::project::project_reveal,
             commands::skills::skills_list,
             commands::skills::skills_read,
             commands::skills::skills_write,
@@ -111,6 +120,7 @@ pub fn run() {
             commands::skills::skills_trash,
             commands::skills::skills_reveal,
             commands::window::window_set_blur,
+            commands::worktree::worktree_support,
         ])
         .build(tauri::generate_context!())
         .expect("échec au lancement de l'application Tauri")

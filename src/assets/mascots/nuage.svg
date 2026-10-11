@@ -1,0 +1,32 @@
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+<defs>
+<radialGradient id="__ID__-corps" cx="8.6" cy="5.9" r="24" gradientUnits="userSpaceOnUse">
+<stop offset="0" style="stop-color:var(--tint-hi)"/>
+<stop offset="0.38" style="stop-color:var(--tint)"/>
+<stop offset="1" style="stop-color:var(--tint-lo)"/>
+</radialGradient>
+<linearGradient id="__ID__-ventre" x1="0" y1="15.9" x2="0" y2="18.85" gradientUnits="userSpaceOnUse">
+<stop offset="0" style="stop-color:var(--tint-lo)" stop-opacity=".3"/>
+<stop offset="1" style="stop-color:var(--tint-lo)" stop-opacity=".75"/>
+</linearGradient>
+<radialGradient id="__ID__-ao">
+<stop offset="0" style="stop-color:var(--tint-lo)" stop-opacity="0.5"/>
+<stop offset="1" style="stop-color:var(--tint-lo)" stop-opacity="0"/>
+</radialGradient>
+<clipPath id="__ID__-horsB"><path clip-rule="evenodd" d="M0 0H24V24H0ZM6.3 10.2a5.2 5.2 0 1 0 10.4 0a5.2 5.2 0 1 0 -10.4 0Z"/></clipPath>
+<clipPath id="__ID__-horsS"><path clip-rule="evenodd" d="M0 0H24V24H0ZM13.25 12a3.6 3.6 0 1 0 7.2 0a3.6 3.6 0 1 0 -7.2 0Z"/></clipPath>
+<path id="__ID__-s" d="M6.05 18.85A4 4 0 1 1 6.34 10.86A5.2 5.2 0 0 1 16.39 8.43A3.6 3.6 0 0 1 20.37 12.76A3.2 3.2 0 0 1 19 18.85Z"/>
+<clipPath id="__ID__-forme"><use href="#__ID__-s"/></clipPath>
+</defs>
+<use href="#__ID__-s" style="fill:url(#__ID__-corps)"/>
+<g clip-path="url(#__ID__-forme)">
+<g clip-path="url(#__ID__-horsB)"><circle cx="6.76" cy="11.13" r="3" style="fill:url(#__ID__-ao)"/><circle cx="16.1" cy="8.84" r="3" style="fill:url(#__ID__-ao)"/></g>
+<g clip-path="url(#__ID__-horsS)"><circle cx="19.98" cy="12.84" r="2.4" style="fill:url(#__ID__-ao)"/></g>
+<path d="M1.6 21L1.6 16.8Q5.1 19 8.6 16.8Q12.1 19 15.6 16.8Q19.1 19 22.6 16.8L22.6 21Z" style="fill:url(#__ID__-ventre)"/>
+</g>
+<path d="M6.95 9.23A4.65 4.65 0 0 1 10.53 5.65A6.6 6.6 0 0 0 6.95 9.23Z" style="fill:var(--glint)" opacity=".6"/>
+<path d="M2.72 13.77A3.5 3.5 0 0 1 4.74 11.6A4.3 4.3 0 0 0 2.72 13.77Z" style="fill:var(--glint)" opacity=".45"/>
+<ellipse cx="10.1" cy="13" rx=".9" ry="1.25" style="fill:var(--eye)"/>
+<ellipse cx="14" cy="13" rx=".9" ry="1.25" style="fill:var(--eye)"/>
+<path d="M11.37 15.25Q12.05 15.61 12.73 15.25" style="fill:none;stroke:var(--eye)" stroke-width=".7" stroke-linecap="round"/>
+</svg>

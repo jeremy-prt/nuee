@@ -24,6 +24,9 @@ pub struct ChatSummary {
     /// Faux tant qu'aucun message n'est parti : l'historique ne montre pas un chat vide.
     #[serde(default)]
     pub started: bool,
+    /// L'agent travaille dans un worktree du projet. Réglable jusqu'au premier message.
+    #[serde(default)]
+    pub worktree: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
@@ -51,6 +54,7 @@ const MIGRATIONS: &[&str] = &[
         updated_at INTEGER NOT NULL
     )",
     "ALTER TABLE chats ADD COLUMN title TEXT",
+    "ALTER TABLE chats ADD COLUMN worktree INTEGER NOT NULL DEFAULT 0",
 ];
 
 /// Historique des chats dans une base SQLite du dossier de données de l'app.
@@ -72,7 +76,7 @@ impl ChatService {
     pub fn list(&self) -> Result<Vec<ChatSummary>, AppError> {
         let db = self.lock();
         let mut query = db.prepare(
-            "SELECT id, project_id, number, agent, title, items != '[]' FROM chats ORDER BY created_at",
+            "SELECT id, project_id, number, agent, title, items != '[]', worktree FROM chats ORDER BY created_at",
         )?;
         let rows = query.query_map([], |row| {
             Ok((
@@ -82,11 +86,12 @@ impl ChatService {
                 row.get::<_, String>(3)?,
                 row.get(4)?,
                 row.get::<_, bool>(5)?,
+                row.get::<_, bool>(6)?,
             ))
         })?;
         let mut chats = Vec::new();
         for row in rows {
-            let (id, project_id, number, agent, title, started) = row?;
+            let (id, project_id, number, agent, title, started, worktree) = row?;
             // Un agent retiré d'une future version ne doit pas faire tomber toute la liste.
             if let Ok(agent) = serde_json::from_value(Value::String(agent)) {
                 chats.push(ChatSummary {
@@ -96,6 +101,7 @@ impl ChatService {
                     agent,
                     title,
                     started,
+                    worktree,
                 });
             }
         }
@@ -105,8 +111,8 @@ impl ChatService {
     pub fn create(&self, chat: &ChatSummary) -> Result<(), AppError> {
         let now = now();
         self.lock().execute(
-            "INSERT INTO chats (id, project_id, number, agent, title, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6)",
-            params![chat.id, chat.project_id, chat.number, agent_name(chat.agent)?, chat.title, now],
+            "INSERT INTO chats (id, project_id, number, agent, title, worktree, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7)",
+            params![chat.id, chat.project_id, chat.number, agent_name(chat.agent)?, chat.title, chat.worktree, now],
         )?;
         Ok(())
     }
@@ -154,6 +160,14 @@ impl ChatService {
         self.lock().execute(
             "UPDATE chats SET title = ?1 WHERE id = ?2",
             params![title, id],
+        )?;
+        Ok(())
+    }
+
+    pub fn set_worktree(&self, id: &str, worktree: bool) -> Result<(), AppError> {
+        self.lock().execute(
+            "UPDATE chats SET worktree = ?1 WHERE id = ?2",
+            params![worktree, id],
         )?;
         Ok(())
     }
@@ -216,6 +230,7 @@ mod tests {
             agent: AgentKind::Claude,
             title: None,
             started: false,
+            worktree: false,
         };
         let content = ChatContent {
             session_id: Some("s1".into()),
@@ -232,12 +247,14 @@ mod tests {
         assert_eq!(chats.content("c1").expect("lecture"), None);
         chats.save("c1", &content).expect("enregistrement");
         chats.set_title("c1", "Inverser une liste").expect("titre");
+        chats.set_worktree("c1", true).expect("worktree");
         drop(chats);
 
         let chats = ChatService::open(&path).expect("réouverture");
         let titled = ChatSummary {
             title: Some("Inverser une liste".into()),
             started: true,
+            worktree: true,
             ..chat
         };
         assert_eq!(chats.list().expect("liste"), vec![titled]);

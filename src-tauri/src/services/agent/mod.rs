@@ -74,6 +74,9 @@ pub struct SessionSpec {
     pub skills: BTreeMap<String, SkillMode>,
     /// Serveurs MCP coupés dans Nuée seulement.
     pub servers_off: Vec<String>,
+    /// Le chat travaille dans son worktree plutôt que dans le dossier du projet (`cwd`).
+    #[serde(default)]
+    pub worktree: bool,
 }
 
 /// Commande de Nuée attachée à un message : des consignes que l'utilisateur ne voit pas partent avec lui.

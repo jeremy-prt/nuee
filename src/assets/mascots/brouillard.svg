@@ -1,0 +1,33 @@
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <defs>
+    <linearGradient id="__ID__-f" x1="6" y1="3.2" x2="18" y2="19.2" gradientUnits="userSpaceOnUse">
+      <stop offset="0" style="stop-color: var(--tint-hi)"/>
+      <stop offset="0.5" style="stop-color: var(--tint)"/>
+      <stop offset="1" style="stop-color: var(--tint-lo)"/>
+    </linearGradient>
+    <linearGradient id="__ID__-g" x1="3" y1="11" x2="18" y2="22" gradientUnits="userSpaceOnUse">
+      <stop offset="0" style="stop-color: var(--glint); stop-opacity: 0.55"/>
+      <stop offset="1" style="stop-color: var(--glint); stop-opacity: 0"/>
+    </linearGradient>
+    <circle id="__ID__-c" cx="12" cy="11.4" r="8.4"/>
+    <clipPath id="__ID__-k"><use href="#__ID__-c"/></clipPath>
+    <path id="__ID__-m" d="M3.35 12.15H16.25a1.15 1.15 0 0 1 0 2.3H3.35a1.15 1.15 0 0 1 0 -2.3ZM7.95 15.25H20.45a1.35 1.35 0 0 1 0 2.7H7.95a1.35 1.35 0 0 1 0 -2.7ZM4.45 18.85H13.55a1.05 1.05 0 0 1 0 2.1H4.45a1.05 1.05 0 0 1 0 -2.1Z"/>
+    <clipPath id="__ID__-n"><use href="#__ID__-m"/></clipPath>
+  </defs>
+  <use href="#__ID__-c" style="fill: url(#__ID__-f)"/>
+  <g clip-path="url(#__ID__-k)">
+    <path d="M3.6 11.4a8.4 8.4 0 1 0 16.8 0a8.4 8.4 0 1 0 -16.8 0ZM2.7 10.1a8.4 8.4 0 1 0 16.8 0a8.4 8.4 0 1 0 -16.8 0Z" fill-rule="evenodd" style="fill: var(--tint-lo); opacity: 0.25"/>
+    <use href="#__ID__-m" transform="translate(0.15 0.5)" style="fill: var(--tint-lo); opacity: 0.42"/>
+  </g>
+  <path d="M5.7 9.11A6.7 6.7 0 0 1 9.17 5.33" style="fill: none; stroke: var(--glint); stroke-width: 0.85; stroke-linecap: round; opacity: 0.55"/>
+  <g style="fill: var(--eye)">
+    <ellipse cx="12" cy="8.2" rx="1" ry="1.3"/>
+    <ellipse cx="15.9" cy="7.8" rx="1" ry="1.3"/>
+  </g>
+  <use href="#__ID__-m" style="fill: var(--mist)"/>
+  <g clip-path="url(#__ID__-n)">
+    <use href="#__ID__-m" style="fill: var(--tint); opacity: 0.28"/>
+    <use href="#__ID__-m" transform="translate(0 -0.5)" style="fill: var(--mist)"/>
+  </g>
+  <use href="#__ID__-m" style="fill: url(#__ID__-g)"/>
+</svg>

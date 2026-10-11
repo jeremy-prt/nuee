@@ -5,6 +5,9 @@ export const agents: Record<AgentKind, { name: string; command: string }> = {
   claude: { name: 'Claude Code', command: 'claude' },
 }
 
+// Agent d'un nouveau chat quand son projet n'en choisit pas d'autre.
+export const defaultAgent: AgentKind = 'claude'
+
 // Montrés dans Réglages > Agents pour annoncer la suite, pas encore pilotables.
 export const upcomingAgents = [
   { id: 'codex', name: 'Codex' },

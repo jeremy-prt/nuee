@@ -45,15 +45,12 @@ function onCloseAutoFocus(event: Event) {
   <SelectRoot v-model="model" :disabled="disabled">
     <SelectTrigger
       :aria-label="label"
-      class="group flex h-7 min-w-24 cursor-pointer items-center justify-between gap-2 rounded-md border border-stroke ps-2.5 pe-2 text-xs whitespace-nowrap hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-40 data-[state=open]:bg-selection"
+      class="flex h-7 min-w-24 cursor-pointer items-center justify-between gap-2 rounded-md border border-stroke ps-2.5 pe-2 text-xs whitespace-nowrap hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-40 data-[state=open]:bg-selection"
       @pointerdown="openedBy(true)"
       @keydown="openedBy(false)"
     >
       <SelectValue />
-      <ChevronDown
-        class="size-3 shrink-0 text-muted transition-transform duration-150 ease-out group-data-[state=open]:rotate-180 motion-reduce:transition-none"
-        aria-hidden="true"
-      />
+      <ChevronDown class="size-3 shrink-0 text-muted" aria-hidden="true" />
     </SelectTrigger>
     <SelectPortal>
       <SelectContent

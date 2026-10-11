@@ -36,6 +36,26 @@
 :root {
   /* Largeur maximale des messages et de la zone de saisie, réglée dans Apparence (stores/appearance.ts). */
   --chat-width: clamp(40rem, 60%, 56rem);
+  /* Teintes des projets (utils/projects.ts) : même clarté pour toutes, assez pour se lire sur les fonds de la fenêtre. */
+  --project-slate: oklch(0.7 0.03 260);
+  --project-blue: oklch(0.7 0.14 250);
+  --project-teal: oklch(0.72 0.11 195);
+  --project-green: oklch(0.72 0.14 150);
+  --project-amber: oklch(0.78 0.14 80);
+  --project-orange: oklch(0.72 0.15 50);
+  --project-red: oklch(0.68 0.16 25);
+  --project-pink: oklch(0.72 0.14 350);
+  --project-violet: oklch(0.7 0.14 300);
+}
+
+/* Mascottes des projets (src/assets/mascots) : tout se dérive de --tint, la couleur du projet, comme le
+   logo de brume (lumière en haut, ombre en bas, brume pâle autour). */
+.mascot {
+  --tint-hi: color-mix(in oklch, var(--tint) 45%, white);
+  --tint-lo: color-mix(in oklch, var(--tint) 62%, hsl(222 30% 8%));
+  --mist: color-mix(in oklch, var(--tint) 22%, hsl(218 22% 86%));
+  --eye: hsl(222 30% 9%);
+  --glint: white;
 }
 
 html,

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import {
   ArrowLeft,
+  BellOff,
   CircleDot,
-  Folder,
   FolderPlus,
   Gauge,
   GitPullRequest,
@@ -16,10 +16,11 @@ import {
 } from '@lucide/vue'
 import { nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import ProjectIcon from '@/components/project/ProjectIcon.vue'
 import SettingsNav from '@/components/settings/SettingsNav.vue'
 import ShellRailItem from '@/components/shell/ShellRailItem.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
-import { pickFolder } from '@/ipc/dialog'
+import { useAddProject } from '@/composables/useAddProject'
 import { RAIL_COLLAPSED_WIDTH, useLayoutStore } from '@/stores/layout'
 import { useNavigationStore } from '@/stores/navigation'
 import { useProjectsStore } from '@/stores/projects'
@@ -32,6 +33,7 @@ const layout = useLayoutStore()
 const navigation = useNavigationStore()
 const projects = useProjectsStore()
 const updates = useUpdatesStore()
+const pickProject = useAddProject()
 
 const footerButtons = useTemplateRef<HTMLButtonElement[]>('footerButtons')
 
@@ -60,8 +62,8 @@ function closeSettings(event: MouseEvent) {
 }
 
 async function addProject() {
-  const path = await pickFolder(t('rail.pickProject'))
-  if (path) navigation.openChats(projects.add(path).id)
+  const project = await pickProject()
+  if (project) navigation.openChats(project.id)
 }
 
 const pages = [
@@ -146,12 +148,17 @@ function footerLabel(id: (typeof footer)[number]['id']) {
         <ShellRailItem
           v-for="project in projects.projects"
           :key="project.id"
-          :icon="Folder"
           :label="project.name"
+          :state="projects.isMuted(project.id) ? t('settings.projects.muted') : undefined"
           :expanded="layout.rail.expanded"
           :active="navigation.view === 'chats' && navigation.projectId === project.id"
           @click="navigation.openChats(project.id)"
-        />
+        >
+          <template #icon><ProjectIcon :project="project" class="size-4 shrink-0" /></template>
+          <template v-if="projects.isMuted(project.id)" #end>
+            <BellOff class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
+          </template>
+        </ShellRailItem>
       </template>
     </nav>
 

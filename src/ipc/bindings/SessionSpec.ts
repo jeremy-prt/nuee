@@ -27,4 +27,8 @@ skills: { [key in string]: SkillMode },
 /**
  * Serveurs MCP coupés dans Nuée seulement.
  */
-serversOff: Array<string>, };
+serversOff: Array<string>, 
+/**
+ * Le chat travaille dans son worktree plutôt que dans le dossier du projet (`cwd`).
+ */
+worktree: boolean, };

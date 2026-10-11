@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ArrowUp, File, Folder, Plus, ShieldAlert, ShieldCheck, Square, X } from '@lucide/vue'
+import { ArrowUp, File, Folder, GitBranch, Plus, ShieldAlert, ShieldCheck, Square, X } from '@lucide/vue'
 import { type Component, computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatSlashMenu from '@/components/chat/ChatSlashMenu.vue'
+import ProjectIcon from '@/components/project/ProjectIcon.vue'
 import SettingsAgentLogo from '@/components/settings/SettingsAgentLogo.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiMenu, { type UiMenuSection } from '@/components/ui/UiMenu.vue'
@@ -15,6 +16,7 @@ import type { Catalog } from '@/ipc/bindings/Catalog'
 import type { Effort } from '@/ipc/bindings/Effort'
 import type { PermissionMode } from '@/ipc/bindings/PermissionMode'
 import type { TurnOptions } from '@/ipc/bindings/TurnOptions'
+import type { WorktreeSupport } from '@/ipc/bindings/WorktreeSupport'
 import { pickFiles } from '@/ipc/dialog'
 import type { Project } from '@/stores/projects'
 import { useShortcutsStore } from '@/stores/shortcuts'
@@ -25,6 +27,8 @@ const props = defineProps<{
   agent: AgentKind
   // null : chat sans projet.
   project: Project | null
+  // Worktree du chat : réglable avant le premier message, affiché ensuite. `blocked` : pourquoi il est impossible.
+  worktree: { on: boolean; started: boolean; blocked: Exclude<WorktreeSupport, 'ready'> | null; branch: string } | null
   // null tant que l'agent n'a pas décrit ses modèles : on laisse alors son choix par défaut.
   catalog: Catalog | null
   disabled: boolean
@@ -34,7 +38,7 @@ const props = defineProps<{
 }>()
 // Réglages résolus : modèle et effort sont toujours des valeurs réelles du catalogue.
 const options = defineModel<TurnOptions>('options', { required: true })
-const emit = defineEmits<{ send: [prompt: string, attachments: Attachment[]]; stop: []; warm: [] }>()
+const emit = defineEmits<{ send: [prompt: string, attachments: Attachment[]]; stop: []; warm: []; worktree: [on: boolean] }>()
 
 const { t } = useI18n()
 const shortcuts = useShortcutsStore()
@@ -49,6 +53,17 @@ const input = useTemplateRef('input')
 const focusInput = () => input.value?.focus()
 
 const agentName = computed(() => agents[props.agent].name)
+
+const worktreeHint = computed(() => {
+  const worktree = props.worktree
+  if (!worktree) return ''
+  if (worktree.blocked) return t(`settings.projects.worktreeSupport.${worktree.blocked}`)
+  return t(worktree.on ? 'composer.worktree.on' : 'composer.worktree.off')
+})
+
+function toggleWorktree() {
+  if (props.worktree && !props.worktree.blocked && !props.disabled) emit('worktree', !props.worktree.on)
+}
 
 const modeLooks = {
   bypass: { icon: ShieldAlert, iconClass: 'text-warning' },
@@ -209,11 +224,34 @@ function onKeydown(event: KeyboardEvent) {
       class="@container rounded-xl border border-stroke bg-selection/50 backdrop-blur-sm has-[textarea:focus]:border-stroke-focus"
       :class="{ 'opacity-60': disabled }"
     >
-      <p v-if="project" class="mx-3 mt-2.5 flex h-6 min-w-0 items-center gap-1.5 text-xs text-muted" :title="project.path">
-        <Folder class="size-3.5 shrink-0" aria-hidden="true" />
-        <span class="sr-only">{{ t('composer.project') }}</span>
-        <span class="truncate">{{ project.name }}</span>
-      </p>
+      <div v-if="project" class="mx-3 mt-2.5 flex h-6 min-w-0 items-center gap-2 text-xs text-muted">
+        <p class="flex min-w-0 items-center gap-1.5" :title="project.path">
+          <ProjectIcon :project="project" class="size-3.5 shrink-0" />
+          <span class="sr-only">{{ t('composer.project') }}</span>
+          <span class="truncate">{{ project.name }}</span>
+        </p>
+        <template v-if="worktree">
+          <p v-if="worktree.started && worktree.on" class="ms-auto flex shrink-0 items-center gap-1">
+            <GitBranch class="size-3.5" aria-hidden="true" />
+            <span class="sr-only">{{ t('composer.worktree.label') }}</span>{{ worktree.branch }}
+          </p>
+          <UiTooltip v-else-if="!worktree.started" :label="worktreeHint">
+            <button
+              type="button"
+              class="ms-auto flex h-6 shrink-0 items-center gap-1 rounded-md px-1.5 focus-visible:outline-2 focus-visible:outline-ring"
+              :class="[
+                worktree.on ? 'bg-signal/15 text-signal-text' : 'hover:bg-selection-hover hover:text-content',
+                worktree.blocked || disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
+              ]"
+              :aria-pressed="worktree.on"
+              :aria-disabled="worktree.blocked || disabled ? 'true' : undefined"
+              @click="toggleWorktree"
+            >
+              <GitBranch class="size-3.5" aria-hidden="true" />{{ t('composer.worktree.label') }}
+            </button>
+          </UiTooltip>
+        </template>
+      </div>
       <ul v-if="attachments.length" class="flex flex-wrap gap-2 px-3 pt-3" :aria-label="t('composer.attachments')">
         <li
           v-for="(attachment, index) in attachments"

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft, Sparkles } from '@lucide/vue'
+import { ArrowLeft, FolderPlus, Sparkles } from '@lucide/vue'
 import { nextTick, onMounted, onUnmounted, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsAbout from '@/components/settings/SettingsAbout.vue'
@@ -14,6 +14,8 @@ import SettingsGlass from '@/components/settings/SettingsGlass.vue'
 import SettingsInterface from '@/components/settings/SettingsInterface.vue'
 import SettingsResetButton from '@/components/settings/SettingsResetButton.vue'
 import SettingsMcpServer from '@/components/settings/SettingsMcpServer.vue'
+import SettingsProject from '@/components/settings/SettingsProject.vue'
+import SettingsProjects from '@/components/settings/SettingsProjects.vue'
 import SettingsShortcuts from '@/components/settings/SettingsShortcuts.vue'
 import SettingsSkill from '@/components/settings/SettingsSkill.vue'
 import SettingsSkills from '@/components/settings/SettingsSkills.vue'
@@ -24,18 +26,22 @@ import SettingsThemes from '@/components/settings/SettingsThemes.vue'
 import SettingsUpdates from '@/components/settings/SettingsUpdates.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
+import { useAddProject } from '@/composables/useAddProject'
 import { useResetToast } from '@/composables/useResetToast'
 import { useSkillChat } from '@/composables/useSkillChat'
 import {
   isAgentDetail,
+  isProjectDetail,
   isServerDetail,
   isSkillDetail,
   type SettingsDetail,
   serverOfDetail,
+  projectOfDetail,
   settingsDetailTitle,
   skillOfDetail,
   useNavigationStore,
 } from '@/stores/navigation'
+import { useProjectsStore } from '@/stores/projects'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { useSkillsStore } from '@/stores/skills'
 
@@ -46,6 +52,8 @@ const navigation = useNavigationStore()
 const shortcuts = useShortcutsStore()
 const skills = useSkillsStore()
 const skillChat = useSkillChat()
+const projects = useProjectsStore()
+const addProject = useAddProject()
 const root = useTemplateRef('root')
 const heading = useTemplateRef('heading')
 
@@ -148,6 +156,7 @@ onUnmounted(() => {
         <SettingsSkill v-else-if="isSkillDetail(navigation.settingsDetail)" :id="skillOfDetail(navigation.settingsDetail)" />
         <SettingsMcpServer v-else-if="isServerDetail(navigation.settingsDetail)" :name="serverOfDetail(navigation.settingsDetail)" />
         <SettingsGithub v-else-if="navigation.settingsDetail === 'github'" />
+        <SettingsProject v-else-if="isProjectDetail(navigation.settingsDetail)" :id="projectOfDetail(navigation.settingsDetail)" />
         <SettingsGlass v-else :window-style="navigation.settingsDetail" />
       </template>
       <template v-else>
@@ -160,6 +169,10 @@ onUnmounted(() => {
           <!-- Pas de création à la main : l'IA pose les bonnes questions et écrit un SKILL.md propre. -->
           <UiButton v-else-if="navigation.settingsSection === 'skills'" :variant="skills.editing ? 'secondary' : 'primary'" @click="skillChat({ kind: 'createSkill' })">
             <Sparkles class="size-4" aria-hidden="true" />{{ t('settings.skills.create') }}
+          </UiButton>
+          <!-- Sans projet, le bouton descend dans l'état vide de la page. -->
+          <UiButton v-else-if="navigation.settingsSection === 'projects' && projects.projects.length" variant="primary" data-project-add @click="addProject()">
+            <FolderPlus class="size-4" aria-hidden="true" />{{ t('settings.projects.add') }}
           </UiButton>
         </div>
         <template v-if="navigation.settingsSection === 'general'">
@@ -178,6 +191,7 @@ onUnmounted(() => {
         <SettingsAgents v-else-if="navigation.settingsSection === 'agents'" />
         <SettingsIntegrations v-else-if="navigation.settingsSection === 'connections'" />
         <SettingsSkills v-else-if="navigation.settingsSection === 'skills'" />
+        <SettingsProjects v-else-if="navigation.settingsSection === 'projects'" />
       </template>
     </div>
   </div>

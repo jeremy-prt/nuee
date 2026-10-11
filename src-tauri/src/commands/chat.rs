@@ -4,6 +4,7 @@ use crate::error::AppError;
 use crate::services::agent::{AgentKind, AgentService};
 use crate::services::attachment::AttachmentService;
 use crate::services::chat::{ChatContent, ChatService, ChatSummary};
+use crate::services::worktree::WorktreeService;
 
 #[tauri::command]
 pub async fn chat_list(chats: State<'_, ChatService>) -> Result<Vec<ChatSummary>, AppError> {
@@ -52,16 +53,28 @@ pub async fn chat_save(
     chats.save(&id, &content)
 }
 
+/// Avant le premier message seulement : ensuite l'agent travaille déjà dans son dossier.
+#[tauri::command]
+pub async fn chat_set_worktree(
+    id: String,
+    worktree: bool,
+    chats: State<'_, ChatService>,
+) -> Result<(), AppError> {
+    chats.set_worktree(&id, worktree)
+}
+
+/// Renvoie le chemin du worktree du chat s'il a été gardé (changements non commités).
 #[tauri::command]
 pub async fn chat_delete(
     id: String,
     chats: State<'_, ChatService>,
     agents: State<'_, AgentService>,
     attachments: State<'_, AttachmentService>,
-) -> Result<(), AppError> {
+    worktrees: State<'_, WorktreeService>,
+) -> Result<Option<String>, AppError> {
     chats.delete(&id)?;
     agents.close(&id);
     agents.discard_scratch(&id);
     attachments.discard(&id);
-    Ok(())
+    Ok(worktrees.discard(&id).await)
 }

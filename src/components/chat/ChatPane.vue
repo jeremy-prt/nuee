@@ -6,12 +6,12 @@ import ChatComposer from '@/components/chat/ChatComposer.vue'
 import ChatTranscript from '@/components/chat/ChatTranscript.vue'
 import { useFileDrop } from '@/composables/useFileDrop'
 import { useCatalogStore } from '@/stores/catalog'
-import { useAgentsStore } from '@/stores/agents'
 import { useConversationsStore } from '@/stores/conversations'
 import type { Attachment } from '@/ipc/bindings/Attachment'
 import { useProjectsStore } from '@/stores/projects'
 import { type Tab, useWorkspaceStore } from '@/stores/workspace'
 import { agents } from '@/utils/agents'
+import { worktreeBranch } from '@/utils/projects'
 
 const props = defineProps<{ tab: Tab }>()
 
@@ -19,11 +19,10 @@ const { t } = useI18n()
 const projects = useProjectsStore()
 const conversations = useConversationsStore()
 const catalog = useCatalogStore()
-const agentSettings = useAgentsStore()
 const workspace = useWorkspaceStore()
 
 // Le pane est recréé à chaque changement d'onglet (:key), l'historique se charge donc ici.
-conversations.open(props.tab.id, props.tab.agent)
+conversations.open(props.tab.id, props.tab.agent, props.tab.projectId)
 catalog.load(props.tab.agent)
 
 const project = computed(() => projects.byId(props.tab.projectId))
@@ -35,16 +34,29 @@ const waiting = computed(() => answering.value || !!conversation.value?.queued)
 const loaded = computed(() => conversation.value?.loaded ?? false)
 const agent = computed(() => props.tab.agent)
 const options = computed({
-  get: () => catalog.resolve(agent.value, conversation.value?.options ?? agentSettings.chatDefaults(agent.value)),
+  get: () => catalog.resolve(agent.value, conversation.value?.options ?? projects.chatOptions(props.tab.projectId, agent.value)),
   set: (value) => conversations.setOptions(props.tab.id, value),
 })
 
 const cwd = computed(() => project.value?.path ?? null)
 const approval = computed(() => conversation.value?.approvals[0] ?? null)
 
+// Le worktree se choisit jusqu'au premier message. D'ici là, un dossier hors git (ou git absent) le coupe.
+const started = computed(() => props.tab.started || items.value.some((item) => item.kind === 'user'))
+if (project.value && !started.value) projects.checkWorktree(project.value)
+const support = computed(() => (project.value ? projects.support[project.value.id] : undefined))
+const blocked = computed(() => (support.value && support.value !== 'ready' ? support.value : null))
+const worktree = computed(() => !!project.value && props.tab.worktree && (started.value || !blocked.value))
+const worktreeState = computed(() =>
+  project.value ? { on: worktree.value, started: started.value, blocked: blocked.value, branch: worktreeBranch(props.tab.id) } : null,
+)
+
 function send(prompt: string, attachments: Attachment[]) {
-  if (!items.value.some((item) => item.kind === 'user')) workspace.startChat(props.tab.id, prompt, attachments)
-  conversations.send(props.tab.id, cwd.value, prompt, attachments)
+  if (!items.value.some((item) => item.kind === 'user')) {
+    workspace.setWorktree(props.tab.id, worktree.value)
+    workspace.startChat(props.tab.id, prompt, attachments)
+  }
+  conversations.send(props.tab.id, cwd.value, worktree.value, prompt, attachments)
 }
 
 const pane = useTemplateRef('pane')
@@ -91,12 +103,14 @@ onMounted(() => {
         v-model:options="options"
         :agent="agent"
         :project="project"
+        :worktree="worktreeState"
         :catalog="catalog.get(agent)"
         :disabled="!loaded"
         :running="answering"
         :approving="!!approval"
         @send="send"
-        @warm="conversations.warm(tab.id, cwd)"
+        @warm="conversations.warm(tab.id, cwd, worktree)"
+        @worktree="workspace.setWorktree(tab.id, $event)"
         @stop="conversations.stop(tab.id)"
       />
     </div>

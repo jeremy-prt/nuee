@@ -11,6 +11,8 @@ pub enum AppError {
     Busy,
     #[error("{0}")]
     InvalidInput(String),
+    #[error("{0}")]
+    Git(String),
     #[error(transparent)]
     Io(#[from] std::io::Error),
     #[error(transparent)]
@@ -25,6 +27,7 @@ pub enum ErrorKind {
     AgentFailed,
     Busy,
     InvalidInput,
+    Git,
     Io,
     Database,
 }
@@ -44,6 +47,7 @@ impl Serialize for AppError {
             Self::AgentFailed(_) => ErrorKind::AgentFailed,
             Self::Busy => ErrorKind::Busy,
             Self::InvalidInput(_) => ErrorKind::InvalidInput,
+            Self::Git(_) => ErrorKind::Git,
             Self::Io(_) => ErrorKind::Io,
             Self::Database(_) => ErrorKind::Database,
         };

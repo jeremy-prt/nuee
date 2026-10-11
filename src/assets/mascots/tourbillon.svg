@@ -1,0 +1,25 @@
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+<defs>
+<linearGradient id="__ID__-g" gradientUnits="userSpaceOnUse" x1="5" y1="3" x2="17" y2="23"><stop offset="0" style="stop-color:var(--tint-hi)"/><stop offset=".5" style="stop-color:var(--tint)"/><stop offset="1" style="stop-color:var(--tint-lo)"/></linearGradient>
+<path id="__ID__-h" d="M2.9 4.3A9.4 2 0 0 1 21.7 4.3C21.6 6.8 20.7 9.6 19.3 11.2C16.4 12.9 8.6 12.9 5.6 11.2C4.2 9.6 3.1 6.8 2.9 4.3Z"/>
+<path id="__ID__-b0" d="M5.2 10.3C8.83 11.6 14.77 12.1 18.4 10.8C20.27 10.8 19.57 14.2 17.7 14.2C14.46 15.4 9.15 14.9 5.9 13.7C4.8 13.7 3.22 10.43 3 8.9C3.77 9.07 4.76 10.3 5.2 10.3Z"/>
+<path id="__ID__-b1" d="M7.1 13.1C9.9 14.1 14.5 14.6 17.3 13.6C17.82 13.6 18.99 13.35 19.9 13.2C19.64 14.55 17.8 16.6 16.5 16.6C14.14 17.6 10.26 17.1 7.9 16.1C6.25 16.1 5.45 13.1 7.1 13.1Z"/>
+<path id="__ID__-b2" d="M8.1 15.8C10.03 16.6 13.18 17 15.1 16.2C16.59 16.2 15.79 18.9 14.3 18.9C12.82 19.7 10.39 19.3 8.9 18.5C7.9 18.5 6.3 16.32 6.1 15.1C6.8 15.24 7.7 15.8 8.1 15.8Z"/>
+<path id="__ID__-a" d="M1.79 -.65C2.17 -.6 3.49 -.15 3.99 .5C4.48 1.15 4.86 2.29 4.76 3.24C4.66 4.2 4.14 5.43 3.38 6.21C2.62 6.99 1.36 7.7 .2 7.91C-.97 8.12 -2.47 7.97 -3.61 7.5C-4.75 7.02 -5.74 6.03 -6.67 5.05C-7.59 4.07 -9.22 1.66 -9.16 1.61C-9.1 1.57 -7.42 4.17 -6.31 4.78C-5.21 5.39 -3.61 5.38 -2.54 5.27C-1.47 5.17 -.55 4.6 .1 4.14C.76 3.69 1.11 3.02 1.37 2.52C1.64 2.03 1.66 1.55 1.71 1.17C1.76 .78 1.67 .51 1.68 .21C1.7 -.09 1.4 -.7 1.79 -.65Z"/>
+<clipPath id="__ID__-c0"><use href="#__ID__-b0"/></clipPath><clipPath id="__ID__-c1"><use href="#__ID__-b1"/></clipPath><clipPath id="__ID__-c2"><use href="#__ID__-b2"/></clipPath>
+<clipPath id="__ID__-ch"><use href="#__ID__-h"/></clipPath>
+</defs>
+<g transform="translate(-.3 -.35)">
+<path d="M9.5 18C10.4 19.5 11.3 21.4 13.4 22.4C12.3 21.2 12.9 19.6 13.8 18.2Z" style="fill:url(#__ID__-g)"/>
+<use href="#__ID__-b2" style="fill:url(#__ID__-g)"/><g clip-path="url(#__ID__-c2)"><use href="#__ID__-b1" transform="translate(0 .7)" style="fill:var(--tint-lo)" opacity=".4"/></g>
+<use href="#__ID__-b1" style="fill:url(#__ID__-g)"/><g clip-path="url(#__ID__-c1)"><use href="#__ID__-b0" transform="translate(0 .7)" style="fill:var(--tint-lo)" opacity=".4"/></g>
+<use href="#__ID__-b0" style="fill:url(#__ID__-g)"/><g clip-path="url(#__ID__-c0)"><use href="#__ID__-h" transform="translate(0 .7)" style="fill:var(--tint-lo)" opacity=".4"/></g>
+<use href="#__ID__-h" style="fill:url(#__ID__-g)"/>
+<g clip-path="url(#__ID__-ch)"><use href="#__ID__-h" transform="translate(-.6 -1.1)" style="fill:var(--tint-lo)" opacity=".3"/></g>
+<ellipse cx="12.3" cy="4.3" rx="8.55" ry="1.45" style="fill:var(--tint-lo)" opacity=".3"/>
+<g transform="translate(12.3 4.3) scale(.84 .14)" style="fill:var(--tint-hi)"><use href="#__ID__-a"/><use href="#__ID__-a" transform="rotate(120)"/><use href="#__ID__-a" transform="rotate(240)"/></g>
+<path d="M4.6 6c.4 1.2.9 2.3 1.6 3.2" fill="none" style="stroke:var(--glint)" stroke-width=".55" stroke-linecap="round" opacity=".7"/>
+<ellipse cx="10.8" cy="8.9" rx=".9" ry="1.15" style="fill:var(--eye)"/><ellipse cx="14.7" cy="8.75" rx=".9" ry="1.3" style="fill:var(--eye)"/>
+<path d="M11.5 11.1c1 .25 2.2.15 3.1-.75" fill="none" style="stroke:var(--eye)" stroke-width=".7" stroke-linecap="round"/>
+</g>
+</svg>

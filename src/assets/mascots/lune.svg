@@ -1,0 +1,17 @@
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+<defs>
+<linearGradient id="__ID__-g" x1="5" y1="3.5" x2="16" y2="20" gradientUnits="userSpaceOnUse"><stop offset="0" style="stop-color:var(--tint-hi)"/><stop offset=".45" style="stop-color:var(--tint)"/><stop offset="1" style="stop-color:var(--tint-lo)"/></linearGradient>
+<linearGradient id="__ID__-m" x1="0" y1="15.6" x2="0" y2="19.4" gradientUnits="userSpaceOnUse"><stop offset="0" style="stop-color:var(--glint)"/><stop offset=".55" style="stop-color:var(--mist)"/></linearGradient>
+<path id="__ID__-v" d="M2.38 17.67C2.76 17.79 3.75 18.24 4.63 18.39C5.5 18.54 6.61 18.55 7.62 18.55C8.63 18.55 9.69 18.42 10.67 18.4C11.66 18.38 12.59 18.3 13.51 18.42C14.44 18.55 15.31 19 16.22 19.15C17.12 19.3 18.13 19.41 18.94 19.32C19.75 19.22 20.56 18.96 21.08 18.59C21.59 18.21 21.96 17.55 22.02 17.06C22.08 16.57 21.73 15.93 21.43 15.64C21.12 15.36 20.53 15.28 20.19 15.36C19.85 15.44 19.5 15.85 19.38 16.12C19.27 16.38 19.48 16.8 19.5 16.93A.25 .25 0 0 0 20 16.87C19.99 16.75 19.9 16.33 19.96 16.2C20.02 16.07 20.21 16.06 20.34 16.07C20.47 16.08 20.64 16.13 20.73 16.26C20.82 16.38 20.96 16.64 20.88 16.84C20.8 17.03 20.6 17.29 20.27 17.42C19.93 17.55 19.47 17.62 18.86 17.6C18.26 17.59 17.52 17.47 16.66 17.32C15.8 17.16 14.71 16.74 13.69 16.68C12.67 16.61 11.58 16.79 10.54 16.92C9.51 17.05 8.45 17.31 7.48 17.45C6.51 17.58 5.56 17.73 4.71 17.74C3.87 17.76 2.8 17.56 2.42 17.53A.07 .07 0 0 0 2.38 17.67Z"/>
+<clipPath id="__ID__-c"><path d="M15.1 2.45A9.1 9.1 0 1 0 19.36 17.29A6.71 7.74 -16 0 1 15.1 2.45Z"/></clipPath>
+</defs>
+<path d="M15.1 2.45A9.1 9.1 0 1 0 19.36 17.29A6.71 7.74 -16 0 1 15.1 2.45Z" style="fill:url(#__ID__-g)"/>
+<path d="M0 0H24V24H0ZM14.55 1.5A9.1 9.1 0 1 0 18.81 16.34A6.71 7.74 -16 0 1 14.55 1.5Z" clip-path="url(#__ID__-c)" fill-rule="evenodd" style="fill:var(--tint-lo)" opacity=".42"/>
+<path d="M4.96 9.01A7.95 7.95 0 0 1 8.39 4.46" style="stroke:var(--glint)" stroke-width="1" stroke-linecap="round" fill="none" opacity=".6"/>
+<g transform="translate(7.58 11.81) rotate(-8)" style="stroke:var(--eye)" fill="none" stroke-linecap="round">
+<path d="M-2.82 -.2q.92 1.24 1.84 0M.98 -.2q.92 1.24 1.84 0" stroke-width=".8"/>
+<path d="M-.6 1.75q.6 .45 1.2 0" stroke-width=".7"/>
+</g>
+<g clip-path="url(#__ID__-c)"><use href="#__ID__-v" transform="translate(.1 .4)" style="fill:var(--tint-lo)" opacity=".35"/></g>
+<use href="#__ID__-v" style="fill:url(#__ID__-m)"/>
+</svg>

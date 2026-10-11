@@ -6,6 +6,7 @@ import { isMacosApp, isTauriApp } from '@/ipc/system'
 import { onWindowFocus } from '@/ipc/window'
 import { useGeneralStore } from '@/stores/general'
 import { useNavigationStore } from '@/stores/navigation'
+import { useProjectsStore } from '@/stores/projects'
 import { useToastsStore } from '@/stores/toasts'
 import { type Tab, useWorkspaceStore } from '@/stores/workspace'
 import { agents } from '@/utils/agents'
@@ -21,6 +22,7 @@ export const useAttentionStore = defineStore('attention', () => {
   const navigation = useNavigationStore()
   const workspace = useWorkspaceStore()
   const toasts = useToastsStore()
+  const projects = useProjectsStore()
 
   const focused = ref(document.hasFocus())
   if (isTauriApp()) {
@@ -69,13 +71,14 @@ export const useAttentionStore = defineStore('attention', () => {
   }
 
   function signal(chatId: string, kind: Signal) {
+    const tab = workspace.tabs.find((item) => item.id === chatId)
+    // Projet en sourdine : ni son ni message, le chat reste seulement marqué non lu.
+    const muted = !!tab && projects.isMuted(tab.projectId)
     // Au premier plan, le message dans la fenêtre suffit (choix de Jérémy).
-    if (general.sounds && !focused.value) playCue(kind === 'done' ? 'done' : 'attention')
+    if (general.sounds && !focused.value && !muted) playCue(kind === 'done' ? 'done' : 'attention')
     if (shown.value.includes(chatId)) return
     unseen.add(chatId)
-
-    const tab = workspace.tabs.find((item) => item.id === chatId)
-    if (!tab) return
+    if (!tab || muted) return
     const { t } = i18nGlobal()
     const title = tab.title ?? t('workspace.chatTitle', { n: tab.number })
     const body = t(`attention.${kind}`, { agent: agents[tab.agent].name })

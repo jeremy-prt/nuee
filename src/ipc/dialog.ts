@@ -17,7 +17,10 @@ export async function pickFiles(title: string) {
 // Les formats acceptés par background_import côté Rust.
 export const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp']
 
-export async function pickImage(title: string) {
-  const path = await open({ multiple: false, title, filters: [{ name: 'Images', extensions: IMAGE_EXTENSIONS }] })
+// Les formats acceptés par project_icon_set côté Rust.
+export const ICON_EXTENSIONS = ['png', 'svg', 'ico', 'jpg', 'jpeg', 'gif', 'webp']
+
+export async function pickImage(title: string, extensions = IMAGE_EXTENSIONS) {
+  const path = await open({ multiple: false, title, filters: [{ name: 'Images', extensions }] })
   return typeof path === 'string' ? path : null
 }

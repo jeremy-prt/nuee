@@ -15,6 +15,7 @@ import { chatContent, chatCreate, chatDelete, chatSave } from '@/ipc/chat'
 import { useAgentsStore } from '@/stores/agents'
 import { type Signal, useAttentionStore } from '@/stores/attention'
 import { useCatalogStore } from '@/stores/catalog'
+import { useProjectsStore } from '@/stores/projects'
 import { useSkillsStore } from '@/stores/skills'
 
 export type ChatItem =
@@ -53,7 +54,7 @@ export interface Conversation {
   pausedMs: number
   pausedAt: number | null
   // Message envoyé pendant que l'agent range son tour : il part dès que le tour se clôt.
-  queued: { cwd: string | null; prompt: string; attachments: Attachment[] } | null
+  queued: { cwd: string | null; worktree: boolean; prompt: string; attachments: Attachment[] } | null
   // Demandes d'autorisation (mode Auto) en attente de réponse, la plus ancienne d'abord. Non enregistrées.
   approvals: readonly Approval[]
   // Faux tant que l'historique n'est pas lu : envoyer avant écraserait la conversation chargée.
@@ -212,6 +213,7 @@ function settleInterrupted(saved: ChatItem[]) {
 export const useConversationsStore = defineStore('conversations', () => {
   const catalog = useCatalogStore()
   const agentSettings = useAgentsStore()
+  const projects = useProjectsStore()
   const skills = useSkillsStore()
   const conversations = shallowReactive(new Map<string, Conversation>())
   // Un agent travaille encore quelque part : la mise en veille attend.
@@ -221,12 +223,12 @@ export const useConversationsStore = defineStore('conversations', () => {
   const writes = new Map<string, Promise<void>>()
   let frame = 0
 
-  function blank(agent: AgentKind, loaded: boolean) {
+  function blank(agent: AgentKind, loaded: boolean, projectId: string | null) {
     return shallowReactive<Conversation>({
       agent,
       sessionId: null,
-      // Un nouveau chat part des réglages de Réglages > Agents ; un chat enregistré reprend les siens.
-      options: agentSettings.chatDefaults(agent),
+      // Un nouveau chat part des réglages de son projet ou de Réglages > Agents ; un chat enregistré reprend les siens.
+      options: projects.chatOptions(projectId, agent),
       phase: 'idle',
       startedAt: 0,
       pausedMs: 0,
@@ -261,14 +263,14 @@ export const useConversationsStore = defineStore('conversations', () => {
   }
 
   function create(chat: ChatSummary) {
-    conversations.set(chat.id, blank(chat.agent, true))
+    conversations.set(chat.id, blank(chat.agent, true, chat.projectId))
     write(chat.id, () => chatCreate(chat))
   }
 
   // Lit l'historique au premier affichage du chat.
-  function open(chatId: string, agent: AgentKind) {
+  function open(chatId: string, agent: AgentKind, projectId: string | null) {
     if (conversations.has(chatId)) return
-    const conversation = blank(agent, false)
+    const conversation = blank(agent, false, projectId)
     conversations.set(chatId, conversation)
     chatContent(chatId)
       .then((content) => {
@@ -307,7 +309,7 @@ export const useConversationsStore = defineStore('conversations', () => {
       const queued = conversation.queued
       if (ended && queued) {
         conversation.queued = null
-        dispatch(chatId, conversation, queued.cwd, queued.prompt, queued.attachments)
+        dispatch(chatId, conversation, queued.cwd, queued.worktree, queued.prompt, queued.attachments)
       }
     }
     pending.clear()
@@ -324,16 +326,17 @@ export const useConversationsStore = defineStore('conversations', () => {
     conversation.items = [...conversation.items, item]
   }
 
-  function spec(chatId: string, conversation: Conversation, cwd: string | null): SessionSpec {
+  function spec(chatId: string, conversation: Conversation, cwd: string | null, worktree: boolean): SessionSpec {
     const { agent, sessionId } = conversation
     const { hooks } = agentSettings.settings[agent]
-    return { chatId, agent, cwd, sessionId, options: catalog.resolve(agent, conversation.options), hooks, ...skills.exclusions() }
+    return { chatId, agent, cwd, worktree, sessionId, options: catalog.resolve(agent, conversation.options), hooks, ...skills.exclusions() }
   }
 
   async function dispatch(
     chatId: string,
     conversation: Conversation,
     cwd: string | null,
+    worktree: boolean,
     prompt: string,
     attachments: Attachment[],
   ) {
@@ -347,7 +350,7 @@ export const useConversationsStore = defineStore('conversations', () => {
     conversation.pausedMs = 0
     conversation.pausedAt = null
     try {
-      await agentSend(spec(chatId, conversation, cwd), prompt, attachments, recap, command, (event) => queue(chatId, event))
+      await agentSend(spec(chatId, conversation, cwd, worktree), prompt, attachments, recap, command, (event) => queue(chatId, event))
     } catch (error) {
       conversation.phase = 'idle'
       const appError: AppError = isAppError(error) ? error : { kind: 'io', message: String(error) }
@@ -356,14 +359,15 @@ export const useConversationsStore = defineStore('conversations', () => {
     }
   }
 
-  // cwd null : chat sans projet, Rust lui donne un dossier vide à lui.
-  function send(chatId: string, cwd: string | null, prompt: string, attachments: Attachment[]) {
+  // cwd null : chat sans projet, Rust lui donne un dossier vide à lui. `worktree` : l'agent travaille dans le
+  // worktree du chat, que Rust crée au premier message.
+  function send(chatId: string, cwd: string | null, worktree: boolean, prompt: string, attachments: Attachment[]) {
     const conversation = conversations.get(chatId)
     if (!conversation?.loaded || conversation.phase === 'answering' || conversation.queued) return
     push(conversation, { kind: 'user', id: crypto.randomUUID(), text: prompt, attachments })
     save(chatId)
-    if (conversation.phase === 'finishing') conversation.queued = { cwd, prompt, attachments }
-    else dispatch(chatId, conversation, cwd, prompt, attachments)
+    if (conversation.phase === 'finishing') conversation.queued = { cwd, worktree, prompt, attachments }
+    else dispatch(chatId, conversation, cwd, worktree, prompt, attachments)
   }
 
   // Chat ouvert par une commande de Nuée (création de skill...) : le message d'ouverture s'affiche aussitôt,
@@ -376,10 +380,10 @@ export const useConversationsStore = defineStore('conversations', () => {
   }
 
   // Appelé quand l'utilisateur commence à écrire ; Rust ignore l'appel si le process tourne déjà.
-  function warm(chatId: string, cwd: string | null) {
+  function warm(chatId: string, cwd: string | null, worktree: boolean) {
     const conversation = conversations.get(chatId)
     if (!conversation?.loaded || conversation.phase !== 'idle') return
-    agentWarm(spec(chatId, conversation, cwd)).catch(() => {})
+    agentWarm(spec(chatId, conversation, cwd, worktree)).catch(() => {})
   }
 
   function approve(chatId: string, requestId: string, allow: boolean) {
@@ -394,13 +398,18 @@ export const useConversationsStore = defineStore('conversations', () => {
     if (conversations.get(chatId)?.phase === 'answering') agentStop(chatId).catch(() => {})
   }
 
-  function remove(chatId: string) {
+  async function remove(chatId: string): Promise<string | null> {
     stop(chatId)
     clearTimeout(timers.get(chatId))
     timers.delete(chatId)
     conversations.delete(chatId)
     pending.delete(chatId)
-    write(chatId, () => chatDelete(chatId))
+    let kept: string | null = null
+    write(chatId, async () => {
+      kept = await chatDelete(chatId)
+    })
+    await writes.get(chatId)
+    return kept
   }
 
   return { busy, find, create, open, setOptions, send, begin, warm, approve, stop, remove }

@@ -2,9 +2,12 @@ import { defineStore } from 'pinia'
 import { computed, reactive, ref, watch } from 'vue'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { Attachment } from '@/ipc/bindings/Attachment'
-import { chatList, chatTitle } from '@/ipc/chat'
+import { chatList, chatSetWorktree, chatTitle } from '@/ipc/chat'
+import { i18nGlobal } from '@/i18n'
 import { useConversationsStore } from '@/stores/conversations'
 import { useNavigationStore } from '@/stores/navigation'
+import { useProjectsStore } from '@/stores/projects'
+import { useToastsStore } from '@/stores/toasts'
 
 export interface Tab {
   id: string
@@ -16,6 +19,8 @@ export interface Tab {
   title: string | null
   // Un chat n'entre dans l'historique qu'une fois son premier message envoyé.
   started: boolean
+  // L'agent travaille dans un worktree du projet. Réglable jusqu'au premier message.
+  worktree: boolean
 }
 
 interface PaneLayout {
@@ -48,6 +53,7 @@ function loadLayouts(): Record<string, Partial<PaneLayout>> {
 export const useWorkspaceStore = defineStore('workspace', () => {
   const navigation = useNavigationStore()
   const conversations = useConversationsStore()
+  const projects = useProjectsStore()
   // Tous les chats enregistrés, ouverts ou non.
   const tabs = ref<Tab[]>([])
   const layouts = reactive<Record<string, PaneLayout>>({})
@@ -120,9 +126,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   // `title` : titre fixé d'avance (chat ouvert par une commande), l'agent n'en propose pas d'autre.
   function createChat(title: string | null = null) {
     const projectId = navigation.projectId
-    const tab: Tab = { id: crypto.randomUUID(), kind: 'chat', number: nextChatNumber(projectId), projectId, agent: 'claude', title, started: false }
+    const agent = projects.chatAgent(projectId)
+    const worktree = !!projects.byId(projectId)?.worktree
+    const tab: Tab = { id: crypto.randomUUID(), kind: 'chat', number: nextChatNumber(projectId), projectId, agent, title, started: false, worktree }
     tabs.value.push(tab)
-    conversations.create({ id: tab.id, projectId, number: tab.number, agent: tab.agent, title, started: false })
+    conversations.create({ id: tab.id, projectId, number: tab.number, agent, title, started: false, worktree })
     current().tabs.push(tab.id)
     return tab
   }
@@ -179,13 +187,39 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (activeTabId.value) closeTab(activeTabId.value)
   }
 
-  function deleteChat(id: string) {
+  async function deleteChat(id: string) {
     const tab = tabs.value.find((item) => item.id === id)
-    if (!tab) return
+    if (!tab) return null
     const layout = layouts[tab.projectId ?? '']
     if (layout) closeTab(id, layout)
     tabs.value = tabs.value.filter((item) => item.id !== id)
-    conversations.remove(id)
+    return conversations.remove(id)
+  }
+
+  // Le worktree d'un chat supprimé reste s'il a des changements : le message dit où.
+  function warnKept(paths: string[]) {
+    if (!paths.length) return
+    const { t } = i18nGlobal()
+    useToastsStore().push({ title: t('chats.worktreeKept', paths.length), body: t('chats.worktreeKeptBody', { paths: paths.join(', ') }, paths.length) })
+  }
+
+  async function deleteChatWithWorktree(id: string) {
+    const kept = await deleteChat(id)
+    warnKept(kept ? [kept] : [])
+  }
+
+  // Tous les chats d'un projet supprimé, ouverts ou dans l'historique, et sa disposition.
+  async function deleteProjectChats(projectId: string) {
+    const kept = await Promise.all(tabsFor(projectId).map((tab) => deleteChat(tab.id)))
+    delete layouts[projectId]
+    warnKept(kept.filter((path) => path !== null))
+  }
+
+  function setWorktree(id: string, worktree: boolean) {
+    const tab = tabs.value.find((item) => item.id === id)
+    if (!tab || tab.started || tab.worktree === worktree) return
+    tab.worktree = worktree
+    chatSetWorktree(id, worktree).catch((error) => console.error('historique', error))
   }
 
   // Premier message du chat : il entre dans l'historique, et l'agent résume le message en titre
@@ -247,7 +281,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     closePane,
     closeTab,
     closeActiveTab,
-    deleteChat,
+    deleteChat: deleteChatWithWorktree,
+    deleteProjectChats,
+    setWorktree,
     startChat,
     moveTab,
     dropTab,

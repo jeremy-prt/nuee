@@ -12,4 +12,8 @@ title: string | null,
 /**
  * Faux tant qu'aucun message n'est parti : l'historique ne montre pas un chat vide.
  */
-started: boolean, };
+started: boolean, 
+/**
+ * L'agent travaille dans un worktree du projet. Réglable jusqu'au premier message.
+ */
+worktree: boolean, };
