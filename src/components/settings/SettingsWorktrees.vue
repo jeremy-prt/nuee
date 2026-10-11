@@ -98,7 +98,7 @@ async function remove(tree: Worktree, event: MouseEvent) {
 <template>
   <p v-if="!project" class="pt-8 text-sm text-muted">{{ t('settings.projects.missing') }}</p>
   <template v-else>
-    <p class="mt-1.5 text-sm text-muted">{{ t('settings.projects.worktrees.hint') }}</p>
+    <p class="mt-1.5 max-w-xl text-sm text-muted">{{ t('settings.projects.worktrees.hint') }}</p>
 
     <p v-if="!list" class="mt-8 text-sm text-muted">{{ t('settings.projects.worktrees.loading') }}</p>
     <template v-else>

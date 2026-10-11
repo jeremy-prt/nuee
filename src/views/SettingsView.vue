@@ -184,10 +184,10 @@ onUnmounted(() => {
         <SettingsGlass v-else :window-style="navigation.settingsDetail" />
       </template>
       <template v-else>
-        <div class="flex items-end gap-4">
+        <div class="flex items-start gap-4">
           <div class="min-w-0 flex-1">
             <h2 class="text-xl font-semibold">{{ t(`settings.sections.${navigation.settingsSection}`) }}</h2>
-            <p class="mt-1.5 text-sm text-muted">{{ t(`settings.hints.${navigation.settingsSection}`) }}</p>
+            <p class="mt-1.5 max-w-xl text-sm text-muted">{{ t(`settings.hints.${navigation.settingsSection}`) }}</p>
           </div>
           <SettingsResetButton v-if="navigation.settingsSection === 'shortcuts'" @click="shortcuts.reset(); resetToast('shortcuts')" />
           <!-- Pas de création à la main : l'IA pose les bonnes questions et écrit un SKILL.md propre. -->
