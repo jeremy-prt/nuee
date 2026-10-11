@@ -53,7 +53,11 @@ pub fn run() {
                 window::restore_or_fit(&main)?;
             }
             let data = app.path().app_data_dir()?;
-            app.manage(ChatService::open(&data.join("nuee.db"))?);
+            let chats = ChatService::open(&data.join("nuee.db"))?;
+            if let Err(error) = chats.adopt_worktrees(&data.join("worktrees")) {
+                eprintln!("worktrees des chats : {error}");
+            }
+            app.manage(chats);
             app.manage(AgentService::new(data.join("scratch")));
             // Chemin repris par le scope `assetProtocol` de tauri.conf.json : les aperçus n'existent que là.
             app.manage(AttachmentService::new(data.join("attachments")));
@@ -90,6 +94,7 @@ pub fn run() {
             commands::chat::chat_save,
             commands::chat::chat_title,
             commands::chat::chat_set_worktree,
+            commands::chat::chat_set_archived,
             commands::chat::chat_delete,
             commands::github::github_status,
             commands::github::github_login,
@@ -121,6 +126,10 @@ pub fn run() {
             commands::skills::skills_reveal,
             commands::window::window_set_blur,
             commands::worktree::worktree_support,
+            commands::worktree::worktree_list,
+            commands::worktree::worktree_branches,
+            commands::worktree::worktree_create,
+            commands::worktree::worktree_remove,
         ])
         .build(tauri::generate_context!())
         .expect("échec au lancement de l'application Tauri")

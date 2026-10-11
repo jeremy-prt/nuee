@@ -21,7 +21,7 @@ const refocusAfter = useRefocus()
   <div v-if="!projects.projects.length" data-setting="projects-list" class="mt-8 flex flex-col items-start gap-3 rounded-xl border border-stroke bg-content/3 px-4 py-5">
     <div>
       <p class="text-sm font-medium">{{ t('settings.projects.empty') }}</p>
-      <p class="mt-0.5 max-w-lg text-xs/relaxed text-muted">{{ t('settings.projects.emptyHint') }}</p>
+      <p class="mt-0.5 text-xs/relaxed text-muted">{{ t('settings.projects.emptyHint') }}</p>
     </div>
     <UiButton variant="primary" data-project-add @click="refocusAfter($event, addProject, '[data-project-add]')">
       <FolderPlus class="size-4" aria-hidden="true" />{{ t('settings.projects.add') }}

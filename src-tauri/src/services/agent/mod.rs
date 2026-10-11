@@ -74,9 +74,12 @@ pub struct SessionSpec {
     pub skills: BTreeMap<String, SkillMode>,
     /// Serveurs MCP coupés dans Nuée seulement.
     pub servers_off: Vec<String>,
-    /// Le chat travaille dans son worktree plutôt que dans le dossier du projet (`cwd`).
+    /// Le chat travaille dans un worktree plutôt que dans le dossier du projet (`cwd`).
     #[serde(default)]
     pub worktree: bool,
+    /// Worktree du dépôt rejoint par le chat. `None` avec `worktree` : le sien, créé au premier message.
+    #[serde(default)]
+    pub worktree_path: Option<String>,
 }
 
 /// Commande de Nuée attachée à un message : des consignes que l'utilisateur ne voit pas partent avec lui.
@@ -470,6 +473,13 @@ impl AgentService {
         if let Some(session) = lock(&self.sessions).remove(chat_id) {
             session.retire();
         }
+    }
+
+    pub fn busy(&self, chat_ids: &[String]) -> bool {
+        let sessions = lock(&self.sessions);
+        chat_ids
+            .iter()
+            .any(|id| sessions.get(id).is_some_and(|session| session.busy()))
     }
 
     /// Chats dont un tour n'est pas clos : réponse en cours, rangement ou demande d'autorisation.

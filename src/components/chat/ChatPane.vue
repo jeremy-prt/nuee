@@ -6,10 +6,11 @@ import ChatComposer from '@/components/chat/ChatComposer.vue'
 import ChatTranscript from '@/components/chat/ChatTranscript.vue'
 import { useFileDrop } from '@/composables/useFileDrop'
 import { useCatalogStore } from '@/stores/catalog'
-import { useConversationsStore } from '@/stores/conversations'
+import { type Place, useConversationsStore } from '@/stores/conversations'
 import type { Attachment } from '@/ipc/bindings/Attachment'
 import { useProjectsStore } from '@/stores/projects'
 import { type Tab, useWorkspaceStore } from '@/stores/workspace'
+import { useWorktreesStore } from '@/stores/worktrees'
 import { agents } from '@/utils/agents'
 import { worktreeBranch } from '@/utils/projects'
 
@@ -20,6 +21,7 @@ const projects = useProjectsStore()
 const conversations = useConversationsStore()
 const catalog = useCatalogStore()
 const workspace = useWorkspaceStore()
+const worktrees = useWorktreesStore()
 
 // Le pane est recréé à chaque changement d'onglet (:key), l'historique se charge donc ici.
 conversations.open(props.tab.id, props.tab.agent, props.tab.projectId)
@@ -44,19 +46,45 @@ const approval = computed(() => conversation.value?.approvals[0] ?? null)
 // Le worktree se choisit jusqu'au premier message. D'ici là, un dossier hors git (ou git absent) le coupe.
 const started = computed(() => props.tab.started || items.value.some((item) => item.kind === 'user'))
 if (project.value && !started.value) projects.checkWorktree(project.value)
+if (project.value && (!started.value || props.tab.worktree)) worktrees.load(project.value)
 const support = computed(() => (project.value ? projects.support[project.value.id] : undefined))
 const blocked = computed(() => (support.value && support.value !== 'ready' ? support.value : null))
 const worktree = computed(() => !!project.value && props.tab.worktree && (started.value || !blocked.value))
-const worktreeState = computed(() =>
-  project.value ? { on: worktree.value, started: started.value, blocked: blocked.value, branch: worktreeBranch(props.tab.id) } : null,
+const place = computed<Place>(() => ({ cwd: cwd.value, worktree: worktree.value, worktreePath: worktree.value ? props.tab.worktreePath : null }))
+
+// Le sien porte la branche tirée de son id ; un worktree rejoint, celle que git donne.
+const branch = computed(() => {
+  const path = props.tab.worktreePath
+  const tree = worktrees.find(props.tab.projectId, path)
+  if (tree) return tree.branch ?? tree.path.split(/[\\/]/).pop() ?? ''
+  return !path || path.endsWith(props.tab.id) ? worktreeBranch(props.tab.id) : ''
+})
+const trees = computed(() =>
+  (project.value ? (worktrees.lists[project.value.id] ?? []) : []).filter((tree) => !tree.main && tree.state !== 'missing'),
 )
+const worktreeState = computed(() =>
+  project.value
+    ? {
+        choice: worktree.value ? (props.tab.worktreePath ?? 'new') : 'project',
+        started: started.value,
+        blocked: blocked.value,
+        branch: branch.value,
+        trees: trees.value,
+      }
+    : null,
+)
+
+function chooseWorktree(choice: string) {
+  if (choice === 'project') workspace.setWorktree(props.tab.id, false)
+  else workspace.setWorktree(props.tab.id, true, choice === 'new' ? null : choice)
+}
 
 function send(prompt: string, attachments: Attachment[]) {
   if (!items.value.some((item) => item.kind === 'user')) {
-    workspace.setWorktree(props.tab.id, worktree.value)
+    workspace.setWorktree(props.tab.id, worktree.value, props.tab.worktreePath)
     workspace.startChat(props.tab.id, prompt, attachments)
   }
-  conversations.send(props.tab.id, cwd.value, worktree.value, prompt, attachments)
+  conversations.send(props.tab.id, place.value, prompt, attachments)
 }
 
 const pane = useTemplateRef('pane')
@@ -109,8 +137,8 @@ onMounted(() => {
         :running="answering"
         :approving="!!approval"
         @send="send"
-        @warm="conversations.warm(tab.id, cwd, worktree)"
-        @worktree="workspace.setWorktree(tab.id, $event)"
+        @warm="conversations.warm(tab.id, place)"
+        @worktree="chooseWorktree"
         @stop="conversations.stop(tab.id)"
       />
     </div>

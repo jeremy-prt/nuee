@@ -914,6 +914,7 @@ mod tests {
             skills: Default::default(),
             servers_off: Vec::new(),
             worktree: false,
+            worktree_path: None,
         };
         let args = Claude::new(Path::new("/projet")).args(&request);
         let tail: Vec<&str> = args.iter().skip(9).map(String::as_str).collect();
@@ -1174,6 +1175,7 @@ mod tests {
             .into(),
             servers_off: vec!["claude.ai Notion".into()],
             worktree: false,
+            worktree_path: None,
         };
         let args = Claude::new(Path::new("/projet")).args(&request);
         assert_eq!(args.iter().filter(|arg| *arg == "--settings").count(), 1);

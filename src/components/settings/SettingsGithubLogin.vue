@@ -43,7 +43,7 @@ onUnmounted(() => clearTimeout(timer))
         </span>
         <div class="min-w-0 flex-1">
           <p class="text-sm font-medium">{{ t('settings.github.connect') }}</p>
-          <p :id="hintId" class="mt-0.5 max-w-lg text-xs/relaxed text-muted">
+          <p :id="hintId" class="mt-0.5 text-xs/relaxed text-muted">
             <span v-if="store.loginError" class="wrap-break-word text-danger" role="alert">{{ store.loginError }}</span>
             <template v-else>{{ t('settings.github.connectHint') }}</template>
           </p>

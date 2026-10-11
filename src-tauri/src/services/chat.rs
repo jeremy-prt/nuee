@@ -9,6 +9,7 @@ use ts_rs::TS;
 
 use crate::error::AppError;
 use crate::services::agent::{AgentKind, TurnOptions};
+use crate::services::worktree::canonical;
 
 /// Ce que la barre latérale affiche d'un chat, sans charger sa conversation.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
@@ -27,6 +28,12 @@ pub struct ChatSummary {
     /// L'agent travaille dans un worktree du projet. Réglable jusqu'au premier message.
     #[serde(default)]
     pub worktree: bool,
+    /// Worktree choisi ou créé pour le chat. `None` avec `worktree` : le sien, créé au premier message.
+    #[serde(default)]
+    pub worktree_path: Option<String>,
+    /// Masqué de l'historique, retrouvé dans Réglages › Archives.
+    #[serde(default)]
+    pub archived: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
@@ -55,6 +62,8 @@ const MIGRATIONS: &[&str] = &[
     )",
     "ALTER TABLE chats ADD COLUMN title TEXT",
     "ALTER TABLE chats ADD COLUMN worktree INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE chats ADD COLUMN worktree_path TEXT",
+    "ALTER TABLE chats ADD COLUMN archived INTEGER NOT NULL DEFAULT 0",
 ];
 
 /// Historique des chats dans une base SQLite du dossier de données de l'app.
@@ -76,7 +85,7 @@ impl ChatService {
     pub fn list(&self) -> Result<Vec<ChatSummary>, AppError> {
         let db = self.lock();
         let mut query = db.prepare(
-            "SELECT id, project_id, number, agent, title, items != '[]', worktree FROM chats ORDER BY created_at",
+            "SELECT id, project_id, number, agent, title, items != '[]', worktree, worktree_path, archived FROM chats ORDER BY created_at",
         )?;
         let rows = query.query_map([], |row| {
             Ok((
@@ -87,11 +96,14 @@ impl ChatService {
                 row.get(4)?,
                 row.get::<_, bool>(5)?,
                 row.get::<_, bool>(6)?,
+                row.get(7)?,
+                row.get::<_, bool>(8)?,
             ))
         })?;
         let mut chats = Vec::new();
         for row in rows {
-            let (id, project_id, number, agent, title, started, worktree) = row?;
+            let (id, project_id, number, agent, title, started, worktree, worktree_path, archived) =
+                row?;
             // Un agent retiré d'une future version ne doit pas faire tomber toute la liste.
             if let Ok(agent) = serde_json::from_value(Value::String(agent)) {
                 chats.push(ChatSummary {
@@ -102,6 +114,8 @@ impl ChatService {
                     title,
                     started,
                     worktree,
+                    worktree_path,
+                    archived,
                 });
             }
         }
@@ -111,8 +125,8 @@ impl ChatService {
     pub fn create(&self, chat: &ChatSummary) -> Result<(), AppError> {
         let now = now();
         self.lock().execute(
-            "INSERT INTO chats (id, project_id, number, agent, title, worktree, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7)",
-            params![chat.id, chat.project_id, chat.number, agent_name(chat.agent)?, chat.title, chat.worktree, now],
+            "INSERT INTO chats (id, project_id, number, agent, title, worktree, worktree_path, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8)",
+            params![chat.id, chat.project_id, chat.number, agent_name(chat.agent)?, chat.title, chat.worktree, chat.worktree_path, now],
         )?;
         Ok(())
     }
@@ -164,11 +178,78 @@ impl ChatService {
         Ok(())
     }
 
-    pub fn set_worktree(&self, id: &str, worktree: bool) -> Result<(), AppError> {
+    pub fn set_worktree(
+        &self,
+        id: &str,
+        worktree: bool,
+        path: Option<&str>,
+    ) -> Result<(), AppError> {
         self.lock().execute(
-            "UPDATE chats SET worktree = ?1 WHERE id = ?2",
-            params![worktree, id],
+            "UPDATE chats SET worktree = ?1, worktree_path = ?2 WHERE id = ?3",
+            params![worktree, path.filter(|_| worktree), id],
         )?;
+        Ok(())
+    }
+
+    pub fn worktree_path(&self, id: &str) -> Result<Option<String>, AppError> {
+        Ok(self
+            .lock()
+            .query_row(
+                "SELECT worktree_path FROM chats WHERE id = ?1 AND worktree = 1",
+                [id],
+                |row| row.get(0),
+            )
+            .optional()?
+            .flatten())
+    }
+
+    pub fn worktree_users(&self, path: &str) -> Result<Vec<String>, AppError> {
+        let db = self.lock();
+        let mut query =
+            db.prepare("SELECT id FROM chats WHERE worktree = 1 AND worktree_path = ?1")?;
+        let ids = query.query_map([path], |row| row.get(0))?;
+        Ok(ids.collect::<Result<_, _>>()?)
+    }
+
+    pub fn leave_worktree(&self, path: &str) -> Result<Vec<String>, AppError> {
+        let ids = self.worktree_users(path)?;
+        self.lock().execute(
+            "UPDATE chats SET worktree = 0, worktree_path = NULL WHERE worktree_path = ?1",
+            [path],
+        )?;
+        Ok(ids)
+    }
+
+    /// Avant que le chemin n'entre en base, un worktree de chat se déduisait de son id : on l'y inscrit.
+    pub fn adopt_worktrees(&self, dir: &Path) -> Result<(), AppError> {
+        let ids: Vec<String> = {
+            let db = self.lock();
+            let mut query = db.prepare(
+                "SELECT id FROM chats WHERE worktree = 1 AND worktree_path IS NULL AND items != '[]'",
+            )?;
+            query
+                .query_map([], |row| row.get(0))?
+                .collect::<Result<_, _>>()?
+        };
+        for id in ids {
+            let own = dir.join(&id);
+            if own.join(".git").exists() {
+                self.set_worktree(&id, true, Some(&canonical(&own)))?;
+            }
+        }
+        Ok(())
+    }
+
+    pub fn set_archived(&self, ids: &[String], archived: bool) -> Result<(), AppError> {
+        let mut db = self.lock();
+        let tx = db.transaction()?;
+        for id in ids {
+            tx.execute(
+                "UPDATE chats SET archived = ?1 WHERE id = ?2",
+                params![archived, id],
+            )?;
+        }
+        tx.commit()?;
         Ok(())
     }
 
@@ -231,6 +312,8 @@ mod tests {
             title: None,
             started: false,
             worktree: false,
+            worktree_path: None,
+            archived: false,
         };
         let content = ChatContent {
             session_id: Some("s1".into()),
@@ -247,7 +330,10 @@ mod tests {
         assert_eq!(chats.content("c1").expect("lecture"), None);
         chats.save("c1", &content).expect("enregistrement");
         chats.set_title("c1", "Inverser une liste").expect("titre");
-        chats.set_worktree("c1", true).expect("worktree");
+        chats
+            .set_worktree("c1", true, Some("/tmp/arbre"))
+            .expect("worktree");
+        chats.set_archived(&["c1".into()], true).expect("archive");
         drop(chats);
 
         let chats = ChatService::open(&path).expect("réouverture");
@@ -255,9 +341,20 @@ mod tests {
             title: Some("Inverser une liste".into()),
             started: true,
             worktree: true,
+            worktree_path: Some("/tmp/arbre".into()),
+            archived: true,
             ..chat
         };
         assert_eq!(chats.list().expect("liste"), vec![titled]);
+        assert_eq!(
+            chats.worktree_users("/tmp/arbre").expect("users"),
+            vec!["c1"]
+        );
+        assert_eq!(
+            chats.leave_worktree("/tmp/arbre").expect("quitte"),
+            vec!["c1"]
+        );
+        assert_eq!(chats.worktree_path("c1").expect("chemin"), None);
         assert_eq!(chats.content("c1").expect("lecture"), Some(content));
         chats.delete("c1").expect("suppression");
         assert!(chats.list().expect("liste").is_empty());

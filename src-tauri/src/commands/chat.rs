@@ -54,16 +54,28 @@ pub async fn chat_save(
 }
 
 /// Avant le premier message seulement : ensuite l'agent travaille déjà dans son dossier.
+/// `path` : worktree existant rejoint par le chat ; `None` avec `worktree` : le sien, créé au premier message.
 #[tauri::command]
 pub async fn chat_set_worktree(
     id: String,
     worktree: bool,
+    path: Option<String>,
     chats: State<'_, ChatService>,
 ) -> Result<(), AppError> {
-    chats.set_worktree(&id, worktree)
+    chats.set_worktree(&id, worktree, path.as_deref())
 }
 
-/// Renvoie le chemin du worktree du chat s'il a été gardé (changements non commités).
+#[tauri::command]
+pub async fn chat_set_archived(
+    ids: Vec<String>,
+    archived: bool,
+    chats: State<'_, ChatService>,
+) -> Result<(), AppError> {
+    chats.set_archived(&ids, archived)
+}
+
+/// Renvoie le chemin du worktree du chat s'il a été gardé (changements non commités). Un worktree que
+/// d'autres chats utilisent encore reste sans rien dire.
 #[tauri::command]
 pub async fn chat_delete(
     id: String,
@@ -72,9 +84,16 @@ pub async fn chat_delete(
     attachments: State<'_, AttachmentService>,
     worktrees: State<'_, WorktreeService>,
 ) -> Result<Option<String>, AppError> {
+    let path = chats.worktree_path(&id)?;
     chats.delete(&id)?;
     agents.close(&id);
     agents.discard_scratch(&id);
     attachments.discard(&id);
+    if let Some(path) = path
+        && !chats.worktree_users(&path)?.is_empty()
+    {
+        return Ok(None);
+    }
+    // Ne touche qu'au dossier propre au chat : un worktree rejoint n'est retiré que depuis sa liste.
     Ok(worktrees.discard(&id).await)
 }

@@ -32,6 +32,7 @@ export interface UiMenuSection {
 }
 
 // Pastille d'une barre d'outils : le slot montre la valeur, `label` nomme le menu (infobulle, lecteur d'écran).
+// `look` remplace le fond et la taille de la pastille (bouton discret dans une ligne de texte).
 const props = withDefaults(
   defineProps<{
     label: string
@@ -39,6 +40,7 @@ const props = withDefaults(
     disabled?: boolean
     side?: 'top' | 'bottom'
     focusAfter?: () => void
+    look?: string
   }>(),
   { side: 'top' },
 )
@@ -71,7 +73,8 @@ function onCloseAutoFocus(event: Event) {
       <DropdownMenuRoot>
         <DropdownMenuTrigger
           :disabled="disabled"
-          class="group flex h-7 min-w-0 items-center gap-1.5 rounded-md bg-selection ps-1.5 pe-2 text-xs whitespace-nowrap text-content hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-40 aria-expanded:bg-selection-hover"
+          class="group flex min-w-0 items-center gap-1.5 rounded-md text-xs whitespace-nowrap focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-40"
+          :class="look ?? 'h-7 bg-selection ps-1.5 pe-2 text-content hover:bg-selection-hover aria-expanded:bg-selection-hover'"
           @pointerdown="openedBy(true)"
           @keydown="openedBy(false)"
         >

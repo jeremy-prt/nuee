@@ -28,7 +28,33 @@ pub enum WorktreeSupport {
     NoGit,
 }
 
-/// Worktrees des chats, dans `<données de l'app>/worktrees/<id du chat>`, chacun sur sa branche `nuee/<id court>`.
+/// Un worktree du dépôt d'un projet, tel que `git worktree list` le décrit.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct Worktree {
+    pub path: String,
+    /// `None` : HEAD détaché.
+    pub branch: Option<String>,
+    /// Le dossier principal du dépôt, toujours en premier.
+    pub main: bool,
+    pub state: WorktreeState,
+    pub locked: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum WorktreeState {
+    Clean,
+    /// Changements non commités, ou état que git n'a pas su lire : rien ne le supprime.
+    Changed,
+    /// Dossier effacé à la main, encore inscrit dans le dépôt.
+    Missing,
+}
+
+/// Worktree propre à un chat dans `<données de l'app>/worktrees/<id du chat>`, sur sa branche `nuee/<id court>` ;
+/// créé à la main dans `worktrees/<id du projet>/<branche>`, partageable entre chats.
 /// La branche reste toujours, et rien ne passe `--force` : un travail non commité n'est jamais perdu.
 pub struct WorktreeService {
     dir: PathBuf,
@@ -73,16 +99,8 @@ impl WorktreeService {
         let project = std::fs::canonicalize(project).map_err(|_| {
             AppError::InvalidInput(format!("dossier introuvable : {}", project.display()))
         })?;
-        let git = git_binary()
-            .ok_or_else(|| AppError::Git("git est introuvable sur cet ordinateur".into()))?;
-        let prefix = run(&git, &project, &["rev-parse", "--show-prefix"], GIT_TIMEOUT).await?;
-        let prefix = PathBuf::from(prefix.trim());
-        if !prefix
-            .components()
-            .all(|part| matches!(part, Component::Normal(_)))
-        {
-            return Err(AppError::Git("emplacement du dépôt inattendu".into()));
-        }
+        let git = require_git()?;
+        let prefix = prefix(&git, &project).await?;
         if !dir.join(".git").exists() {
             std::fs::create_dir_all(&self.dir)?;
             // Un worktree effacé à la main reste inscrit tant qu'on ne nettoie pas : `add` le refuserait.
@@ -112,6 +130,188 @@ impl WorktreeService {
         let cwd = dir.join(prefix);
         std::fs::create_dir_all(&cwd)?;
         Ok(cwd)
+    }
+
+    pub fn own(&self, chat_id: &str) -> Result<PathBuf, AppError> {
+        self.path(chat_id)
+    }
+
+    /// Dossier où travaille un chat qui a rejoint un worktree existant du dépôt.
+    pub async fn enter(&self, worktree: &Path, project: &Path) -> Result<PathBuf, AppError> {
+        let project = std::fs::canonicalize(project).map_err(|_| {
+            AppError::InvalidInput(format!("dossier introuvable : {}", project.display()))
+        })?;
+        let git = require_git()?;
+        let tree = registered(&git, &project, worktree).await?;
+        if tree.state == WorktreeState::Missing {
+            return Err(AppError::Git(format!(
+                "le worktree {} est introuvable. Retire-le dans les réglages du projet, le chat repartira dans son dossier",
+                tree.path
+            )));
+        }
+        let cwd = Path::new(&tree.path).join(prefix(&git, &project).await?);
+        std::fs::create_dir_all(&cwd)?;
+        Ok(cwd)
+    }
+
+    /// Tous les worktrees du dépôt, le dossier principal en premier, y compris ceux créés hors de Nuée.
+    pub async fn list(&self, project: &Path) -> Result<Vec<Worktree>, AppError> {
+        let git = require_git()?;
+        let mut trees = list(&git, project).await?;
+        for tree in &mut trees {
+            if tree.state == WorktreeState::Missing {
+                continue;
+            }
+            let status = ["status", "--porcelain", "--untracked-files=normal"];
+            tree.state = match run(&git, Path::new(&tree.path), &status, GIT_TIMEOUT).await {
+                Ok(changes) if changes.trim().is_empty() => WorktreeState::Clean,
+                _ => WorktreeState::Changed,
+            };
+        }
+        Ok(trees)
+    }
+
+    pub async fn branches(&self, project: &Path) -> Result<Vec<String>, AppError> {
+        let git = require_git()?;
+        let refs = ["for-each-ref", "--format=%(refname)", "refs/heads/"];
+        let out = run(&git, project, &refs, GIT_TIMEOUT).await?;
+        Ok(out
+            .lines()
+            .filter_map(|line| line.strip_prefix("refs/heads/"))
+            .map(str::to_owned)
+            .collect())
+    }
+
+    /// Worktree dans `worktrees/<id du projet>/<branche nettoyée>`, sur une nouvelle branche partie du HEAD du
+    /// projet ou sur une branche locale existante.
+    pub async fn create(
+        &self,
+        project_id: &str,
+        project: &Path,
+        branch: &str,
+        existing: bool,
+    ) -> Result<Worktree, AppError> {
+        if !valid_session_id(project_id) {
+            return Err(AppError::InvalidInput(
+                "identifiant de projet invalide".into(),
+            ));
+        }
+        let git = require_git()?;
+        let branch = branch.trim();
+        // `check-ref-format --branch` développe `@{-1}` : un nom qui commence par `@` ou `-` n'en est pas un.
+        if branch.is_empty() || branch.starts_with('-') || branch.starts_with('@') {
+            return Err(AppError::InvalidInput("nom de branche invalide".into()));
+        }
+        run(
+            &git,
+            project,
+            &["check-ref-format", "--branch", branch],
+            GIT_TIMEOUT,
+        )
+        .await
+        .map_err(|_| {
+            AppError::InvalidInput(format!("« {branch} » n'est pas un nom de branche valide"))
+        })?;
+        let _ = run(&git, project, &["worktree", "prune"], GIT_TIMEOUT).await;
+        if list(&git, project)
+            .await?
+            .iter()
+            .any(|tree| tree.branch.as_deref() == Some(branch))
+        {
+            return Err(AppError::InvalidInput(format!(
+                "la branche {branch} a déjà un worktree"
+            )));
+        }
+        let local = format!("refs/heads/{branch}");
+        let verify = ["rev-parse", "--verify", "--quiet", local.as_str()];
+        let known = run(&git, project, &verify, GIT_TIMEOUT).await.is_ok();
+        if known != existing {
+            return Err(AppError::InvalidInput(if existing {
+                format!("la branche {branch} n'existe pas")
+            } else {
+                format!("la branche {branch} existe déjà")
+            }));
+        }
+        let slug: String = branch
+            .chars()
+            .map(|c| {
+                if c.is_alphanumeric() || c == '-' || c == '_' {
+                    c
+                } else {
+                    '-'
+                }
+            })
+            .collect();
+        let parent = self.dir.join(project_id);
+        let target = parent.join(slug);
+        if target.exists() {
+            return Err(AppError::InvalidInput(format!(
+                "le dossier {} existe déjà",
+                target.display()
+            )));
+        }
+        std::fs::create_dir_all(&parent)?;
+        let shown = target.to_string_lossy();
+        let args: Vec<&str> = if existing {
+            vec!["worktree", "add", "--", shown.as_ref(), branch]
+        } else {
+            vec![
+                "worktree",
+                "add",
+                "--no-track",
+                "-b",
+                branch,
+                "--",
+                shown.as_ref(),
+                "HEAD",
+            ]
+        };
+        if let Err(error) = run(&git, project, &args, ADD_TIMEOUT).await {
+            let _ = std::fs::remove_dir(&parent);
+            return Err(error);
+        }
+        registered(&git, project, &target).await
+    }
+
+    /// Retire un worktree propre (ou effacé à la main) ; sa branche reste. Refusé s'il a des changements.
+    pub async fn remove(&self, project: &Path, worktree: &Path) -> Result<(), AppError> {
+        let git = require_git()?;
+        let tree = registered(&git, project, worktree).await?;
+        if tree.main {
+            return Err(AppError::InvalidInput(
+                "le dossier principal du dépôt ne se supprime pas".into(),
+            ));
+        }
+        if tree.locked {
+            return Err(AppError::Git("ce worktree est verrouillé dans git".into()));
+        }
+        // Sans branche, ses commits ne seraient plus retenus par rien.
+        if tree.branch.is_none() {
+            return Err(AppError::Git("ce worktree n'est sur aucune branche".into()));
+        }
+        if tree.state == WorktreeState::Missing {
+            // `prune` ne retire que les worktrees dont le dossier a disparu.
+            run(&git, project, &["worktree", "prune"], GIT_TIMEOUT).await?;
+        } else {
+            let status = ["status", "--porcelain", "--untracked-files=normal"];
+            match run(&git, Path::new(&tree.path), &status, GIT_TIMEOUT).await {
+                Ok(changes) if changes.trim().is_empty() => {}
+                _ => {
+                    return Err(AppError::Git(
+                        "ce worktree a des changements non commités".into(),
+                    ));
+                }
+            }
+            let args = ["worktree", "remove", "--", tree.path.as_str()];
+            run(&git, project, &args, GIT_TIMEOUT).await?;
+        }
+        if let Some(parent) = Path::new(&tree.path).parent()
+            && parent.starts_with(&self.dir)
+            && parent != self.dir
+        {
+            let _ = std::fs::remove_dir(parent);
+        }
+        Ok(())
     }
 
     /// Retire le worktree d'un chat supprimé s'il n'a aucun changement non commité. Sinon il reste, et son
@@ -155,6 +355,95 @@ impl WorktreeService {
         }
         Ok(self.dir.join(chat_id))
     }
+}
+
+fn require_git() -> Result<PathBuf, AppError> {
+    git_binary().ok_or_else(|| AppError::Git("git est introuvable sur cet ordinateur".into()))
+}
+
+/// Sous-dossier du dépôt où se trouve le projet : un worktree le retrouve à la même place.
+async fn prefix(git: &Path, project: &Path) -> Result<PathBuf, AppError> {
+    let prefix = run(git, project, &["rev-parse", "--show-prefix"], GIT_TIMEOUT).await?;
+    let prefix = PathBuf::from(prefix.trim());
+    if !prefix
+        .components()
+        .all(|part| matches!(part, Component::Normal(_)))
+    {
+        return Err(AppError::Git("emplacement du dépôt inattendu".into()));
+    }
+    Ok(prefix)
+}
+
+/// État laissé à `Clean` pour un dossier présent : `WorktreeService::list` lance `status` ensuite.
+async fn list(git: &Path, project: &Path) -> Result<Vec<Worktree>, AppError> {
+    let out = run(
+        git,
+        project,
+        &["worktree", "list", "--porcelain", "-z"],
+        GIT_TIMEOUT,
+    )
+    .await?;
+    Ok(parse(&out))
+}
+
+fn parse(out: &str) -> Vec<Worktree> {
+    let mut trees: Vec<Worktree> = Vec::new();
+    let mut current: Option<Worktree> = None;
+    for field in out.split('\0') {
+        if let Some(path) = field.strip_prefix("worktree ") {
+            let path = Path::new(path);
+            current = Some(Worktree {
+                path: canonical(path),
+                branch: None,
+                main: trees.is_empty(),
+                state: if path.is_dir() {
+                    WorktreeState::Clean
+                } else {
+                    WorktreeState::Missing
+                },
+                locked: false,
+            });
+        } else if let Some(tree) = current.as_mut() {
+            if let Some(branch) = field.strip_prefix("branch refs/heads/") {
+                tree.branch = Some(branch.to_owned());
+            } else if field == "locked" || field.starts_with("locked ") {
+                tree.locked = true;
+            } else if field.is_empty() {
+                trees.extend(current.take());
+            }
+        }
+    }
+    trees.extend(current);
+    trees
+}
+
+/// Chemin comparable d'un appel à l'autre : git, le front et la base ne l'écrivent pas toujours pareil.
+/// Un dossier pas encore créé prend le chemin canonique de son parent.
+pub fn canonical(path: &Path) -> String {
+    std::fs::canonicalize(path)
+        .ok()
+        .or_else(|| {
+            Some(
+                std::fs::canonicalize(path.parent()?)
+                    .ok()?
+                    .join(path.file_name()?),
+            )
+        })
+        .unwrap_or_else(|| path.to_path_buf())
+        .to_string_lossy()
+        .into_owned()
+}
+
+/// Le worktree du dépôt à cet emplacement : un chemin reçu du front n'est jamais pris tel quel.
+async fn registered(git: &Path, project: &Path, worktree: &Path) -> Result<Worktree, AppError> {
+    let wanted = canonical(worktree);
+    list(git, project)
+        .await?
+        .into_iter()
+        .find(|tree| tree.path == wanted)
+        .ok_or_else(|| {
+            AppError::InvalidInput(format!("{wanted} n'est pas un worktree de ce dépôt"))
+        })
 }
 
 /// Même règle que `worktreeBranch` côté front.
@@ -349,6 +638,98 @@ mod tests {
             std::fs::read_to_string(again.join("note.txt")).expect("branche"),
             "commitée"
         );
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn worktrees_of_a_project_from_new_and_existing_branches() {
+        if git_binary().is_none() {
+            return;
+        }
+        let root = sandbox("project");
+        let repo = repo(&root);
+        let service = WorktreeService::new(root.join("worktrees"));
+        let project = "a1a2b3c4-0000-4000-8000-00000000000a";
+        git(&repo, &["branch", "existante"]);
+
+        let fresh = block_on(service.create(project, &repo.join("app"), "feat/carte", false))
+            .expect("nouvelle branche");
+        assert_eq!(fresh.branch.as_deref(), Some("feat/carte"));
+        assert_eq!(
+            fresh.path,
+            canonical(&root.join("worktrees").join(project).join("feat-carte"))
+        );
+        let reused =
+            block_on(service.create(project, &repo, "existante", true)).expect("branche existante");
+        assert_eq!(reused.branch.as_deref(), Some("existante"));
+
+        assert!(block_on(service.create(project, &repo, "feat/carte", false)).is_err());
+        assert!(block_on(service.create(project, &repo, "absente", true)).is_err());
+        assert!(block_on(service.create(project, &repo, "--force", false)).is_err());
+        assert!(block_on(service.create(project, &repo, "a..b", false)).is_err());
+        assert!(block_on(service.create("../evil", &repo, "x", false)).is_err());
+
+        let list = block_on(service.list(&repo.join("app"))).expect("liste");
+        assert_eq!(list.len(), 3);
+        assert!(list[0].main && list[0].path == canonical(&repo));
+        assert!(list.iter().all(|tree| tree.state == WorktreeState::Clean));
+        let branches = block_on(service.branches(&repo)).expect("branches");
+        assert!(
+            branches.contains(&"existante".to_owned())
+                && branches.contains(&"feat/carte".to_owned())
+        );
+
+        let cwd =
+            block_on(service.enter(Path::new(&fresh.path), &repo.join("app"))).expect("rejoint");
+        assert_eq!(cwd, Path::new(&fresh.path).join("app"));
+        assert!(block_on(service.enter(&root, &repo)).is_err());
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn a_changed_worktree_is_kept_a_missing_one_is_pruned() {
+        if git_binary().is_none() {
+            return;
+        }
+        let root = sandbox("remove");
+        let repo = repo(&root);
+        let service = WorktreeService::new(root.join("worktrees"));
+        let project = "b1a2b3c4-0000-4000-8000-00000000000b";
+        let changed = block_on(service.create(project, &repo, "modifiee", false)).expect("créé");
+        let gone = block_on(service.create(project, &repo, "effacee", false)).expect("créé");
+        let clean = block_on(service.create(project, &repo, "propre", false)).expect("créé");
+        std::fs::write(
+            Path::new(&changed.path).join("brouillon.txt"),
+            "pas commité",
+        )
+        .expect("modif");
+        std::fs::remove_dir_all(&gone.path).expect("effacé");
+
+        let list = block_on(service.list(&repo)).expect("liste");
+        let state = |path: &str| {
+            list.iter()
+                .find(|tree| tree.path == path)
+                .map(|tree| tree.state)
+        };
+        assert_eq!(state(&changed.path), Some(WorktreeState::Changed));
+        assert_eq!(state(&gone.path), Some(WorktreeState::Missing));
+        assert!(block_on(service.enter(Path::new(&gone.path), &repo)).is_err());
+
+        assert!(block_on(service.remove(&repo, Path::new(&changed.path))).is_err());
+        assert!(Path::new(&changed.path).join("brouillon.txt").exists());
+        assert!(block_on(service.remove(&repo, &repo)).is_err());
+        block_on(service.remove(&repo, Path::new(&gone.path))).expect("nettoyé");
+        block_on(service.remove(&repo, Path::new(&clean.path))).expect("retiré");
+        assert!(!Path::new(&clean.path).exists());
+
+        let left: Vec<_> = block_on(service.list(&repo))
+            .expect("liste")
+            .into_iter()
+            .map(|tree| tree.path)
+            .collect();
+        assert_eq!(left, vec![canonical(&repo), changed.path.clone()]);
+        let branches = git(&repo, &["branch", "--list"]);
+        assert!(branches.contains("propre") && branches.contains("effacee"));
         let _ = std::fs::remove_dir_all(root);
     }
 }

@@ -10,7 +10,8 @@ import type { SettingsSection } from '@/utils/settings'
 
 // Sous-page d'une section : réglages du thème, de l'image de fond, d'un style de fenêtre, d'un agent, d'un
 // skill (`skill:` suivi du nom de son dossier), d'un serveur MCP (`mcp:` suivi de son nom), d'un service relié
-// ou d'un projet (`project:` suivi de son id).
+// d'un projet (`project:` suivi de son id) ou des worktrees d'un projet (`worktrees:` suivi de son id), sous-page
+// de celle du projet.
 export type SettingsDetail =
   | WindowStyle
   | 'theme'
@@ -20,6 +21,7 @@ export type SettingsDetail =
   | `mcp:${string}`
   | 'github'
   | `project:${string}`
+  | `worktrees:${string}`
 
 export function isAgentDetail(detail: SettingsDetail | null): detail is AgentKind {
   return !!detail && detail in agents
@@ -49,6 +51,19 @@ export function projectOfDetail(detail: `project:${string}`) {
   return detail.slice('project:'.length)
 }
 
+export function isWorktreesDetail(detail: SettingsDetail | null): detail is `worktrees:${string}` {
+  return !!detail?.startsWith('worktrees:')
+}
+
+export function projectOfWorktrees(detail: `worktrees:${string}`) {
+  return detail.slice('worktrees:'.length)
+}
+
+// Page où mène Retour : la sous-page parente, sinon la section.
+export function parentDetail(detail: SettingsDetail | null): SettingsDetail | null {
+  return isWorktreesDetail(detail) ? `project:${projectOfWorktrees(detail)}` : null
+}
+
 // Un agent garde son nom de produit, un skill le nom qu'on tape, un serveur le sien : rien ne se traduit.
 export function settingsDetailTitle(detail: SettingsDetail, t: (key: string) => string) {
   if (isAgentDetail(detail)) return agents[detail].name
@@ -58,6 +73,7 @@ export function settingsDetailTitle(detail: SettingsDetail, t: (key: string) => 
   }
   if (isServerDetail(detail)) return serverOfDetail(detail)
   if (isProjectDetail(detail)) return useProjectsStore().byId(projectOfDetail(detail))?.name ?? ''
+  if (isWorktreesDetail(detail)) return t('settings.projects.worktrees.title')
   if (detail === 'github') return 'GitHub'
   if (detail === 'theme') return t('settings.themes.title')
   if (detail === 'background') return t('settings.background.title')

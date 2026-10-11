@@ -25,9 +25,13 @@ export function chatTitle(id: string, agent: AgentKind, prompt: string, seed: st
   return invoke<string>('chat_title', { id, agent, prompt, seed })
 }
 
-// Avant le premier message seulement.
-export function chatSetWorktree(id: string, worktree: boolean) {
-  return invoke<void>('chat_set_worktree', { id, worktree })
+// Avant le premier message seulement. path : worktree existant rejoint ; null avec worktree : le sien.
+export function chatSetWorktree(id: string, worktree: boolean, path: string | null) {
+  return invoke<void>('chat_set_worktree', { id, worktree, path })
+}
+
+export function chatSetArchived(ids: string[], archived: boolean) {
+  return invoke<void>('chat_set_archived', { ids, archived })
 }
 
 // Rend le chemin du worktree du chat s'il a été gardé parce qu'il avait des changements non commités.

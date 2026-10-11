@@ -275,11 +275,20 @@ const projectRows: (Pick<SettingEntry, 'label' | 'hint' | 'terms' | 'keywords'> 
   { row: 'effort', label: 'settings.projects.effort', hint: 'settings.projects.defaults', keywords: ['agentDefaults'] },
   { row: 'worktree', label: 'settings.projects.worktree', hint: 'settings.projects.worktreeHint', keywords: ['worktree'] },
   {
+    row: 'worktrees',
+    label: 'settings.projects.worktrees.title',
+    hint: 'settings.projects.worktrees.hint',
+    terms: ['settings.projects.worktrees.create'],
+    keywords: ['worktree'],
+  },
+  {
     row: 'mute',
     label: 'settings.projects.notifications',
     terms: ['settings.projects.mute.hour', 'settings.projects.mute.tomorrow', 'settings.projects.mute.always'],
     keywords: ['notifications', 'sounds'],
   },
+  { row: 'archive-chats', label: 'settings.projects.chats.archive', hint: 'settings.projects.chats.archiveHint', keywords: ['archive'] },
+  { row: 'delete-chats', label: 'settings.projects.chats.delete', hint: 'settings.projects.chats.deleteHint' },
   { row: 'delete', label: 'settings.projects.delete', hint: 'settings.projects.deleteHint' },
 ]
 

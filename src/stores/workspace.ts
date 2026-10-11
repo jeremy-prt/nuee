@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, reactive, ref, watch } from 'vue'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { Attachment } from '@/ipc/bindings/Attachment'
-import { chatList, chatSetWorktree, chatTitle } from '@/ipc/chat'
+import { chatList, chatSetArchived, chatSetWorktree, chatTitle } from '@/ipc/chat'
 import { i18nGlobal } from '@/i18n'
 import { useConversationsStore } from '@/stores/conversations'
 import { useNavigationStore } from '@/stores/navigation'
@@ -21,6 +21,10 @@ export interface Tab {
   started: boolean
   // L'agent travaille dans un worktree du projet. Réglable jusqu'au premier message.
   worktree: boolean
+  // Worktree rejoint, ou le sien une fois créé. null avec worktree : le sien, créé au premier message.
+  worktreePath: string | null
+  // Masqué de l'historique, retrouvé dans Réglages › Archives.
+  archived: boolean
 }
 
 interface PaneLayout {
@@ -107,9 +111,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const contextTabs = computed(() =>
     (layouts[contextKey.value]?.tabs ?? []).flatMap((id) => tabs.value.find((tab) => tab.id === id) ?? []),
   )
-  const startedChats = computed(() => tabs.value.filter((tab) => tab.started))
+  const startedChats = computed(() => tabs.value.filter((tab) => tab.started && !tab.archived))
+  const archivedChats = computed(() => tabs.value.filter((tab) => tab.archived).reverse())
   // Historique de la barre latérale, le plus récent en haut.
-  const contextChats = computed(() => tabsFor(navigation.projectId).filter((tab) => tab.started).reverse())
+  const contextChats = computed(() => tabsFor(navigation.projectId).filter((tab) => tab.started && !tab.archived).reverse())
 
   function tabsFor(projectId: string | null) {
     return tabs.value.filter((tab) => tab.projectId === projectId)
@@ -124,13 +129,15 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   // `title` : titre fixé d'avance (chat ouvert par une commande), l'agent n'en propose pas d'autre.
-  function createChat(title: string | null = null) {
+  // `worktreePath` : worktree rejoint dès la création ; le poser ensuite partirait avant la ligne en base.
+  function createChat(title: string | null = null, worktreePath: string | null | undefined = undefined) {
     const projectId = navigation.projectId
     const agent = projects.chatAgent(projectId)
-    const worktree = !!projects.byId(projectId)?.worktree
-    const tab: Tab = { id: crypto.randomUUID(), kind: 'chat', number: nextChatNumber(projectId), projectId, agent, title, started: false, worktree }
+    const worktree = worktreePath === undefined ? !!projects.byId(projectId)?.worktree : worktreePath !== null
+    const summary = { id: crypto.randomUUID(), projectId, number: nextChatNumber(projectId), agent, title, started: false, worktree, worktreePath: worktreePath ?? null, archived: false }
+    const tab: Tab = { ...summary, kind: 'chat' }
     tabs.value.push(tab)
-    conversations.create({ id: tab.id, projectId, number: tab.number, agent, title, started: false, worktree })
+    conversations.create(summary)
     current().tabs.push(tab.id)
     return tab
   }
@@ -149,8 +156,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
-  function openChat(title: string | null = null) {
-    const tab = createChat(title)
+  // `worktreePath` : null pour le dossier du projet, le chemin d'un worktree pour le rejoindre.
+  function openChat(title: string | null = null, worktreePath?: string | null) {
+    const tab = createChat(title, worktreePath)
     show(tab.id)
     return tab
   }
@@ -215,11 +223,48 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     warnKept(kept.filter((path) => path !== null))
   }
 
-  function setWorktree(id: string, worktree: boolean) {
+  // path : worktree existant rejoint par le chat ; null avec worktree : le sien, créé au premier message.
+  function setWorktree(id: string, worktree: boolean, path: string | null = null) {
     const tab = tabs.value.find((item) => item.id === id)
-    if (!tab || tab.started || tab.worktree === worktree) return
+    path = worktree ? path : null
+    if (!tab || tab.started || (tab.worktree === worktree && tab.worktreePath === path)) return
     tab.worktree = worktree
-    chatSetWorktree(id, worktree).catch((error) => console.error('historique', error))
+    tab.worktreePath = path
+    chatSetWorktree(id, worktree, path).catch((error) => console.error('historique', error))
+  }
+
+  // Rust a créé le worktree du chat au premier message, et l'a déjà enregistré.
+  function adoptWorktree(id: string, path: string) {
+    const tab = tabs.value.find((item) => item.id === id)
+    if (tab?.worktree) tab.worktreePath = path
+  }
+
+  function leaveWorktree(ids: string[]) {
+    for (const tab of tabs.value) {
+      if (!ids.includes(tab.id)) continue
+      tab.worktree = false
+      tab.worktreePath = null
+    }
+  }
+
+  // Les chats démarrés du projet quittent l'historique et leurs onglets se ferment. Rend leur nombre.
+  async function archiveProjectChats(projectId: string) {
+    const archived = tabsFor(projectId).filter((tab) => tab.started && !tab.archived)
+    if (!archived.length) return 0
+    await chatSetArchived(archived.map((tab) => tab.id), true)
+    const layout = layouts[projectId]
+    for (const tab of archived) {
+      tab.archived = true
+      if (layout) closeTab(tab.id, layout)
+    }
+    return archived.length
+  }
+
+  async function restoreChat(id: string) {
+    const tab = tabs.value.find((item) => item.id === id)
+    if (!tab?.archived) return
+    await chatSetArchived([id], false)
+    tab.archived = false
   }
 
   // Premier message du chat : il entre dans l'historique, et l'agent résume le message en titre
@@ -275,6 +320,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     contextTabs,
     contextChats,
     startedChats,
+    archivedChats,
+    tabsFor,
     show,
     openChat,
     split,
@@ -284,6 +331,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     deleteChat: deleteChatWithWorktree,
     deleteProjectChats,
     setWorktree,
+    adoptWorktree,
+    leaveWorktree,
+    archiveProjectChats,
+    restoreChat,
     startChat,
     moveTab,
     dropTab,

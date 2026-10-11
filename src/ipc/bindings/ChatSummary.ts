@@ -16,4 +16,12 @@ started: boolean,
 /**
  * L'agent travaille dans un worktree du projet. Réglable jusqu'au premier message.
  */
-worktree: boolean, };
+worktree: boolean, 
+/**
+ * Worktree choisi ou créé pour le chat. `None` avec `worktree` : le sien, créé au premier message.
+ */
+worktreePath: string | null, 
+/**
+ * Masqué de l'historique, retrouvé dans Réglages › Archives.
+ */
+archived: boolean, };

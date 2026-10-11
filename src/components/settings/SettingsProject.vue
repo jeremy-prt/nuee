@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, Copy, FolderOpen } from '@lucide/vue'
+import { Check, Copy, FolderOpen, SlidersHorizontal } from '@lucide/vue'
 import { computed, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsGroup from '@/components/settings/SettingsGroup.vue'
@@ -22,6 +22,7 @@ import { useNavigationStore } from '@/stores/navigation'
 import { type MuteKind, useProjectsStore } from '@/stores/projects'
 import { useToastsStore } from '@/stores/toasts'
 import { useWorkspaceStore } from '@/stores/workspace'
+import { useWorktreesStore } from '@/stores/worktrees'
 import { agents } from '@/utils/agents'
 
 const props = defineProps<{ id: string }>()
@@ -31,8 +32,10 @@ const projects = useProjectsStore()
 const catalog = useCatalogStore()
 const navigation = useNavigationStore()
 const workspace = useWorkspaceStore()
+const worktrees = useWorktreesStore()
 const dialog = useDialogStore()
 const resetToast = useResetToast()
+const toasts = useToastsStore()
 
 const project = computed(() => projects.byId(props.id))
 
@@ -82,7 +85,7 @@ async function reveal() {
   try {
     await projectReveal(project.value.path)
   } catch (error) {
-    useToastsStore().push({ kind: 'error', title: t('settings.projects.revealFailed'), body: isAppError(error) ? error.message : String(error) })
+    toasts.push({ kind: 'error', title: t('settings.projects.revealFailed'), body: isAppError(error) ? error.message : String(error) })
   }
 }
 
@@ -148,9 +151,53 @@ const worktree = computed({
   get: () => !!project.value?.worktree && worktreeReady.value,
   set: (value: boolean) => project.value && (project.value.worktree = value),
 })
+watch(support, (value) => value === 'ready' && project.value && worktrees.load(project.value), { immediate: true })
+const worktreeCount = computed(() => worktrees.lists[props.id]?.filter((tree) => !tree.main).length ?? 0)
+
 const worktreeHint = computed(() =>
   worktreeReady.value ? t('settings.projects.worktreeHint') : t(`settings.projects.worktreeSupport.${support.value}`),
 )
+
+// Toutes les lignes du projet, archivées comprises ; un onglet jamais servi n'est pas un chat.
+const projectChats = computed(() => workspace.tabsFor(props.id).filter((tab) => tab.started))
+const activeChats = computed(() => projectChats.value.filter((tab) => !tab.archived).length)
+
+// Le bouton se grise une fois la liste vide : validé au clavier, le focus passe à la suppression du projet.
+async function settle(event: MouseEvent, action: () => Promise<void>) {
+  const byKeyboard = event.detail === 0
+  await action()
+  if (!byKeyboard) return
+  await nextTick()
+  document.querySelector<HTMLElement>('[data-setting="project-delete"] button')?.focus()
+}
+
+function archiveChats(event: MouseEvent) {
+  settle(event, async () => {
+    try {
+      const n = await workspace.archiveProjectChats(props.id)
+      toasts.push({ kind: 'success', title: t('settings.projects.chats.archived', { n }, n), body: t('settings.projects.chats.archivedBody') })
+    } catch (error) {
+      toasts.push({ kind: 'error', title: t('settings.projects.chats.archiveFailed'), body: isAppError(error) ? error.message : String(error) })
+    }
+  })
+}
+
+async function deleteChats(event: MouseEvent) {
+  const current = project.value
+  const n = projectChats.value.length
+  if (!current || !n) return
+  const confirmed = await dialog.confirm({
+    title: t('settings.projects.chats.deleteTitle', { name: current.name }),
+    message: t('settings.projects.chats.deleteMessage', { n }, n),
+    confirmLabel: t('settings.projects.chats.deleteConfirm'),
+    danger: true,
+  })
+  if (!confirmed) return
+  settle(event, async () => {
+    await workspace.deleteProjectChats(current.id)
+    toasts.push({ kind: 'success', title: t('settings.projects.chats.deleted', { n }, n), body: t('settings.projects.chats.deletedBody') })
+  })
+}
 
 async function remove(event: MouseEvent) {
   const current = project.value
@@ -236,9 +283,38 @@ async function remove(event: MouseEvent) {
       </SettingsRow>
     </SettingsGroup>
 
+    <SettingsGroup v-if="support === 'ready'">
+      <SettingsRow
+        data-setting="project-worktrees"
+        :label="t('settings.projects.worktrees.title')"
+        :hint="t('settings.projects.worktrees.count', { n: worktreeCount }, worktreeCount)"
+      >
+        <UiIconButton
+          :label="t('settings.projects.worktrees.open')"
+          :data-customize="`worktrees:${project.id}`"
+          @click="navigation.showSettingsDetail(`worktrees:${project.id}`)"
+        >
+          <SlidersHorizontal class="size-3.5" aria-hidden="true" />
+        </UiIconButton>
+      </SettingsRow>
+    </SettingsGroup>
+
     <SettingsGroup>
       <SettingsRow data-setting="project-mute" :label="t('settings.projects.notifications')" :hint="muteHint">
         <UiSelect v-model="mute" :label="t('settings.projects.notifications')" :options="muteOptions" />
+      </SettingsRow>
+    </SettingsGroup>
+
+    <SettingsGroup>
+      <SettingsRow v-slot="{ hintId }" data-setting="project-archive-chats" :label="t('settings.projects.chats.archive')" :hint="t('settings.projects.chats.archiveHint')">
+        <UiButton size="sm" :disabled="!activeChats" :aria-describedby="hintId" @click="archiveChats($event)">
+          {{ t('settings.projects.chats.archiveButton') }}
+        </UiButton>
+      </SettingsRow>
+      <SettingsRow v-slot="{ hintId }" data-setting="project-delete-chats" :label="t('settings.projects.chats.delete')" :hint="t('settings.projects.chats.deleteHint')">
+        <UiButton size="sm" variant="danger" :disabled="!projectChats.length" :aria-describedby="hintId" @click="deleteChats($event)">
+          {{ t('settings.projects.chats.deleteButton') }}
+        </UiButton>
       </SettingsRow>
     </SettingsGroup>
 

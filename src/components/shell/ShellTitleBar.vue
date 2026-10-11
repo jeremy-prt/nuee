@@ -13,7 +13,7 @@ import { useAppearanceStore } from '@/stores/appearance'
 import { useAttentionStore } from '@/stores/attention'
 import { useDragStore } from '@/stores/drag'
 import { RAIL_COLLAPSED_WIDTH, useLayoutStore } from '@/stores/layout'
-import { settingsDetailTitle, useNavigationStore } from '@/stores/navigation'
+import { parentDetail, settingsDetailTitle, useNavigationStore } from '@/stores/navigation'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { useWorkspaceStore } from '@/stores/workspace'
 
@@ -106,6 +106,16 @@ const spacer = computed(() => Math.max(0, centerStart.value - leftZone.value))
         </button>
         <span v-else class="truncate" data-tauri-drag-region>{{ t(`settings.sections.${navigation.settingsSection}`) }}</span>
         <template v-if="navigation.settingsDetail">
+          <template v-if="parentDetail(navigation.settingsDetail)">
+            <span class="shrink-0 text-muted/60" aria-hidden="true">/</span>
+            <button
+              type="button"
+              class="min-w-0 truncate rounded text-muted hover:text-content focus-visible:outline-2 focus-visible:outline-ring"
+              @click="navigation.showSettingsDetail(parentDetail(navigation.settingsDetail))"
+            >
+              {{ settingsDetailTitle(parentDetail(navigation.settingsDetail)!, t) }}
+            </button>
+          </template>
           <span class="shrink-0 text-muted/60" aria-hidden="true">/</span>
           <span class="truncate" data-tauri-drag-region>{{ settingsDetailTitle(navigation.settingsDetail, t) }}</span>
         </template>

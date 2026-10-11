@@ -29,6 +29,10 @@ skills: { [key in string]: SkillMode },
  */
 serversOff: Array<string>, 
 /**
- * Le chat travaille dans son worktree plutôt que dans le dossier du projet (`cwd`).
+ * Le chat travaille dans un worktree plutôt que dans le dossier du projet (`cwd`).
  */
-worktree: boolean, };
+worktree: boolean, 
+/**
+ * Worktree du dépôt rejoint par le chat. `None` avec `worktree` : le sien, créé au premier message.
+ */
+worktreePath: string | null, };

@@ -20,7 +20,7 @@ const hintId = computed(() => (props.hint || slots.hint ? id : undefined))
         <slot name="icon" />
         <div class="min-w-0 flex-1">
           <p class="text-sm font-medium">{{ label }}</p>
-          <p v-if="hintId" :id="hintId" class="mt-0.5 max-w-lg text-xs/relaxed text-muted">
+          <p v-if="hintId" :id="hintId" class="mt-0.5 text-xs/relaxed text-muted">
             <slot name="hint">{{ hint }}</slot>
           </p>
         </div>

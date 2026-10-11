@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ArrowLeft, FolderPlus, Sparkles } from '@lucide/vue'
+import { ArrowLeft, FolderPlus, Plus, Sparkles } from '@lucide/vue'
 import { nextTick, onMounted, onUnmounted, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsAbout from '@/components/settings/SettingsAbout.vue'
 import SettingsAgent from '@/components/settings/SettingsAgent.vue'
 import SettingsAgents from '@/components/settings/SettingsAgents.vue'
 import SettingsAppearance from '@/components/settings/SettingsAppearance.vue'
+import SettingsArchive from '@/components/settings/SettingsArchive.vue'
 import SettingsBackground from '@/components/settings/SettingsBackground.vue'
 import SettingsBackgroundOptions from '@/components/settings/SettingsBackgroundOptions.vue'
 import SettingsGithub from '@/components/settings/SettingsGithub.vue'
@@ -24,6 +25,7 @@ import SettingsSystem from '@/components/settings/SettingsSystem.vue'
 import SettingsThemeOptions from '@/components/settings/SettingsThemeOptions.vue'
 import SettingsThemes from '@/components/settings/SettingsThemes.vue'
 import SettingsUpdates from '@/components/settings/SettingsUpdates.vue'
+import SettingsWorktrees from '@/components/settings/SettingsWorktrees.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import { useAddProject } from '@/composables/useAddProject'
@@ -34,6 +36,9 @@ import {
   isProjectDetail,
   isServerDetail,
   isSkillDetail,
+  isWorktreesDetail,
+  parentDetail,
+  projectOfWorktrees,
   type SettingsDetail,
   serverOfDetail,
   projectOfDetail,
@@ -44,6 +49,7 @@ import {
 import { useProjectsStore } from '@/stores/projects'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { useSkillsStore } from '@/stores/skills'
+import { useWorktreesStore } from '@/stores/worktrees'
 
 // ===== Initialisation =====
 const { t } = useI18n()
@@ -53,6 +59,7 @@ const shortcuts = useShortcutsStore()
 const skills = useSkillsStore()
 const skillChat = useSkillChat()
 const projects = useProjectsStore()
+const worktrees = useWorktreesStore()
 const addProject = useAddProject()
 const root = useTemplateRef('root')
 const heading = useTemplateRef('heading')
@@ -79,7 +86,9 @@ watch(
     restoreFocus = false
     await nextTick()
     if (revealing) return
-    if (detail) heading.value?.focus()
+    // Revenu d'une sous-page à sa parente (worktrees -> projet), le focus retrouve aussi le bouton qui y menait.
+    const backToParent = !!previous && parentDetail(previous) === detail
+    if (detail && !(backToParent && restore)) heading.value?.focus()
     else if (previous && restore) root.value?.querySelector<HTMLElement>(`[data-customize="${CSS.escape(previous)}"]`)?.focus()
   },
 )
@@ -109,7 +118,18 @@ const isWindowStyle = (detail: SettingsDetail) => detail === 'transparent' || de
 
 function back(event?: MouseEvent) {
   restoreFocus = event?.detail === 0
-  navigation.showSettingsDetail(null)
+  navigation.showSettingsDetail(parentDetail(navigation.settingsDetail))
+}
+
+const backLabel = () => {
+  const parent = parentDetail(navigation.settingsDetail)
+  const where = parent ? settingsDetailTitle(parent, t) : t(`settings.sections.${navigation.settingsSection}`)
+  return t('settings.backTo', { section: where })
+}
+// Toujours en haut à droite, même sans worktree : l'état vide n'a pas son propre bouton.
+const worktreesProject = () => {
+  const detail = navigation.settingsDetail
+  return isWorktreesDetail(detail) ? projects.byId(projectOfWorktrees(detail)) : null
 }
 
 // Échap venu d'un menu, d'une confirmation ou d'un message ne ferme que lui : reka-ui le traite sans
@@ -140,7 +160,7 @@ onUnmounted(() => {
     <div class="mx-auto w-full max-w-4xl px-6 py-8 pb-16 @2xl:px-10 @4xl:px-14">
       <template v-if="navigation.settingsDetail">
         <div class="-ms-1.5 flex items-center gap-1.5">
-          <UiIconButton :label="t('settings.backTo', { section: t(`settings.sections.${navigation.settingsSection}`) })" @click="back($event)">
+          <UiIconButton :label="backLabel()" @click="back($event)">
             <ArrowLeft class="size-4" aria-hidden="true" />
           </UiIconButton>
           <h2 ref="heading" tabindex="-1" class="text-xl font-semibold outline-none">
@@ -149,6 +169,9 @@ onUnmounted(() => {
             </template>
             <template v-else>{{ settingsDetailTitle(navigation.settingsDetail, t) }}</template>
           </h2>
+          <UiButton v-if="worktreesProject()" variant="primary" class="ms-auto" data-worktree-create @click="worktrees.creating = true">
+            <Plus class="size-4" aria-hidden="true" />{{ t('settings.projects.worktrees.create') }}
+          </UiButton>
         </div>
         <SettingsThemeOptions v-if="navigation.settingsDetail === 'theme'" />
         <SettingsBackgroundOptions v-else-if="navigation.settingsDetail === 'background'" />
@@ -157,13 +180,14 @@ onUnmounted(() => {
         <SettingsMcpServer v-else-if="isServerDetail(navigation.settingsDetail)" :name="serverOfDetail(navigation.settingsDetail)" />
         <SettingsGithub v-else-if="navigation.settingsDetail === 'github'" />
         <SettingsProject v-else-if="isProjectDetail(navigation.settingsDetail)" :id="projectOfDetail(navigation.settingsDetail)" />
+        <SettingsWorktrees v-else-if="isWorktreesDetail(navigation.settingsDetail)" :id="projectOfWorktrees(navigation.settingsDetail)" />
         <SettingsGlass v-else :window-style="navigation.settingsDetail" />
       </template>
       <template v-else>
         <div class="flex items-end gap-4">
           <div class="min-w-0 flex-1">
             <h2 class="text-xl font-semibold">{{ t(`settings.sections.${navigation.settingsSection}`) }}</h2>
-            <p class="mt-1.5 max-w-xl text-sm text-muted">{{ t(`settings.hints.${navigation.settingsSection}`) }}</p>
+            <p class="mt-1.5 text-sm text-muted">{{ t(`settings.hints.${navigation.settingsSection}`) }}</p>
           </div>
           <SettingsResetButton v-if="navigation.settingsSection === 'shortcuts'" @click="shortcuts.reset(); resetToast('shortcuts')" />
           <!-- Pas de création à la main : l'IA pose les bonnes questions et écrit un SKILL.md propre. -->
@@ -192,6 +216,7 @@ onUnmounted(() => {
         <SettingsIntegrations v-else-if="navigation.settingsSection === 'connections'" />
         <SettingsSkills v-else-if="navigation.settingsSection === 'skills'" />
         <SettingsProjects v-else-if="navigation.settingsSection === 'projects'" />
+        <SettingsArchive v-else-if="navigation.settingsSection === 'archive'" />
       </template>
     </div>
   </div>

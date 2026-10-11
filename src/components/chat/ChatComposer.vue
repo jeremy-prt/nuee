@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowUp, File, Folder, GitBranch, Plus, ShieldAlert, ShieldCheck, Square, X } from '@lucide/vue'
+import { ArrowUp, File, Folder, GitBranch, GitBranchPlus, Plus, ShieldAlert, ShieldCheck, Square, X } from '@lucide/vue'
 import { type Component, computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatSlashMenu from '@/components/chat/ChatSlashMenu.vue'
@@ -16,6 +16,7 @@ import type { Catalog } from '@/ipc/bindings/Catalog'
 import type { Effort } from '@/ipc/bindings/Effort'
 import type { PermissionMode } from '@/ipc/bindings/PermissionMode'
 import type { TurnOptions } from '@/ipc/bindings/TurnOptions'
+import type { Worktree } from '@/ipc/bindings/Worktree'
 import type { WorktreeSupport } from '@/ipc/bindings/WorktreeSupport'
 import { pickFiles } from '@/ipc/dialog'
 import type { Project } from '@/stores/projects'
@@ -27,8 +28,15 @@ const props = defineProps<{
   agent: AgentKind
   // null : chat sans projet.
   project: Project | null
-  // Worktree du chat : réglable avant le premier message, affiché ensuite. `blocked` : pourquoi il est impossible.
-  worktree: { on: boolean; started: boolean; blocked: Exclude<WorktreeSupport, 'ready'> | null; branch: string } | null
+  // Worktree du chat : choisi avant le premier message, affiché ensuite. `choice` : 'project', 'new' ou le chemin
+  // d'un worktree de `trees` ; `blocked` : pourquoi il est impossible.
+  worktree: {
+    choice: string
+    started: boolean
+    blocked: Exclude<WorktreeSupport, 'ready'> | null
+    branch: string
+    trees: Worktree[]
+  } | null
   // null tant que l'agent n'a pas décrit ses modèles : on laisse alors son choix par défaut.
   catalog: Catalog | null
   disabled: boolean
@@ -38,7 +46,7 @@ const props = defineProps<{
 }>()
 // Réglages résolus : modèle et effort sont toujours des valeurs réelles du catalogue.
 const options = defineModel<TurnOptions>('options', { required: true })
-const emit = defineEmits<{ send: [prompt: string, attachments: Attachment[]]; stop: []; warm: []; worktree: [on: boolean] }>()
+const emit = defineEmits<{ send: [prompt: string, attachments: Attachment[]]; stop: []; warm: []; worktree: [choice: string] }>()
 
 const { t } = useI18n()
 const shortcuts = useShortcutsStore()
@@ -54,16 +62,32 @@ const focusInput = () => input.value?.focus()
 
 const agentName = computed(() => agents[props.agent].name)
 
-const worktreeHint = computed(() => {
-  const worktree = props.worktree
-  if (!worktree) return ''
-  if (worktree.blocked) return t(`settings.projects.worktreeSupport.${worktree.blocked}`)
-  return t(worktree.on ? 'composer.worktree.on' : 'composer.worktree.off')
+const worktreeLabel = computed(() => {
+  const blocked = props.worktree?.blocked
+  return blocked ? t(`settings.projects.worktreeSupport.${blocked}`) : t('composer.worktree.menu')
 })
-
-function toggleWorktree() {
-  if (props.worktree && !props.worktree.blocked && !props.disabled) emit('worktree', !props.worktree.on)
-}
+const folderName = (path: string) => path.split(/[\\/]/).filter(Boolean).pop() ?? path
+const worktreeSections = computed<UiMenuSection[]>(() => {
+  const worktree = props.worktree
+  if (!worktree) return []
+  return [
+    {
+      id: 'worktree',
+      label: t('composer.worktree.menu'),
+      value: worktree.choice,
+      options: [
+        { value: 'project', label: t('composer.worktree.project'), hint: t('composer.worktree.projectHint'), icon: Folder },
+        { value: 'new', label: t('composer.worktree.new'), hint: t('composer.worktree.newHint'), icon: GitBranchPlus },
+        ...worktree.trees.map((tree) => ({
+          value: tree.path,
+          label: tree.branch ?? folderName(tree.path),
+          icon: GitBranch,
+        })),
+      ],
+    },
+  ]
+})
+const chosenTree = computed(() => props.worktree?.trees.find((tree) => tree.path === props.worktree?.choice) ?? null)
 
 const modeLooks = {
   bypass: { icon: ShieldAlert, iconClass: 'text-warning' },
@@ -231,25 +255,25 @@ function onKeydown(event: KeyboardEvent) {
           <span class="truncate">{{ project.name }}</span>
         </p>
         <template v-if="worktree">
-          <p v-if="worktree.started && worktree.on" class="ms-auto flex shrink-0 items-center gap-1">
+          <p v-if="worktree.started && worktree.choice !== 'project'" class="ms-auto flex shrink-0 items-center gap-1">
             <GitBranch class="size-3.5" aria-hidden="true" />
             <span class="sr-only">{{ t('composer.worktree.label') }}</span>{{ worktree.branch }}
           </p>
-          <UiTooltip v-else-if="!worktree.started" :label="worktreeHint">
-            <button
-              type="button"
-              class="ms-auto flex h-6 shrink-0 items-center gap-1 rounded-md px-1.5 focus-visible:outline-2 focus-visible:outline-ring"
-              :class="[
-                worktree.on ? 'bg-signal/15 text-signal-text' : 'hover:bg-selection-hover hover:text-content',
-                worktree.blocked || disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
-              ]"
-              :aria-pressed="worktree.on"
-              :aria-disabled="worktree.blocked || disabled ? 'true' : undefined"
-              @click="toggleWorktree"
+          <span v-else-if="!worktree.started" class="ms-auto flex min-w-0 shrink-0">
+            <UiMenu
+              :label="worktreeLabel"
+              :sections="worktreeSections"
+              :disabled="!!worktree.blocked || disabled"
+              :focus-after="focusInput"
+              :look="worktree.choice === 'project' ? 'h-6 ps-1.5 pe-1 text-muted hover:bg-selection-hover hover:text-content aria-expanded:bg-selection-hover' : 'h-6 ps-1.5 pe-1 bg-signal/15 text-signal-text'"
+              @select="(_, value) => emit('worktree', value)"
             >
-              <GitBranch class="size-3.5" aria-hidden="true" />{{ t('composer.worktree.label') }}
-            </button>
-          </UiTooltip>
+              <component :is="worktree.choice === 'new' ? GitBranchPlus : GitBranch" class="size-3.5 shrink-0" aria-hidden="true" />
+              <span class="truncate">
+                {{ worktree.choice === 'project' ? t('composer.worktree.label') : worktree.choice === 'new' ? t('composer.worktree.new') : (chosenTree?.branch ?? folderName(worktree.choice)) }}
+              </span>
+            </UiMenu>
+          </span>
         </template>
       </div>
       <ul v-if="attachments.length" class="flex flex-wrap gap-2 px-3 pt-3" :aria-label="t('composer.attachments')">
