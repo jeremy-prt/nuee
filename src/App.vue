@@ -81,7 +81,7 @@ const actions: [ShortcutId, () => void][] = [
   ['settings', () => navigation.go('settings')],
   ['zoomIn', () => appearance.stepZoom(1)],
   ['zoomOut', () => appearance.stepZoom(-1)],
-  ['zoomReset', () => (appearance.zoom = 100)],
+  ['zoomReset', appearance.resetZoom],
 ]
 
 function onKeydown(event: KeyboardEvent) {

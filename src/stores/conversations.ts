@@ -62,8 +62,6 @@ export interface Conversation {
   items: readonly ChatItem[]
 }
 
-export const DEFAULT_OPTIONS: TurnOptions = { mode: 'bypass', model: null, effort: null }
-
 const SAVE_DELAY = 600
 
 // findLastIndex n'est pas dans la lib TS du projet (ES2022).

@@ -33,8 +33,10 @@ const BLANK = { path: null, version: null, latest: null, account: null, usage: n
 const MODES: PermissionMode[] = ['bypass', 'auto']
 const kinds = Object.keys(agents) as AgentKind[]
 
+export const DEFAULT_OPTIONS: TurnOptions = { mode: 'bypass', model: null, effort: null }
+
 function defaults(): AgentSettings {
-  return { enabled: true, path: null, defaults: { mode: 'bypass', model: null, effort: null }, hooks: true }
+  return { enabled: true, path: null, defaults: { ...DEFAULT_OPTIONS }, hooks: true }
 }
 
 function load() {
@@ -149,6 +151,14 @@ export const useAgentsStore = defineStore('agents', () => {
     return { ...settings[kind].defaults }
   }
 
+  function reset() {
+    for (const kind of kinds) {
+      const chosen = settings[kind].path !== null
+      Object.assign(settings[kind], defaults())
+      if (chosen) detect(kind)
+    }
+  }
+
   for (const kind of kinds) detect(kind)
 
   // Nouvelle recherche demandée par un clic : le message dit si l'agent est là.
@@ -174,5 +184,5 @@ export const useAgentsStore = defineStore('agents', () => {
     )
   }
 
-  return { settings, status, detect, refresh, update, confirm, track, setPath, chatDefaults }
+  return { settings, status, detect, refresh, update, confirm, track, setPath, chatDefaults, reset }
 })

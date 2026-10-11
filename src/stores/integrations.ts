@@ -15,8 +15,12 @@ const STORAGE_KEY = 'nuee.integrations.v1'
 // Le même login peut exister sur deux hôtes.
 export const accountKey = (account: GithubAccount) => `${account.host}/${account.login}`
 
+function defaultPrefs() {
+  return { github: true, githubOff: [] as string[] }
+}
+
 function loadPrefs() {
-  const prefs = { github: true, githubOff: [] as string[] }
+  const prefs = defaultPrefs()
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}')
     if (saved.github === false) prefs.github = false
@@ -31,8 +35,8 @@ function message(error: unknown) {
   return isAppError(error) ? error.message : String(error)
 }
 
-// Comptes des services reliés à Nuée. GitHub : ceux de gh, que Nuée ne modifie jamais (ni switch ni
-// logout) ; l'interrupteur de chaque compte ne vaut que pour Nuée.
+// Comptes des services reliés à Nuée. GitHub : ceux de gh, jamais déconnectés, et rendus actifs seulement sur le
+// bouton « Rendre actif » ; l'interrupteur de chaque compte ne vaut que pour Nuée.
 export const useIntegrationsStore = defineStore('integrations', () => {
   const github = ref<GithubStatus | null>(null)
   const checking = ref(false)
@@ -98,6 +102,10 @@ export const useIntegrationsStore = defineStore('integrations', () => {
     const key = accountKey(account)
     const others = prefs.githubOff.filter((item) => item !== key)
     prefs.githubOff = on ? others : [...others, key]
+  }
+
+  function reset() {
+    Object.assign(prefs, defaultPrefs())
   }
 
   // Relecture demandée par un clic : le message dit ce que GitHub CLI a répondu.
@@ -174,5 +182,5 @@ export const useIntegrationsStore = defineStore('integrations', () => {
     }
   }
 
-  return { github, checking, error, prefs, login, loginError, switching, load, refresh, avatar, used, setUsed, makeActive, connect, cancelLogin, openLoginPage }
+  return { github, checking, error, prefs, login, loginError, switching, load, refresh, reset, avatar, used, setUsed, makeActive, connect, cancelLogin, openLoginPage }
 })

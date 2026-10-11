@@ -81,13 +81,14 @@ export interface Background {
   where: (typeof backgroundOptions)['where'][number]
   visibility: (typeof backgroundOptions)['visibility'][number]
   intensity: (typeof backgroundOptions)['intensity'][number]
-  // Dégradé sombre posé sur l'image, comme monocode : le contenu ressort mieux (choix de Jérémy).
+  // Dégradé sombre posé sur l'image, comme monocode : le contenu ressort mieux.
   darken: boolean
 }
-export const BACKGROUND_OPACITY: Record<Background['visibility'], number> = { low: 18, medium: 32, high: 50 }
+// Discrète = l'opacité par défaut de monocode, dont Jérémy aime le rendu.
+export const BACKGROUND_OPACITY: Record<Background['visibility'], number> = { low: 24, medium: 36, high: 52 }
 
 function defaultBackground(path: string | null): Background {
-  return { path, effect: 'scanlines', where: 'everywhere', visibility: 'low', intensity: 'medium', darken: true }
+  return { path, effect: 'scanlines', where: 'everywhere', visibility: 'low', intensity: 'low', darken: false }
 }
 
 export const zoomLevels = [80, 90, 100, 110, 125, 150] as const
@@ -261,8 +262,13 @@ export const useAppearanceStore = defineStore('appearance', () => {
   }
 
   function resetTheme() {
-    themeScope.value = 'accent'
-    themeIntensity.value = 'light'
+    const initial = defaults()
+    themeScope.value = initial.themeScope
+    themeIntensity.value = initial.themeIntensity
+  }
+
+  function resetZoom() {
+    zoom.value = defaults().zoom
   }
 
   // Le fichier de l'image de fond reste à supprimer par l'appelant (commande background_remove).
@@ -290,6 +296,7 @@ export const useAppearanceStore = defineStore('appearance', () => {
     zoomFactor,
     chatWidth,
     stepZoom,
+    resetZoom,
     resetGlass,
     resetTheme,
     resetBackground,

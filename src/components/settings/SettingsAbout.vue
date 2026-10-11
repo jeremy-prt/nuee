@@ -8,10 +8,13 @@ import { forgetBackground } from '@/composables/useBackgroundImage'
 import { useResetToast } from '@/composables/useResetToast'
 import { backgroundRemove } from '@/ipc/background'
 import { isTauriApp, openGithubPage } from '@/ipc/system'
+import { useAgentsStore } from '@/stores/agents'
 import { useAppearanceStore } from '@/stores/appearance'
 import { useDialogStore } from '@/stores/dialog'
 import { useGeneralStore } from '@/stores/general'
+import { useIntegrationsStore } from '@/stores/integrations'
 import { useShortcutsStore } from '@/stores/shortcuts'
+import { useSkillsStore } from '@/stores/skills'
 
 const REPOSITORY = 'https://github.com/jeremy-prt/nuee'
 
@@ -27,6 +30,9 @@ const appearance = useAppearanceStore()
 const dialog = useDialogStore()
 const general = useGeneralStore()
 const shortcuts = useShortcutsStore()
+const agents = useAgentsStore()
+const skills = useSkillsStore()
+const integrations = useIntegrationsStore()
 
 async function resetAll() {
   const confirmed = await dialog.confirm({
@@ -38,6 +44,9 @@ async function resetAll() {
   if (!confirmed) return
   general.reset()
   shortcuts.reset()
+  agents.reset()
+  skills.reset()
+  integrations.reset()
   const image = appearance.background.path
   appearance.resetAll()
   if (image && isTauriApp()) {

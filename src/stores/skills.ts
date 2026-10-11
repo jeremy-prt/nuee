@@ -21,8 +21,12 @@ const MODES: SkillMode[] = ['on', 'nameOnly', 'userInvocableOnly', 'off']
 export type Scope = 'nuee' | 'everywhere'
 export type Group = 'skills' | 'servers'
 
+function defaultPrefs() {
+  return { skills: {} as Record<string, SkillMode>, servers: [] as string[] }
+}
+
 function loadPrefs() {
-  const prefs = { skills: {} as Record<string, SkillMode>, servers: [] as string[] }
+  const prefs = defaultPrefs()
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}')
     const list = (value: unknown) => (Array.isArray(value) ? value.filter((item) => typeof item === 'string') : [])
@@ -200,6 +204,11 @@ export const useSkillsStore = defineStore('skills', () => {
   // Ce que les chats de Nuée changent à la config de l'agent (SessionSpec).
   function exclusions() {
     return { skills: { ...prefs.skills }, serversOff: [...prefs.servers] }
+  }
+
+  // Choix propres à Nuée seulement : la config de l'agent (portée Partout) reste telle quelle.
+  function reset() {
+    Object.assign(prefs, defaultPrefs())
   }
 
   function expanded(group: Group) {
@@ -380,6 +389,7 @@ export const useSkillsStore = defineStore('skills', () => {
     setServer,
     findServer,
     exclusions,
+    reset,
     expanded,
     toggle,
     find,
