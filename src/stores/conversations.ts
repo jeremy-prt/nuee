@@ -11,6 +11,7 @@ import type { ToolKind } from '@/ipc/bindings/ToolKind'
 import type { TurnOptions } from '@/ipc/bindings/TurnOptions'
 import type { TurnStatus } from '@/ipc/bindings/TurnStatus'
 import { chatContent, chatCreate, chatDelete, chatSave } from '@/ipc/chat'
+import { useAgentsStore } from '@/stores/agents'
 import { type Signal, useAttentionStore } from '@/stores/attention'
 import { useCatalogStore } from '@/stores/catalog'
 
@@ -205,6 +206,7 @@ function settleInterrupted(saved: ChatItem[]) {
 // est enregistré peu après chaque changement.
 export const useConversationsStore = defineStore('conversations', () => {
   const catalog = useCatalogStore()
+  const agentSettings = useAgentsStore()
   const conversations = shallowReactive(new Map<string, Conversation>())
   // Un agent travaille encore quelque part : la mise en veille attend.
   const busy = computed(() => [...conversations.values()].some((conversation) => conversation.phase !== 'idle'))
@@ -217,7 +219,8 @@ export const useConversationsStore = defineStore('conversations', () => {
     return shallowReactive<Conversation>({
       agent,
       sessionId: null,
-      options: { ...DEFAULT_OPTIONS },
+      // Un nouveau chat part des réglages de Réglages > Agents ; un chat enregistré reprend les siens.
+      options: agentSettings.chatDefaults(agent),
       phase: 'idle',
       startedAt: 0,
       pausedMs: 0,

@@ -1,10 +1,12 @@
 import { computed, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import { isMacosApp } from '@/ipc/system'
 import { backgroundOptions, glassOptions, glassSettings, useAppearanceStore, type WindowStyle } from '@/stores/appearance'
-import { type SettingsDetail, settingsDetailKey } from '@/stores/navigation'
+import { type SettingsDetail, settingsDetailTitle } from '@/stores/navigation'
 import { type SettingsSection, settingsGroups } from '@/utils/settings'
 import { matchScore, normalize, searchField } from '@/utils/search'
+import { agents } from '@/utils/agents'
 import { shortcutIds } from '@/utils/shortcuts'
 import { themeIds } from '@/utils/themes'
 
@@ -16,9 +18,10 @@ interface SettingEntry {
   detail?: SettingsDetail
   label: string
   hint?: string
-  // Valeurs proposées (noms des thèmes, des effets…) et synonymes de settings.search.keywords.
+  // Valeurs proposées (noms des thèmes, des effets…), synonymes de settings.search.keywords, noms propres.
   terms?: string[]
-  keywords?: string
+  keywords?: string[]
+  names?: string[]
   needs?: 'macos' | 'image'
   // Moins prioritaire : les raccourcis passent après les réglages.
   secondary?: boolean
@@ -40,22 +43,22 @@ const entries: SettingEntry[] = [
   ...settingsGroups.flatMap((group) =>
     group.sections.map((section) => ({ id: '', section, label: `settings.sections.${section}`, hint: `settings.hints.${section}` })),
   ),
-  { id: 'language', section: 'general', label: 'settings.general.system.language', keywords: 'language' },
-  { id: 'autostart', section: 'general', label: 'settings.general.system.autostart', keywords: 'autostart' },
+  { id: 'language', section: 'general', label: 'settings.general.system.language', keywords: ['language'] },
+  { id: 'autostart', section: 'general', label: 'settings.general.system.autostart', keywords: ['autostart'] },
   {
     id: 'keepAwake',
     section: 'general',
     label: 'settings.general.system.keepAwake',
     hint: 'settings.general.system.keepAwakeHint',
-    keywords: 'keepAwake',
+    keywords: ['keepAwake'],
   },
-  { id: 'confirmDelete', section: 'general', label: 'settings.general.system.confirmDelete', keywords: 'confirmDelete' },
+  { id: 'confirmDelete', section: 'general', label: 'settings.general.system.confirmDelete', keywords: ['confirmDelete'] },
   {
     id: 'systemNotifications',
     section: 'general',
     label: 'settings.general.notifications.system',
     hint: 'settings.general.notifications.systemHint',
-    keywords: 'notifications',
+    keywords: ['notifications'],
   },
   { id: 'appNotifications', section: 'general', label: 'settings.general.notifications.app', hint: 'settings.general.notifications.appHint' },
   {
@@ -64,7 +67,7 @@ const entries: SettingEntry[] = [
     label: 'settings.general.notifications.sounds',
     hint: 'settings.general.notifications.soundsHint',
     terms: ['settings.general.notifications.preview'],
-    keywords: 'sounds',
+    keywords: ['sounds'],
   },
   {
     id: 'badge',
@@ -84,7 +87,7 @@ const entries: SettingEntry[] = [
     section: 'general',
     label: 'settings.general.updates.checkOnLaunch',
     hint: 'settings.general.updates.checkOnLaunchHint',
-    keywords: 'updates',
+    keywords: ['updates'],
   },
   {
     id: 'about',
@@ -93,13 +96,13 @@ const entries: SettingEntry[] = [
     hint: 'settings.general.about.openSource',
     terms: options('settings.general.about', ['source', 'issue', 'license']),
   },
-  { id: 'resetAll', section: 'general', label: 'settings.general.reset.label', hint: 'settings.general.reset.hint', keywords: 'reset' },
+  { id: 'resetAll', section: 'general', label: 'settings.general.reset.label', hint: 'settings.general.reset.hint', keywords: ['reset'] },
   {
     id: 'theme',
     section: 'appearance',
     label: 'settings.themes.title',
     terms: options('settings.themes.names', themeIds),
-    keywords: 'theme',
+    keywords: ['theme'],
   },
   {
     id: 'themeScope',
@@ -107,7 +110,7 @@ const entries: SettingEntry[] = [
     detail: 'theme',
     label: 'settings.themes.scope.label',
     terms: options('settings.themes.scope', ['accent', 'full']),
-    keywords: 'theme',
+    keywords: ['theme'],
   },
   {
     id: 'themeIntensity',
@@ -115,14 +118,14 @@ const entries: SettingEntry[] = [
     detail: 'theme',
     label: 'settings.themes.intensity.label',
     hint: 'settings.themes.intensity.hint',
-    keywords: 'theme',
+    keywords: ['theme'],
   },
   {
     id: 'windowStyle',
     section: 'appearance',
     label: 'settings.appearance.window',
     terms: options('settings.appearance.styles', WINDOW_STYLES),
-    keywords: 'transparency',
+    keywords: ['transparency'],
   },
   ...WINDOW_STYLES.flatMap((style) =>
     glassSettings(style).map((setting) => ({
@@ -131,7 +134,7 @@ const entries: SettingEntry[] = [
       detail: style,
       label: setting === 'opacity' && style === 'mixed' ? 'settings.glass.opacity.bars' : `settings.glass.${setting}.label`,
       terms: options(`settings.glass.${setting}`, glassOptions[setting]),
-      keywords: setting === 'blur' ? 'blur' : 'transparency',
+      keywords: [setting === 'blur' ? 'blur' : 'transparency'],
       needs: 'macos' as const,
     })),
   ),
@@ -140,7 +143,7 @@ const entries: SettingEntry[] = [
     section: 'appearance',
     label: 'settings.background.title',
     terms: options('settings.background', ['choose', 'change', 'remove']),
-    keywords: 'background',
+    keywords: ['background'],
   },
   ...Object.entries(backgroundOptions).map(([row, values]) => ({
     id: `background-${row}`,
@@ -149,16 +152,63 @@ const entries: SettingEntry[] = [
     label: `settings.background.${row}.label`,
     hint: row === 'intensity' ? 'settings.background.intensity.hint' : undefined,
     terms: options(`settings.background.${row}`, values),
-    keywords: 'background',
+    keywords: ['background'],
     needs: 'image' as const,
   })),
-  { id: 'zoom', section: 'appearance', label: 'settings.interface.zoom', keywords: 'zoom' },
+  { id: 'agents', section: 'agents', label: 'settings.agents.title', keywords: ['agents'] },
+  ...Object.keys(agents).flatMap((kind) => [
+    {
+      id: `${kind}-cli`,
+      section: 'agents' as const,
+      detail: kind as AgentKind,
+      label: 'settings.agents.location',
+      terms: ['settings.agents.retry', 'settings.agents.choose'],
+      keywords: ['cli'],
+      names: [agents[kind as AgentKind].name],
+    },
+    {
+      id: `${kind}-version`,
+      section: 'agents' as const,
+      detail: kind as AgentKind,
+      label: 'settings.agents.version',
+      terms: ['settings.agents.update'],
+      keywords: ['updates'],
+      names: [agents[kind as AgentKind].name],
+    },
+    {
+      id: `${kind}-account`,
+      section: 'agents' as const,
+      detail: kind as AgentKind,
+      label: 'settings.agents.account',
+      keywords: ['account'],
+      names: [agents[kind as AgentKind].name],
+    },
+    ...(['session', 'weekly'] as const).map((quota) => ({
+      id: `${kind}-${quota}`,
+      section: 'agents' as const,
+      detail: kind as AgentKind,
+      label: `settings.agents.${quota}`,
+      keywords: ['quota'],
+      names: [agents[kind as AgentKind].name],
+    })),
+    ...(['model', 'effort', 'mode'] as const).map((row) => ({
+      id: `${kind}-${row}`,
+      section: 'agents' as const,
+      detail: kind as AgentKind,
+      label: `settings.agents.${row}`,
+      hint: 'settings.agents.defaults',
+      terms: row === 'mode' ? ['composer.mode.bypass', 'composer.mode.auto'] : undefined,
+      keywords: ['agentDefaults'],
+      names: [agents[kind as AgentKind].name],
+    })),
+  ]),
+  { id: 'zoom', section: 'appearance', label: 'settings.interface.zoom', keywords: ['zoom'] },
   {
     id: 'chatWidth',
     section: 'appearance',
     label: 'settings.interface.chatWidth.label',
     terms: options('settings.interface.chatWidth', ['normal', 'wide', 'full']),
-    keywords: 'chatWidth',
+    keywords: ['chatWidth'],
   },
   ...shortcutIds.map((id) => ({
     id: `shortcut-${id}`,
@@ -189,7 +239,7 @@ export function useSettingsSearch(query: Ref<string>) {
       return t(`settings.groups.${group.id}`)
     }
     const section = t(`settings.sections.${entry.section}`)
-    return entry.detail ? `${section} › ${t(settingsDetailKey(entry.detail))}` : section
+    return entry.detail ? `${section} › ${settingsDetailTitle(entry.detail, t)}` : section
   }
 
   // Le libellé anglais reste cherchable dans toutes les langues : « zoom » ou « shortcuts » trouvent toujours.
@@ -198,12 +248,18 @@ export function useSettingsSearch(query: Ref<string>) {
       const label = t(entry.label)
       const fields = [
         searchField(label, 0),
-        searchField([...(entry.terms ?? []).map((key) => t(key)), entry.keywords ? t(`settings.search.keywords.${entry.keywords}`) : ''].join(' '), 1),
+        searchField(
+          [...(entry.terms ?? []), ...(entry.keywords ?? []).map((key) => `settings.search.keywords.${key}`)]
+            .map((key) => t(key))
+            .concat(entry.names ?? [])
+            .join(' '),
+          1,
+        ),
         searchField(`${path(entry)} ${entry.hint ? t(entry.hint) : ''}`, 2),
       ]
       if (locale.value !== 'en') {
-        const keywords = entry.keywords ? t(`settings.search.keywords.${entry.keywords}`, {}, { locale: 'en' }) : ''
-        fields.push(searchField(`${t(entry.label, {}, { locale: 'en' })} ${keywords}`, 2))
+        const english = [entry.label, ...(entry.keywords ?? []).map((key) => `settings.search.keywords.${key}`)]
+        fields.push(searchField(english.map((key) => t(key, {}, { locale: 'en' })).join(' '), 2))
       }
       return { entry, fields, normalized: normalize(label) }
     }),

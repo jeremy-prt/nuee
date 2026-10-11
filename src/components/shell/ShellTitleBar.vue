@@ -12,7 +12,7 @@ import { useAppearanceStore } from '@/stores/appearance'
 import { useAttentionStore } from '@/stores/attention'
 import { useDragStore } from '@/stores/drag'
 import { RAIL_COLLAPSED_WIDTH, useLayoutStore } from '@/stores/layout'
-import { useNavigationStore } from '@/stores/navigation'
+import { settingsDetailTitle, useNavigationStore } from '@/stores/navigation'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { useWorkspaceStore } from '@/stores/workspace'
 
@@ -104,7 +104,7 @@ const spacer = computed(() => Math.max(0, centerStart.value - leftZone.value))
         <span v-else class="truncate" data-tauri-drag-region>{{ t(`settings.sections.${navigation.settingsSection}`) }}</span>
         <template v-if="navigation.settingsDetail">
           <span class="shrink-0 text-muted/60" aria-hidden="true">/</span>
-          <span class="truncate" data-tauri-drag-region>{{ t(navigation.settingsDetailKey) }}</span>
+          <span class="truncate" data-tauri-drag-region>{{ settingsDetailTitle(navigation.settingsDetail, t) }}</span>
         </template>
       </p>
       <template v-if="navigation.view === 'settings'">

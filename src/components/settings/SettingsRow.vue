@@ -12,15 +12,20 @@ const hintId = computed(() => (props.hint || slots.hint ? id : undefined))
 <template>
   <div
     data-setting-row
-    class="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-stroke px-4 py-2.5 transition-opacity last:border-b-0 motion-reduce:transition-none"
+    class="border-b border-stroke px-4 py-2.5 transition-opacity last:border-b-0 motion-reduce:transition-none"
     :class="{ 'opacity-40': disabled }"
   >
-    <div class="min-w-40 flex-1">
-      <p class="text-sm font-medium">{{ label }}</p>
-      <p v-if="hintId" :id="hintId" class="mt-0.5 max-w-lg text-xs/relaxed text-muted">
-        <slot name="hint">{{ hint }}</slot>
-      </p>
+    <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
+      <div class="flex min-w-40 flex-1 items-center gap-3">
+        <slot name="icon" />
+        <div class="min-w-0 flex-1">
+          <p class="text-sm font-medium">{{ label }}</p>
+          <p v-if="hintId" :id="hintId" class="mt-0.5 max-w-lg text-xs/relaxed text-muted">
+            <slot name="hint">{{ hint }}</slot>
+          </p>
+        </div>
+      </div>
+      <slot :hint-id="hintId" />
     </div>
-    <slot :hint-id="hintId" />
   </div>
 </template>

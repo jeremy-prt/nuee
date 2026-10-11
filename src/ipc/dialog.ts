@@ -5,6 +5,11 @@ export async function pickFolder(title: string) {
   return typeof path === 'string' ? path : null
 }
 
+export async function pickFile(title: string) {
+  const path = await open({ multiple: false, title })
+  return typeof path === 'string' ? path : null
+}
+
 export async function pickFiles(title: string) {
   return (await open({ multiple: true, title })) ?? []
 }

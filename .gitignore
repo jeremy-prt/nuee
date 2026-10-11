@@ -26,6 +26,7 @@ dist-ssr
 # Claude Code (perso)
 CLAUDE.local.md
 .claude/settings.local.json
+.claude/launch.json
 
 # Notes perso de démarrage
 Ressources/

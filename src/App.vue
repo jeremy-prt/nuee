@@ -13,6 +13,7 @@ import UiToasts from '@/components/ui/UiToasts.vue'
 import { useNewChat } from '@/composables/useNewChat'
 import { appQuit, onQuitRequested } from '@/ipc/app'
 import { isTauriApp } from '@/ipc/system'
+import { useAgentsStore } from '@/stores/agents'
 import { useAppearanceStore } from '@/stores/appearance'
 import { useAttentionStore } from '@/stores/attention'
 import { useDialogStore } from '@/stores/dialog'
@@ -45,6 +46,8 @@ const general = useGeneralStore()
 const dialog = useDialogStore()
 // Suit le focus de la fenêtre dès le lancement : un chat qui finit doit savoir s'il est vu.
 useAttentionStore()
+// Cherche les agents installés dès le lancement, pas à l'ouverture des réglages.
+useAgentsStore()
 
 const inChats = computed(() => navigation.view === 'chats')
 const showBottomDock = computed(() => layout.bottom.open && layout.viewsIn('bottom').length > 0)

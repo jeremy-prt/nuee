@@ -57,18 +57,20 @@ function tokenScore(token: string, field: SearchField) {
 }
 
 // Score d'une entrée (plus bas = meilleur), null si un mot cherché ne se retrouve nulle part.
+// Un mot court sans correspondance (« par », « de », « the ») est toléré si un autre mot correspond.
 export function matchScore(query: string, fields: SearchField[]) {
   const tokens = normalize(query).split(' ').filter(Boolean)
-  if (!tokens.length) return null
   let total = 0
+  let matched = false
   for (const token of tokens) {
     let best = Infinity
     for (const field of fields) {
       const score = tokenScore(token, field)
       if (score !== null) best = Math.min(best, score + field.weight)
     }
-    if (best === Infinity) return null
-    total += best
+    if (best === Infinity && token.length > 3) return null
+    matched ||= best !== Infinity
+    total += best === Infinity ? 1 : best
   }
-  return total
+  return matched ? total : null
 }

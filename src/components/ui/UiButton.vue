@@ -4,7 +4,7 @@ import { LoaderCircle } from '@lucide/vue'
 // primary : l'action principale, à la couleur du thème. danger : une action qu'on ne défait pas. ghost : discret.
 // loading : le libellé reste en place (invisible) sous l'indicateur, le bouton ne change pas de largeur.
 withDefaults(
-  defineProps<{ variant?: 'primary' | 'secondary' | 'danger' | 'ghost'; size?: 'sm' | 'md'; loading?: boolean }>(),
+  defineProps<{ variant?: 'primary' | 'secondary' | 'danger' | 'ghost'; size?: 'xs' | 'sm' | 'md'; loading?: boolean }>(),
   { variant: 'secondary', size: 'md' },
 )
 </script>
@@ -14,7 +14,7 @@ withDefaults(
     type="button"
     class="relative inline-flex shrink-0 items-center justify-center rounded-md font-medium whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring enabled:cursor-pointer disabled:cursor-not-allowed"
     :class="[
-      size === 'sm' ? 'h-7 px-2.5 text-xs' : 'h-8 px-3.5 text-sm',
+      { xs: 'h-6 px-2 text-xs', sm: 'h-7 px-2.5 text-xs', md: 'h-8 px-3.5 text-sm' }[size],
       {
         'bg-accent text-canvas enabled:hover:opacity-90': variant === 'primary',
         'border border-stroke enabled:hover:bg-selection-hover': variant === 'secondary',

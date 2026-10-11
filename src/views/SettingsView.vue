@@ -3,6 +3,8 @@ import { ArrowLeft } from '@lucide/vue'
 import { nextTick, onMounted, onUnmounted, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsAbout from '@/components/settings/SettingsAbout.vue'
+import SettingsAgent from '@/components/settings/SettingsAgent.vue'
+import SettingsAgents from '@/components/settings/SettingsAgents.vue'
 import SettingsAppearance from '@/components/settings/SettingsAppearance.vue'
 import SettingsBackground from '@/components/settings/SettingsBackground.vue'
 import SettingsBackgroundOptions from '@/components/settings/SettingsBackgroundOptions.vue'
@@ -16,7 +18,7 @@ import SettingsThemeOptions from '@/components/settings/SettingsThemeOptions.vue
 import SettingsThemes from '@/components/settings/SettingsThemes.vue'
 import SettingsUpdates from '@/components/settings/SettingsUpdates.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
-import { useNavigationStore } from '@/stores/navigation'
+import { isAgentDetail, type SettingsDetail, settingsDetailTitle, useNavigationStore } from '@/stores/navigation'
 import { useShortcutsStore } from '@/stores/shortcuts'
 
 // ===== Initialisation =====
@@ -70,6 +72,8 @@ watch(
   { flush: 'post' },
 )
 
+const isWindowStyle = (detail: SettingsDetail) => detail === 'transparent' || detail === 'mixed' || detail === 'opaque'
+
 function back(event?: MouseEvent) {
   restoreFocus = event?.detail === 0
   navigation.showSettingsDetail(null)
@@ -99,18 +103,19 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
     <div class="mx-auto w-full max-w-4xl px-6 py-8 pb-16 @2xl:px-10 @4xl:px-14">
       <template v-if="navigation.settingsDetail">
         <div class="-ms-1.5 flex items-center gap-1.5">
-          <UiIconButton :label="t('settings.backTo', { section: t('settings.sections.appearance') })" @click="back($event)">
+          <UiIconButton :label="t('settings.backTo', { section: t(`settings.sections.${navigation.settingsSection}`) })" @click="back($event)">
             <ArrowLeft class="size-4" aria-hidden="true" />
           </UiIconButton>
           <h2 ref="heading" tabindex="-1" class="text-xl font-semibold outline-none">
-            <template v-if="navigation.settingsDetail === 'theme' || navigation.settingsDetail === 'background'">
-              {{ t(navigation.settingsDetailKey) }}
+            <template v-if="isWindowStyle(navigation.settingsDetail)">
+              {{ t('settings.glass.heading', { style: settingsDetailTitle(navigation.settingsDetail, t) }) }}
             </template>
-            <template v-else>{{ t('settings.glass.heading', { style: t(navigation.settingsDetailKey) }) }}</template>
+            <template v-else>{{ settingsDetailTitle(navigation.settingsDetail, t) }}</template>
           </h2>
         </div>
         <SettingsThemeOptions v-if="navigation.settingsDetail === 'theme'" />
         <SettingsBackgroundOptions v-else-if="navigation.settingsDetail === 'background'" />
+        <SettingsAgent v-else-if="isAgentDetail(navigation.settingsDetail)" :kind="navigation.settingsDetail" />
         <SettingsGlass v-else :window-style="navigation.settingsDetail" />
       </template>
       <template v-else>
@@ -134,6 +139,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
           <SettingsInterface />
         </template>
         <SettingsShortcuts v-else-if="navigation.settingsSection === 'shortcuts'" />
+        <SettingsAgents v-else-if="navigation.settingsSection === 'agents'" />
       </template>
     </div>
   </div>

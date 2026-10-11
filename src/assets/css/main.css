@@ -14,6 +14,8 @@
   --color-stroke-focus: color-mix(in srgb, var(--color-content) 20%, transparent);
   --color-accent: hsl(240 0% 92%);
   --color-danger: hsl(0 72% 65%);
+  --color-success: hsl(145 50% 55%);
+  --color-info: hsl(210 85% 65%);
   /* Fonds des barres et panneaux (chrome) et de la zone centrale (surface) : voir le style de fenêtre plus bas. */
   --color-chrome: var(--color-canvas);
   --color-surface: var(--color-canvas);
@@ -34,8 +36,15 @@ body,
   overscroll-behavior: none;
   background: var(--color-surface);
   color: var(--color-content);
+  /* WebKit ne lit que la version préfixée : sans elle, tout le texte et les vides se sélectionnent. */
+  -webkit-user-select: none;
   user-select: none;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Texte sélectionné (chat, code) à la couleur du thème plutôt qu'à celle de macOS. */
+::selection {
+  background-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
 }
 
 /* Fenêtre transparente : macOS seulement (tauri.macos.conf.json), flou posé par window_set_blur. Le style

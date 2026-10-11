@@ -1,15 +1,24 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { WindowStyle } from '@/stores/appearance'
 import { useLayoutStore } from '@/stores/layout'
+import { agents } from '@/utils/agents'
 import type { SettingsSection } from '@/utils/settings'
 
-export type SettingsDetail = WindowStyle | 'theme' | 'background'
+// Sous-page d'une section : réglages du thème, de l'image de fond, d'un style de fenêtre ou d'un agent.
+export type SettingsDetail = WindowStyle | 'theme' | 'background' | AgentKind
 
-export function settingsDetailKey(detail: SettingsDetail) {
-  if (detail === 'theme') return 'settings.themes.title'
-  if (detail === 'background') return 'settings.background.title'
-  return `settings.appearance.styles.${detail}`
+export function isAgentDetail(detail: SettingsDetail | null): detail is AgentKind {
+  return !!detail && detail in agents
+}
+
+// Un agent garde son nom de produit, non traduit.
+export function settingsDetailTitle(detail: SettingsDetail, t: (key: string) => string) {
+  if (isAgentDetail(detail)) return agents[detail].name
+  if (detail === 'theme') return t('settings.themes.title')
+  if (detail === 'background') return t('settings.background.title')
+  return t(`settings.appearance.styles.${detail}`)
 }
 
 export type View = 'home' | 'chats' | 'issues' | 'pullRequests' | 'notes' | 'search' | 'usage' | 'settings'
@@ -23,9 +32,7 @@ export const useNavigationStore = defineStore('navigation', () => {
   // Contexte des chats : un projet, ou null pour les chats sans projet.
   const projectId = ref<string | null>(null)
   const settingsSection = ref<SettingsSection>('general')
-  // Sous-page d'Apparence : le thème, l'image de fond, ou un style de fenêtre.
   const settingsDetail = ref<SettingsDetail | null>(null)
-  const detailKey = computed(() => (settingsDetail.value ? settingsDetailKey(settingsDetail.value) : ''))
   // Vue que le bouton Retour des réglages retrouve.
   const beforeSettings = ref<View>('home')
   // Réglage choisi dans la recherche : SettingsView le fait défiler jusqu'à lui et le met en avant.
@@ -98,7 +105,6 @@ export const useNavigationStore = defineStore('navigation', () => {
     projectId,
     settingsSection,
     settingsDetail,
-    settingsDetailKey: detailKey,
     hasPanel,
     go,
     openChats,
