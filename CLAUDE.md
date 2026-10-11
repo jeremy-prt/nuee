@@ -17,7 +17,7 @@ App desktop Tauri 2 + Vue pour piloter des agents de code, open source (MIT). In
 
 ## Textes d'interface
 
-Ton pro et clair (choix de Jérémy), dans les 6 langues : pas de tutoiement (formulations impersonnelles), jamais de « : » pour enchaîner deux idées, pas de tournure qui sonne générée (« c'est X qui s'affiche », « Y à la place »). Un libellé dit ce qu'on règle (« Couleur de la mascotte »), une aide tient en une phrase simple ; un chemin ou un nom en forme spéciale s'insère avec `<Translation>`. Beaucoup de textes existants tutoient encore : ne pas s'aligner sur eux.
+Ton pro et clair (choix de Jérémy), dans les 6 langues : les textes ne s'adressent à personne, ni tutoiement ni vouvoiement (infinitif pour une consigne, tournure impersonnelle sinon : « Décrire ce qu'il faut construire… », « Le dossier reste sur le disque »), jamais de « : » pour enchaîner deux idées, pas de tournure qui sonne générée (« c'est X qui s'affiche », « Y à la place »). Un libellé dit ce qu'on règle (« Couleur de la mascotte »), une aide tient en une phrase simple ; un chemin ou un nom en forme spéciale s'insère avec `<Translation>`.
 
 ## Pièges
 
