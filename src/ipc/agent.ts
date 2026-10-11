@@ -5,19 +5,22 @@ import type { AgentStatus } from '@/ipc/bindings/AgentStatus'
 import type { AppError } from '@/ipc/bindings/AppError'
 import type { Attachment } from '@/ipc/bindings/Attachment'
 import type { Catalog } from '@/ipc/bindings/Catalog'
+import type { ChatCommand } from '@/ipc/bindings/ChatCommand'
 import type { SessionSpec } from '@/ipc/bindings/SessionSpec'
 
 // Se résout dès que le message est parti ; les événements arrivent ensuite sur onEvent, jusqu'à turnEnd.
 // recap : réponse coupée au tour précédent, rappelée à l'agent seulement si son process est neuf.
+// command : commande de Nuée attachée au message, Rust y ajoute ses consignes.
 export function agentSend(
   spec: SessionSpec,
   prompt: string,
   attachments: Attachment[],
   recap: string | null,
+  command: ChatCommand | null,
   onEvent: (event: AgentEvent) => void,
 ) {
   const channel = new Channel<AgentEvent>(onEvent)
-  return invoke<void>('agent_send', { spec, prompt, attachments, recap, onEvent: channel })
+  return invoke<void>('agent_send', { spec, prompt, attachments, recap, command, onEvent: channel })
 }
 
 // Démarre le process du chat pendant que l'utilisateur écrit : le premier message part sans attendre.

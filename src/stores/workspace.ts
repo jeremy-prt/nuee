@@ -141,7 +141,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   function openChat() {
-    show(createChat().id)
+    const tab = createChat()
+    show(tab.id)
+    return tab
   }
 
   function split() {

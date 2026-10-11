@@ -5,6 +5,7 @@ import type { AgentEvent } from '@/ipc/bindings/AgentEvent'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { AppError } from '@/ipc/bindings/AppError'
 import type { Attachment } from '@/ipc/bindings/Attachment'
+import type { ChatCommand } from '@/ipc/bindings/ChatCommand'
 import type { ChatSummary } from '@/ipc/bindings/ChatSummary'
 import type { SessionSpec } from '@/ipc/bindings/SessionSpec'
 import type { ToolKind } from '@/ipc/bindings/ToolKind'
@@ -14,9 +15,10 @@ import { chatContent, chatCreate, chatDelete, chatSave } from '@/ipc/chat'
 import { useAgentsStore } from '@/stores/agents'
 import { type Signal, useAttentionStore } from '@/stores/attention'
 import { useCatalogStore } from '@/stores/catalog'
+import { useSkillsStore } from '@/stores/skills'
 
 export type ChatItem =
-  | { kind: 'user'; id: string; text: string; attachments?: Attachment[] }
+  | { kind: 'user'; id: string; text: string; attachments?: Attachment[]; command?: ChatCommand }
   | { kind: 'text'; id: string; text: string }
   | {
       kind: 'tool'
@@ -46,7 +48,9 @@ export interface Conversation {
   pausedMs: number
   pausedAt: number | null
   // Message envoyé pendant que l'agent range son tour : il part dès que le tour se clôt.
-  queued: { cwd: string | null; prompt: string; attachments: Attachment[] } | null
+  queued: { cwd: string | null; prompt: string; attachments: Attachment[]; command: ChatCommand | null } | null
+  // Commande posée dans le champ (Nouveau skill...) : elle part avec le prochain message. Non enregistrée.
+  command: ChatCommand | null
   // Demandes d'autorisation (mode Auto) en attente de réponse, la plus ancienne d'abord. Non enregistrées.
   approvals: readonly Approval[]
   // Faux tant que l'historique n'est pas lu : envoyer avant écraserait la conversation chargée.
@@ -207,6 +211,7 @@ function settleInterrupted(saved: ChatItem[]) {
 export const useConversationsStore = defineStore('conversations', () => {
   const catalog = useCatalogStore()
   const agentSettings = useAgentsStore()
+  const skills = useSkillsStore()
   const conversations = shallowReactive(new Map<string, Conversation>())
   // Un agent travaille encore quelque part : la mise en veille attend.
   const busy = computed(() => [...conversations.values()].some((conversation) => conversation.phase !== 'idle'))
@@ -226,6 +231,7 @@ export const useConversationsStore = defineStore('conversations', () => {
       pausedMs: 0,
       pausedAt: null,
       queued: null,
+      command: null,
       approvals: [],
       loaded,
       items: [],
@@ -277,6 +283,11 @@ export const useConversationsStore = defineStore('conversations', () => {
       })
   }
 
+  function setCommand(chatId: string, command: ChatCommand | null) {
+    const conversation = conversations.get(chatId)
+    if (conversation) conversation.command = command
+  }
+
   function setOptions(chatId: string, options: TurnOptions) {
     const conversation = conversations.get(chatId)
     if (!conversation) return
@@ -296,10 +307,13 @@ export const useConversationsStore = defineStore('conversations', () => {
         else if (event.type === 'usage') agentSettings.track(conversation.agent, event)
       }
       if (signal) useAttentionStore().signal(chatId, signal)
+      // Un chat ouvert par une commande de skill écrit le fichier plusieurs tours plus tard, une fois le
+      // brouillon validé : chaque fin de tour de ce chat fait relire la config.
+      if (ended && conversation.items.some((item) => item.kind === 'user' && item.command)) skills.loadSkills()
       const queued = conversation.queued
       if (ended && queued) {
         conversation.queued = null
-        dispatch(chatId, conversation, queued.cwd, queued.prompt, queued.attachments)
+        dispatch(chatId, conversation, queued.cwd, queued.prompt, queued.attachments, queued.command)
       }
     }
     pending.clear()
@@ -319,10 +333,17 @@ export const useConversationsStore = defineStore('conversations', () => {
   function spec(chatId: string, conversation: Conversation, cwd: string | null): SessionSpec {
     const { agent, sessionId } = conversation
     const { hooks } = agentSettings.settings[agent]
-    return { chatId, agent, cwd, sessionId, options: catalog.resolve(agent, conversation.options), hooks }
+    return { chatId, agent, cwd, sessionId, options: catalog.resolve(agent, conversation.options), hooks, ...skills.exclusions() }
   }
 
-  async function dispatch(chatId: string, conversation: Conversation, cwd: string | null, prompt: string, attachments: Attachment[]) {
+  async function dispatch(
+    chatId: string,
+    conversation: Conversation,
+    cwd: string | null,
+    prompt: string,
+    attachments: Attachment[],
+    command: ChatCommand | null,
+  ) {
     // Calculé avant que le nouveau message ne s'ajoute : il porte sur le tour précédent.
     const recap = interruptedText(conversation.items.slice(0, lastIndex(conversation.items, (item) => item.kind === 'user')))
     conversation.phase = 'answering'
@@ -330,7 +351,7 @@ export const useConversationsStore = defineStore('conversations', () => {
     conversation.pausedMs = 0
     conversation.pausedAt = null
     try {
-      await agentSend(spec(chatId, conversation, cwd), prompt, attachments, recap, (event) => queue(chatId, event))
+      await agentSend(spec(chatId, conversation, cwd), prompt, attachments, recap, command, (event) => queue(chatId, event))
     } catch (error) {
       conversation.phase = 'idle'
       const appError: AppError = isAppError(error) ? error : { kind: 'io', message: String(error) }
@@ -343,10 +364,12 @@ export const useConversationsStore = defineStore('conversations', () => {
   function send(chatId: string, cwd: string | null, prompt: string, attachments: Attachment[]) {
     const conversation = conversations.get(chatId)
     if (!conversation?.loaded || conversation.phase === 'answering' || conversation.queued) return
-    push(conversation, { kind: 'user', id: crypto.randomUUID(), text: prompt, attachments })
+    const command = conversation.command
+    conversation.command = null
+    push(conversation, { kind: 'user', id: crypto.randomUUID(), text: prompt, attachments, ...(command && { command }) })
     save(chatId)
-    if (conversation.phase === 'finishing') conversation.queued = { cwd, prompt, attachments }
-    else dispatch(chatId, conversation, cwd, prompt, attachments)
+    if (conversation.phase === 'finishing') conversation.queued = { cwd, prompt, attachments, command }
+    else dispatch(chatId, conversation, cwd, prompt, attachments, command)
   }
 
   // Appelé quand l'utilisateur commence à écrire ; Rust ignore l'appel si le process tourne déjà.
@@ -377,5 +400,5 @@ export const useConversationsStore = defineStore('conversations', () => {
     write(chatId, () => chatDelete(chatId))
   }
 
-  return { busy, find, create, open, setOptions, send, warm, approve, stop, remove }
+  return { busy, find, create, open, setOptions, setCommand, send, warm, approve, stop, remove }
 })

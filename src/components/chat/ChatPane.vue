@@ -86,7 +86,9 @@ const { over } = useFileDrop(pane, (paths) => {
         :catalog="catalog.get(agent)"
         :disabled="!loaded"
         :running="answering"
+        :command="conversation?.command ?? null"
         @send="send"
+        @clear-command="conversations.setCommand(tab.id, null)"
         @warm="conversations.warm(tab.id, cwd)"
         @stop="conversations.stop(tab.id)"
       />

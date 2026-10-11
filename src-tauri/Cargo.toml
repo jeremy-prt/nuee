@@ -19,13 +19,15 @@ base64 = "0.23.1"
 chrono = { version = "0.4.45", default-features = false, features = ["std"] }
 keepawake = "0.6.1"
 serde = { version = "1.0.229", features = ["derive"] }
-serde_json = "1.0.151"
+# Ordre des clés gardé : Nuée réécrit le settings.json de l'utilisateur sans le réordonner.
+serde_json = { version = "1.0.151", features = ["preserve_order"] }
 rusqlite = { version = "0.40.2", features = ["bundled"] }
 sys-locale = "0.3.2"
 tauri = { version = "2.12.2", features = ["macos-private-api", "protocol-asset"] }
 tauri-plugin-dialog = "2.8.1"
 tauri-plugin-opener = "2.7.0"
 thiserror = "2.0.21"
+trash = "5.2.9"
 tokio = { version = "1.53.2", features = ["io-util", "macros", "process", "sync", "time"] }
 ts-rs = "12.0.1"
 ureq = { version = "3.4.2", default-features = false, features = ["rustls"] }

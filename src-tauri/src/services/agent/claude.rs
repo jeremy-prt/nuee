@@ -4,11 +4,15 @@ use std::path::{Path, PathBuf};
 use serde_json::Value;
 
 use super::{
-    Account, AgentEvent, Attached, Catalog, Driver, Effort, ModelInfo, ModelQuota, PermissionMode,
-    Probe, Quota, SessionSpec, ToolKind, TurnStatus, Usage,
+    Account, AgentEvent, Attached, Catalog, Driver, Effort, McpAuth, McpServer, McpStatus,
+    ModelInfo, ModelQuota, PermissionMode, Probe, Quota, SessionSpec, ToolKind, TurnStatus, Usage,
 };
 
 const OUTPUT_LIMIT: usize = 4000;
+const INITIALIZE: &str =
+    r#"{"type":"control_request","request_id":"nuee-init","request":{"subtype":"initialize"}}"#;
+const MCP_STATUS: &str =
+    r#"{"type":"control_request","request_id":"nuee-mcp","request":{"subtype":"mcp_status"}}"#;
 const TITLE_LIMIT: usize = 50;
 /// En anglais pour le modèle, mais le titre suit la langue du message.
 const TITLE_PROMPT: &str = "You name coding chats so the user can recognize them weeks later. \
@@ -188,9 +192,7 @@ impl Driver for Claude {
             "--mcp-config",
             r#"{"mcpServers":{}}"#,
         ];
-        let mut lines = vec![
-            r#"{"type":"control_request","request_id":"nuee-init","request":{"subtype":"initialize"}}"#.to_owned(),
-        ];
+        let mut lines = vec![INITIALIZE.to_owned()];
         // `skip_behaviors` : sans lui, la CLI parcourt tout l'historique local pour des statistiques inutiles ici.
         if usage {
             lines.push(r#"{"type":"control_request","request_id":"nuee-usage","request":{"subtype":"get_usage","skip_behaviors":true}}"#.to_owned());
@@ -219,6 +221,77 @@ impl Driver for Claude {
             }
             _ => {}
         }
+    }
+
+    fn mcp_probe(&self) -> (Vec<String>, Vec<String>) {
+        let args = [
+            "-p",
+            "--input-format",
+            "stream-json",
+            "--output-format",
+            "stream-json",
+            "--verbose",
+            "--no-session-persistence",
+            "--settings",
+            r#"{"disableAllHooks":true}"#,
+        ];
+        (args.map(String::from).into(), vec![INITIALIZE.to_owned()])
+    }
+
+    fn mcp_status_message(&self) -> String {
+        MCP_STATUS.to_owned()
+    }
+
+    fn parse_mcp_status(&self, line: &str) -> Option<Result<Vec<McpServer>, String>> {
+        let line = serde_json::from_str::<Value>(line).ok()?;
+        let response = &line["response"];
+        if line["type"] != "control_response" || response["request_id"] != "nuee-mcp" {
+            return None;
+        }
+        if response["subtype"] == "error" {
+            return Some(Err(str_of(&response["error"]).to_owned()));
+        }
+        let servers = response["response"]["mcpServers"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(mcp_server_of)
+            .collect();
+        Some(Ok(servers))
+    }
+
+    fn mcp_reconnect_message(&self, name: &str) -> String {
+        serde_json::json!({
+            "type": "control_request",
+            "request_id": "nuee-mcp-reconnect",
+            "request": { "subtype": "mcp_reconnect", "serverName": name },
+        })
+        .to_string()
+    }
+
+    fn mcp_auth_message(&self, name: &str) -> String {
+        serde_json::json!({
+            "type": "control_request",
+            "request_id": "nuee-mcp-auth",
+            "request": { "subtype": "mcp_authenticate", "serverName": name },
+        })
+        .to_string()
+    }
+
+    fn parse_mcp_auth(&self, line: &str) -> Option<Result<McpAuth, String>> {
+        let line = serde_json::from_str::<Value>(line).ok()?;
+        let response = &line["response"];
+        if line["type"] != "control_response" || response["request_id"] != "nuee-mcp-auth" {
+            return None;
+        }
+        if response["subtype"] == "error" {
+            return Some(Err(str_of(&response["error"]).to_owned()));
+        }
+        let auth = &response["response"];
+        Some(Ok(McpAuth {
+            url: auth["authUrl"].as_str().map(str::to_owned),
+            callback: auth["callbackExpected"] == true,
+        }))
     }
 
     fn release(&self, program: &Path) -> (&'static str, &'static str) {
@@ -308,9 +381,8 @@ impl Driver for Claude {
             };
             args.extend(["--effort".into(), level.into()]);
         }
-        // Prime sur la config de l'utilisateur sans la modifier : seuls les chats de Nuée sont concernés.
-        if !spec.hooks {
-            args.extend(["--settings".into(), r#"{"disableAllHooks":true}"#.into()]);
+        if let Some(settings) = nuee_settings(spec) {
+            args.extend(["--settings".into(), settings]);
         }
         if let Some(id) = &spec.session_id {
             args.extend(["--resume".to_owned(), id.clone()]);
@@ -411,6 +483,85 @@ impl Driver for Claude {
         }
         events
     }
+}
+
+/// Réglages propres aux chats de Nuée. Ils priment sur la config de l'utilisateur sans la modifier :
+/// Claude Code lancé ailleurs n'en voit rien. Un skill coupé partout peut y être rallumé, pas un
+/// serveur : `deniedMcpServers` s'additionne d'une source à l'autre.
+fn nuee_settings(spec: &SessionSpec) -> Option<String> {
+    let mut settings = serde_json::Map::new();
+    if !spec.hooks {
+        settings.insert("disableAllHooks".into(), true.into());
+    }
+    if !spec.skills.is_empty() {
+        let modes = spec
+            .skills
+            .iter()
+            .map(|(id, mode)| (id.clone(), Value::from(mode.value())))
+            .collect();
+        settings.insert("skillOverrides".into(), Value::Object(modes));
+    }
+    if !spec.servers_off.is_empty() {
+        let denied = spec
+            .servers_off
+            .iter()
+            .map(|name| serde_json::json!({ "serverName": name }))
+            .collect();
+        settings.insert("deniedMcpServers".into(), Value::Array(denied));
+    }
+    (!settings.is_empty()).then(|| Value::Object(settings).to_string())
+}
+
+/// Entrée de `mcp_status`. Une adresse perd sa requête et ses identifiants : elle s'affiche à l'écran.
+fn mcp_server_of(server: &Value) -> Option<McpServer> {
+    let config = &server["config"];
+    let target = match config["url"].as_str() {
+        Some(url) => {
+            let url = url.split(['?', '#']).next().unwrap_or_default();
+            match url.split_once("://") {
+                Some((scheme, rest)) => {
+                    let host = rest.rsplit_once('@').map_or(rest, |(_, host)| host);
+                    format!("{scheme}://{host}")
+                }
+                None => url.to_owned(),
+            }
+        }
+        None => std::iter::once(&config["command"])
+            .chain(config["args"].as_array().into_iter().flatten())
+            .filter_map(Value::as_str)
+            .collect::<Vec<_>>()
+            .join(" "),
+    };
+    let transport = config["type"]
+        .as_str()
+        .unwrap_or(if config["url"].is_string() {
+            "http"
+        } else {
+            "stdio"
+        });
+    let status = match server["status"].as_str() {
+        Some("connected") => McpStatus::Connected,
+        Some("pending") => McpStatus::Pending,
+        Some("needs-auth") => McpStatus::NeedsAuth,
+        Some("disabled") => McpStatus::Disabled,
+        _ => McpStatus::Failed,
+    };
+    let tools = match &server["tools"] {
+        Value::Array(tools) => u32::try_from(tools.len()).ok(),
+        tools => tools.as_u64().and_then(|count| u32::try_from(count).ok()),
+    };
+    Some(McpServer {
+        name: server["name"].as_str()?.to_owned(),
+        status,
+        transport: transport.to_owned(),
+        target,
+        scope: str_of(&server["scope"]).to_owned(),
+        tools,
+        error: server["error"]
+            .as_str()
+            .filter(|error| !error.is_empty())
+            .map(str::to_owned),
+    })
 }
 
 /// Première ligne, sans guillemets ni ponctuation finale, coupée si le modèle a été trop bavard.
@@ -609,12 +760,16 @@ fn rate_limit_of(info: &Value) -> Option<AgentEvent> {
     })
 }
 
-/// `settings.json` de l'utilisateur, là où la CLI le lit.
-fn user_settings() -> Option<Value> {
-    let dir = std::env::var_os("CLAUDE_CONFIG_DIR")
+/// Dossier de config de l'utilisateur, là où la CLI le cherche.
+pub(super) fn config_dir() -> Option<PathBuf> {
+    std::env::var_os("CLAUDE_CONFIG_DIR")
         .map(PathBuf::from)
-        .or_else(|| std::env::home_dir().map(|home| home.join(".claude")))?;
-    serde_json::from_str(&std::fs::read_to_string(dir.join("settings.json")).ok()?).ok()
+        .or_else(|| std::env::home_dir().map(|home| home.join(".claude")))
+}
+
+fn user_settings() -> Option<Value> {
+    let file = config_dir()?.join("settings.json");
+    serde_json::from_str(&std::fs::read_to_string(file).ok()?).ok()
 }
 
 fn str_of(value: &Value) -> &str {
@@ -643,6 +798,7 @@ fn truncate(text: &str) -> String {
 
 #[cfg(test)]
 mod tests {
+    use super::super::SkillMode;
     use super::*;
     use serde_json::json;
 
@@ -756,6 +912,8 @@ mod tests {
                 effort: Some(Effort::Xhigh),
             },
             hooks: false,
+            skills: Default::default(),
+            servers_off: Vec::new(),
         };
         let args = Claude::new(Path::new("/projet")).args(&request);
         let tail: Vec<&str> = args.iter().skip(9).map(String::as_str).collect();
@@ -994,5 +1152,94 @@ mod tests {
                 },
             ]
         );
+    }
+
+    #[test]
+    fn nuee_exclusions_join_the_hooks_switch_in_one_settings_flag() {
+        let request = SessionSpec {
+            chat_id: "c".into(),
+            agent: super::super::AgentKind::Claude,
+            cwd: None,
+            session_id: None,
+            options: super::super::TurnOptions {
+                mode: PermissionMode::Bypass,
+                model: None,
+                effort: None,
+            },
+            hooks: false,
+            skills: [
+                ("j-commit".to_owned(), SkillMode::Off),
+                ("j-apex".to_owned(), SkillMode::On),
+            ]
+            .into(),
+            servers_off: vec!["claude.ai Notion".into()],
+        };
+        let args = Claude::new(Path::new("/projet")).args(&request);
+        assert_eq!(args.iter().filter(|arg| *arg == "--settings").count(), 1);
+        let position = args.iter().position(|arg| arg == "--settings").unwrap();
+        let settings: Value = serde_json::from_str(&args[position + 1]).unwrap();
+        assert_eq!(
+            settings,
+            json!({
+                "disableAllHooks": true,
+                "skillOverrides": { "j-apex": "on", "j-commit": "off" },
+                "deniedMcpServers": [{ "serverName": "claude.ai Notion" }],
+            })
+        );
+
+        let request = SessionSpec {
+            hooks: true,
+            skills: Default::default(),
+            servers_off: Vec::new(),
+            ..request
+        };
+        let args = Claude::new(Path::new("/projet")).args(&request);
+        assert!(!args.iter().any(|arg| arg == "--settings"));
+    }
+
+    #[test]
+    fn mcp_status_lists_servers_without_secrets() {
+        let claude = Claude::new(Path::new("/projet"));
+        let line = json!({"type":"control_response","response":{"subtype":"success","request_id":"nuee-mcp","response":{"mcpServers":[
+            {"name":"good","status":"connected","config":{"type":"stdio","command":"claude","args":["mcp","serve"]},"scope":"user","tools":[{"name":"a"},{"name":"b"}]},
+            {"name":"crash","status":"failed","error":"Connection closed","config":{"command":"sh"},"scope":"user"},
+            {"name":"notion","status":"needs-auth","config":{"type":"http","url":"https://me:secret@mcp.example.com/mcp?key=abc"},"scope":"user"},
+            {"name":"claude.ai Linear","status":"pending","config":{"type":"claudeai-proxy","url":"https://mcp.linear.app/mcp"},"scope":"claudeai"}
+        ]}}}).to_string();
+        let servers = claude.parse_mcp_status(&line).unwrap().unwrap();
+        assert_eq!(servers.len(), 4);
+        assert_eq!(servers[0].status, McpStatus::Connected);
+        assert_eq!(servers[0].target, "claude mcp serve");
+        assert_eq!(servers[0].tools, Some(2));
+        assert_eq!(servers[1].transport, "stdio");
+        assert_eq!(servers[1].error.as_deref(), Some("Connection closed"));
+        assert_eq!(servers[2].status, McpStatus::NeedsAuth);
+        assert_eq!(servers[2].target, "https://mcp.example.com/mcp");
+        assert_eq!(servers[3].status, McpStatus::Pending);
+        assert_eq!(servers[3].scope, "claudeai");
+
+        let error = r#"{"type":"control_response","response":{"subtype":"error","request_id":"nuee-mcp","error":"not supported"}}"#;
+        assert_eq!(
+            claude.parse_mcp_status(error),
+            Some(Err("not supported".into()))
+        );
+        let other = r#"{"type":"control_response","response":{"subtype":"success","request_id":"nuee-init","response":{}}}"#;
+        assert_eq!(claude.parse_mcp_status(other), None);
+    }
+
+    #[test]
+    fn mcp_auth_gives_the_page_to_open() {
+        let claude = Claude::new(Path::new("/projet"));
+        let line = r#"{"type":"control_response","response":{"subtype":"success","request_id":"nuee-mcp-auth","response":{"authUrl":"https://mcp.notion.com/authorize?x=1","requiresUserAction":true,"callbackExpected":true,"callbackPort":61674}}}"#;
+        let auth = claude.parse_mcp_auth(line).unwrap().unwrap();
+        assert_eq!(
+            auth.url.as_deref(),
+            Some("https://mcp.notion.com/authorize?x=1")
+        );
+        assert!(auth.callback);
+        let connector = r#"{"type":"control_response","response":{"subtype":"success","request_id":"nuee-mcp-auth","response":{"authUrl":"https://claude.ai/settings/connectors","requiresUserAction":true,"callbackExpected":false}}}"#;
+        assert!(!claude.parse_mcp_auth(connector).unwrap().unwrap().callback);
+        let error = r#"{"type":"control_response","response":{"subtype":"error","request_id":"nuee-mcp-auth","error":"Server type \"stdio\" does not support OAuth authentication"}}"#;
+        assert!(claude.parse_mcp_auth(error).unwrap().is_err());
     }
 }

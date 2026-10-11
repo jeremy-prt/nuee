@@ -1,83 +1,68 @@
 import { defineStore } from 'pinia'
 import { reactive, ref, watch } from 'vue'
+import { i18nGlobal } from '@/i18n'
+import { isAppError } from '@/ipc/agent'
+import type { AgentKind } from '@/ipc/bindings/AgentKind'
+import type { McpServer } from '@/ipc/bindings/McpServer'
+import type { Skill } from '@/ipc/bindings/Skill'
+import type { SkillMode } from '@/ipc/bindings/SkillMode'
+import { mcpCancelLogin, mcpCheck, mcpLogin, mcpSetEnabled, mcpStatus } from '@/ipc/mcp'
+import { skillsList, skillsRead, skillsReveal, skillsSetMode, skillsTrash, skillsWrite } from '@/ipc/skills'
+import { useDialogStore } from '@/stores/dialog'
+import { useToastsStore } from '@/stores/toasts'
 
-export interface Skill {
-  id: string
-  name: string
-  description: string
-  // Fichier SKILL.md du skill.
-  path: string
-}
+export type { McpServer, Skill }
 
-export interface McpServer {
-  id: string
-  name: string
-  transport: 'stdio' | 'http' | 'sse'
-  // Commande lancée (stdio) ou adresse du serveur (http, sse).
-  target: string
-  status: 'connected' | 'needsAuth' | 'failed'
-  tools: number | null
-  error: string | null
-}
-
-const STORAGE_KEY = 'nuee.skills.v1'
-type Kind = 'skills' | 'servers'
+const STORAGE_KEY = 'nuee.skills.v2'
+// Seul Claude Code est branché : la page montre sa config.
+const AGENT: AgentKind = 'claude'
+const MODES: SkillMode[] = ['on', 'nameOnly', 'userInvocableOnly', 'off']
+// nuee : un réglage ne vaut que pour les chats de Nuée. everywhere : il modifie la config de l'agent.
+export type Scope = 'nuee' | 'everywhere'
+export type Group = 'skills' | 'servers' | 'connectors'
 
 function loadPrefs() {
+  // Les connecteurs claude.ai sont nombreux et rarement réglés : repliés au départ.
+  const prefs = { skills: {} as Record<string, SkillMode>, servers: [] as string[], collapsed: ['connectors'] as Group[] }
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}')
     const list = (value: unknown) => (Array.isArray(value) ? value.filter((item) => typeof item === 'string') : [])
-    return { skills: list(saved.skills), servers: list(saved.servers), collapsed: list(saved.collapsed) as Kind[] }
+    for (const [id, mode] of Object.entries(saved.skills ?? {})) {
+      if (MODES.includes(mode as SkillMode)) prefs.skills[id] = mode as SkillMode
+    }
+    prefs.servers = list(saved.servers)
+    if (Array.isArray(saved.collapsed)) prefs.collapsed = list(saved.collapsed) as Group[]
   } catch {
-    return { skills: [], servers: [], collapsed: [] as Kind[] }
+    // Choix illisibles : on repart des valeurs par défaut.
   }
+  return prefs
 }
 
-// Maquette en attendant les commandes Rust (lecture des skills et des serveurs MCP de la config globale
-// de l'agent, lecture d'un SKILL.md, ouverture dans le Finder, connexion d'un serveur) : seules les
-// fonctions ci-dessous simulent.
-function scan() {
-  const skill = (name: string, description: string): Skill => ({ id: name, name, description, path: `~/.claude/skills/${name}/SKILL.md` })
-  const skills: Skill[] = [
-    skill('code-review', 'Review the current diff for bugs, security issues and dead code, then fix what is safe.'),
-    skill('commit', 'Write a commit message from the staged changes and push to the right remote.'),
-    skill('release-notes', 'Write release notes from the commits since the last tag, grouped by feature and fix.'),
-    skill('changelog', 'Keep CHANGELOG.md in sync with the merged pull requests.'),
-    skill('frontend-design', 'Build distinctive, production-grade interfaces that avoid generic AI aesthetics.'),
-    skill('pdf', 'Read, merge, split, fill or create PDF files.'),
-    skill('stack-check', 'Look up the latest stable version of a library before installing it.'),
-    skill('tests', 'Write the missing tests for the code that just changed, then run them.'),
-  ]
-  const servers: McpServer[] = [
-    { id: 'github', name: 'github', transport: 'stdio', target: 'npx -y @modelcontextprotocol/server-github', status: 'connected', tools: 26, error: null },
-    { id: 'notion', name: 'notion', transport: 'http', target: 'https://mcp.notion.com/mcp', status: 'needsAuth', tools: null, error: null },
-    { id: 'figma', name: 'figma', transport: 'http', target: 'https://mcp.figma.com/mcp', status: 'connected', tools: 14, error: null },
-    { id: 'postgres', name: 'postgres', transport: 'stdio', target: 'npx -y @modelcontextprotocol/server-postgres', status: 'failed', tools: null, error: 'process exited with code 1' },
-  ]
-  return new Promise<{ skills: Skill[]; servers: McpServer[] }>((resolve) => setTimeout(() => resolve({ skills, servers }), 500))
+function message(error: unknown) {
+  return isAppError(error) ? error.message : String(error)
 }
 
-function readSkill(skill: Skill) {
-  const text = `---\nname: ${skill.name}\ndescription: ${skill.description}\n---\n\n# ${skill.name}\n\n${skill.description}\n\n## Steps\n\n1. Read the files the task touches before writing anything.\n2. Do the work in small steps and check each one.\n3. Finish with a short summary of what changed.\n\n## Rules\n\n- Never invent a command or a path: check that it exists.\n- Ask before anything that cannot be undone.\n`
-  return new Promise<string>((resolve) => setTimeout(() => resolve(text), 200))
-}
-
-function revealPath(_path: string) {}
-
-function authenticate() {
-  return new Promise<number>((resolve) => setTimeout(() => resolve(9), 1200))
-}
-
-// Skills et serveurs MCP de la config globale de l'agent. Ceux que Nuée ne lui donne pas et les listes
-// repliées sont gardés en localStorage.
+// Deux portées. Nuée seulement : gardé ici, envoyé à chaque lancement d'un chat (SessionSpec). Partout : écrit
+// dans la config de l'agent, le choix propre à Nuée s'efface pour suivre. La liste ne règle que Nuée.
 export const useSkillsStore = defineStore('skills', () => {
-  const loading = ref(false)
   const skills = ref<Skill[]>([])
   const servers = ref<McpServer[]>([])
+  const loaded = ref(false)
+  const loading = ref(false)
+  // État des serveurs en cours de lecture : la CLI met quelques secondes à les joindre.
+  const checking = ref(false)
+  const errors = reactive<{ skills: string | null; servers: string | null }>({ skills: null, servers: null })
   const prefs = reactive(loadPrefs())
+  const scope = ref<Scope>('nuee')
+  // Serveurs en connexion ou en nouvel essai ; `logins` : ceux qui attendent le navigateur.
   const pending = reactive(new Set<string>())
-  // Skill ouvert dans le panneau de droite des réglages.
+  const logins = reactive(new Set<string>())
+  // Panneau de droite des réglages : le skill montré, et son éditeur. Le brouillon vit ici : quitter les
+  // réglages démonte le panneau, il doit retrouver ses modifications au retour.
   const previewed = ref<Skill | null>(null)
+  const editing = ref(false)
+  const draft = ref('')
+  const dirty = ref(false)
 
   watch(
     prefs,
@@ -91,41 +76,131 @@ export const useSkillsStore = defineStore('skills', () => {
     { deep: true },
   )
 
-  async function load() {
-    if (loading.value) return
+  async function loadSkills() {
     loading.value = true
     try {
-      const found = await scan()
-      skills.value = found.skills
-      servers.value = found.servers
+      skills.value = await skillsList(AGENT)
+      errors.skills = null
+      const shown = previewed.value
+      if (shown) previewed.value = skills.value.find((skill) => skill.id === shown.id) ?? shown
+    } catch (error) {
+      errors.skills = message(error)
     } finally {
       loading.value = false
+      loaded.value = true
     }
   }
 
-  function enabled(kind: Kind, id: string) {
-    return !prefs[kind].includes(id)
+  // Une relecture lancée pendant une autre la remplace : seule la dernière écrit la liste.
+  let run = 0
+  async function loadServers() {
+    const current = ++run
+    checking.value = true
+    const apply = (list: McpServer[]) => {
+      if (current === run) servers.value = list
+    }
+    try {
+      apply(await mcpStatus(AGENT, apply))
+      if (current === run) errors.servers = null
+    } catch (error) {
+      if (current === run) errors.servers = message(error)
+    } finally {
+      if (current === run) checking.value = false
+    }
   }
 
-  function setEnabled(kind: Kind, id: string, value: boolean) {
-    prefs[kind] = value ? prefs[kind].filter((item) => item !== id) : [...prefs[kind], id]
+  function load() {
+    return Promise.all([loadSkills(), loadServers()])
   }
 
-  function expanded(kind: Kind) {
-    return !prefs.collapsed.includes(kind)
+  // Réglage d'un skill à une portée : pour Nuée, le sien s'il en a un, sinon celui de l'agent.
+  function mode(skill: Skill, at: Scope = 'nuee') {
+    return (at === 'nuee' && prefs.skills[skill.id]) || skill.mode
   }
 
-  function toggle(kind: Kind) {
-    prefs.collapsed = expanded(kind) ? [...prefs.collapsed, kind] : prefs.collapsed.filter((item) => item !== kind)
+  // Nuée a son propre réglage pour ce skill, différent de celui de l'agent.
+  function differs(skill: Skill) {
+    const own = prefs.skills[skill.id]
+    return own !== undefined && own !== skill.mode
   }
 
-  // Contenu du SKILL.md, sans l'en-tête YAML que la page montre déjà (nom, description).
-  async function read(skill: Skill) {
-    return (await readSkill(skill)).replace(/^---\n[\s\S]*?\n---\n+/, '')
+  async function setMode(skill: Skill, value: SkillMode, at: Scope = 'nuee') {
+    if (at === 'nuee') {
+      if (value === skill.mode) delete prefs.skills[skill.id]
+      else prefs.skills[skill.id] = value
+      return
+    }
+    delete prefs.skills[skill.id]
+    const previous = skill.mode
+    skill.mode = value
+    try {
+      await skillsSetMode(AGENT, skill.id, value)
+    } catch (error) {
+      skill.mode = previous
+      fail('settings.skills.modeFailed', skill.name, error)
+    }
   }
 
-  function reveal(skill: Skill) {
-    revealPath(skill.path)
+  // Un serveur coupé partout ne peut pas être rallumé pour Nuée seule : la CLI cumule les refus.
+  function serverOn(server: McpServer, at: Scope = 'nuee') {
+    if (server.status === 'disabled') return false
+    return at === 'everywhere' || !prefs.servers.includes(server.name)
+  }
+
+  function serverLocked(server: McpServer, at: Scope = 'nuee') {
+    return at === 'nuee' && server.status === 'disabled'
+  }
+
+  async function setServer(server: McpServer, on: boolean, at: Scope = 'nuee') {
+    const without = () => prefs.servers.filter((name) => name !== server.name)
+    if (at === 'nuee') {
+      prefs.servers = on ? without() : [...without(), server.name]
+      return
+    }
+    prefs.servers = without()
+    const previous = server.status
+    server.status = on ? 'pending' : 'disabled'
+    try {
+      await mcpSetEnabled(AGENT, server.name, on)
+    } catch (error) {
+      server.status = previous
+      fail('settings.skills.serverFailed', server.name, error)
+      return
+    }
+    if (on) await reconnect(server.name)
+  }
+
+  function findServer(name: string) {
+    return servers.value.find((server) => server.name === name) ?? null
+  }
+
+  // Ce que les chats de Nuée changent à la config de l'agent (SessionSpec).
+  function exclusions() {
+    return { skills: { ...prefs.skills }, serversOff: [...prefs.servers] }
+  }
+
+  function expanded(group: Group) {
+    return !prefs.collapsed.includes(group)
+  }
+
+  function toggle(group: Group) {
+    prefs.collapsed = expanded(group) ? [...prefs.collapsed, group] : prefs.collapsed.filter((item) => item !== group)
+  }
+
+  function find(id: string) {
+    return skills.value.find((skill) => skill.id === id) ?? null
+  }
+
+  function read(skill: Skill) {
+    return skillsRead(AGENT, skill.id)
+  }
+
+  async function reveal(skill: Skill) {
+    try {
+      await skillsReveal(AGENT, skill.id)
+    } catch (error) {
+      fail('settings.skills.revealFailed', skill.name, error)
+    }
   }
 
   async function copy(skill: Skill) {
@@ -137,23 +212,159 @@ export const useSkillsStore = defineStore('skills', () => {
     }
   }
 
-  // Connexion (OAuth du serveur) ou reconnexion d'un serveur tombé.
-  async function connect(id: string) {
-    const server = servers.value.find((item) => item.id === id)
-    if (!server || pending.has(id)) return
-    pending.add(id)
+  async function save(skill: Skill, content: string) {
     try {
-      server.tools = await authenticate()
-      server.status = 'connected'
-      server.error = null
-    } finally {
-      pending.delete(id)
+      await skillsWrite(AGENT, skill.id, content)
+      dirty.value = false
+      await loadSkills()
+      return true
+    } catch (error) {
+      fail('settings.skills.saveFailed', skill.name, error)
+      return false
     }
   }
 
-  function preview(skill: Skill | null) {
-    previewed.value = skill
+  async function trash(skill: Skill) {
+    const { t } = i18nGlobal()
+    const confirmed = await useDialogStore().confirm({
+      title: t('settings.skills.deleteTitle', { name: skill.name }),
+      message: t('settings.skills.deleteMessage'),
+      confirmLabel: t('settings.skills.deleteConfirm'),
+      danger: true,
+    })
+    if (!confirmed) return false
+    try {
+      await skillsTrash(AGENT, skill.id)
+    } catch (error) {
+      fail('settings.skills.deleteFailed', skill.name, error)
+      return false
+    }
+    if (previewed.value?.id === skill.id) close(true)
+    delete prefs.skills[skill.id]
+    skills.value = skills.value.filter((item) => item.id !== skill.id)
+    useToastsStore().push({ title: t('settings.skills.deleted', { name: skill.name }), body: t('settings.skills.deletedBody') })
+    return true
   }
 
-  return { loading, skills, servers, pending, previewed, preview, load, enabled, setEnabled, expanded, toggle, read, reveal, copy, connect }
+  function update(server: McpServer) {
+    servers.value = servers.value.map((item) => (item.name === server.name ? server : item))
+  }
+
+  async function reconnect(name: string) {
+    if (pending.has(name)) return
+    pending.add(name)
+    try {
+      update(await mcpCheck(AGENT, name))
+    } catch (error) {
+      fail('settings.skills.reconnectFailed', name, error)
+    } finally {
+      pending.delete(name)
+    }
+  }
+
+  // Autorisation (OAuth) dans le navigateur. Recliquer pendant l'attente l'annule.
+  async function connect(name: string) {
+    if (logins.has(name)) {
+      logins.delete(name)
+      await mcpCancelLogin(name)
+      return
+    }
+    if (pending.has(name)) return
+    pending.add(name)
+    logins.add(name)
+    try {
+      update(await mcpLogin(AGENT, name))
+    } catch (error) {
+      if (logins.has(name)) fail('settings.skills.connectFailed', name, error)
+    } finally {
+      pending.delete(name)
+      logins.delete(name)
+    }
+  }
+
+  function fail(key: string, name: string, error: unknown) {
+    const { t } = i18nGlobal()
+    useToastsStore().push({ title: t(key, { name }), body: message(error) })
+  }
+
+  // Un autre skill ouvert avec des modifications non enregistrées fait demander d'abord.
+  async function preview(skill: Skill) {
+    if (previewed.value?.id === skill.id) return true
+    if (!(await confirmClose())) return false
+    previewed.value = skill
+    return true
+  }
+
+  async function edit(skill: Skill) {
+    if (await preview(skill)) editing.value = true
+  }
+
+  // Ferme le panneau, ou seulement l'éditeur (`editorOnly`). Des modifications non enregistrées font
+  // demander d'abord : `false` si l'utilisateur les garde.
+  async function confirmClose(editorOnly = false) {
+    if (dirty.value) {
+      const { t } = i18nGlobal()
+      const discard = await useDialogStore().confirm({
+        title: t('settings.skills.discardTitle'),
+        message: t('settings.skills.discardMessage', { name: previewed.value?.name ?? '' }),
+        confirmLabel: t('settings.skills.discardConfirm'),
+        danger: true,
+      })
+      if (!discard) return false
+    }
+    dirty.value = false
+    editing.value = false
+    if (!editorOnly) previewed.value = null
+    return true
+  }
+
+  // Sans question : rien n'est fermé si l'éditeur a des modifications, sauf `force`.
+  function close(force = false) {
+    if (dirty.value && !force) return
+    dirty.value = false
+    editing.value = false
+    previewed.value = null
+  }
+
+  return {
+    skills,
+    servers,
+    loaded,
+    loading,
+    checking,
+    errors,
+    pending,
+    logins,
+    previewed,
+    editing,
+    draft,
+    dirty,
+    prefs,
+    scope,
+    load,
+    loadSkills,
+    loadServers,
+    mode,
+    differs,
+    setMode,
+    serverOn,
+    serverLocked,
+    setServer,
+    findServer,
+    exclusions,
+    expanded,
+    toggle,
+    find,
+    read,
+    reveal,
+    copy,
+    save,
+    trash,
+    reconnect,
+    connect,
+    preview,
+    edit,
+    confirmClose,
+    close,
+  }
 })

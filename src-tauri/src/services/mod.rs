@@ -5,3 +5,4 @@ pub mod background;
 pub mod chat;
 pub mod notification;
 pub mod power;
+pub mod skills;

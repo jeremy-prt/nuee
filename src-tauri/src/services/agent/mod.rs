@@ -1,9 +1,11 @@
 mod claude;
+mod mcp;
 mod process;
 mod release;
 mod session;
+pub mod settings;
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, MutexGuard};
@@ -15,7 +17,10 @@ use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::time::{Instant, timeout, timeout_at};
 use ts_rs::TS;
 
+use self::mcp::McpAuth;
+pub use self::mcp::{McpServer, McpStatus};
 use self::session::{Session, SessionKey, Sessions, Turn};
+pub use self::settings::SkillMode;
 
 use crate::error::AppError;
 use crate::services::attachment::{self, Attached, Attachment};
@@ -35,6 +40,19 @@ impl AgentKind {
             Self::Claude => Box::new(claude::Claude::new(cwd)),
         }
     }
+
+    pub fn skills_dir(self) -> Option<PathBuf> {
+        match self {
+            Self::Claude => claude::config_dir().map(|dir| dir.join("skills")),
+        }
+    }
+
+    /// Réglages globaux de l'agent, là où Nuée écrit l'activation des skills.
+    pub fn settings_file(self) -> Option<PathBuf> {
+        match self {
+            Self::Claude => claude::config_dir().map(|dir| dir.join("settings.json")),
+        }
+    }
 }
 
 /// Ce qui définit le process d'un chat. Le même process sert tous les tours tant que ça ne change pas.
@@ -51,6 +69,26 @@ pub struct SessionSpec {
     pub options: TurnOptions,
     /// `false` : les hooks de la config de l'utilisateur ne tournent pas dans les chats de Nuée.
     pub hooks: bool,
+    /// Réglages des skills propres à Nuée, par nom de dossier : ils priment sur ceux de l'utilisateur
+    /// sans les modifier.
+    pub skills: BTreeMap<String, SkillMode>,
+    /// Serveurs MCP coupés dans Nuée seulement.
+    pub servers_off: Vec<String>,
+}
+
+/// Commande de Nuée attachée à un message : des consignes que l'utilisateur ne voit pas partent avec lui.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(
+    tag = "kind",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
+#[ts(export)]
+pub enum ChatCommand {
+    /// Écrire un nouveau skill dans la config globale de l'agent.
+    CreateSkill,
+    /// Retoucher un skill de la config globale, désigné par son dossier.
+    EditSkill { id: String },
 }
 
 /// Réglages d'un chat, repris à chaque tour : en changer en cours de conversation est possible.
@@ -267,6 +305,17 @@ trait Driver: Send + Sync {
     /// `usage` : demander aussi les quotas, qui passent par le réseau.
     fn probe(&self, usage: bool) -> (Vec<String>, Vec<String>);
     fn parse_probe(&self, line: &str, probe: &mut Probe);
+    /// Lance l'agent sans tour pour suivre ses serveurs MCP : ses arguments et les lignes à lui écrire.
+    fn mcp_probe(&self) -> (Vec<String>, Vec<String>);
+    /// Ligne qui redemande l'état des serveurs MCP.
+    fn mcp_status_message(&self) -> String;
+    /// `Some` quand la ligne répond à `mcp_status_message`.
+    fn parse_mcp_status(&self, line: &str) -> Option<Result<Vec<McpServer>, String>>;
+    /// Ligne qui fait retenter un serveur à un process déjà ouvert.
+    fn mcp_reconnect_message(&self, name: &str) -> String;
+    /// Ligne qui demande l'autorisation (OAuth) d'un serveur ; `parse_mcp_auth` lit la réponse.
+    fn mcp_auth_message(&self, name: &str) -> String;
+    fn parse_mcp_auth(&self, line: &str) -> Option<Result<McpAuth, String>>;
     /// Paquet npm où l'agent publie ses versions, et l'étiquette que suit cette installation.
     fn release(&self, program: &Path) -> (&'static str, &'static str);
     /// Mise à jour par la CLI elle-même : elle sait mieux que Nuée comment elle a été installée.
@@ -307,6 +356,8 @@ pub struct AgentService {
     catalogs: Mutex<HashMap<AgentKind, Catalog>>,
     /// Emplacement choisi à la main dans les réglages, à la place de celui trouvé dans le PATH.
     paths: Mutex<HashMap<AgentKind, PathBuf>>,
+    /// Connexions de serveurs MCP qui attendent le navigateur, par nom : de quoi les annuler.
+    logins: Mutex<HashMap<String, u32>>,
 }
 
 impl AgentService {
@@ -319,6 +370,7 @@ impl AgentService {
             scratch,
             catalogs: Mutex::default(),
             paths: Mutex::default(),
+            logins: Mutex::default(),
         }
     }
 
@@ -330,11 +382,15 @@ impl AgentService {
         prompt: String,
         attachments: &[Attachment],
         recap: Option<String>,
+        command: Option<ChatCommand>,
         channel: Channel<AgentEvent>,
     ) -> Result<(), AppError> {
         if prompt.trim().is_empty() && attachments.is_empty() {
             return Err(AppError::InvalidInput("message vide".into()));
         }
+        let instructions = command
+            .map(|command| command_instructions(spec.agent, &command))
+            .transpose()?;
         let (key, cwd) = self.key(&spec)?;
         let attached = attachment::load(attachments)?;
         let driver = spec.agent.driver(&cwd);
@@ -361,6 +417,11 @@ impl AgentService {
         let text = match recap.filter(|recap| session.is_fresh() && !recap.trim().is_empty()) {
             Some(recap) => with_recap(&recap, &prompt),
             None => prompt,
+        };
+        // Avant le message, comme le rappel : une phrase en anglais à la fin ferait répondre en anglais.
+        let text = match instructions {
+            Some(instructions) => format!("{instructions}\n\n{text}"),
+            None => text,
         };
         session.begin(Turn {
             channel,
@@ -625,6 +686,8 @@ impl AgentService {
             cwd: cwd.clone(),
             options: spec.options.clone(),
             hooks: spec.hooks,
+            skills: valid_skills(&spec.skills)?,
+            servers_off: valid_names(&spec.servers_off)?,
         };
         Ok((key, cwd))
     }
@@ -653,6 +716,62 @@ impl AgentService {
             None => valid_session_id(model),
         }
     }
+}
+
+fn valid_skills(
+    skills: &BTreeMap<String, SkillMode>,
+) -> Result<BTreeMap<String, SkillMode>, AppError> {
+    if skills.len() > 500 || !skills.keys().all(|id| valid_name(id)) {
+        return Err(AppError::InvalidInput(
+            "réglages de skills invalides".into(),
+        ));
+    }
+    Ok(skills.clone())
+}
+
+/// Noms de serveurs, triés : le même choix dans un autre ordre ne relance pas le process.
+fn valid_names(names: &[String]) -> Result<Vec<String>, AppError> {
+    if names.len() > 500 || !names.iter().all(|name| valid_name(name)) {
+        return Err(AppError::InvalidInput("liste de noms invalide".into()));
+    }
+    let mut names = names.to_vec();
+    names.sort();
+    names.dedup();
+    Ok(names)
+}
+
+/// Nom de skill ou de serveur MCP (« claude.ai Google Drive », « plugin:figma:figma »). Il finit en
+/// argument de la CLI : rien qui puisse passer pour une option.
+pub(crate) fn valid_name(name: &str) -> bool {
+    !name.trim().is_empty()
+        && name.len() <= 200
+        && !name.starts_with('-')
+        && !name.chars().any(char::is_control)
+}
+
+/// Consignes d'une commande, avec les vrais chemins : l'agent écrit où la CLI ira lire.
+fn command_instructions(kind: AgentKind, command: &ChatCommand) -> Result<String, AppError> {
+    let skills_dir = kind
+        .skills_dir()
+        .ok_or_else(|| std::io::Error::other("dossier de config introuvable"))?;
+    let task = match command {
+        ChatCommand::CreateSkill => {
+            "The user wants to create a new skill. Pick a folder name that does not exist yet: never \
+             overwrite an existing skill."
+                .to_owned()
+        }
+        ChatCommand::EditSkill { id } => {
+            let file = crate::services::skills::skill_file(kind, id)?;
+            format!(
+                "The user wants to change the skill in `{}`. Read it first, change what they ask plus \
+                 clear mistakes, and keep its folder name.",
+                file.display()
+            )
+        }
+    };
+    Ok(include_str!("skill_writer.md")
+        .replace("{task}", &task)
+        .replace("{skills_dir}", &skills_dir.to_string_lossy()))
 }
 
 fn with_recap(recap: &str, prompt: &str) -> String {
@@ -723,5 +842,34 @@ mod tests {
         assert!(!valid_session_id("abc def"));
         assert!(!valid_session_id(".."));
         assert!(!valid_session_id(""));
+    }
+
+    #[test]
+    fn skill_commands_point_to_the_real_folder() {
+        let text = command_instructions(AgentKind::Claude, &ChatCommand::CreateSkill).unwrap();
+        let dir = AgentKind::Claude.skills_dir().unwrap();
+        assert!(text.contains(&*dir.to_string_lossy()));
+        assert!(text.contains("never overwrite"));
+        assert!(!text.contains("{task}") && !text.contains("{skills_dir}"));
+        let edit = ChatCommand::EditSkill {
+            id: "../settings.json".into(),
+        };
+        assert!(command_instructions(AgentKind::Claude, &edit).is_err());
+    }
+
+    #[test]
+    fn names_are_sorted_and_checked() {
+        let names = [
+            "vue".to_owned(),
+            "claude.ai Notion".to_owned(),
+            "vue".to_owned(),
+        ];
+        assert_eq!(
+            valid_names(&names).unwrap(),
+            ["claude.ai Notion".to_owned(), "vue".to_owned()]
+        );
+        assert!(valid_names(&["--settings".to_owned()]).is_err());
+        assert!(valid_names(&["a\nb".to_owned()]).is_err());
+        assert!(valid_names(&[" ".to_owned()]).is_err());
     }
 }

@@ -25,6 +25,8 @@ pub(super) struct SessionKey {
     pub cwd: PathBuf,
     pub options: TurnOptions,
     pub hooks: bool,
+    pub skills: std::collections::BTreeMap<String, super::SkillMode>,
+    pub servers_off: Vec<String>,
 }
 
 pub(super) struct Turn {
@@ -387,6 +389,27 @@ mod tests {
             (Vec::new(), Vec::new())
         }
         fn parse_probe(&self, _: &str, _: &mut Probe) {}
+        fn mcp_probe(&self) -> (Vec<String>, Vec<String>) {
+            (Vec::new(), Vec::new())
+        }
+        fn mcp_status_message(&self) -> String {
+            String::new()
+        }
+        fn parse_mcp_status(
+            &self,
+            _: &str,
+        ) -> Option<Result<Vec<super::super::McpServer>, String>> {
+            None
+        }
+        fn mcp_reconnect_message(&self, _: &str) -> String {
+            String::new()
+        }
+        fn mcp_auth_message(&self, _: &str) -> String {
+            String::new()
+        }
+        fn parse_mcp_auth(&self, _: &str) -> Option<Result<super::super::McpAuth, String>> {
+            None
+        }
         fn release(&self, _: &Path) -> (&'static str, &'static str) {
             ("sh", "latest")
         }
@@ -434,6 +457,8 @@ mod tests {
                     effort: None,
                 },
                 hooks: true,
+                skills: Default::default(),
+                servers_off: Vec::new(),
             };
             let session = Session::start(Launch {
                 program: Path::new("/bin/sh"),

@@ -1,40 +1,61 @@
 <script setup lang="ts">
-import { Check, ChevronRight, Copy, Eye, FolderOpen, RefreshCw, Search } from '@lucide/vue'
+import { Check, ChevronRight, Copy, Eye, FolderOpen, RefreshCw, Search, SlidersHorizontal, Sparkles } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import SettingsMcpRow from '@/components/settings/SettingsMcpRow.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiSwitch from '@/components/ui/UiSwitch.vue'
+import { useNewChat } from '@/composables/useNewChat'
 import { isMacosApp } from '@/ipc/system'
-import { type McpServer, type Skill, useSkillsStore } from '@/stores/skills'
+import { useNavigationStore } from '@/stores/navigation'
+import { type Group, type McpServer, type Skill, useSkillsStore } from '@/stores/skills'
 import { normalize } from '@/utils/search'
 
 const { t } = useI18n()
 const revealLabel = isMacosApp() ? 'settings.skills.reveal' : 'settings.skills.revealFolder'
 const store = useSkillsStore()
+const navigation = useNavigationStore()
+const newChat = useNewChat()
 const query = ref('')
 const copied = ref<string | null>(null)
 
-if (!store.skills.length && !store.servers.length) store.load()
+if (!store.loaded) store.load()
 
 const needle = computed(() => normalize(query.value.trim()))
 const matches = (...texts: string[]) => !needle.value || texts.some((text) => normalize(text).includes(needle.value))
 const skills = computed(() => store.skills.filter((skill) => matches(skill.name, skill.description)))
-const servers = computed(() => store.servers.filter((server) => matches(server.name, server.target)))
+const busy = computed(() => store.loading || store.checking)
+const on = (skill: Skill) => store.mode(skill) !== 'off'
+const command = (skill: Skill) => store.mode(skill) === 'userInvocableOnly' || (skill.manual && on(skill))
 
-const groups = computed(() => [
-  { kind: 'skills' as const, title: t('settings.skills.skills'), ids: store.skills.map((skill) => skill.id), empty: t('settings.skills.noSkills') },
-  { kind: 'servers' as const, title: t('settings.skills.servers'), ids: store.servers.map((server) => server.id), empty: t('settings.skills.noServers') },
-])
+// Les connecteurs viennent du compte claude.ai, pas de la config : à part, ceux qui servent en tête.
+const isConnector = (server: McpServer) => server.scope === 'claudeai'
+const rank = (server: McpServer) => (server.status === 'connected' ? 0 : server.status === 'disabled' ? 2 : 1)
+const servers = computed(() => store.servers.filter((server) => !isConnector(server) && matches(server.name, server.target)))
+const connectors = computed(() =>
+  store.servers.filter((server) => isConnector(server) && matches(server.name)).sort((a, b) => rank(a) - rank(b)),
+)
 
-// Un serveur coupé dans Nuée n'est pas lancé : son état réel ne compte plus.
-function status(server: McpServer) {
-  if (!store.enabled('servers', server.id)) return { tone: 'bg-muted/50', text: t('settings.skills.status.off') }
-  if (server.status === 'connected') {
-    return { tone: 'bg-success', text: server.tools === null ? t('settings.skills.status.connected') : t('settings.skills.tools', server.tools) }
-  }
-  if (server.status === 'needsAuth') return { tone: 'bg-info', text: t('settings.skills.status.needsAuth') }
-  return { tone: 'bg-danger', text: t('settings.skills.status.failed', { error: server.error }) }
+const groups = computed(() => {
+  const count = (list: McpServer[]) => ({ total: list.length, on: list.filter((server) => store.serverOn(server)).length })
+  return [
+    { kind: 'skills' as Group, title: t('settings.skills.skills'), total: store.skills.length, on: store.skills.filter(on).length, hint: null },
+    { kind: 'servers' as Group, title: t('settings.skills.servers'), ...count(store.servers.filter((server) => !isConnector(server))), hint: null },
+    {
+      kind: 'connectors' as Group,
+      title: t('settings.skills.connectors'),
+      ...count(store.servers.filter(isConnector)),
+      hint: t('settings.skills.connectorsHint'),
+    },
+  ].filter((group) => group.kind !== 'connectors' || group.total)
+})
+
+function empty(kind: Group) {
+  if (needle.value) return t('settings.skills.noMatch')
+  if (kind === 'skills') return store.errors.skills ? t('settings.skills.skillsError', { error: store.errors.skills }) : t('settings.skills.noSkills')
+  if (store.errors.servers) return t('settings.skills.serversError', { error: store.errors.servers })
+  return store.checking ? t('settings.skills.loading') : t('settings.skills.noServers')
 }
 
 async function copy(skill: Skill) {
@@ -70,12 +91,17 @@ function onFilterKeydown(event: KeyboardEvent) {
         @keydown="onFilterKeydown"
       />
     </label>
-    <UiIconButton :label="t('settings.skills.refresh')" :aria-busy="store.loading" @click="store.load()">
-      <RefreshCw class="size-3.5" :class="{ 'animate-spin': store.loading }" aria-hidden="true" />
+    <UiIconButton :label="t('settings.skills.refresh')" :aria-busy="busy" :disabled="busy" @click="store.load()">
+      <RefreshCw class="size-3.5" :class="{ 'animate-spin': busy }" aria-hidden="true" />
     </UiIconButton>
+    <span class="flex-1" />
+    <!-- Pas de création à la main : l'IA pose les bonnes questions et écrit un SKILL.md propre. -->
+    <UiButton size="sm" :title="t('settings.skills.createHint')" @click="newChat(null, { kind: 'createSkill' })">
+      <Sparkles class="size-3.5" aria-hidden="true" />{{ t('settings.skills.create') }}
+    </UiButton>
   </div>
 
-  <p v-if="store.loading && !store.skills.length" class="pt-6 text-xs text-muted" role="status">{{ t('settings.skills.loading') }}</p>
+  <p v-if="!store.loaded" class="pt-6 text-xs text-muted" role="status">{{ t('settings.skills.loading') }}</p>
 
   <template v-else>
     <section v-for="group in groups" :key="group.kind" :data-setting="`${group.kind}-list`" class="pt-8">
@@ -93,8 +119,8 @@ function onFilterKeydown(event: KeyboardEvent) {
             aria-hidden="true"
           />
           <span class="min-w-0 flex-1 text-sm font-semibold">{{ group.title }}</span>
-          <span v-if="group.ids.length" class="text-xs font-normal text-muted tabular-nums">
-            {{ t('settings.skills.enabledCount', { enabled: group.ids.filter((id) => store.enabled(group.kind, id)).length, total: group.ids.length }) }}
+          <span v-if="group.total" class="text-xs font-normal text-muted tabular-nums">
+            {{ t('settings.skills.enabledCount', { enabled: group.on, total: group.total }) }}
           </span>
         </button>
       </h3>
@@ -107,80 +133,82 @@ function onFilterKeydown(event: KeyboardEvent) {
         :inert="!store.expanded(group.kind)"
       >
         <div class="min-h-0 overflow-hidden">
+          <p v-if="group.hint" class="-mt-1 pb-2.5 text-xs/relaxed text-muted">{{ group.hint }}</p>
           <div class="overflow-hidden rounded-xl border border-stroke bg-content/3">
             <template v-if="group.kind === 'skills'">
-              <p v-if="!skills.length" class="px-4 py-3 text-xs text-muted">{{ needle ? t('settings.skills.noMatch') : group.empty }}</p>
+              <p v-if="!skills.length" class="px-4 py-3 text-xs" :class="store.errors.skills ? 'text-danger' : 'text-muted'">{{ empty('skills') }}</p>
               <div
-                v-for="skill in skills"
+                v-for="(skill, index) in skills"
                 :key="skill.id"
                 class="group flex items-center gap-4 border-b border-stroke px-4 py-2 last:border-b-0"
                 :class="{ 'bg-selection': store.previewed?.id === skill.id }"
               >
-                <div class="min-w-0 flex-1 transition-opacity motion-reduce:transition-none" :class="{ 'opacity-40': !store.enabled('skills', skill.id) }">
-                  <!-- Raccourci souris : au clavier, « Voir le skill » fait la même chose sans un arrêt de Tab de plus par ligne. -->
-                  <button
-                    type="button"
-                    tabindex="-1"
-                    class="block max-w-full cursor-pointer truncate text-start text-sm font-medium hover:underline"
-                    @click="store.preview(skill)"
-                  >
-                    {{ skill.name }}
-                  </button>
-                  <p :id="`skill-${skill.id}`" class="truncate text-xs/relaxed text-muted" :title="skill.description">{{ skill.description }}</p>
+                <div class="min-w-0 flex-1 transition-opacity motion-reduce:transition-none" :class="{ 'opacity-40': !on(skill) }">
+                  <p class="flex min-w-0 items-center gap-2">
+                    <!-- Raccourci souris : au clavier, « Voir le skill » fait la même chose sans un arrêt de Tab de plus par ligne. -->
+                    <button
+                      type="button"
+                      tabindex="-1"
+                      class="min-w-0 cursor-pointer truncate text-start text-sm font-medium hover:underline"
+                      @click="store.preview(skill)"
+                    >
+                      {{ skill.name }}
+                    </button>
+                    <span v-if="command(skill)" class="shrink-0 rounded bg-content/8 px-1.5 py-px text-[11px] text-muted">
+                      {{ t('settings.skills.usages.command') }}
+                    </span>
+                    <!-- Le réglage global se voit ici, il se change dans la sous-page. -->
+                    <span v-if="store.differs(skill)" class="shrink-0 rounded bg-content/8 px-1.5 py-px text-[11px] text-muted">
+                      {{ t('settings.skills.ownToNuee') }}
+                    </span>
+                    <span v-else-if="skill.mode === 'off'" class="shrink-0 rounded bg-content/8 px-1.5 py-px text-[11px] text-muted">
+                      {{ t('settings.skills.status.disabled') }}
+                    </span>
+                  </p>
+                  <p :id="`skill-${index}`" class="line-clamp-2 text-xs/relaxed text-muted" :title="skill.description">{{ skill.description }}</p>
                 </div>
-                <!-- Visibles au survol de la ligne ou quand le clavier y entre : la liste reste calme. -->
-                <div
-                  class="flex shrink-0 items-center opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 motion-reduce:transition-none"
-                  :class="{ 'opacity-100': store.previewed?.id === skill.id }"
-                >
-                  <UiIconButton :label="t('settings.skills.preview')" :data-skill-preview="skill.id" @click="store.preview(skill)">
-                    <Eye class="size-3.5" aria-hidden="true" />
-                  </UiIconButton>
-                  <UiIconButton :label="copied === skill.id ? t('settings.skills.copied') : t('settings.skills.copyPath')" @click="copy(skill)">
-                    <component :is="copied === skill.id ? Check : Copy" class="size-3.5" :class="{ 'text-success': copied === skill.id }" aria-hidden="true" />
-                  </UiIconButton>
-                  <UiIconButton :label="t(revealLabel)" @click="store.reveal(skill)">
-                    <FolderOpen class="size-3.5" aria-hidden="true" />
+                <div class="flex shrink-0 items-center">
+                  <!-- Aperçu, chemin et dossier visibles au survol ou quand le clavier entre dans la ligne : la liste reste calme. -->
+                  <div
+                    class="flex items-center opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 motion-reduce:transition-none"
+                    :class="{ 'opacity-100': store.previewed?.id === skill.id }"
+                  >
+                    <UiIconButton :label="t('settings.skills.preview')" :data-skill-preview="skill.id" @click="store.preview(skill)">
+                      <Eye class="size-3.5" aria-hidden="true" />
+                    </UiIconButton>
+                    <UiIconButton :label="copied === skill.id ? t('settings.skills.copied') : t('settings.skills.copyPath')" @click="copy(skill)">
+                      <component :is="copied === skill.id ? Check : Copy" class="size-3.5" :class="{ 'text-success': copied === skill.id }" aria-hidden="true" />
+                    </UiIconButton>
+                    <UiIconButton :label="t(revealLabel)" @click="store.reveal(skill)">
+                      <FolderOpen class="size-3.5" aria-hidden="true" />
+                    </UiIconButton>
+                  </div>
+                  <UiIconButton
+                    :label="t('settings.skills.configure', { name: skill.name })"
+                    :data-customize="`skill:${skill.id}`"
+                    @click="navigation.showSettingsDetail(`skill:${skill.id}`)"
+                  >
+                    <SlidersHorizontal class="size-3.5" aria-hidden="true" />
                   </UiIconButton>
                 </div>
                 <UiSwitch
-                  :model-value="store.enabled('skills', skill.id)"
+                  :model-value="on(skill)"
                   :label="t('settings.skills.use', { name: skill.name })"
-                  :aria-describedby="`skill-${skill.id}`"
-                  @update:model-value="store.setEnabled('skills', skill.id, $event)"
+                  :aria-describedby="`skill-${index}`"
+                  @update:model-value="store.setMode(skill, $event ? 'on' : 'off')"
                 />
               </div>
             </template>
 
             <template v-else>
-              <p v-if="!servers.length" class="px-4 py-3 text-xs text-muted">{{ needle ? t('settings.skills.noMatch') : group.empty }}</p>
-              <div v-for="server in servers" :key="server.id" class="flex items-center gap-4 border-b border-stroke px-4 py-2 last:border-b-0">
-                <div class="min-w-0 flex-1 transition-opacity motion-reduce:transition-none" :class="{ 'opacity-40': !store.enabled('servers', server.id) }">
-                  <p class="flex min-w-0 items-center gap-2">
-                    <span class="size-1.5 shrink-0 rounded-full" :class="status(server).tone" aria-hidden="true" />
-                    <span class="truncate text-sm font-medium">{{ server.name }}</span>
-                  </p>
-                  <p :id="`server-${server.id}`" class="truncate ps-3.5 text-xs/relaxed text-muted" :title="server.target">
-                    <span :class="{ 'text-danger': server.status === 'failed' && store.enabled('servers', server.id) }">{{ status(server).text }}</span>
-                    · {{ server.transport }}
-                  </p>
-                </div>
-                <UiButton
-                  v-if="store.enabled('servers', server.id) && server.status !== 'connected'"
-                  size="xs"
-                  :loading="store.pending.has(server.id)"
-                  :aria-describedby="`server-${server.id}`"
-                  @click="store.connect(server.id)"
-                >
-                  {{ server.status === 'needsAuth' ? t('settings.skills.connect') : t('settings.skills.reconnect') }}
-                </UiButton>
-                <UiSwitch
-                  :model-value="store.enabled('servers', server.id)"
-                  :label="t('settings.skills.use', { name: server.name })"
-                  :aria-describedby="`server-${server.id}`"
-                  @update:model-value="store.setEnabled('servers', server.id, $event)"
-                />
-              </div>
+              <p
+                v-if="!(group.kind === 'servers' ? servers : connectors).length"
+                class="px-4 py-3 text-xs"
+                :class="store.errors.servers ? 'text-danger' : 'text-muted'"
+              >
+                {{ empty(group.kind) }}
+              </p>
+              <SettingsMcpRow v-for="server in group.kind === 'servers' ? servers : connectors" :key="server.name" :server="server" />
             </template>
           </div>
         </div>

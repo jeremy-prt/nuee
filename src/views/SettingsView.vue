@@ -11,7 +11,9 @@ import SettingsBackgroundOptions from '@/components/settings/SettingsBackgroundO
 import SettingsGlass from '@/components/settings/SettingsGlass.vue'
 import SettingsInterface from '@/components/settings/SettingsInterface.vue'
 import SettingsResetButton from '@/components/settings/SettingsResetButton.vue'
+import SettingsMcpServer from '@/components/settings/SettingsMcpServer.vue'
 import SettingsShortcuts from '@/components/settings/SettingsShortcuts.vue'
+import SettingsSkill from '@/components/settings/SettingsSkill.vue'
 import SettingsSkills from '@/components/settings/SettingsSkills.vue'
 import SettingsNotifications from '@/components/settings/SettingsNotifications.vue'
 import SettingsSystem from '@/components/settings/SettingsSystem.vue'
@@ -19,7 +21,16 @@ import SettingsThemeOptions from '@/components/settings/SettingsThemeOptions.vue
 import SettingsThemes from '@/components/settings/SettingsThemes.vue'
 import SettingsUpdates from '@/components/settings/SettingsUpdates.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
-import { isAgentDetail, type SettingsDetail, settingsDetailTitle, useNavigationStore } from '@/stores/navigation'
+import {
+  isAgentDetail,
+  isServerDetail,
+  isSkillDetail,
+  type SettingsDetail,
+  serverOfDetail,
+  settingsDetailTitle,
+  skillOfDetail,
+  useNavigationStore,
+} from '@/stores/navigation'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { useSkillsStore } from '@/stores/skills'
 
@@ -32,11 +43,12 @@ const root = useTemplateRef('root')
 const heading = useTemplateRef('heading')
 
 // Nouvelle section ou sous-page : on repart du haut (le fondu enchaîné est dans stores/navigation.ts).
+// Un skill en cours de modification reste ouvert : ses changements ne se perdent pas en chemin.
 watch(
   () => [navigation.settingsSection, navigation.settingsDetail],
   () => {
     root.value?.scrollTo({ top: 0 })
-    skills.preview(null)
+    skills.close()
   },
 )
 
@@ -53,7 +65,7 @@ watch(
     await nextTick()
     if (revealing) return
     if (detail) heading.value?.focus()
-    else if (previous && restore) root.value?.querySelector<HTMLElement>(`[data-customize="${previous}"]`)?.focus()
+    else if (previous && restore) root.value?.querySelector<HTMLElement>(`[data-customize="${CSS.escape(previous)}"]`)?.focus()
   },
 )
 
@@ -96,7 +108,7 @@ function onKeydown(event: KeyboardEvent) {
   if (!shortcuts.matches(event, 'closeSettings') || event.defaultPrevented || event.isComposing) return
   if ((event.target as Element | null)?.closest?.('[data-reka-popper-content-wrapper], [role="dialog"], [role="alertdialog"], .ui-toast')) return
   event.preventDefault()
-  if (skills.previewed) skills.preview(null)
+  if (skills.previewed) skills.confirmClose(skills.editing)
   else if (navigation.settingsDetail) back()
   else navigation.closeSettings()
 }
@@ -104,7 +116,7 @@ function onKeydown(event: KeyboardEvent) {
 onMounted(() => window.addEventListener('keydown', onKeydown))
 onUnmounted(() => {
   window.removeEventListener('keydown', onKeydown)
-  skills.preview(null)
+  skills.close()
 })
 </script>
 
@@ -126,6 +138,8 @@ onUnmounted(() => {
         <SettingsThemeOptions v-if="navigation.settingsDetail === 'theme'" />
         <SettingsBackgroundOptions v-else-if="navigation.settingsDetail === 'background'" />
         <SettingsAgent v-else-if="isAgentDetail(navigation.settingsDetail)" :kind="navigation.settingsDetail" />
+        <SettingsSkill v-else-if="isSkillDetail(navigation.settingsDetail)" :id="skillOfDetail(navigation.settingsDetail)" />
+        <SettingsMcpServer v-else-if="isServerDetail(navigation.settingsDetail)" :name="serverOfDetail(navigation.settingsDetail)" />
         <SettingsGlass v-else :window-style="navigation.settingsDetail" />
       </template>
       <template v-else>

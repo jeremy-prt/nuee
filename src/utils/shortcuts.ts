@@ -31,6 +31,7 @@ export const defaultShortcuts = {
   settings: { group: 'navigation', key: ',' },
   closeSettings: { group: 'navigation', key: 'Escape', mod: false, when: 'settings' },
   searchSettings: { group: 'navigation', key: 'f', when: 'settings' },
+  saveSkill: { group: 'navigation', key: 's', when: 'settings' },
   newChat: { group: 'chats', key: 'n' },
   closeTab: { group: 'chats', key: 'w' },
   split: { group: 'chats', key: 'd' },

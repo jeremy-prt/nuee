@@ -2,6 +2,7 @@
 import { CircleAlert, File, Folder, LoaderCircle } from '@lucide/vue'
 import { onMounted, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import ChatCommandChip from '@/components/chat/ChatCommandChip.vue'
 import ChatMarkdown from '@/components/chat/ChatMarkdown.vue'
 import ChatTool from '@/components/chat/ChatTool.vue'
 import { previewSrc } from '@/ipc/attachment'
@@ -52,6 +53,7 @@ function agentParams() {
     <ol class="mx-auto flex max-w-(--chat-width) flex-col gap-3 px-6 py-6" role="log" :aria-busy="running" :aria-label="t('chat.transcript')">
       <li v-for="(item, index) in items" :key="item.id" :class="{ 'flex flex-col items-end gap-1': item.kind === 'user' }">
         <template v-if="item.kind === 'user'">
+          <ChatCommandChip v-if="item.command" :command="item.command" />
           <ul v-if="item.attachments?.length" class="flex max-w-[85%] flex-wrap justify-end gap-2" :aria-label="t('composer.attachments')">
             <li v-for="attachment in item.attachments" :key="attachment.preview ?? attachment.path" :title="attachment.path">
               <img

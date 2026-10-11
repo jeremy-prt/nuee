@@ -1,3 +1,4 @@
+pub mod files;
 #[cfg(target_os = "macos")]
 pub mod macos;
 pub mod shell_env;

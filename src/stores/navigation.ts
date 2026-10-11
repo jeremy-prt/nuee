@@ -3,19 +3,42 @@ import { computed, ref } from 'vue'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { WindowStyle } from '@/stores/appearance'
 import { useLayoutStore } from '@/stores/layout'
+import { useSkillsStore } from '@/stores/skills'
 import { agents } from '@/utils/agents'
 import type { SettingsSection } from '@/utils/settings'
 
-// Sous-page d'une section : réglages du thème, de l'image de fond, d'un style de fenêtre ou d'un agent.
-export type SettingsDetail = WindowStyle | 'theme' | 'background' | AgentKind
+// Sous-page d'une section : réglages du thème, de l'image de fond, d'un style de fenêtre, d'un agent, d'un
+// skill (`skill:` suivi du nom de son dossier) ou d'un serveur MCP (`mcp:` suivi de son nom).
+export type SettingsDetail = WindowStyle | 'theme' | 'background' | AgentKind | `skill:${string}` | `mcp:${string}`
 
 export function isAgentDetail(detail: SettingsDetail | null): detail is AgentKind {
   return !!detail && detail in agents
 }
 
-// Un agent garde son nom de produit, non traduit.
+export function isSkillDetail(detail: SettingsDetail | null): detail is `skill:${string}` {
+  return !!detail?.startsWith('skill:')
+}
+
+export function skillOfDetail(detail: `skill:${string}`) {
+  return detail.slice('skill:'.length)
+}
+
+export function isServerDetail(detail: SettingsDetail | null): detail is `mcp:${string}` {
+  return !!detail?.startsWith('mcp:')
+}
+
+export function serverOfDetail(detail: `mcp:${string}`) {
+  return detail.slice('mcp:'.length)
+}
+
+// Un agent garde son nom de produit, un skill le nom qu'on tape, un serveur le sien : rien ne se traduit.
 export function settingsDetailTitle(detail: SettingsDetail, t: (key: string) => string) {
   if (isAgentDetail(detail)) return agents[detail].name
+  if (isSkillDetail(detail)) {
+    const id = skillOfDetail(detail)
+    return useSkillsStore().find(id)?.name ?? id
+  }
+  if (isServerDetail(detail)) return serverOfDetail(detail)
   if (detail === 'theme') return t('settings.themes.title')
   if (detail === 'background') return t('settings.background.title')
   return t(`settings.appearance.styles.${detail}`)

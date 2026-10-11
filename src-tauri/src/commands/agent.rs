@@ -3,7 +3,7 @@ use tauri::ipc::Channel;
 
 use crate::error::AppError;
 use crate::services::agent::{
-    AgentEvent, AgentKind, AgentService, AgentStatus, Catalog, SessionSpec,
+    AgentEvent, AgentKind, AgentService, AgentStatus, Catalog, ChatCommand, SessionSpec,
 };
 use crate::services::attachment::Attachment;
 
@@ -14,10 +14,11 @@ pub async fn agent_send(
     prompt: String,
     attachments: Vec<Attachment>,
     recap: Option<String>,
+    command: Option<ChatCommand>,
     on_event: Channel<AgentEvent>,
     agents: State<'_, AgentService>,
 ) -> Result<(), AppError> {
-    agents.send(spec, prompt, &attachments, recap, on_event)
+    agents.send(spec, prompt, &attachments, recap, command, on_event)
 }
 
 #[tauri::command]
