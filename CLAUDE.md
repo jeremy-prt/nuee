@@ -15,6 +15,10 @@ App desktop Tauri 2 + Vue pour piloter des agents de code, open source (MIT). In
 - Taille et position de la fenêtre retenues dans `.window-state.json` (dossier de données de l'app) : le supprimer pour retester le premier lancement, où la fenêtre occupe l'écran
 - `pnpm tauri build` : ne builde que pour l'OS courant. Les trois OS passent par le workflow `.github/workflows/build.yml`
 
+## Textes d'interface
+
+Ton pro et clair (choix de Jérémy), dans les 6 langues : pas de tutoiement (formulations impersonnelles), jamais de « : » pour enchaîner deux idées, pas de tournure qui sonne générée (« c'est X qui s'affiche », « Y à la place »). Un libellé dit ce qu'on règle (« Couleur de la mascotte »), une aide tient en une phrase simple ; un chemin ou un nom en forme spéciale s'insère avec `<Translation>`. Beaucoup de textes existants tutoient encore : ne pas s'aligner sur eux.
+
 ## Pièges
 
 - pnpm uniquement, version figée par `packageManager`.

@@ -134,7 +134,7 @@ export default {
     worktree: {
       label: 'Worktree',
       on: 'Este chat vai trabalhar em uma cópia do repositório, no seu próprio branch.',
-      off: 'Trabalhar em uma cópia do repositório, em um branch separado. Sua pasta não muda.',
+      off: 'Trabalhar em uma cópia do repositório, em um branch separado. A pasta do projeto não muda.',
     },
     mode: {
       label: 'Modo de permissão',
@@ -204,7 +204,7 @@ export default {
       agents: 'Escolha quais agentes usar e configure cada um.',
       connections: 'As contas e serviços vinculados ao Nuée.',
       skills: 'Os skills e servidores MCP dos seus agentes. Os interruptores só valem para o Nuée, as configurações de cada um também podem mudar o agente em todo lugar.',
-      projects: 'As pastas onde seus agentes trabalham.',
+      projects: 'As pastas em que os agentes trabalham.',
       archive: 'Os chats arquivados, para recuperar ou excluir.',
     },
     agents: {
@@ -265,7 +265,7 @@ export default {
     projects: {
       add: 'Adicionar um projeto',
       empty: 'Nenhum projeto',
-      emptyHint: 'Adicione uma pasta para que seus agentes possam ler e modificar os arquivos dela.',
+      emptyHint: 'Uma pasta adicionada aqui vira um projeto, onde os agentes podem ler e modificar os arquivos.',
       configure: 'Configurações de {name}',
       missing: 'Este projeto não existe mais.',
       name: 'Nome',
@@ -302,7 +302,7 @@ export default {
         vent: 'Vento',
         eclaircie: 'Sol entre nuvens',
       },
-      pickIcon: 'Escolha o ícone do projeto',
+      pickIcon: 'Escolher o ícone do projeto',
       iconFailed: 'Não foi possível usar esta imagem',
       color: 'Cor do mascote',
       colors: {
@@ -322,7 +322,7 @@ export default {
       model: 'Modelo',
       effort: 'Esforço',
       worktree: 'Um worktree por chat',
-      worktreeHint: 'Cada chat trabalha em uma cópia do repositório, no seu próprio branch. Sua pasta não muda.',
+      worktreeHint: 'Cada chat trabalha em uma cópia do repositório, no seu próprio branch. A pasta do projeto não muda.',
       worktreeSupport: {
         notRepo: 'Esta pasta não é um repositório git.',
         noCommit: 'O repositório ainda não tem nenhum commit.',
@@ -337,15 +337,15 @@ export default {
         always: 'Desativadas',
       },
       muteHints: {
-        on: 'Som e notificação quando um agente deste projeto termina ou espera por você.',
+        on: 'Som e notificação quando um agente deste projeto termina ou aguarda uma resposta.',
         until: 'Desativadas até {time}. Os chats não lidos continuam marcados.',
-        always: 'Desativadas até você reativá-las. Os chats não lidos continuam marcados.',
+        always: 'Desativadas até serem reativadas. Os chats não lidos continuam marcados.',
       },
       delete: 'Excluir o projeto',
-      deleteHint: 'Os chats dele são excluídos do Nuée. A pasta continua no seu disco.',
+      deleteHint: 'Os chats dele são excluídos do Nuée. A pasta continua no disco.',
       deleteButton: 'Excluir',
       deleteTitle: 'Excluir {name}?',
-      deleteMessage: 'Ele não tem chats. A pasta continua no seu disco. | O chat dele é excluído do Nuée. A pasta continua no seu disco. | Os {n} chats dele são excluídos do Nuée. A pasta continua no seu disco.',
+      deleteMessage: 'Ele não tem chats. A pasta continua no disco. | O chat dele será excluído do Nuée. A pasta continua no disco. | Os {n} chats dele serão excluídos do Nuée. A pasta continua no disco.',
       deleteConfirm: 'Excluir',
     },
     skills: {

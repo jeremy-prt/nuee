@@ -132,7 +132,7 @@ export default {
     worktree: {
       label: 'Worktree',
       on: 'This chat will work in a copy of the repository, on its own branch.',
-      off: 'Work in a copy of the repository, on a separate branch. Your folder stays as it is.',
+      off: 'Work in a copy of the repository, on a separate branch. The project folder stays as it is.',
     },
     mode: {
       label: 'Permission mode',
@@ -202,7 +202,7 @@ export default {
       agents: 'Choose which agents to use and set each one up.',
       connections: 'The accounts and services linked to Nuée.',
       skills: 'The skills and MCP servers of your agents. The switches only apply to Nuée, the settings of each one can also change the agent everywhere.',
-      projects: 'The folders your agents work in.',
+      projects: 'The folders the agents work in.',
       archive: 'Archived chats, to bring back or delete.',
     },
     agents: {
@@ -263,7 +263,7 @@ export default {
     projects: {
       add: 'Add a project',
       empty: 'No projects',
-      emptyHint: 'Add a folder so your agents can read and edit its files.',
+      emptyHint: 'A folder added here becomes a project, where the agents can read and edit files.',
       configure: 'Settings for {name}',
       missing: 'This project no longer exists.',
       name: 'Name',
@@ -320,7 +320,7 @@ export default {
       model: 'Model',
       effort: 'Effort',
       worktree: 'One worktree per chat',
-      worktreeHint: 'Each chat works on a copy of the repository, on its own branch. Your folder stays as it is.',
+      worktreeHint: 'Each chat works on a copy of the repository, on its own branch. The project folder stays as it is.',
       worktreeSupport: {
         notRepo: 'This folder is not a git repository.',
         noCommit: 'The repository has no commit yet.',
@@ -335,15 +335,15 @@ export default {
         always: 'Off',
       },
       muteHints: {
-        on: 'Sound and notification when an agent in this project is done or waiting for you.',
+        on: 'Sound and notification when an agent in this project is done or waiting for an answer.',
         until: 'Off until {time}. Unread chats stay marked.',
-        always: 'Off until you turn them back on. Unread chats stay marked.',
+        always: 'Off until turned back on. Unread chats stay marked.',
       },
       delete: 'Delete the project',
-      deleteHint: 'Its chats are deleted from Nuée. The folder stays on your disk.',
+      deleteHint: 'Its chats are deleted from Nuée. The folder stays on disk.',
       deleteButton: 'Delete',
       deleteTitle: 'Delete {name}?',
-      deleteMessage: 'It has no chats. The folder stays on your disk. | Its chat is deleted from Nuée. The folder stays on your disk. | Its {n} chats are deleted from Nuée. The folder stays on your disk.',
+      deleteMessage: 'It has no chats. The folder stays on disk. | Its chat will be deleted from Nuée. The folder stays on disk. | Its {n} chats will be deleted from Nuée. The folder stays on disk.',
       deleteConfirm: 'Delete',
     },
     skills: {

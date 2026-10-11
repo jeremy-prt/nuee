@@ -134,7 +134,7 @@ export default {
     worktree: {
       label: 'Worktree',
       on: '此聊天将在仓库副本的独立分支上工作。',
-      off: '在仓库副本的独立分支上工作。你的文件夹保持不变。',
+      off: '在仓库副本的独立分支上工作。项目文件夹保持不变。',
     },
     mode: {
       label: '权限模式',
@@ -204,7 +204,7 @@ export default {
       agents: '选择要使用的智能体，并分别进行设置。',
       connections: '与 Nuée 关联的账户和服务。',
       skills: '你的代理的技能和 MCP 服务器。开关只对 Nuée 生效，每一项的设置也可以处处修改代理。',
-      projects: '你的智能体工作的文件夹。',
+      projects: '智能体工作的文件夹。',
       archive: '已归档的聊天，可以恢复或删除。',
     },
     agents: {
@@ -265,7 +265,7 @@ export default {
     projects: {
       add: '添加项目',
       empty: '没有项目',
-      emptyHint: '添加一个文件夹，让你的智能体可以读取和修改其中的文件。',
+      emptyHint: '在此添加的文件夹会成为项目，智能体可以读取和修改其中的文件。',
       configure: '{name} 的设置',
       missing: '此项目已不存在。',
       name: '名称',
@@ -322,7 +322,7 @@ export default {
       model: '模型',
       effort: '推理强度',
       worktree: '每个聊天一个 worktree',
-      worktreeHint: '每个聊天在仓库副本的独立分支上工作。你的文件夹保持不变。',
+      worktreeHint: '每个聊天在仓库副本的独立分支上工作。项目文件夹保持不变。',
       worktreeSupport: {
         notRepo: '此文件夹不是 git 仓库。',
         noCommit: '仓库还没有任何提交。',
@@ -337,9 +337,9 @@ export default {
         always: '关闭',
       },
       muteHints: {
-        on: '此项目的智能体完成或等待你时，播放声音并发送通知。',
+        on: '此项目的智能体完成或等待回复时，播放声音并发送通知。',
         until: '关闭到 {time}。未读聊天仍会标记。',
-        always: '关闭，直到你重新开启。未读聊天仍会标记。',
+        always: '关闭，直到重新开启。未读聊天仍会标记。',
       },
       delete: '删除项目',
       deleteHint: '其聊天会从 Nuée 中删除。文件夹仍保留在磁盘上。',

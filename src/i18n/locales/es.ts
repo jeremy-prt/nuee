@@ -134,7 +134,7 @@ export default {
     worktree: {
       label: 'Worktree',
       on: 'Este chat trabajará en una copia del repositorio, en su propia rama.',
-      off: 'Trabajar en una copia del repositorio, en una rama aparte. Tu carpeta no cambia.',
+      off: 'Trabajar en una copia del repositorio, en una rama aparte. La carpeta del proyecto no cambia.',
     },
     mode: {
       label: 'Modo de permisos',
@@ -204,7 +204,7 @@ export default {
       agents: 'Elige qué agentes usar y configura cada uno.',
       connections: 'Las cuentas y servicios vinculados a Nuée.',
       skills: 'Los skills y servidores MCP de tus agentes. Los interruptores solo valen para Nuée, los ajustes de cada uno también pueden cambiar el agente en todas partes.',
-      projects: 'Las carpetas donde trabajan tus agentes.',
+      projects: 'Las carpetas en las que trabajan los agentes.',
       archive: 'Los chats archivados, para recuperarlos o eliminarlos.',
     },
     agents: {
@@ -265,7 +265,7 @@ export default {
     projects: {
       add: 'Añadir un proyecto',
       empty: 'Ningún proyecto',
-      emptyHint: 'Añade una carpeta para que tus agentes puedan leer y modificar sus archivos.',
+      emptyHint: 'Una carpeta añadida aquí se convierte en un proyecto, donde los agentes pueden leer y modificar los archivos.',
       configure: 'Ajustes de {name}',
       missing: 'Este proyecto ya no existe.',
       name: 'Nombre',
@@ -302,7 +302,7 @@ export default {
         vent: 'Viento',
         eclaircie: 'Sol entre nubes',
       },
-      pickIcon: 'Elige el icono del proyecto',
+      pickIcon: 'Elegir el icono del proyecto',
       iconFailed: 'No se pudo usar esta imagen',
       color: 'Color de la mascota',
       colors: {
@@ -322,7 +322,7 @@ export default {
       model: 'Modelo',
       effort: 'Esfuerzo',
       worktree: 'Un worktree por chat',
-      worktreeHint: 'Cada chat trabaja en una copia del repositorio, en su propia rama. Tu carpeta no cambia.',
+      worktreeHint: 'Cada chat trabaja en una copia del repositorio, en su propia rama. La carpeta del proyecto no cambia.',
       worktreeSupport: {
         notRepo: 'Esta carpeta no es un repositorio git.',
         noCommit: 'El repositorio aún no tiene ningún commit.',
@@ -337,15 +337,15 @@ export default {
         always: 'Desactivadas',
       },
       muteHints: {
-        on: 'Sonido y notificación cuando un agente de este proyecto termina o te espera.',
+        on: 'Sonido y notificación cuando un agente de este proyecto termina o espera una respuesta.',
         until: 'Desactivadas hasta las {time}. Los chats sin leer siguen marcados.',
-        always: 'Desactivadas hasta que las vuelvas a activar. Los chats sin leer siguen marcados.',
+        always: 'Desactivadas hasta que se vuelvan a activar. Los chats sin leer siguen marcados.',
       },
       delete: 'Eliminar el proyecto',
-      deleteHint: 'Sus chats se eliminan de Nuée. La carpeta se queda en tu disco.',
+      deleteHint: 'Sus chats se eliminan de Nuée. La carpeta se queda en el disco.',
       deleteButton: 'Eliminar',
       deleteTitle: '¿Eliminar {name}?',
-      deleteMessage: 'No tiene chats. La carpeta se queda en tu disco. | Su chat se elimina de Nuée. La carpeta se queda en tu disco. | Sus {n} chats se eliminan de Nuée. La carpeta se queda en tu disco.',
+      deleteMessage: 'No tiene chats. La carpeta se queda en el disco. | Su chat se eliminará de Nuée. La carpeta se queda en el disco. | Sus {n} chats se eliminarán de Nuée. La carpeta se queda en el disco.',
       deleteConfirm: 'Eliminar',
     },
     skills: {

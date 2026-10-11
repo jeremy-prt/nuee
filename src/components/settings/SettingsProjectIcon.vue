@@ -93,9 +93,9 @@ async function importImage() {
           :key="id"
           :value="id"
           :aria-label="t(`settings.projects.mascots.${id}`)"
-          class="grid size-12 cursor-pointer place-items-center rounded-lg hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring data-[state=checked]:bg-signal/15"
+          class="grid size-11 cursor-pointer place-items-center rounded-lg hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring data-[state=checked]:bg-signal/15"
         >
-          <ProjectMascot :mascot="id" :color="project.color" class="size-8" />
+          <ProjectMascot :mascot="id" :color="project.color" class="size-7" />
         </RadioGroupItem>
       </RadioGroupRoot>
     </SettingsRow>

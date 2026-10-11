@@ -134,7 +134,7 @@ export default {
     worktree: {
       label: 'Worktree',
       on: 'Ce chat travaillera dans une copie du dépôt, sur sa propre branche.',
-      off: 'Travailler dans une copie du dépôt, sur une branche à part. Ton dossier ne change pas.',
+      off: 'Travailler dans une copie du dépôt, sur une branche à part. Le dossier du projet ne change pas.',
     },
     mode: {
       label: 'Mode de permission',
@@ -204,7 +204,7 @@ export default {
       agents: 'Choisis les agents à utiliser et règle chacun d\'eux.',
       connections: 'Les comptes et services reliés à Nuée.',
       skills: 'Les skills et serveurs MCP de tes agents. Les interrupteurs ne valent que pour Nuée, les réglages de chacun peuvent aussi changer l\'agent partout.',
-      projects: 'Les dossiers où travaillent tes agents.',
+      projects: 'Les dossiers dans lesquels travaillent les agents.',
       archive: 'Les chats archivés, à retrouver ou à supprimer.',
     },
     agents: {
@@ -265,7 +265,7 @@ export default {
     projects: {
       add: 'Ajouter un projet',
       empty: 'Aucun projet',
-      emptyHint: 'Ajoute un dossier pour que tes agents puissent lire et modifier ses fichiers.',
+      emptyHint: 'Un dossier ajouté ici devient un projet, où les agents peuvent lire et modifier les fichiers.',
       configure: 'Réglages de {name}',
       missing: 'Ce projet n\'existe plus.',
       name: 'Nom',
@@ -302,7 +302,7 @@ export default {
         vent: 'Vent',
         eclaircie: 'Éclaircie',
       },
-      pickIcon: 'Choisis l\'icône du projet',
+      pickIcon: 'Choisir l\'icône du projet',
       iconFailed: 'Impossible d\'utiliser cette image',
       color: 'Couleur de la mascotte',
       colors: {
@@ -322,7 +322,7 @@ export default {
       model: 'Modèle',
       effort: 'Effort',
       worktree: 'Un worktree par chat',
-      worktreeHint: 'Chaque chat travaille sur une copie du dépôt, dans sa propre branche. Ton dossier ne change pas.',
+      worktreeHint: 'Chaque chat travaille sur une copie du dépôt, dans sa propre branche. Le dossier du projet ne change pas.',
       worktreeSupport: {
         notRepo: 'Ce dossier n\'est pas un dépôt git.',
         noCommit: 'Le dépôt n\'a encore aucun commit.',
@@ -337,15 +337,15 @@ export default {
         always: 'Coupées sans limite',
       },
       muteHints: {
-        on: 'Son et notification quand un agent de ce projet a fini ou t\'attend.',
+        on: 'Son et notification quand un agent de ce projet a fini ou attend une réponse.',
         until: 'Coupées jusqu\'à {time}. Les chats non lus restent marqués.',
-        always: 'Coupées jusqu\'à ce que tu les réactives. Les chats non lus restent marqués.',
+        always: 'Coupées jusqu\'à réactivation. Les chats non lus restent marqués.',
       },
       delete: 'Supprimer le projet',
-      deleteHint: 'Ses chats sont supprimés de Nuée. Le dossier reste sur ton disque.',
+      deleteHint: 'Ses chats sont supprimés de Nuée. Le dossier reste sur le disque.',
       deleteButton: 'Supprimer',
       deleteTitle: 'Supprimer {name} ?',
-      deleteMessage: 'Il n\'a aucun chat. Le dossier reste sur ton disque. | Son chat est supprimé de Nuée. Le dossier reste sur ton disque. | Ses {n} chats sont supprimés de Nuée. Le dossier reste sur ton disque.',
+      deleteMessage: 'Il n\'a aucun chat. Le dossier reste sur le disque. | Son chat sera supprimé de Nuée. Le dossier reste sur le disque. | Ses {n} chats seront supprimés de Nuée. Le dossier reste sur le disque.',
       deleteConfirm: 'Supprimer',
     },
     skills: {
