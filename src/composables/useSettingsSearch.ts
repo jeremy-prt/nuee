@@ -210,6 +210,8 @@ const entries: SettingEntry[] = [
       names: [agents[kind as AgentKind].name],
     })),
   ]),
+  { id: 'skills-list', section: 'skills', label: 'settings.skills.skills', keywords: ['skills'] },
+  { id: 'servers-list', section: 'skills', label: 'settings.skills.servers', keywords: ['mcp'] },
   { id: 'zoom', section: 'appearance', label: 'settings.interface.zoom', keywords: ['zoom'] },
   {
     id: 'chatWidth',

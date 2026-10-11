@@ -2,6 +2,7 @@
 import { TooltipProvider } from 'reka-ui'
 import { computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import SettingsSkillPanel from '@/components/settings/SettingsSkillPanel.vue'
 import ShellBackground from '@/components/shell/ShellBackground.vue'
 import ShellDock from '@/components/shell/ShellDock.vue'
 import ShellRail from '@/components/shell/ShellRail.vue'
@@ -22,6 +23,7 @@ import { useGeneralStore } from '@/stores/general'
 import { SIZES, useLayoutStore } from '@/stores/layout'
 import { useNavigationStore } from '@/stores/navigation'
 import { useShortcutsStore } from '@/stores/shortcuts'
+import { useSkillsStore } from '@/stores/skills'
 import { useUpdatesStore } from '@/stores/updates'
 import { useWorkspaceStore } from '@/stores/workspace'
 import type { ShortcutId } from '@/utils/shortcuts'
@@ -52,6 +54,9 @@ useAgentsStore()
 const inChats = computed(() => navigation.view === 'chats')
 const showBottomDock = computed(() => layout.bottom.open && layout.viewsIn('bottom').length > 0)
 const showRightDock = computed(() => layout.right.open && layout.viewsIn('right').length > 0)
+const skills = useSkillsStore()
+// Hors des chats, le panneau de droite ne sert qu'à l'aperçu d'un skill dans les réglages.
+const previewedSkill = computed(() => (navigation.view === 'settings' ? skills.previewed : null))
 
 // Raccourcis propres aux chats : sans effet sur les autres vues.
 function inChatsOnly(action: () => void) {
@@ -181,6 +186,16 @@ onUnmounted(() => {
           <SettingsView v-else-if="navigation.view === 'settings'" />
           <PlaceholderView v-else :view="navigation.view" />
         </main>
+        <template v-if="previewedSkill">
+          <ShellResizeHandle
+            v-model="layout.right.size"
+            v-bind="SIZES.right"
+            orientation="vertical"
+            invert
+            :label="t('dock.resize')"
+          />
+          <SettingsSkillPanel :skill="previewedSkill" :style="{ width: `${layout.right.size}px` }" />
+        </template>
       </div>
     </div>
 

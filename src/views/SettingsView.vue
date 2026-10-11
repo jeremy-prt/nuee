@@ -12,6 +12,7 @@ import SettingsGlass from '@/components/settings/SettingsGlass.vue'
 import SettingsInterface from '@/components/settings/SettingsInterface.vue'
 import SettingsResetButton from '@/components/settings/SettingsResetButton.vue'
 import SettingsShortcuts from '@/components/settings/SettingsShortcuts.vue'
+import SettingsSkills from '@/components/settings/SettingsSkills.vue'
 import SettingsNotifications from '@/components/settings/SettingsNotifications.vue'
 import SettingsSystem from '@/components/settings/SettingsSystem.vue'
 import SettingsThemeOptions from '@/components/settings/SettingsThemeOptions.vue'
@@ -20,18 +21,23 @@ import SettingsUpdates from '@/components/settings/SettingsUpdates.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import { isAgentDetail, type SettingsDetail, settingsDetailTitle, useNavigationStore } from '@/stores/navigation'
 import { useShortcutsStore } from '@/stores/shortcuts'
+import { useSkillsStore } from '@/stores/skills'
 
 // ===== Initialisation =====
 const { t } = useI18n()
 const navigation = useNavigationStore()
 const shortcuts = useShortcutsStore()
+const skills = useSkillsStore()
 const root = useTemplateRef('root')
 const heading = useTemplateRef('heading')
 
 // Nouvelle section ou sous-page : on repart du haut (le fondu enchaîné est dans stores/navigation.ts).
 watch(
   () => [navigation.settingsSection, navigation.settingsDetail],
-  () => root.value?.scrollTo({ top: 0 }),
+  () => {
+    root.value?.scrollTo({ top: 0 })
+    skills.preview(null)
+  },
 )
 
 // Au retour, le focus ne revient sur « Personnaliser » que si Retour a été validé au clavier (`detail` à 0) :
@@ -90,12 +96,16 @@ function onKeydown(event: KeyboardEvent) {
   if (!shortcuts.matches(event, 'closeSettings') || event.defaultPrevented || event.isComposing) return
   if ((event.target as Element | null)?.closest?.('[data-reka-popper-content-wrapper], [role="dialog"], [role="alertdialog"], .ui-toast')) return
   event.preventDefault()
-  if (navigation.settingsDetail) back()
+  if (skills.previewed) skills.preview(null)
+  else if (navigation.settingsDetail) back()
   else navigation.closeSettings()
 }
 
 onMounted(() => window.addEventListener('keydown', onKeydown))
-onUnmounted(() => window.removeEventListener('keydown', onKeydown))
+onUnmounted(() => {
+  window.removeEventListener('keydown', onKeydown)
+  skills.preview(null)
+})
 </script>
 
 <template>
@@ -140,6 +150,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
         </template>
         <SettingsShortcuts v-else-if="navigation.settingsSection === 'shortcuts'" />
         <SettingsAgents v-else-if="navigation.settingsSection === 'agents'" />
+        <SettingsSkills v-else-if="navigation.settingsSection === 'skills'" />
       </template>
     </div>
   </div>
