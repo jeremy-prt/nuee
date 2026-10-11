@@ -81,7 +81,7 @@ const { over } = useFileDrop(zone, (paths) => use(paths[0]!), true)
         <SettingsBackgroundThumb :path="appearance.background.path" class="w-48" />
         <div class="flex flex-wrap gap-2">
           <UiButton size="sm" :loading="importing" :disabled="removing" @click="choose()">{{ t('settings.background.change') }}</UiButton>
-          <UiButton size="sm" :loading="removing" :disabled="importing" @click="remove()">{{ t('settings.background.remove') }}</UiButton>
+          <UiButton size="sm" variant="danger" :loading="removing" :disabled="importing" @click="remove()">{{ t('settings.background.remove') }}</UiButton>
         </div>
         <SettingsCustomizeButton
           show
