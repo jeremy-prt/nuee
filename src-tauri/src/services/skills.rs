@@ -99,6 +99,7 @@ pub fn trash(kind: AgentKind, id: &str) -> Result<(), AppError> {
             "dossier du skill introuvable".into(),
         ));
     };
+    #[cfg_attr(not(target_os = "macos"), allow(unused_mut))]
     let mut context = trash::TrashContext::default();
     // La méthode par défaut passe par le Finder, qui fait demander à macOS le droit de le piloter.
     #[cfg(target_os = "macos")]
