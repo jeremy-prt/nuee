@@ -580,6 +580,10 @@ export default {
         medium: '中',
         high: '強',
       },
+      darken: {
+        label: '画像を暗くする',
+        hint: '下ほど濃い暗いグラデーションで、内容が見やすくなります。',
+      },
       effect: {
         label: 'エフェクト',
         none: 'なし',

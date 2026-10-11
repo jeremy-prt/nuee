@@ -81,11 +81,13 @@ export interface Background {
   where: (typeof backgroundOptions)['where'][number]
   visibility: (typeof backgroundOptions)['visibility'][number]
   intensity: (typeof backgroundOptions)['intensity'][number]
+  // Dégradé sombre posé sur l'image, comme monocode : le contenu ressort mieux (choix de Jérémy).
+  darken: boolean
 }
 export const BACKGROUND_OPACITY: Record<Background['visibility'], number> = { low: 18, medium: 32, high: 50 }
 
 function defaultBackground(path: string | null): Background {
-  return { path, effect: 'none', where: 'everywhere', visibility: 'low', intensity: 'medium' }
+  return { path, effect: 'scanlines', where: 'everywhere', visibility: 'low', intensity: 'medium', darken: true }
 }
 
 export const zoomLevels = [80, 90, 100, 110, 125, 150] as const
@@ -145,6 +147,7 @@ function load(): AppearanceState {
     if (chatWidths.includes(saved.chatWidth)) state.chatWidth = saved.chatWidth
     const background = saved.background ?? {}
     if (typeof background.path === 'string') state.background.path = background.path
+    if (typeof background.darken === 'boolean') state.background.darken = background.darken
     for (const setting of Object.keys(backgroundOptions) as BackgroundSetting[]) {
       if ((backgroundOptions[setting] as readonly string[]).includes(background[setting])) {
         ;(state.background as unknown as Record<BackgroundSetting, string>)[setting] = background[setting]

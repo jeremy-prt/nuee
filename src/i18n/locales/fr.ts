@@ -580,6 +580,10 @@ export default {
         medium: 'Moyenne',
         high: 'Forte',
       },
+      darken: {
+        label: 'Assombrir l\'image',
+        hint: 'Un dégradé sombre, plus marqué en bas, fait mieux ressortir le contenu.',
+      },
       effect: {
         label: 'Effet',
         none: 'Aucun',

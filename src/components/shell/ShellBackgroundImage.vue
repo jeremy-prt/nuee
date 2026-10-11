@@ -7,7 +7,7 @@ import { cssEffect, type EffectLevel } from '@/utils/backgroundEffects'
 // L'image et son effet, posée en absolu : le parent la rogne (overflow-hidden) et règle son opacité.
 // `scale` réduit le flou CSS dans une vignette (1 = taille réelle).
 const props = withDefaults(
-  defineProps<{ path: string; effect: BackgroundEffect; level: EffectLevel; scale?: number; size?: BackgroundSize }>(),
+  defineProps<{ path: string; effect: BackgroundEffect; level: EffectLevel; scale?: number; size?: BackgroundSize; darken?: boolean }>(),
   { scale: 1, size: 'full' },
 )
 const url = useBackgroundImage(toRef(props, 'path'), toRef(props, 'effect'), toRef(props, 'level'), props.size)
@@ -20,4 +20,6 @@ const style = computed(() => ({
 <template>
   <div v-if="url" class="absolute inset-0 bg-cover bg-center" :style="style" aria-hidden="true" />
   <div v-else class="absolute inset-0 animate-pulse bg-content/5 motion-reduce:animate-none" aria-hidden="true" />
+  <!-- Plus sombre en bas, où sont le chat et la zone de saisie. -->
+  <div v-if="darken" class="absolute inset-0 bg-linear-to-b from-black/15 to-black/55" aria-hidden="true" />
 </template>

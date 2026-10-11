@@ -48,6 +48,7 @@ watch(
       :path="appearance.background.path"
       :effect="appearance.background.effect"
       :level="INTENSITY_LEVEL[appearance.background.intensity]"
+      :darken="appearance.background.darken"
     />
   </div>
 </template>

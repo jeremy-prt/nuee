@@ -580,6 +580,10 @@ export default {
         medium: 'Média',
         high: 'Forte',
       },
+      darken: {
+        label: 'Escurecer a imagem',
+        hint: 'Um degradê escuro, mais forte embaixo, destaca melhor o conteúdo.',
+      },
       effect: {
         label: 'Efeito',
         none: 'Nenhum',

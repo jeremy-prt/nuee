@@ -580,6 +580,10 @@ export default {
         medium: '中',
         high: '强',
       },
+      darken: {
+        label: '调暗图片',
+        hint: '一层下方更深的暗色渐变，让内容更突出。',
+      },
       effect: {
         label: '效果',
         none: '无',

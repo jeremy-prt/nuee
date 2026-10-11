@@ -580,6 +580,10 @@ export default {
         medium: 'Media',
         high: 'Fuerte',
       },
+      darken: {
+        label: 'Oscurecer la imagen',
+        hint: 'Un degradado oscuro, más marcado abajo, hace resaltar mejor el contenido.',
+      },
       effect: {
         label: 'Efecto',
         none: 'Ninguno',

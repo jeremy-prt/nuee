@@ -25,6 +25,7 @@ const appearance = useAppearanceStore()
           :effect="appearance.background.effect"
           :level="INTENSITY_LEVEL[appearance.background.intensity]"
           :scale="large ? 0.5 : 0.15"
+          :darken="appearance.background.darken"
         />
       </div>
       <span class="ms-auto h-[2.4em] w-2/5 rounded-[0.9em] bg-content/15" />

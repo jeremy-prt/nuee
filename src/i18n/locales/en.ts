@@ -578,6 +578,10 @@ export default {
         medium: 'Medium',
         high: 'Strong',
       },
+      darken: {
+        label: 'Darken the image',
+        hint: 'A dark gradient, stronger at the bottom, makes the content stand out.',
+      },
       effect: {
         label: 'Effect',
         none: 'None',

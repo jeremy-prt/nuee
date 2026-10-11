@@ -7,6 +7,7 @@ import SettingsRow from '@/components/settings/SettingsRow.vue'
 import ShellBackgroundImage from '@/components/shell/ShellBackgroundImage.vue'
 import UiChoiceCard from '@/components/ui/UiChoiceCard.vue'
 import UiSegmented from '@/components/ui/UiSegmented.vue'
+import UiSwitch from '@/components/ui/UiSwitch.vue'
 import { useResetToast } from '@/composables/useResetToast'
 import { backgroundEffects, backgroundOptions, INTENSITY_LEVEL, useAppearanceStore } from '@/stores/appearance'
 
@@ -42,6 +43,9 @@ function options(setting: (typeof rows)[number]) {
         :disabled="setting === 'intensity' && appearance.background.effect === 'none'"
         :aria-describedby="hintId"
       />
+    </SettingsRow>
+    <SettingsRow v-slot="{ hintId }" data-setting="background-darken" :label="t('settings.background.darken.label')" :hint="t('settings.background.darken.hint')">
+      <UiSwitch v-model="appearance.background.darken" :label="t('settings.background.darken.label')" :aria-describedby="hintId" />
     </SettingsRow>
   </SettingsGroup>
 

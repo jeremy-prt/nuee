@@ -155,6 +155,15 @@ const entries: SettingEntry[] = [
     keywords: ['background'],
     needs: 'image' as const,
   })),
+  {
+    id: 'background-darken',
+    section: 'appearance',
+    detail: 'background',
+    label: 'settings.background.darken.label',
+    hint: 'settings.background.darken.hint',
+    keywords: ['background', 'dark', 'overlay'],
+    needs: 'image',
+  },
   { id: 'agents', section: 'agents', label: 'settings.agents.title', keywords: ['agents'] },
   ...Object.keys(agents).flatMap((kind) => [
     {
