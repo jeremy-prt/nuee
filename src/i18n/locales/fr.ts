@@ -195,7 +195,7 @@ export default {
       update: 'Mettre à jour',
       config: 'Configuration de {agent}',
       hooks: 'Hooks',
-      hooksHint: 'Activés : les hooks de ta configuration {agent} (sons, notifications, vérification des commandes) tournent aussi dans les chats de Nuée. Désactivés : aucun ne tourne ici, y compris ceux qui bloquent des commandes. Ta configuration n\'est pas modifiée.',
+      hooksHint: 'Tes hooks {agent} tournent aussi dans les chats de Nuée. Coupés, aucun ne tourne ici, même ceux qui bloquent des commandes.',
       defaults: 'Nouveaux chats',
       defaultsHint: 'Réglages de Nuée pour chaque nouveau chat avec {agent}. La configuration de {agent} elle-même n\'est pas modifiée, et tu peux toujours les changer dans le chat.',
       model: 'Modèle par défaut',

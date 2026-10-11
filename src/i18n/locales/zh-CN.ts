@@ -195,7 +195,7 @@ export default {
       update: '更新',
       config: '{agent} 配置',
       hooks: '钩子',
-      hooksHint: '开启：{agent} 配置中的钩子（声音、通知、命令检查）也会在 Nuée 的聊天中运行。关闭：这里不运行任何钩子，包括拦截命令的钩子。你的配置不会被修改。',
+      hooksHint: '你的 {agent} 钩子也会在 Nuée 的聊天中运行。关闭后这里不运行任何钩子，包括拦截命令的钩子。',
       defaults: '新聊天',
       defaultsHint: 'Nuée 中与 {agent} 的每个新聊天的设置。{agent} 本身的配置不会改变，你也可以在聊天中更改。',
       model: '默认模型',

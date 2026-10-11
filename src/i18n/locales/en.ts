@@ -193,7 +193,7 @@ export default {
       update: 'Update',
       config: '{agent} configuration',
       hooks: 'Hooks',
-      hooksHint: 'On: the hooks from your {agent} configuration (sounds, notifications, command checks) also run in Nuée\'s chats. Off: none of them run here, including those that block commands. Your configuration is not changed.',
+      hooksHint: 'Your {agent} hooks also run in Nuée\'s chats. Turned off, none run here, not even those that block commands.',
       defaults: 'New chats',
       defaultsHint: 'Nuée settings for each new chat with {agent}. {agent}’s own configuration is not changed, and you can still change them in the chat.',
       model: 'Default model',

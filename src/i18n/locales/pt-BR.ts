@@ -195,7 +195,7 @@ export default {
       update: 'Atualizar',
       config: 'Configuração do {agent}',
       hooks: 'Hooks',
-      hooksHint: 'Ativados: os hooks da sua configuração do {agent} (sons, notificações, verificação de comandos) também rodam nos chats do Nuée. Desativados: nenhum roda aqui, nem os que bloqueiam comandos. Sua configuração não é alterada.',
+      hooksHint: 'Seus hooks do {agent} também rodam nos chats do Nuée. Desativados, nenhum roda aqui, nem os que bloqueiam comandos.',
       defaults: 'Novos chats',
       defaultsHint: 'Configurações do Nuée para cada novo chat com {agent}. A configuração do {agent} não é alterada, e você ainda pode mudá-las no chat.',
       model: 'Modelo padrão',

@@ -195,7 +195,7 @@ export default {
       update: 'Actualizar',
       config: 'Configuración de {agent}',
       hooks: 'Hooks',
-      hooksHint: 'Activados: los hooks de tu configuración de {agent} (sonidos, notificaciones, revisión de comandos) también se ejecutan en los chats de Nuée. Desactivados: ninguno se ejecuta aquí, ni siquiera los que bloquean comandos. Tu configuración no cambia.',
+      hooksHint: 'Tus hooks de {agent} también se ejecutan en los chats de Nuée. Desactivados, ninguno se ejecuta aquí, ni siquiera los que bloquean comandos.',
       defaults: 'Chats nuevos',
       defaultsHint: 'Ajustes de Nuée para cada chat nuevo con {agent}. La configuración de {agent} no se modifica, y puedes cambiarlos en el chat.',
       model: 'Modelo predeterminado',
