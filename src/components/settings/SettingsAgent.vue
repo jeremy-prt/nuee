@@ -212,7 +212,7 @@ async function choosePath(event: MouseEvent) {
 
   <SettingsGroup :title="t('settings.agents.defaults')" :hint="t('settings.agents.defaultsHint', { agent: name })">
     <SettingsRow :data-setting="`${kind}-model`" :label="t('settings.agents.model')" :hint="modelOptions.length ? undefined : t('settings.agents.unavailable', { agent: name })">
-      <UiSelect v-if="modelOptions.length" v-model="model" :label="t('settings.agents.model')" :options="modelOptions" variant="field" side="bottom" />
+      <UiSelect v-if="modelOptions.length" v-model="model" :label="t('settings.agents.model')" :options="modelOptions" />
     </SettingsRow>
     <SettingsRow
       v-if="effortOptions.length"
@@ -220,7 +220,7 @@ async function choosePath(event: MouseEvent) {
       :label="t('settings.agents.effort')"
       :hint="t('settings.agents.effortHint', { agent: name })"
     >
-      <UiSelect v-model="effort" :label="t('settings.agents.effort')" :options="effortOptions" variant="field" side="bottom" />
+      <UiSelect v-model="effort" :label="t('settings.agents.effort')" :options="effortOptions" />
     </SettingsRow>
     <SettingsRow :data-setting="`${kind}-mode`" :label="t('settings.agents.mode')" :hint="t(`composer.mode.${mode}Hint`)">
       <UiSegmented v-model="mode" :label="t('settings.agents.mode')" :options="modes" />

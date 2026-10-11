@@ -1,24 +1,30 @@
 <script setup lang="ts">
-import { ArrowUp, File, Folder, Paperclip, Square, X } from '@lucide/vue'
-import { computed, nextTick, ref, useId, useTemplateRef } from 'vue'
+import { ArrowUp, File, Folder, Plus, ShieldAlert, ShieldCheck, Square, X } from '@lucide/vue'
+import { type Component, computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatSlashMenu from '@/components/chat/ChatSlashMenu.vue'
+import SettingsAgentLogo from '@/components/settings/SettingsAgentLogo.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
-import UiSelect from '@/components/ui/UiSelect.vue'
+import UiMenu, { type UiMenuSection } from '@/components/ui/UiMenu.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { attachmentImport, attachmentSave, previewSrc } from '@/ipc/attachment'
 import { isAppError } from '@/ipc/agent'
+import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { Attachment } from '@/ipc/bindings/Attachment'
 import type { Catalog } from '@/ipc/bindings/Catalog'
 import type { Effort } from '@/ipc/bindings/Effort'
 import type { PermissionMode } from '@/ipc/bindings/PermissionMode'
 import type { TurnOptions } from '@/ipc/bindings/TurnOptions'
 import { pickFiles } from '@/ipc/dialog'
+import type { Project } from '@/stores/projects'
 import { useShortcutsStore } from '@/stores/shortcuts'
+import { agents } from '@/utils/agents'
 
 const props = defineProps<{
   chatId: string
-  agentName: string
+  agent: AgentKind
+  // null : chat sans projet.
+  project: Project | null
   // null tant que l'agent n'a pas décrit ses modèles : on laisse alors son choix par défaut.
   catalog: Catalog | null
   disabled: boolean
@@ -42,41 +48,62 @@ const input = useTemplateRef('input')
 // Après un choix de mode, de modèle ou d'effort, on reprend la saisie là où on l'avait laissée.
 const focusInput = () => input.value?.focus()
 
-const modeOptions = computed(() =>
-  (['bypass', 'auto'] as const).map((mode) => ({
-    value: mode,
-    label: t(`composer.mode.${mode}`),
-    hint: t(`composer.mode.${mode}Hint`),
-  })),
-)
-const modelOptions = computed(() =>
-  (props.catalog?.models ?? []).map((model) => ({
-    value: model.value,
-    label: model.label,
-    hint: model.value === props.catalog?.defaultModel ? t('composer.default') : undefined,
-  })),
-)
-const efforts = computed(() => props.catalog?.models.find((model) => model.value === options.value.model)?.efforts ?? [])
-const effortOptions = computed(() =>
-  efforts.value.map((effort) => ({
-    value: effort,
-    label: t(`composer.effort.${effort}`),
-    hint: effort === props.catalog?.defaultEffort ? t('composer.default') : undefined,
-  })),
-)
+const agentName = computed(() => agents[props.agent].name)
 
-const mode = computed({
-  get: () => options.value.mode,
-  set: (value: string) => (options.value = { ...options.value, mode: value as PermissionMode }),
+const modeLooks = {
+  bypass: { icon: ShieldAlert, iconClass: 'text-warning' },
+  auto: { icon: ShieldCheck, iconClass: undefined },
+} satisfies Record<PermissionMode, { icon: Component; iconClass?: string }>
+const modeLook = computed(() => modeLooks[options.value.mode])
+const modeSections = computed<UiMenuSection[]>(() => [
+  {
+    id: 'mode',
+    value: options.value.mode,
+    options: (['bypass', 'auto'] as const).map((mode) => ({
+      value: mode,
+      label: t(`composer.mode.${mode}`),
+      hint: t(`composer.mode.${mode}Hint`),
+      ...modeLooks[mode],
+    })),
+  },
+])
+
+const currentModel = computed(() => props.catalog?.models.find((model) => model.value === options.value.model) ?? null)
+const modelSections = computed<UiMenuSection[]>(() => {
+  const catalog = props.catalog
+  if (!catalog?.models.length) return []
+  const sections: UiMenuSection[] = [
+    {
+      id: 'model',
+      label: t('composer.model.label'),
+      value: options.value.model ?? '',
+      options: catalog.models.map((model) => ({
+        value: model.value,
+        label: model.label,
+        hint: model.value === catalog.defaultModel ? t('composer.default') : undefined,
+      })),
+    },
+  ]
+  const efforts = currentModel.value?.efforts ?? []
+  if (efforts.length)
+    sections.push({
+      id: 'effort',
+      label: t('composer.effort.label'),
+      value: options.value.effort ?? '',
+      options: efforts.map((effort) => ({
+        value: effort,
+        label: t(`composer.effort.${effort}`),
+        hint: effort === catalog.defaultEffort ? t('composer.default') : undefined,
+      })),
+    })
+  return sections
 })
-const model = computed({
-  get: () => options.value.model ?? '',
-  set: (value: string) => (options.value = { ...options.value, model: value }),
-})
-const effort = computed({
-  get: () => options.value.effort ?? '',
-  set: (value: string) => (options.value = { ...options.value, effort: value as Effort }),
-})
+
+function choose(section: string, value: string) {
+  if (section === 'mode') options.value = { ...options.value, mode: value as PermissionMode }
+  else if (section === 'model') options.value = { ...options.value, model: value }
+  else if (section === 'effort') options.value = { ...options.value, effort: value as Effort }
+}
 
 // Position du curseur, null hors du champ : le menu des skills ne suit que la frappe en cours.
 const caret = ref<number | null>(null)
@@ -99,6 +126,18 @@ async function chooseSkill(name: string) {
 }
 
 const canSend = computed(() => (!!prompt.value.trim() || attachments.value.length > 0) && !saving.value)
+
+// Le champ suit la hauteur du texte jusqu'à son max-h, puis défile.
+watch(
+  prompt,
+  () => {
+    const field = input.value
+    if (!field) return
+    field.style.height = 'auto'
+    field.style.height = `${field.scrollHeight}px`
+  },
+  { flush: 'post' },
+)
 
 function submit() {
   if (!canSend.value || props.disabled || props.running) return
@@ -124,7 +163,7 @@ async function attachWith(task: () => Promise<Attachment[]>) {
   }
 }
 
-// Fichiers glissés sur le chat ou choisis au trombone : ils ont déjà un chemin sur disque.
+// Fichiers glissés sur le chat ou choisis par le bouton + : ils ont déjà un chemin sur disque.
 function attach(paths: string[]) {
   return attachWith(() => attachmentImport(props.chatId, paths))
 }
@@ -164,118 +203,122 @@ function onKeydown(event: KeyboardEvent) {
 </script>
 
 <template>
-  <form
-    class="@container relative rounded-xl border border-stroke bg-selection/50 p-3 focus-within:border-stroke-focus"
-    :class="{ 'opacity-60': disabled }"
-    @submit.prevent="submit"
-  >
-    <ul v-if="attachments.length" class="mb-2 flex flex-wrap gap-2" :aria-label="t('composer.attachments')">
-      <li
-        v-for="(attachment, index) in attachments"
-        :key="attachment.preview ?? attachment.path"
-        class="relative flex h-14 max-w-56 items-center gap-2 rounded-lg border border-stroke bg-canvas/40"
-        :class="attachment.preview ? 'w-14' : 'ps-2 pe-7'"
-        :title="attachment.path"
-      >
-        <img
-          v-if="attachment.preview"
-          :src="previewSrc(attachment.preview)"
-          :alt="attachment.name"
-          class="size-full rounded-lg object-cover"
-        />
-        <template v-else>
-          <component :is="attachment.kind === 'folder' ? Folder : File" class="size-4 shrink-0 text-muted" aria-hidden="true" />
-          <span class="min-w-0 truncate text-xs">{{ attachment.name }}</span>
-        </template>
-        <UiTooltip :label="t('composer.removeAttachment', { name: attachment.name })">
+  <!-- Le menu des skills est hors du cadre flouté : un flou imbriqué ne verrait que le cadre derrière lui. -->
+  <form class="relative" @submit.prevent="submit">
+    <div
+      class="@container rounded-xl border border-stroke bg-selection/50 backdrop-blur-sm has-[textarea:focus]:border-stroke-focus"
+      :class="{ 'opacity-60': disabled }"
+    >
+      <p v-if="project" class="mx-3 mt-2.5 flex h-6 min-w-0 items-center gap-1.5 text-xs text-muted" :title="project.path">
+        <Folder class="size-3.5 shrink-0" aria-hidden="true" />
+        <span class="sr-only">{{ t('composer.project') }}</span>
+        <span class="truncate">{{ project.name }}</span>
+      </p>
+      <ul v-if="attachments.length" class="flex flex-wrap gap-2 px-3 pt-3" :aria-label="t('composer.attachments')">
+        <li
+          v-for="(attachment, index) in attachments"
+          :key="attachment.preview ?? attachment.path"
+          class="relative flex h-14 max-w-56 items-center gap-2 rounded-lg border border-stroke bg-canvas/40"
+          :class="attachment.preview ? 'w-14' : 'ps-2 pe-7'"
+          :title="attachment.path"
+        >
+          <img
+            v-if="attachment.preview"
+            :src="previewSrc(attachment.preview)"
+            :alt="attachment.name"
+            class="size-full rounded-lg object-cover"
+          />
+          <template v-else>
+            <component :is="attachment.kind === 'folder' ? Folder : File" class="size-4 shrink-0 text-muted" aria-hidden="true" />
+            <span class="min-w-0 truncate text-xs">{{ attachment.name }}</span>
+          </template>
+          <UiTooltip :label="t('composer.removeAttachment', { name: attachment.name })">
+            <button
+              type="button"
+              class="absolute -end-1.5 -top-1.5 grid size-5 place-items-center rounded-full border border-stroke bg-overlay text-muted hover:text-content focus-visible:outline-2 focus-visible:outline-ring"
+              :aria-label="t('composer.removeAttachment', { name: attachment.name })"
+              @click="remove(index)"
+            >
+              <X class="size-3" aria-hidden="true" />
+            </button>
+          </UiTooltip>
+        </li>
+      </ul>
+      <p v-if="attachError" class="px-3 pt-2 text-xs text-danger" role="alert">{{ attachError }}</p>
+      <label :for="id" class="sr-only">{{ t('composer.label') }}</label>
+      <textarea
+        :id="id"
+        ref="input"
+        v-model="prompt"
+        rows="1"
+        aria-autocomplete="list"
+        :aria-controls="slashMenu?.open ? `${id}-skills` : undefined"
+        :aria-activedescendant="slashMenu?.activeId"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
+        writingsuggestions="false"
+        :disabled="disabled"
+        class="block max-h-60 min-h-20 w-full resize-none bg-transparent px-3 py-3 text-sm leading-5.5 select-text outline-none placeholder:truncate placeholder:text-muted"
+        :placeholder="t('composer.placeholder')"
+        @keydown="onKeydown"
+        @input="syncCaret"
+        @keyup="syncCaret"
+        @click="syncCaret"
+        @focus="syncCaret(); emit('warm')"
+        @blur="caret = null"
+        @paste="onPaste"
+      />
+      <!-- Étroite (petite fenêtre, écran partagé) : l'effort et le nom du mode ne restent que pour les lecteurs d'écran. -->
+      <div class="flex items-center gap-1 px-2 pb-2">
+        <UiIconButton class="bg-selection" :label="t('composer.attach')" :disabled="disabled" :loading="saving > 0" @click="pick">
+          <Plus class="size-4" aria-hidden="true" />
+        </UiIconButton>
+        <UiMenu
+          :label="t('composer.model.menu', { agent: agentName })"
+          :sections="modelSections"
+          :disabled="disabled || !modelSections.length"
+          :focus-after="focusInput"
+          @select="choose"
+        >
+          <SettingsAgentLogo :id="agent" small class="-mx-0.5" />
+          <span class="min-w-0 truncate">{{ currentModel?.label ?? agentName }}</span>
+          <span v-if="options.effort" class="text-muted @max-sm:sr-only">{{ t(`composer.effort.${options.effort}`) }}</span>
+        </UiMenu>
+        <UiMenu
+          :label="t('composer.mode.label')"
+          :sections="modeSections"
+          :disabled="disabled"
+          :focus-after="focusInput"
+          @select="choose"
+        >
+          <component :is="modeLook.icon" class="size-3.5 shrink-0" :class="modeLook.iconClass" aria-hidden="true" />
+          <span class="@max-sm:sr-only">{{ t(`composer.mode.${options.mode}`) }}</span>
+        </UiMenu>
+        <span class="flex-1" />
+        <UiTooltip v-if="running" :label="t('composer.stop')">
           <button
             type="button"
-            class="absolute -end-1.5 -top-1.5 grid size-5 place-items-center rounded-full border border-stroke bg-overlay text-muted hover:text-content focus-visible:outline-2 focus-visible:outline-ring"
-            :aria-label="t('composer.removeAttachment', { name: attachment.name })"
-            @click="remove(index)"
+            class="grid size-7 shrink-0 place-items-center rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            :class="approving ? 'bg-selection text-content hover:bg-selection-hover' : 'bg-accent text-canvas hover:opacity-90'"
+            :aria-label="t('composer.stop')"
+            @click="emit('stop')"
           >
-            <X class="size-3" aria-hidden="true" />
+            <Square class="size-3 fill-current" aria-hidden="true" />
           </button>
         </UiTooltip>
-      </li>
-    </ul>
-    <label :for="id" class="sr-only">{{ t('composer.label') }}</label>
-    <textarea
-      :id="id"
-      ref="input"
-      v-model="prompt"
-      rows="3"
-      aria-autocomplete="list"
-      :aria-controls="slashMenu?.open ? `${id}-skills` : undefined"
-      :aria-activedescendant="slashMenu?.activeId"
-      autocorrect="off"
-      autocapitalize="off"
-      spellcheck="false"
-      writingsuggestions="false"
-      :disabled="disabled"
-      class="w-full resize-none bg-transparent text-sm select-text outline-none placeholder:text-muted"
-      :placeholder="t('composer.placeholder')"
-      @keydown="onKeydown"
-      @input="syncCaret"
-      @keyup="syncCaret"
-      @click="syncCaret"
-      @focus="syncCaret(); emit('warm')"
-      @blur="caret = null"
-      @paste="onPaste"
-    />
-    <ChatSlashMenu ref="slashMenu" :id="`${id}-skills`" :query="slashQuery" @choose="chooseSkill" />
-    <p v-if="attachError" class="mb-1 text-xs text-danger" role="alert">{{ attachError }}</p>
-    <!-- Étroite (petite fenêtre, écran partagé) : le nom de l'agent s'efface, les menus passent à la ligne entiers. -->
-    <div class="flex flex-wrap items-center gap-1">
-      <UiIconButton :label="t('composer.attach')" :disabled="disabled" :loading="saving > 0" @click="pick">
-        <Paperclip class="size-4" aria-hidden="true" />
-      </UiIconButton>
-      <span class="pe-1 text-xs whitespace-nowrap text-muted @max-sm:hidden">{{ agentName }}</span>
-      <UiSelect
-        v-model="mode"
-        :label="t('composer.mode.label')"
-        :options="modeOptions"
-        :disabled="disabled"
-        :focus-after="focusInput"
-      />
-      <UiSelect
-        v-if="modelOptions.length"
-        v-model="model"
-        :label="t('composer.model.label')"
-        :options="modelOptions"
-        :disabled="disabled"
-        :focus-after="focusInput"
-      />
-      <UiSelect
-        v-if="effortOptions.length"
-        v-model="effort"
-        :label="t('composer.effort.label')"
-        :options="effortOptions"
-        :disabled="disabled"
-        :focus-after="focusInput"
-      />
-      <span class="flex-1" />
-      <UiTooltip v-if="running" :label="t('composer.stop')">
-        <button
-          type="button"
-          class="grid size-7 place-items-center rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          :class="approving ? 'bg-selection text-content hover:bg-selection-hover' : 'bg-accent text-canvas'"
-          :aria-label="t('composer.stop')"
-          @click="emit('stop')"
-        >
-          <Square class="size-3 fill-current" aria-hidden="true" />
-        </button>
-      </UiTooltip>
-      <UiTooltip v-else :label="t('composer.send')" :shortcut="shortcuts.label('send')">
-        <button
-          type="submit"
-          :disabled="disabled || !canSend"
-          class="grid size-7 place-items-center rounded-md bg-accent text-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-30"
-          :aria-label="t('composer.send')"
-        >
-          <ArrowUp class="size-4" aria-hidden="true" />
-        </button>
-      </UiTooltip>
+        <UiTooltip v-else :label="t('composer.send')" :shortcut="shortcuts.label('send')">
+          <button
+            type="submit"
+            :disabled="disabled || !canSend"
+            class="grid size-7 shrink-0 place-items-center rounded-md bg-accent text-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring enabled:hover:opacity-90 disabled:bg-accent/30 disabled:text-canvas/60"
+            :aria-label="t('composer.send')"
+          >
+            <ArrowUp class="size-4" aria-hidden="true" />
+          </button>
+        </UiTooltip>
+      </div>
     </div>
+    <ChatSlashMenu ref="slashMenu" :id="`${id}-skills`" :query="slashQuery" @choose="chooseSkill" />
   </form>
 </template>

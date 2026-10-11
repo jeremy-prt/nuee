@@ -73,7 +73,7 @@ defineExpose({ open, activeId, keydown })
 
 <template>
   <!-- mousedown empêché : le focus reste dans le champ de saisie. -->
-  <div v-if="open" class="ui-glass absolute -inset-x-px bottom-full z-10 mb-2 rounded-lg p-1 text-xs select-none">
+  <div v-if="open" class="ui-glass absolute inset-x-0 bottom-full z-10 mb-2 rounded-lg p-1 text-xs select-none">
     <ul
       :id="id"
       ref="list"

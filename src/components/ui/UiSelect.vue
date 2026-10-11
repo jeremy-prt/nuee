@@ -18,18 +18,14 @@ export interface UiSelectOption {
   hint?: string
 }
 
-// `ghost` : discret, dans une barre d'outils (zone de saisie). `field` : bouton encadré, dans les réglages.
-// `focusAfter` : où rendre le focus une fois le choix fait (la zone de saisie du chat, par exemple).
-const props = withDefaults(
+withDefaults(
   defineProps<{
     label: string
     options: UiSelectOption[]
     disabled?: boolean
-    variant?: 'ghost' | 'field'
     side?: 'top' | 'bottom'
-    focusAfter?: () => void
   }>(),
-  { variant: 'ghost', side: 'top' },
+  { side: 'bottom' },
 )
 const model = defineModel<string>({ required: true })
 
@@ -41,12 +37,7 @@ const openedBy = (pointer: boolean) => {
 }
 
 function onCloseAutoFocus(event: Event) {
-  if (props.focusAfter) {
-    event.preventDefault()
-    props.focusAfter()
-  } else if (byPointer) {
-    event.preventDefault()
-  }
+  if (byPointer) event.preventDefault()
 }
 </script>
 
@@ -54,13 +45,7 @@ function onCloseAutoFocus(event: Event) {
   <SelectRoot v-model="model" :disabled="disabled">
     <SelectTrigger
       :aria-label="label"
-      :title="variant === 'ghost' ? label : undefined"
-      class="group flex items-center whitespace-nowrap focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-40"
-      :class="
-        variant === 'field'
-          ? 'h-7 min-w-24 cursor-pointer justify-between gap-2 rounded-md border border-stroke ps-2.5 pe-2 text-xs hover:bg-selection-hover data-[state=open]:bg-selection'
-          : 'h-6 gap-1 rounded-md px-1.5 text-xs text-muted hover:bg-selection-hover hover:text-content data-[state=open]:bg-selection data-[state=open]:text-content'
-      "
+      class="group flex h-7 min-w-24 cursor-pointer items-center justify-between gap-2 rounded-md border border-stroke ps-2.5 pe-2 text-xs whitespace-nowrap hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-40 data-[state=open]:bg-selection"
       @pointerdown="openedBy(true)"
       @keydown="openedBy(false)"
     >

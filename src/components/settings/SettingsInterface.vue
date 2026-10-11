@@ -29,7 +29,7 @@ const zoom = computed({
 <template>
   <SettingsGroup :title="t('settings.interface.title')">
     <SettingsRow data-setting="zoom" :label="t('settings.interface.zoom')">
-      <UiSelect v-model="zoom" :label="t('settings.interface.zoom')" :options="options" variant="field" side="bottom" />
+      <UiSelect v-model="zoom" :label="t('settings.interface.zoom')" :options="options" />
     </SettingsRow>
     <SettingsRow data-setting="chatWidth" :label="t('settings.interface.chatWidth.label')">
       <UiSegmented v-model="appearance.chatWidth" :label="t('settings.interface.chatWidth.label')" :options="widths" />

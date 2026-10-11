@@ -127,6 +127,7 @@ export default {
     attachFailed: '无法附加：{detail}',
     skills: '技能',
     default: '默认',
+    project: '项目',
     mode: {
       label: '权限模式',
       bypass: 'Bypass',
@@ -136,6 +137,7 @@ export default {
     },
     model: {
       label: '模型',
+      menu: '{agent} 的模型和推理强度',
     },
     effort: {
       label: '推理强度',

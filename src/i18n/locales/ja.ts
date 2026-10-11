@@ -127,6 +127,7 @@ export default {
     attachFailed: '添付できませんでした: {detail}',
     skills: 'スキル',
     default: '既定',
+    project: 'プロジェクト',
     mode: {
       label: '権限モード',
       bypass: 'Bypass',
@@ -136,6 +137,7 @@ export default {
     },
     model: {
       label: 'モデル',
+      menu: '{agent} のモデルと思考量',
     },
     effort: {
       label: '思考量',

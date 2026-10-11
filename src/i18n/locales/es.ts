@@ -127,6 +127,7 @@ export default {
     attachFailed: 'No se pudo adjuntar: {detail}',
     skills: 'Skills',
     default: 'Predeterminado',
+    project: 'Proyecto',
     mode: {
       label: 'Modo de permisos',
       bypass: 'Bypass',
@@ -136,6 +137,7 @@ export default {
     },
     model: {
       label: 'Modelo',
+      menu: 'Modelo y esfuerzo de {agent}',
     },
     effort: {
       label: 'Esfuerzo',

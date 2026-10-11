@@ -6,7 +6,8 @@ import ChatComposer from '@/components/chat/ChatComposer.vue'
 import ChatTranscript from '@/components/chat/ChatTranscript.vue'
 import { useFileDrop } from '@/composables/useFileDrop'
 import { useCatalogStore } from '@/stores/catalog'
-import { DEFAULT_OPTIONS, useConversationsStore } from '@/stores/conversations'
+import { useAgentsStore } from '@/stores/agents'
+import { useConversationsStore } from '@/stores/conversations'
 import type { Attachment } from '@/ipc/bindings/Attachment'
 import { useProjectsStore } from '@/stores/projects'
 import { type Tab, useWorkspaceStore } from '@/stores/workspace'
@@ -18,6 +19,7 @@ const { t } = useI18n()
 const projects = useProjectsStore()
 const conversations = useConversationsStore()
 const catalog = useCatalogStore()
+const agentSettings = useAgentsStore()
 const workspace = useWorkspaceStore()
 
 // Le pane est recréé à chaque changement d'onglet (:key), l'historique se charge donc ici.
@@ -33,7 +35,7 @@ const waiting = computed(() => answering.value || !!conversation.value?.queued)
 const loaded = computed(() => conversation.value?.loaded ?? false)
 const agent = computed(() => props.tab.agent)
 const options = computed({
-  get: () => catalog.resolve(agent.value, conversation.value?.options ?? DEFAULT_OPTIONS),
+  get: () => catalog.resolve(agent.value, conversation.value?.options ?? agentSettings.chatDefaults(agent.value)),
   set: (value) => conversations.setOptions(props.tab.id, value),
 })
 
@@ -87,7 +89,8 @@ onMounted(() => {
         class="w-full max-w-(--chat-width)"
         :chat-id="tab.id"
         v-model:options="options"
-        :agent-name="agents[agent].name"
+        :agent="agent"
+        :project="project"
         :catalog="catalog.get(agent)"
         :disabled="!loaded"
         :running="answering"

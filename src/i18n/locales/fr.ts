@@ -127,6 +127,7 @@ export default {
     attachFailed: 'Impossible de joindre : {detail}',
     skills: 'Skills',
     default: 'Par défaut',
+    project: 'Projet',
     mode: {
       label: 'Mode de permission',
       bypass: 'Bypass',
@@ -136,6 +137,7 @@ export default {
     },
     model: {
       label: 'Modèle',
+      menu: 'Modèle et effort de {agent}',
     },
     effort: {
       label: 'Effort',

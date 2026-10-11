@@ -30,7 +30,7 @@ const language = computed({
 <template>
   <SettingsGroup :title="t('settings.general.system.title')">
     <SettingsRow data-setting="language" :label="t('settings.general.system.language')">
-      <UiSelect v-model="language" :label="t('settings.general.system.language')" :options="languages" variant="field" side="bottom" />
+      <UiSelect v-model="language" :label="t('settings.general.system.language')" :options="languages" />
     </SettingsRow>
     <SettingsRow data-setting="autostart" :label="t('settings.general.system.autostart')" :disabled="general.autostart === null">
       <UiSwitch
