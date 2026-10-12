@@ -44,3 +44,8 @@ export function mascotSvg(id: string, instance: string) {
 export function mascotOf(projectId: string) {
   return mascotIds[hash(projectId) % mascotIds.length] ?? ''
 }
+
+// Chemin affiché avec `~` pour le dossier personnel : la fin du chemin, qui distingue les projets, reste visible.
+export function shortPath(path: string) {
+  return path.replace(/^(\/Users\/[^/]+|\/home\/[^/]+|[A-Za-z]:\\Users\\[^\\]+)/, '~')
+}

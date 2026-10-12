@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Columns2, LayoutList, MessageSquare, PanelBottom, PanelRight, X } from '@lucide/vue'
+import { Columns2, LayoutList, PanelBottom, PanelRight, X } from '@lucide/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import ChatIcon from '@/components/chat/ChatIcon.vue'
 import SettingsSearch from '@/components/settings/SettingsSearch.vue'
 import ShellRailToggle from '@/components/shell/ShellRailToggle.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
@@ -153,7 +154,7 @@ const spacer = computed(() => Math.max(0, centerStart.value - leftZone.value))
             @keydown.space.prevent="workspace.show(tab.id)"
             @auxclick.middle="workspace.closeTab(tab.id)"
           >
-            <MessageSquare class="size-3.5 shrink-0" aria-hidden="true" />
+            <ChatIcon class="size-3.5 shrink-0" />
             <span class="truncate">{{ tabTitle(tab) }}</span>
             <span v-if="attention.isUnseen(tab.id)" class="size-1.5 shrink-0 rounded-full bg-signal">
               <span class="sr-only">{{ t('attention.unseen') }}</span>

@@ -34,6 +34,19 @@ pub struct ChatSummary {
     /// Masqué de l'historique, retrouvé dans Réglages › Archives.
     #[serde(default)]
     pub archived: bool,
+    /// Millisecondes depuis 1970 : point de départ de la suppression automatique des archives.
+    #[serde(default)]
+    #[ts(type = "number | null")]
+    pub archived_at: Option<i64>,
+}
+
+/// Texte d'une session archivée (messages et réponses, sans les outils) pour la recherche.
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct ChatText {
+    pub id: String,
+    pub text: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
@@ -64,6 +77,9 @@ const MIGRATIONS: &[&str] = &[
     "ALTER TABLE chats ADD COLUMN worktree INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE chats ADD COLUMN worktree_path TEXT",
     "ALTER TABLE chats ADD COLUMN archived INTEGER NOT NULL DEFAULT 0",
+    // Les archives d'avant la colonne repartent du jour de la migration : aucune ne disparaît au lancement.
+    "ALTER TABLE chats ADD COLUMN archived_at INTEGER;
+     UPDATE chats SET archived_at = CAST(strftime('%s', 'now') AS INTEGER) * 1000 WHERE archived = 1",
 ];
 
 /// Historique des chats dans une base SQLite du dossier de données de l'app.
@@ -85,7 +101,7 @@ impl ChatService {
     pub fn list(&self) -> Result<Vec<ChatSummary>, AppError> {
         let db = self.lock();
         let mut query = db.prepare(
-            "SELECT id, project_id, number, agent, title, items != '[]', worktree, worktree_path, archived FROM chats ORDER BY created_at",
+            "SELECT id, project_id, number, agent, title, items != '[]', worktree, worktree_path, archived, archived_at FROM chats ORDER BY created_at",
         )?;
         let rows = query.query_map([], |row| {
             Ok((
@@ -98,12 +114,23 @@ impl ChatService {
                 row.get::<_, bool>(6)?,
                 row.get(7)?,
                 row.get::<_, bool>(8)?,
+                row.get(9)?,
             ))
         })?;
         let mut chats = Vec::new();
         for row in rows {
-            let (id, project_id, number, agent, title, started, worktree, worktree_path, archived) =
-                row?;
+            let (
+                id,
+                project_id,
+                number,
+                agent,
+                title,
+                started,
+                worktree,
+                worktree_path,
+                archived,
+                archived_at,
+            ) = row?;
             // Un agent retiré d'une future version ne doit pas faire tomber toute la liste.
             if let Ok(agent) = serde_json::from_value(Value::String(agent)) {
                 chats.push(ChatSummary {
@@ -116,6 +143,7 @@ impl ChatService {
                     worktree,
                     worktree_path,
                     archived,
+                    archived_at,
                 });
             }
         }
@@ -240,17 +268,36 @@ impl ChatService {
         Ok(())
     }
 
-    pub fn set_archived(&self, ids: &[String], archived: bool) -> Result<(), AppError> {
+    /// Rend la date d'archivage enregistrée (`None` au retour dans l'historique).
+    pub fn set_archived(&self, ids: &[String], archived: bool) -> Result<Option<i64>, AppError> {
+        let at = archived.then(now);
         let mut db = self.lock();
         let tx = db.transaction()?;
         for id in ids {
             tx.execute(
-                "UPDATE chats SET archived = ?1 WHERE id = ?2",
-                params![archived, id],
+                "UPDATE chats SET archived = ?1, archived_at = ?2 WHERE id = ?3",
+                params![archived, at, id],
             )?;
         }
         tx.commit()?;
-        Ok(())
+        Ok(at)
+    }
+
+    pub fn archived_texts(&self) -> Result<Vec<ChatText>, AppError> {
+        let db = self.lock();
+        let mut query = db.prepare(
+            "SELECT chats.id, group_concat(json_extract(item.value, '$.text'), char(10))
+             FROM chats, json_each(chats.items) AS item
+             WHERE chats.archived = 1 AND json_extract(item.value, '$.kind') IN ('user', 'text')
+             GROUP BY chats.id",
+        )?;
+        let texts = query.query_map([], |row| {
+            Ok(ChatText {
+                id: row.get(0)?,
+                text: row.get::<_, Option<String>>(1)?.unwrap_or_default(),
+            })
+        })?;
+        Ok(texts.collect::<Result<_, _>>()?)
     }
 
     pub fn delete(&self, id: &str) -> Result<(), AppError> {
@@ -314,6 +361,7 @@ mod tests {
             worktree: false,
             worktree_path: None,
             archived: false,
+            archived_at: None,
         };
         let content = ChatContent {
             session_id: Some("s1".into()),
@@ -333,7 +381,15 @@ mod tests {
         chats
             .set_worktree("c1", true, Some("/tmp/arbre"))
             .expect("worktree");
-        chats.set_archived(&["c1".into()], true).expect("archive");
+        let archived_at = chats.set_archived(&["c1".into()], true).expect("archive");
+        assert!(archived_at.is_some());
+        assert_eq!(
+            chats.archived_texts().expect("textes"),
+            vec![ChatText {
+                id: "c1".into(),
+                text: "salut".into()
+            }]
+        );
         drop(chats);
 
         let chats = ChatService::open(&path).expect("réouverture");
@@ -343,6 +399,7 @@ mod tests {
             worktree: true,
             worktree_path: Some("/tmp/arbre".into()),
             archived: true,
+            archived_at,
             ..chat
         };
         assert_eq!(chats.list().expect("liste"), vec![titled]);

@@ -3,7 +3,7 @@ use tauri::State;
 use crate::error::AppError;
 use crate::services::agent::{AgentKind, AgentService};
 use crate::services::attachment::AttachmentService;
-use crate::services::chat::{ChatContent, ChatService, ChatSummary};
+use crate::services::chat::{ChatContent, ChatService, ChatSummary, ChatText};
 use crate::services::worktree::WorktreeService;
 
 #[tauri::command]
@@ -70,8 +70,13 @@ pub async fn chat_set_archived(
     ids: Vec<String>,
     archived: bool,
     chats: State<'_, ChatService>,
-) -> Result<(), AppError> {
+) -> Result<Option<i64>, AppError> {
     chats.set_archived(&ids, archived)
+}
+
+#[tauri::command]
+pub async fn chat_archived_texts(chats: State<'_, ChatService>) -> Result<Vec<ChatText>, AppError> {
+    chats.archived_texts()
 }
 
 /// Renvoie le chemin du worktree du chat s'il a été gardé (changements non commités). Un worktree que

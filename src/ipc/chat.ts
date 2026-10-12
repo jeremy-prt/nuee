@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { ChatContent } from '@/ipc/bindings/ChatContent'
 import type { ChatSummary } from '@/ipc/bindings/ChatSummary'
+import type { ChatText } from '@/ipc/bindings/ChatText'
 
 export function chatList() {
   return invoke<ChatSummary[]>('chat_list')
@@ -30,8 +31,13 @@ export function chatSetWorktree(id: string, worktree: boolean, path: string | nu
   return invoke<void>('chat_set_worktree', { id, worktree, path })
 }
 
+// Rend la date d'archivage enregistrée, null au retour dans l'historique.
 export function chatSetArchived(ids: string[], archived: boolean) {
-  return invoke<void>('chat_set_archived', { ids, archived })
+  return invoke<number | null>('chat_set_archived', { ids, archived })
+}
+
+export function chatArchivedTexts() {
+  return invoke<ChatText[]>('chat_archived_texts')
 }
 
 // Rend le chemin du worktree du chat s'il a été gardé parce qu'il avait des changements non commités.

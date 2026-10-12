@@ -5,6 +5,7 @@ import type { Attachment } from '@/ipc/bindings/Attachment'
 import { chatList, chatSetArchived, chatSetWorktree, chatTitle } from '@/ipc/chat'
 import { i18nGlobal } from '@/i18n'
 import { useConversationsStore } from '@/stores/conversations'
+import { useGeneralStore } from '@/stores/general'
 import { useNavigationStore } from '@/stores/navigation'
 import { useProjectsStore } from '@/stores/projects'
 import { useToastsStore } from '@/stores/toasts'
@@ -25,6 +26,7 @@ export interface Tab {
   worktreePath: string | null
   // Masqué de l'historique, retrouvé dans Réglages › Archives.
   archived: boolean
+  archivedAt: number | null
 }
 
 interface PaneLayout {
@@ -37,6 +39,8 @@ interface PaneLayout {
 
 const MAX_PANES = 2
 const SEED_LENGTH = 50
+const DAY = 86_400_000
+const PURGE_EVERY = 3_600_000
 
 // Titre affiché tout de suite, le temps que l'agent en propose un meilleur.
 function titleSeed(prompt: string, attachments: Attachment[]) {
@@ -58,6 +62,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const navigation = useNavigationStore()
   const conversations = useConversationsStore()
   const projects = useProjectsStore()
+  const general = useGeneralStore()
   // Tous les chats enregistrés, ouverts ou non.
   const tabs = ref<Tab[]>([])
   const layouts = reactive<Record<string, PaneLayout>>({})
@@ -73,6 +78,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         const panes = saved.panes.filter((id) => open.includes(id))
         layouts[key] = { tabs: open, panes, focused: Math.min(saved.focused ?? 0, Math.max(0, panes.length - 1)) }
       }
+    })
+    .then(() => {
+      purgeArchives()
+      setInterval(purgeArchives, PURGE_EVERY)
     })
     .catch((error) => console.error('historique', error))
     .finally(() => {
@@ -112,7 +121,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     (layouts[contextKey.value]?.tabs ?? []).flatMap((id) => tabs.value.find((tab) => tab.id === id) ?? []),
   )
   const startedChats = computed(() => tabs.value.filter((tab) => tab.started && !tab.archived))
-  const archivedChats = computed(() => tabs.value.filter((tab) => tab.archived).reverse())
+  const archivedChats = computed(() =>
+    tabs.value.filter((tab) => tab.archived).sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0)),
+  )
   // Historique de la barre latérale, le plus récent en haut.
   const contextChats = computed(() => tabsFor(navigation.projectId).filter((tab) => tab.started && !tab.archived).reverse())
 
@@ -134,7 +145,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const projectId = navigation.projectId
     const agent = projects.chatAgent(projectId)
     const worktree = worktreePath === undefined ? !!projects.byId(projectId)?.worktree : worktreePath !== null
-    const summary = { id: crypto.randomUUID(), projectId, number: nextChatNumber(projectId), agent, title, started: false, worktree, worktreePath: worktreePath ?? null, archived: false }
+    const summary = { id: crypto.randomUUID(), projectId, number: nextChatNumber(projectId), agent, title, started: false, worktree, worktreePath: worktreePath ?? null, archived: false, archivedAt: null }
     const tab: Tab = { ...summary, kind: 'chat' }
     tabs.value.push(tab)
     conversations.create(summary)
@@ -247,17 +258,27 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
-  // Les chats démarrés du projet quittent l'historique et leurs onglets se ferment. Rend leur nombre.
-  async function archiveProjectChats(projectId: string) {
-    const archived = tabsFor(projectId).filter((tab) => tab.started && !tab.archived)
-    if (!archived.length) return 0
-    await chatSetArchived(archived.map((tab) => tab.id), true)
-    const layout = layouts[projectId]
-    for (const tab of archived) {
+  // Les chats quittent l'historique et leurs onglets se ferment.
+  async function archive(chats: Tab[]) {
+    if (!chats.length) return
+    const at = await chatSetArchived(chats.map((tab) => tab.id), true)
+    for (const tab of chats) {
       tab.archived = true
+      tab.archivedAt = at
+      const layout = layouts[tab.projectId ?? '']
       if (layout) closeTab(tab.id, layout)
     }
-    return archived.length
+  }
+
+  async function archiveChat(id: string) {
+    await archive(tabs.value.filter((tab) => tab.id === id && tab.started && !tab.archived))
+  }
+
+  // Rend le nombre de chats archivés.
+  async function archiveProjectChats(projectId: string) {
+    const chats = tabsFor(projectId).filter((tab) => tab.started && !tab.archived)
+    await archive(chats)
+    return chats.length
   }
 
   async function restoreChat(id: string) {
@@ -265,6 +286,19 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (!tab?.archived) return
     await chatSetArchived([id], false)
     tab.archived = false
+    tab.archivedAt = null
+  }
+
+  // Archives plus vieilles que `days` jours ; aucune si elles sont gardées sans limite.
+  function expiredArchives(days: number = general.archiveDays) {
+    if (!days) return []
+    const limit = Date.now() - days * DAY
+    return archivedChats.value.filter((tab) => (tab.archivedAt ?? 0) < limit)
+  }
+
+  async function purgeArchives() {
+    const kept = await Promise.all(expiredArchives().map((tab) => deleteChat(tab.id)))
+    warnKept(kept.filter((path) => path !== null))
   }
 
   // Premier message du chat : il entre dans l'historique, et l'agent résume le message en titre
@@ -333,8 +367,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     setWorktree,
     adoptWorktree,
     leaveWorktree,
+    archiveChat,
     archiveProjectChats,
     restoreChat,
+    expiredArchives,
+    purgeArchives,
     startChat,
     moveTab,
     dropTab,

@@ -242,6 +242,14 @@ const entries: SettingEntry[] = [
   { id: 'skills-list', section: 'skills', label: 'settings.skills.skills', keywords: ['skills'] },
   { id: 'servers-list', section: 'skills', label: 'settings.skills.servers', keywords: ['mcp'] },
   { id: 'projects-list', section: 'projects', label: 'settings.projects.add', keywords: ['projects'] },
+  {
+    id: 'archive-days',
+    section: 'archive',
+    label: 'settings.archive.retention',
+    hint: 'settings.archive.retentionHint',
+    terms: ['settings.archive.never'],
+    keywords: ['archive'],
+  },
   { id: 'zoom', section: 'appearance', label: 'settings.interface.zoom', keywords: ['zoom'] },
   {
     id: 'chatWidth',

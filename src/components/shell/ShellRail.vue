@@ -7,7 +7,6 @@ import {
   Gauge,
   GitPullRequest,
   House,
-  MessagesSquare,
   NotebookPen,
   PanelLeftOpen,
   RefreshCw,
@@ -16,6 +15,7 @@ import {
 } from '@lucide/vue'
 import { nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import ChatIcon from '@/components/chat/ChatIcon.vue'
 import ProjectIcon from '@/components/project/ProjectIcon.vue'
 import SettingsNav from '@/components/settings/SettingsNav.vue'
 import ShellRailItem from '@/components/shell/ShellRailItem.vue'
@@ -121,12 +121,13 @@ function footerLabel(id: (typeof footer)[number]['id']) {
 
         <div class="my-3 h-px shrink-0 bg-stroke" />
         <ShellRailItem
-          :icon="MessagesSquare"
           :label="t('rail.chats')"
           :expanded="layout.rail.expanded"
           :active="navigation.view === 'chats' && navigation.projectId === null"
           @click="navigation.openChats(null)"
-        />
+        >
+          <template #icon><ChatIcon many class="size-4 shrink-0" /></template>
+        </ShellRailItem>
 
         <!-- Même hauteur dans les deux états : les projets en dessous ne bougent pas au repli. -->
         <div class="mt-3 flex h-8 shrink-0 items-center" :class="{ 'ps-2': layout.rail.expanded }">

@@ -24,4 +24,8 @@ worktreePath: string | null,
 /**
  * Masqué de l'historique, retrouvé dans Réglages › Archives.
  */
-archived: boolean, };
+archived: boolean, 
+/**
+ * Millisecondes depuis 1970 : point de départ de la suppression automatique des archives.
+ */
+archivedAt: number | null, };

@@ -1,36 +1,153 @@
 <script setup lang="ts">
-import { ArchiveRestore, MessageSquare, Trash2 } from '@lucide/vue'
-import { computed, nextTick } from 'vue'
+import { ArchiveRestore, Search, Trash2 } from '@lucide/vue'
+import { computed, nextTick, ref, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import ChatIcon from '@/components/chat/ChatIcon.vue'
+import ProjectIcon from '@/components/project/ProjectIcon.vue'
+import ProjectPicker from '@/components/project/ProjectPicker.vue'
 import SettingsGroup from '@/components/settings/SettingsGroup.vue'
-import UiIconButton from '@/components/ui/UiIconButton.vue'
+import SettingsRow from '@/components/settings/SettingsRow.vue'
+import UiButton from '@/components/ui/UiButton.vue'
+import UiSelect from '@/components/ui/UiSelect.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { useTabTitle } from '@/composables/useTabTitle'
+import { chatArchivedTexts } from '@/ipc/chat'
 import { useDialogStore } from '@/stores/dialog'
-import { useGeneralStore } from '@/stores/general'
+import { type ArchiveDays, archiveDayChoices, useGeneralStore } from '@/stores/general'
 import { useProjectsStore } from '@/stores/projects'
 import { type Tab, useWorkspaceStore } from '@/stores/workspace'
+import { normalize } from '@/utils/search'
 
-const { t } = useI18n()
+const DAY = 86_400_000
+const SNIPPET_BEFORE = 30
+const SNIPPET_AFTER = 90
+
+const { t, locale } = useI18n()
 const workspace = useWorkspaceStore()
 const projects = useProjectsStore()
 const dialog = useDialogStore()
 const general = useGeneralStore()
 const { tabTitle } = useTabTitle()
 
-// Un groupe par projet, dans l'ordre de Réglages › Projets ; les chats sans projet à la fin.
-const groups = computed(() => {
-  const archived = workspace.archivedChats
-  const owners = [...projects.projects.map((project) => ({ id: project.id as string | null, name: project.name })), { id: null, name: t('settings.archive.noProject') }]
-  return owners
-    .map((owner) => ({ ...owner, chats: archived.filter((tab) => tab.projectId === owner.id) }))
-    .filter((group) => group.chats.length)
+const retentionOptions = computed(() =>
+  archiveDayChoices.map((days) => ({ value: String(days), label: days ? t('settings.archive.after', { n: days }) : t('settings.archive.never') })),
+)
+
+// Un délai plus court supprime tout de suite les archives plus anciennes : on prévient avant.
+const retention = computed({
+  get: () => String(general.archiveDays),
+  set: async (value: string) => {
+    const days = Number(value) as ArchiveDays
+    const expired = workspace.expiredArchives(days).length
+    if (
+      expired &&
+      !(await dialog.confirm({
+        title: t('settings.archive.retentionTitle'),
+        message: t('settings.archive.retentionMessage', { n: expired, days }, expired),
+        confirmLabel: t('settings.archive.deleteConfirm'),
+        danger: true,
+      }))
+    )
+      return
+    general.archiveDays = days
+    await workspace.purgeArchives()
+  },
 })
+
+const counts = computed(() => {
+  const result: Record<string, number> = {}
+  for (const tab of workspace.archivedChats) result[tab.projectId ?? ''] = (result[tab.projectId ?? ''] ?? 0) + 1
+  return result
+})
+
+// À l'ouverture : là où se trouvent des archives, sans projet d'abord.
+// '' : les chats sans projet.
+const ownerId = ref(counts.value[''] ? '' : (projects.projects.find((project) => counts.value[project.id])?.id ?? ''))
+const owner = computed(() => projects.byId(ownerId.value || null)?.id ?? null)
+const inScope = computed(() => workspace.archivedChats.filter((tab) => tab.projectId === owner.value))
+
+const query = ref('')
+const tokens = computed(() => normalize(query.value).split(' ').filter(Boolean))
+// Texte de chaque archive, lu à la première recherche puis à chaque nouvelle archive.
+const texts = shallowRef(new Map<string, { raw: string; folded: string }>())
+
+const fold = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
+
+watch(
+  () => tokens.value.length > 0 && workspace.archivedChats.some((tab) => !texts.value.has(tab.id)),
+  async (missing) => {
+    if (!missing) return
+    try {
+      const loaded = await chatArchivedTexts()
+      texts.value = new Map(loaded.map(({ id, text }) => [id, { raw: text, folded: fold(text) }]))
+      for (const tab of workspace.archivedChats) if (!texts.value.has(tab.id)) texts.value.set(tab.id, { raw: '', folded: '' })
+    } catch (error) {
+      console.error('archives', error)
+    }
+  },
+  { immediate: true },
+)
+
+interface Snippet {
+  before: string
+  match: string
+  after: string
+}
+
+// Extrait du message autour du premier mot trouvé ; chaque caractère est replié seul, les positions restent justes.
+function snippet(raw: string, token: string): Snippet | null {
+  const chars = [...raw]
+  const folded = chars.map(fold)
+  const flat = folded.join('')
+  const at = flat.indexOf(token)
+  if (at === -1) return null
+  let start = 0
+  let offset = 0
+  while (start < chars.length && offset + folded[start]!.length <= at) offset += folded[start++]!.length
+  let end = start
+  let length = 0
+  while (end < chars.length && length < token.length) length += folded[end++]!.length
+  const clean = (text: string) => text.replace(/\s+/g, ' ')
+  const from = Math.max(0, start - SNIPPET_BEFORE)
+  return {
+    before: (from ? '…' : '') + clean(chars.slice(from, start).join('')).trimStart(),
+    match: chars.slice(start, end).join(''),
+    after: clean(chars.slice(end, end + SNIPPET_AFTER).join('')),
+  }
+}
+
+const rows = computed(() => {
+  if (!tokens.value.length) return inScope.value.map((tab) => ({ tab, snippet: null as Snippet | null }))
+  // Une recherche couvre toutes les archives : la ligne dit alors d'où vient la session.
+  return workspace.archivedChats.flatMap((tab) => {
+    const title = normalize(tabTitle(tab))
+    const text = texts.value.get(tab.id)
+    if (!tokens.value.every((token) => title.includes(token) || text?.folded.includes(token))) return []
+    const inText = tokens.value.find((token) => !title.includes(token))
+    return [{ tab, snippet: inText && text ? snippet(text.raw, inText) : null }]
+  })
+})
+
+function onSearchKeydown(event: KeyboardEvent) {
+  if (event.key !== 'Escape' || !query.value) return
+  event.stopPropagation()
+  query.value = ''
+}
+
+const relative = computed(() => new Intl.RelativeTimeFormat(locale.value, { numeric: 'auto' }))
+
+function dates(tab: Tab) {
+  const at = tab.archivedAt ?? Date.now()
+  const archived = t('settings.archive.archivedWhen', { when: relative.value.format(-Math.floor((Date.now() - at) / DAY), 'day') })
+  if (!general.archiveDays) return archived
+  const left = Math.max(0, Math.ceil((at + general.archiveDays * DAY - Date.now()) / DAY))
+  return `${archived} · ${t('settings.archive.deletedWhen', { when: relative.value.format(left, 'day') })}`
+}
 
 // La ligne disparaît : validé au clavier, le focus passe à la ligne suivante, sinon à la précédente.
 async function settle(event: MouseEvent, tab: Tab, action: () => Promise<unknown>) {
   const byKeyboard = event.detail === 0
-  const list = workspace.archivedChats
+  const list = rows.value.map((row) => row.tab)
   const index = list.findIndex((item) => item.id === tab.id)
   const neighbour = list[index + 1] ?? list[index - 1]
   await action()
@@ -39,8 +156,13 @@ async function settle(event: MouseEvent, tab: Tab, action: () => Promise<unknown
   document.querySelector<HTMLElement>(`[data-archive-restore="${neighbour.id}"]`)?.focus()
 }
 
-function restore(event: MouseEvent, tab: Tab) {
-  settle(event, tab, () => workspace.restoreChat(tab.id))
+async function restore(event: MouseEvent, tab: Tab) {
+  const confirmed = await dialog.confirm({
+    title: t('settings.archive.restoreTitle'),
+    message: t('settings.archive.restoreMessage', { title: tabTitle(tab) }),
+    confirmLabel: t('settings.archive.restoreButton'),
+  })
+  if (confirmed) settle(event, tab, () => workspace.restoreChat(tab.id))
 }
 
 async function remove(event: MouseEvent, tab: Tab) {
@@ -54,36 +176,100 @@ async function remove(event: MouseEvent, tab: Tab) {
     }))
   if (confirmed) settle(event, tab, () => workspace.deleteChat(tab.id))
 }
+
+async function removeAll() {
+  const chats = inScope.value
+  const confirmed = await dialog.confirm({
+    title: t('settings.archive.deleteAllTitle'),
+    message: t('settings.archive.deleteAllMessage', { n: chats.length }, chats.length),
+    confirmLabel: t('settings.archive.deleteConfirm'),
+    danger: true,
+  })
+  if (confirmed) await Promise.all(chats.map((tab) => workspace.deleteChat(tab.id)))
+}
+
+const emptyText = computed(() => {
+  if (tokens.value.length) return t('settings.archive.noResults')
+  const project = projects.byId(owner.value)
+  return project ? t('settings.archive.emptyProject', { name: project.name }) : t('settings.archive.emptyNoProject')
+})
 </script>
 
 <template>
-  <div v-if="!groups.length" data-setting="archive-list" class="mt-8 rounded-xl border border-stroke bg-content/3 px-4 py-5">
-    <p class="text-sm font-medium">{{ t('settings.archive.empty') }}</p>
+  <SettingsGroup>
+    <SettingsRow data-setting="archive-days" :label="t('settings.archive.retention')" :hint="t('settings.archive.retentionHint')">
+      <UiSelect v-model="retention" :label="t('settings.archive.retention')" :options="retentionOptions" />
+    </SettingsRow>
+  </SettingsGroup>
+
+  <div v-if="!workspace.archivedChats.length" data-setting="archive-list" class="mt-8 rounded-xl border border-stroke bg-content/3 px-4 py-5">
+    <p class="text-[13px] font-medium">{{ t('settings.archive.empty') }}</p>
     <p class="mt-0.5 text-xs/relaxed text-muted">{{ t('settings.archive.emptyHint') }}</p>
   </div>
-  <template v-else>
-    <SettingsGroup v-for="group in groups" :key="group.id ?? ''" :title="group.name" data-setting="archive-list">
-      <ul :aria-label="group.name">
-        <li v-for="tab in group.chats" :key="tab.id" class="group flex items-center gap-3 border-b border-stroke px-4 py-2 last:border-b-0">
-          <MessageSquare class="size-4 shrink-0 text-muted" aria-hidden="true" />
-          <span class="min-w-0 flex-1 truncate text-sm">{{ tabTitle(tab) }}</span>
-          <div class="flex shrink-0 items-center opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 motion-reduce:transition-none">
-            <UiIconButton :label="t('settings.archive.restore')" :data-archive-restore="tab.id" @click="restore($event, tab)">
-              <ArchiveRestore class="size-3.5" aria-hidden="true" />
-            </UiIconButton>
-            <UiTooltip :label="t('settings.archive.delete')">
-              <button
-                type="button"
-                class="grid size-7 shrink-0 place-items-center rounded-md text-muted hover:bg-danger/15 hover:text-danger focus-visible:outline-2 focus-visible:outline-ring"
-                :aria-label="t('settings.archive.delete')"
-                @click="remove($event, tab)"
-              >
-                <Trash2 class="size-3.5" aria-hidden="true" />
-              </button>
-            </UiTooltip>
+
+  <section v-else data-setting="archive-list" class="pt-8">
+    <div class="flex flex-wrap items-center gap-2 pb-2.5">
+      <ProjectPicker v-model="ownerId" :label="t('settings.archive.project')" :none-label="t('settings.archive.noProject')" :counts="counts" />
+      <label
+        class="ms-auto flex h-7 w-72 min-w-0 items-center gap-1.5 rounded-md border border-stroke bg-selection/50 px-2 focus-within:border-stroke-focus"
+      >
+        <Search class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
+        <input
+          v-model="query"
+          type="search"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+          writingsuggestions="false"
+          :aria-label="t('settings.archive.search')"
+          :placeholder="t('settings.archive.search')"
+          class="min-w-0 flex-1 bg-transparent text-xs outline-none select-text placeholder:text-muted [&::-webkit-search-cancel-button]:hidden"
+          @keydown="onSearchKeydown"
+        />
+      </label>
+    </div>
+
+    <div class="overflow-hidden rounded-xl border border-stroke bg-content/3">
+      <div v-if="rows.length" class="flex h-9 items-center gap-3 border-b border-stroke ps-4 pe-2 text-xs text-muted">
+        <p class="min-w-0 flex-1 truncate" aria-live="polite">{{ t(tokens.length ? 'settings.archive.found' : 'settings.archive.count', { n: rows.length }, rows.length) }}</p>
+        <UiButton v-if="!tokens.length && inScope.length" size="xs" variant="ghost" class="hover:bg-danger/15! hover:text-danger!" @click="removeAll">
+          {{ t('settings.archive.deleteAll') }}
+        </UiButton>
+      </div>
+      <p v-if="!rows.length" class="px-4 py-3.5 text-xs text-muted" role="status">{{ emptyText }}</p>
+      <ul v-else :aria-label="t('settings.sections.archive')">
+        <li v-for="{ tab, snippet: excerpt } in rows" :key="tab.id" class="flex items-center gap-3 border-b border-stroke py-2 ps-4 pe-2 last:border-b-0">
+          <ChatIcon class="size-4 shrink-0 text-muted" />
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-[13px]">{{ tabTitle(tab) }}</p>
+            <p v-if="excerpt" class="mt-0.5 truncate text-[11px] text-muted">
+              {{ excerpt.before }}<mark class="rounded-sm bg-signal/20 text-content">{{ excerpt.match }}</mark>{{ excerpt.after }}
+            </p>
+            <p class="mt-0.5 flex min-w-0 items-center gap-1 text-[11px] text-muted tabular-nums">
+              <template v-if="tokens.length">
+                <ProjectIcon v-if="projects.byId(tab.projectId)" :project="projects.byId(tab.projectId)!" class="size-3 shrink-0 rounded-sm" />
+                <ChatIcon v-else many class="size-3 shrink-0" />
+                <span class="shrink-0">{{ projects.byId(tab.projectId)?.name ?? t('settings.archive.noProject') }} ·</span>
+              </template>
+              <span class="truncate">{{ dates(tab) }}</span>
+            </p>
           </div>
+          <UiButton size="xs" :data-archive-restore="tab.id" @click="restore($event, tab)">
+            <ArchiveRestore class="size-3.5" aria-hidden="true" />{{ t('settings.archive.restoreButton') }}
+          </UiButton>
+          <UiTooltip :label="t('settings.archive.delete')">
+            <button
+              type="button"
+              class="grid size-6 shrink-0 place-items-center rounded-md text-muted hover:bg-danger/15 hover:text-danger focus-visible:outline-2 focus-visible:outline-ring"
+              :aria-label="t('settings.archive.delete')"
+              @click="remove($event, tab)"
+            >
+              <Trash2 class="size-3.5" aria-hidden="true" />
+            </button>
+          </UiTooltip>
         </li>
       </ul>
-    </SettingsGroup>
-  </template>
+    </div>
+  </section>
 </template>

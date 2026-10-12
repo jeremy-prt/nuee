@@ -8,6 +8,10 @@ import { useConversationsStore } from '@/stores/conversations'
 
 export type LanguageChoice = Locale | 'auto'
 
+// Jours avant la suppression d'une session archivée ; 0 la garde.
+export const archiveDayChoices = [0, 7, 30, 90] as const
+export type ArchiveDays = (typeof archiveDayChoices)[number]
+
 interface GeneralState {
   systemNotifications: boolean
   appNotifications: boolean
@@ -17,6 +21,7 @@ interface GeneralState {
   confirmDelete: boolean
   checkUpdates: boolean
   language: LanguageChoice
+  archiveDays: ArchiveDays
 }
 
 const STORAGE_KEY = 'nuee.general.v1'
@@ -31,6 +36,7 @@ function defaults(): GeneralState {
     confirmDelete: true,
     checkUpdates: true,
     language: 'auto',
+    archiveDays: 30,
   }
 }
 
@@ -39,9 +45,10 @@ function load(): GeneralState {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}')
     for (const key of Object.keys(state) as (keyof GeneralState)[]) {
-      if (key !== 'language' && typeof saved[key] === 'boolean') state[key] = saved[key]
+      if (typeof state[key] === 'boolean' && typeof saved[key] === 'boolean') Object.assign(state, { [key]: saved[key] })
     }
     if (saved.language === 'auto' || locales.includes(saved.language)) state.language = saved.language
+    if (archiveDayChoices.includes(saved.archiveDays)) state.archiveDays = saved.archiveDays
   } catch {
     // Réglages illisibles : on repart des valeurs par défaut.
   }

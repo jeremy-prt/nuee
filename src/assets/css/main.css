@@ -309,3 +309,22 @@ html:has([data-edge='panel']:focus-visible) [data-title-edge='panel'] {
     animation: none;
   }
 }
+
+/* Main sur tout ce qui se clique, d'un seul endroit : Tailwind remet les boutons au curseur flèche. */
+@layer base {
+  :is(
+      button,
+      summary,
+      [role='button'],
+      [role='option'],
+      [role='menuitem'],
+      [role='menuitemradio'],
+      [role='menuitemcheckbox'],
+      [role='radio'],
+      [role='switch'],
+      [role='checkbox'],
+      [role='tab']
+    ):not(:disabled, [aria-disabled='true'], [data-disabled]) {
+    cursor: pointer;
+  }
+}
