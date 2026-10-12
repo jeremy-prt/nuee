@@ -132,20 +132,23 @@ html:has([data-edge='panel']:focus-visible) [data-title-edge='panel'] {
   --edge: var(--color-ring);
 }
 
-/* Verre des menus (UiSelect), confirmations (UiConfirmDialog) et messages (UiToasts). Fond, flou et bord sont
-   sur un cadre qui ne bouge pas : WebKit peint un fond périmé si l'élément flouté est lui-même animé. Seul le
-   contenu s'anime dedans. Menus et confirmations se ferment sans animation, sinon le cadre resterait vide un
-   instant ; les messages partagent un cadre commun, ce sont leurs lignes qui se replient. */
-[data-reka-popper-content-wrapper]:has(> .ui-pop),
+/* Verre des menus et listes (.ui-pop, sans animation : choix de Jérémy), confirmations (UiConfirmDialog) et messages
+   (UiToasts). Confirmations et messages gardent un cadre fixe où seul le contenu s'anime : WebKit peint un fond
+   périmé si l'élément flouté est lui-même animé. */
+.ui-pop,
 .ui-glass {
-  overflow: hidden;
   border: 1px solid var(--color-stroke);
   background: var(--color-popover);
   box-shadow: 0 12px 32px -8px rgb(0 0 0 / 0.5);
   backdrop-filter: blur(10px);
 }
 
-[data-reka-popper-content-wrapper]:has(> .ui-pop) {
+.ui-glass {
+  overflow: hidden;
+}
+
+/* Le défilement d'une longue liste reste à ses propres classes (`overflow-y-auto`). */
+.ui-pop {
   border-radius: 0.5rem;
 }
 
@@ -158,35 +161,6 @@ html:has([data-edge='panel']:focus-visible) [data-title-edge='panel'] {
   background-color: color-mix(in srgb, var(--color-overlay) 55%, var(--color-popover));
   background-image: linear-gradient(var(--raised), var(--raised));
   box-shadow: 0 24px 64px -12px rgb(0 0 0 / 0.6);
-}
-
-@keyframes ui-pop-in {
-  from {
-    opacity: 0;
-    transform: translateY(var(--pop-lift, 0)) scale(0.94);
-  }
-}
-
-.ui-pop {
-  transform-origin: var(--reka-select-content-transform-origin);
-}
-
-.ui-pop[data-side='bottom'] {
-  --pop-lift: -6px;
-}
-
-.ui-pop[data-side='top'] {
-  --pop-lift: 6px;
-}
-
-.ui-pop[data-state='open'] {
-  animation: ui-pop-in 200ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ui-pop[data-state] {
-    animation: none;
-  }
 }
 
 /* Contenu des confirmations et des messages, dans leur cadre de verre : même courbe que les menus. */
@@ -340,7 +314,7 @@ html:has([data-edge='panel']:focus-visible) [data-title-edge='panel'] {
     transition: scale 120ms ease-out;
   }
 
-  /* Pas sur un bouton qui ouvre un menu : la liste se placerait sous le bouton rétréci, puis décalée. */
+  /* Pas sur un bouton qui ouvre une liste : elle se placerait sous le bouton rétréci, puis décalée. */
   :is(button, label)[data-control]:active:not(:disabled, :has(:disabled), [aria-haspopup], [aria-expanded]) {
     scale: 0.97;
   }

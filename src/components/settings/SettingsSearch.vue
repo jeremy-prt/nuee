@@ -74,7 +74,7 @@ function onKeydown(event: KeyboardEvent) {
         side="bottom"
         align="end"
         :side-offset="6"
-        class="ui-pop z-50 max-h-80 w-80 origin-(--reka-combobox-content-transform-origin) overflow-y-auto p-1 text-xs text-content select-none"
+        class="ui-pop z-50 max-h-80 w-80 overflow-y-auto p-1 text-xs text-content select-none"
       >
         <ComboboxViewport>
           <p v-if="!results.length" class="px-2 py-1.5 text-muted">{{ t('settings.search.empty') }}</p>

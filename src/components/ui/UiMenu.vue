@@ -86,14 +86,12 @@ function onCloseAutoFocus(event: Event) {
           />
         </DropdownMenuTrigger>
         <DropdownMenuPortal>
-          <!-- .ui-pop fixe l'origine de l'animation sur celle d'un select : on la remplace par celle du menu. -->
           <DropdownMenuContent
             :side="side"
             align="start"
             :side-offset="6"
             :collision-padding="8"
             class="ui-pop z-50 max-h-(--reka-dropdown-menu-content-available-height) max-w-80 min-w-48 overflow-y-auto p-1 text-xs text-content select-none"
-            :style="{ transformOrigin: 'var(--reka-dropdown-menu-content-transform-origin)' }"
             @close-auto-focus="onCloseAutoFocus"
           >
             <template v-if="nested">
@@ -110,7 +108,6 @@ function onCloseAutoFocus(event: Event) {
                     :side-offset="6"
                     :collision-padding="8"
                     class="ui-pop z-50 max-h-(--reka-dropdown-menu-content-available-height) max-w-80 min-w-44 overflow-y-auto p-1 text-xs text-content select-none"
-                    :style="{ transformOrigin: 'var(--reka-dropdown-menu-content-transform-origin)' }"
                   >
                     <UiMenuChoices :section="section" @select="emit('select', section.id, $event)" />
                   </DropdownMenuSubContent>

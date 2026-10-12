@@ -61,7 +61,6 @@ const item =
         :side-offset="6"
         :collision-padding="8"
         class="ui-pop z-50 w-64 text-[13px] text-content select-none"
-        :style="{ transformOrigin: 'var(--reka-popover-content-transform-origin)' }"
       >
         <ListboxRoot :model-value="model" highlight-on-hover :aria-label="label" @update:model-value="choose">
           <div class="flex h-9 items-center gap-2 border-b border-stroke px-3">
