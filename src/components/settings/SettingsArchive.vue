@@ -148,7 +148,7 @@ function deletion(tab: Tab) {
 
 // Ligne sous le titre : d'où vient la session pendant une recherche, puis le temps avant suppression.
 function details(tab: Tab) {
-  const origin = tokens.value.length ? (projects.byId(tab.projectId)?.name ?? t('settings.archive.noProject')) : null
+  const origin = tokens.value.length ? (projects.byId(tab.projectId)?.name ?? t('rail.chats')) : null
   return [origin, deletion(tab)].filter(Boolean).join(' · ')
 }
 
@@ -217,7 +217,7 @@ const emptyText = computed(() => {
 
   <section v-else data-setting="archive-list" class="pt-8">
     <div class="flex flex-wrap items-center gap-2 pb-2.5">
-      <ProjectPicker v-model="ownerId" :label="t('settings.archive.project')" :none-label="t('settings.archive.noProject')" :counts="counts" />
+      <ProjectPicker v-model="ownerId" :label="t('settings.archive.project')" :none-label="t('rail.chats')" :counts="counts" />
       <label
         data-control
         class="ms-auto flex h-7 w-72 min-w-0 items-center gap-1.5 rounded-md border border-stroke bg-selection/50 px-2 focus-within:border-stroke-focus"

@@ -18,7 +18,7 @@ const selected = computed(() => props.checked ?? model.value === props.value)
     :class="[
       selected ? 'border-transparent bg-signal/15' : 'border-stroke',
       disabled ? 'cursor-not-allowed' : 'cursor-pointer',
-      { 'hover:bg-selection/40': !selected && !disabled },
+      { 'hover:bg-selection': !selected && !disabled },
     ]"
   >
     <input v-model="model" type="radio" :name="name" :value="value" :disabled="disabled" class="sr-only" />
