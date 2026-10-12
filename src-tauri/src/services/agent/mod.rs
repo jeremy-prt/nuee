@@ -293,6 +293,11 @@ pub enum AgentEvent {
         /// Quota du modèle à part ; l'agent ne le nomme pas ici, la sonde l'a déjà fait.
         model: Option<Quota>,
     },
+    /// Limite d'utilisation atteinte : le tour va échouer. `resets_at` en millisecondes, si l'agent la donne.
+    Limited {
+        #[ts(type = "number | null")]
+        resets_at: Option<i64>,
+    },
     /// La réponse est complète. L'agent range encore son tour (résumé, hooks) avant `turnEnd`.
     Answered,
     /// Toujours le dernier événement d'un tour.
@@ -433,6 +438,7 @@ impl AgentService {
             channel,
             stopped: false,
             number: 0,
+            answered: false,
         });
         if !session.write(driver.user_message(&text, &attached)) {
             session.abandon();
@@ -442,6 +448,26 @@ impl AgentService {
             )));
         }
         Ok(())
+    }
+
+    /// Message envoyé pendant une réponse : ajouté au tour en cours. Rend faux s'il est trop tard
+    /// (réponse complète ou arrêtée), le front le garde alors pour le tour suivant.
+    pub fn steer(
+        &self,
+        chat_id: &str,
+        prompt: &str,
+        attachments: &[Attachment],
+    ) -> Result<bool, AppError> {
+        if prompt.trim().is_empty() && attachments.is_empty() {
+            return Err(AppError::InvalidInput("message vide".into()));
+        }
+        let attached = attachment::load(attachments)?;
+        let sessions = lock(&self.sessions);
+        let Some(session) = sessions.get(chat_id) else {
+            return Ok(false);
+        };
+        let driver = session.key.agent.driver(&session.key.cwd);
+        Ok(session.steer(driver.user_message(prompt, &attached)))
     }
 
     /// Lance le process d'un chat avant le premier message, pendant que l'utilisateur écrit.

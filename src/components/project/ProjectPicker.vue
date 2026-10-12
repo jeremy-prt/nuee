@@ -42,7 +42,7 @@ const item =
 <template>
   <PopoverRoot v-model:open="open">
     <PopoverTrigger
-      class="group -ms-2 inline-flex max-w-full min-w-0 items-center gap-2 rounded-md ps-2 pe-1.5 font-semibold hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring data-[state=open]:bg-selection"
+      class="group inline-flex max-w-full min-w-0 items-center gap-2 rounded-md ps-2 pe-1.5 font-semibold hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring data-[state=open]:bg-selection"
       :class="large ? 'h-9 text-xl' : 'h-8 text-[15px]'"
     >
       <ProjectIcon v-if="current" :project="current" class="shrink-0 rounded-sm" :class="large ? 'size-6' : 'size-4.5'" />

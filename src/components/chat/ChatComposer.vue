@@ -19,6 +19,7 @@ import type { TurnOptions } from '@/ipc/bindings/TurnOptions'
 import type { Worktree } from '@/ipc/bindings/Worktree'
 import type { WorktreeSupport } from '@/ipc/bindings/WorktreeSupport'
 import { pickFiles } from '@/ipc/dialog'
+import { useGeneralStore } from '@/stores/general'
 import type { Project } from '@/stores/projects'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { agents } from '@/utils/agents'
@@ -50,6 +51,7 @@ const emit = defineEmits<{ send: [prompt: string, attachments: Attachment[]]; st
 
 const { t } = useI18n()
 const shortcuts = useShortcutsStore()
+const general = useGeneralStore()
 const prompt = ref('')
 const attachments = ref<Attachment[]>([])
 // Fichiers en cours d'écriture sur disque : envoyer avant les perdrait.
@@ -179,7 +181,7 @@ watch(
 )
 
 function submit() {
-  if (!canSend.value || props.disabled || props.running) return
+  if (!canSend.value || props.disabled) return
   emit('send', prompt.value.trim(), attachments.value)
   prompt.value = ''
   attachments.value = []
@@ -358,6 +360,17 @@ function onKeydown(event: KeyboardEvent) {
           <span class="@max-sm:sr-only">{{ t(`composer.mode.${options.mode}`) }}</span>
         </UiMenu>
         <span class="flex-1" />
+        <!-- Pendant une réponse : le message attend la fin du tour ou la rejoint, selon Réglages › Général. -->
+        <UiTooltip v-if="running && canSend" :label="t(general.followUp === 'steer' ? 'composer.steer' : 'composer.queue')" :shortcut="shortcuts.label('send')">
+          <button
+            type="submit"
+            :disabled="disabled"
+            class="grid size-7 shrink-0 place-items-center rounded-md bg-selection text-content hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            :aria-label="t(general.followUp === 'steer' ? 'composer.steer' : 'composer.queue')"
+          >
+            <ArrowUp class="size-4" aria-hidden="true" />
+          </button>
+        </UiTooltip>
         <UiTooltip v-if="running" :label="t('composer.stop')">
           <button
             type="button"

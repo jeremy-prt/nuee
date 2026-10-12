@@ -38,6 +38,10 @@ pub struct ChatSummary {
     #[serde(default)]
     #[ts(type = "number | null")]
     pub archived_at: Option<i64>,
+    /// Dernier enregistrement de la conversation, en millisecondes : point de départ de l'archivage automatique.
+    #[serde(default)]
+    #[ts(type = "number")]
+    pub updated_at: i64,
 }
 
 /// Texte d'une session archivée (messages et réponses, sans les outils) pour la recherche.
@@ -101,7 +105,7 @@ impl ChatService {
     pub fn list(&self) -> Result<Vec<ChatSummary>, AppError> {
         let db = self.lock();
         let mut query = db.prepare(
-            "SELECT id, project_id, number, agent, title, items != '[]', worktree, worktree_path, archived, archived_at FROM chats ORDER BY created_at",
+            "SELECT id, project_id, number, agent, title, items != '[]', worktree, worktree_path, archived, archived_at, updated_at FROM chats ORDER BY created_at",
         )?;
         let rows = query.query_map([], |row| {
             Ok((
@@ -115,6 +119,7 @@ impl ChatService {
                 row.get(7)?,
                 row.get::<_, bool>(8)?,
                 row.get(9)?,
+                row.get::<_, i64>(10)?,
             ))
         })?;
         let mut chats = Vec::new();
@@ -130,6 +135,7 @@ impl ChatService {
                 worktree_path,
                 archived,
                 archived_at,
+                updated_at,
             ) = row?;
             // Un agent retiré d'une future version ne doit pas faire tomber toute la liste.
             if let Ok(agent) = serde_json::from_value(Value::String(agent)) {
@@ -144,6 +150,7 @@ impl ChatService {
                     worktree_path,
                     archived,
                     archived_at,
+                    updated_at,
                 });
             }
         }
@@ -362,6 +369,7 @@ mod tests {
             worktree_path: None,
             archived: false,
             archived_at: None,
+            updated_at: 0,
         };
         let content = ChatContent {
             session_id: Some("s1".into()),
@@ -393,6 +401,8 @@ mod tests {
         drop(chats);
 
         let chats = ChatService::open(&path).expect("réouverture");
+        let listed = chats.list().expect("liste").remove(0);
+        assert!(listed.updated_at > 0);
         let titled = ChatSummary {
             title: Some("Inverser une liste".into()),
             started: true,
@@ -400,6 +410,7 @@ mod tests {
             worktree_path: Some("/tmp/arbre".into()),
             archived: true,
             archived_at,
+            updated_at: listed.updated_at,
             ..chat
         };
         assert_eq!(chats.list().expect("liste"), vec![titled]);

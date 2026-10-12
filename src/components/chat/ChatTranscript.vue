@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CircleAlert, File, Folder, LoaderCircle } from '@lucide/vue'
+import { CircleAlert, CornerDownRight, File, Folder, LoaderCircle } from '@lucide/vue'
 import { computed, onMounted, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatCommandRow from '@/components/chat/ChatCommandRow.vue'
@@ -77,6 +77,9 @@ function agentParams() {
             v-if="item.text"
             class="max-w-[85%] rounded-xl bg-selection px-3 py-2 text-sm whitespace-pre-wrap break-words select-text"
           >{{ item.text }}</p>
+          <p v-if="item.steered" class="flex items-center gap-1 text-[11px] text-muted">
+            <CornerDownRight class="size-3" aria-hidden="true" />{{ t('chat.queue.steered') }}
+          </p>
         </template>
         <ChatMarkdown v-else-if="item.kind === 'text'" :text="item.text" :streaming="running && index > lastUser" />
         <ChatTool v-else-if="item.kind === 'tool'" :item="item" />

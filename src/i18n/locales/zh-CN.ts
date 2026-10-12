@@ -67,6 +67,23 @@ export default {
     },
   },
   chat: {
+    queue: {
+      label: '等待中的消息',
+      waiting: '等待中',
+      steer: '添加到当前回答',
+      send: '立即发送',
+      remove: '从队列中移除',
+      steered: '回答期间添加',
+    },
+    limit: {
+      title: '已达到使用上限',
+      resuming: '将于 {time} 自动恢复。',
+      resets: '配额将于 {time} 恢复。',
+      unknown: '配额恢复时间未知。',
+      cancel: '取消恢复',
+      schedule: '在该时间恢复',
+      resumePrompt: '从中断处继续工作。',
+    },
     commands: {
       createSkill: '创建技能',
       editSkill: '编辑 {name}',
@@ -127,6 +144,8 @@ export default {
     deny: '拒绝',
   },
   composer: {
+    queue: '回答结束后发送',
+    steer: '添加到当前回答',
     label: '消息',
     placeholder: '描述要构建的内容…',
     send: '发送',
@@ -588,6 +607,8 @@ export default {
       openFailed: '无法打开安装页面',
     },
     archive: {
+      autoArchive: '自动归档',
+      autoArchiveHint: '在此期限内没有新消息的会话会移入归档。在标签页中打开的会话保留在历史记录中。',
       empty: '没有已归档的会话',
       emptyHint: '可在侧边栏中归档会话，或在项目设置中归档该项目的全部会话。',
       project: '要显示的归档',
@@ -685,6 +706,20 @@ export default {
       },
     },
     general: {
+      sessions: {
+        title: '会话',
+        followUp: '回答期间发送的消息',
+        followUpOptions: {
+          queue: '等待结束',
+          steer: '添加到回答',
+        },
+        followUpHints: {
+          queue: '回答结束后发送消息。',
+          steer: '代理在下一步读取消息，无需等待回答结束。',
+        },
+        autoResume: '达到使用上限后恢复',
+        autoResumeHint: '因使用上限而停止的会话会在配额恢复后自动继续。',
+      },
       notifications: {
         title: '通知',
         system: '系统通知',

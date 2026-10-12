@@ -67,6 +67,23 @@ export default {
     },
   },
   chat: {
+    queue: {
+      label: 'Mensagens em espera',
+      waiting: 'Em espera',
+      steer: 'Adicionar à resposta em andamento',
+      send: 'Enviar agora',
+      remove: 'Remover da fila',
+      steered: 'Adicionada durante a resposta',
+    },
+    limit: {
+      title: 'Limite de uso atingido',
+      resuming: 'Retomada automática às {time}.',
+      resets: 'Cota restabelecida às {time}.',
+      unknown: 'Horário de restabelecimento da cota desconhecido.',
+      cancel: 'Cancelar a retomada',
+      schedule: 'Retomar nesse horário',
+      resumePrompt: 'Continuar o trabalho de onde parou.',
+    },
     commands: {
       createSkill: 'Criação de skill',
       editSkill: 'Edição de {name}',
@@ -127,6 +144,8 @@ export default {
     deny: 'Recusar',
   },
   composer: {
+    queue: 'Enviar após a resposta',
+    steer: 'Adicionar à resposta em andamento',
     label: 'Mensagem',
     placeholder: 'Descrever o que construir…',
     send: 'Enviar',
@@ -588,6 +607,8 @@ export default {
       openFailed: 'Não foi possível abrir a página de instalação',
     },
     archive: {
+      autoArchive: 'Arquivamento automático',
+      autoArchiveHint: 'As sessões sem mensagem nova durante esse prazo vão para o arquivo. Uma sessão aberta em uma aba fica no histórico.',
       empty: 'Nenhuma sessão arquivada',
       emptyHint: 'Arquivar uma sessão pela barra lateral, ou todas as sessões de um projeto pelos ajustes dele.',
       project: 'Arquivos a mostrar',
@@ -685,6 +706,20 @@ export default {
       },
     },
     general: {
+      sessions: {
+        title: 'Sessões',
+        followUp: 'Mensagem enviada durante uma resposta',
+        followUpOptions: {
+          queue: 'Esperar o fim',
+          steer: 'Adicionar à resposta',
+        },
+        followUpHints: {
+          queue: 'A mensagem é enviada quando a resposta termina.',
+          steer: 'O agente lê a mensagem na próxima etapa, sem esperar o fim da resposta.',
+        },
+        autoResume: 'Retomada após um limite de uso',
+        autoResumeHint: 'Uma sessão interrompida por um limite de uso retoma sozinha quando a cota é restabelecida.',
+      },
       notifications: {
         title: 'Notificações',
         system: 'Notificações do sistema',

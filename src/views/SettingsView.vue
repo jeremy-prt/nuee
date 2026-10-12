@@ -18,6 +18,7 @@ import SettingsMcpServer from '@/components/settings/SettingsMcpServer.vue'
 import ProjectPicker from '@/components/project/ProjectPicker.vue'
 import SettingsProject from '@/components/settings/SettingsProject.vue'
 import SettingsProjects from '@/components/settings/SettingsProjects.vue'
+import SettingsSessions from '@/components/settings/SettingsSessions.vue'
 import SettingsShortcuts from '@/components/settings/SettingsShortcuts.vue'
 import SettingsSkill from '@/components/settings/SettingsSkill.vue'
 import SettingsSkills from '@/components/settings/SettingsSkills.vue'
@@ -210,6 +211,7 @@ onUnmounted(() => {
         </div>
         <template v-if="navigation.settingsSection === 'general'">
           <SettingsSystem />
+          <SettingsSessions />
           <SettingsNotifications />
           <SettingsUpdates />
           <SettingsAbout />

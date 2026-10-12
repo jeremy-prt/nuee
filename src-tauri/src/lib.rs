@@ -77,6 +77,7 @@ pub fn run() {
             commands::app::app_quit,
             commands::agent::agent_send,
             commands::agent::agent_warm,
+            commands::agent::agent_steer,
             commands::agent::agent_stop,
             commands::agent::agent_approve,
             commands::agent::agent_catalog,

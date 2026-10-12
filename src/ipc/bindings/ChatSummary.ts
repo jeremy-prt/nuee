@@ -28,4 +28,8 @@ archived: boolean,
 /**
  * Millisecondes depuis 1970 : point de départ de la suppression automatique des archives.
  */
-archivedAt: number | null, };
+archivedAt: number | null, 
+/**
+ * Dernier enregistrement de la conversation, en millisecondes : point de départ de l'archivage automatique.
+ */
+updatedAt: number, };

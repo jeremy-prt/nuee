@@ -469,7 +469,15 @@ impl Driver for Claude {
             Some("assistant") => self.assistant(&line, &mut events),
             Some("user") => self.tool_results(&line["message"]["content"], &mut events),
             Some("result") => self.result(&line, &mut events),
-            Some("rate_limit_event") => events.extend(rate_limit_of(&line["rate_limit_info"])),
+            Some("rate_limit_event") => {
+                let info = &line["rate_limit_info"];
+                events.extend(rate_limit_of(info));
+                if info["status"] == "rejected" {
+                    events.push(AgentEvent::Limited {
+                        resets_at: info["resetsAt"].as_i64().map(|seconds| seconds * 1000),
+                    });
+                }
+            }
             Some("control_request") if line["request"]["subtype"] == "can_use_tool" => {
                 events.push(self.approval(&line));
             }
@@ -1152,6 +1160,19 @@ mod tests {
                     }),
                 },
             ]
+        );
+    }
+
+    #[test]
+    fn a_rejected_rate_limit_announces_when_the_turn_can_resume() {
+        let (_, events) = parse(&[
+            r#"{"type":"rate_limit_event","rate_limit_info":{"status":"rejected","resetsAt":1791727800,"rateLimitType":"five_hour"}}"#,
+        ]);
+        assert_eq!(
+            events.last(),
+            Some(&AgentEvent::Limited {
+                resets_at: Some(1_791_727_800_000)
+            })
         );
     }
 

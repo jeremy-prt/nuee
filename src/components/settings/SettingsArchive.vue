@@ -10,7 +10,7 @@ import UiSelect from '@/components/ui/UiSelect.vue'
 import { useTabTitle } from '@/composables/useTabTitle'
 import { chatArchivedTexts } from '@/ipc/chat'
 import { useDialogStore } from '@/stores/dialog'
-import { type ArchiveDays, archiveDayChoices, useGeneralStore } from '@/stores/general'
+import { type ArchiveDays, type AutoArchiveDays, archiveDayChoices, autoArchiveChoices, useGeneralStore } from '@/stores/general'
 import { useProjectsStore } from '@/stores/projects'
 import { type Tab, useWorkspaceStore } from '@/stores/workspace'
 import { normalize } from '@/utils/search'
@@ -25,6 +25,18 @@ const projects = useProjectsStore()
 const dialog = useDialogStore()
 const general = useGeneralStore()
 const { tabTitle } = useTabTitle()
+
+const autoArchiveOptions = computed(() =>
+  autoArchiveChoices.map((days) => ({ value: String(days), label: days ? t('settings.archive.after', { n: days }) : t('settings.archive.never') })),
+)
+// Archiver plus tôt se voit tout de suite : les sessions concernées rejoignent la liste.
+const autoArchive = computed({
+  get: () => String(general.autoArchiveDays),
+  set: (value: string) => {
+    general.autoArchiveDays = Number(value) as AutoArchiveDays
+    workspace.tidy()
+  },
+})
 
 const retentionOptions = computed(() =>
   archiveDayChoices.map((days) => ({ value: String(days), label: days ? t('settings.archive.after', { n: days }) : t('settings.archive.never') })),
@@ -205,6 +217,9 @@ const emptyText = computed(() => {
 
 <template>
   <SettingsGroup>
+    <SettingsRow data-setting="auto-archive" :label="t('settings.archive.autoArchive')" :hint="t('settings.archive.autoArchiveHint')">
+      <UiSelect v-model="autoArchive" :label="t('settings.archive.autoArchive')" :options="autoArchiveOptions" />
+    </SettingsRow>
     <SettingsRow data-setting="archive-days" :label="t('settings.archive.retention')" :hint="t('settings.archive.retentionHint')">
       <UiSelect v-model="retention" :label="t('settings.archive.retention')" :options="retentionOptions" />
     </SettingsRow>

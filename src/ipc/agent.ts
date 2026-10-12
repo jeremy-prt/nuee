@@ -29,6 +29,11 @@ export function agentWarm(spec: SessionSpec) {
   return invoke<void>('agent_warm', { spec })
 }
 
+// Ajoute un message à la réponse en cours. false : réponse déjà complète, il attend le tour suivant.
+export function agentSteer(chatId: string, prompt: string, attachments: Attachment[]) {
+  return invoke<boolean>('agent_steer', { chatId, prompt, attachments })
+}
+
 export function agentStop(chatId: string) {
   return invoke<void>('agent_stop', { chatId })
 }

@@ -243,6 +243,26 @@ const entries: SettingEntry[] = [
   { id: 'servers-list', section: 'skills', label: 'settings.skills.servers', keywords: ['mcp'] },
   { id: 'projects-list', section: 'projects', label: 'settings.projects.add', keywords: ['projects'] },
   {
+    id: 'auto-archive',
+    section: 'archive',
+    label: 'settings.archive.autoArchive',
+    hint: 'settings.archive.autoArchiveHint',
+    terms: ['settings.archive.never'],
+    keywords: ['archive'],
+  },
+  {
+    id: 'followUp',
+    section: 'general',
+    label: 'settings.general.sessions.followUp',
+    terms: options('settings.general.sessions.followUpOptions', ['queue', 'steer']),
+  },
+  {
+    id: 'autoResume',
+    section: 'general',
+    label: 'settings.general.sessions.autoResume',
+    hint: 'settings.general.sessions.autoResumeHint',
+  },
+  {
     id: 'archive-days',
     section: 'archive',
     label: 'settings.archive.retention',

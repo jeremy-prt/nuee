@@ -67,6 +67,23 @@ export default {
     },
   },
   chat: {
+    queue: {
+      label: 'Mensajes en espera',
+      waiting: 'En espera',
+      steer: 'Añadir a la respuesta en curso',
+      send: 'Enviar ahora',
+      remove: 'Quitar de la cola',
+      steered: 'Añadido durante la respuesta',
+    },
+    limit: {
+      title: 'Límite de uso alcanzado',
+      resuming: 'Reanudación automática a las {time}.',
+      resets: 'Cuota restablecida a las {time}.',
+      unknown: 'Hora de restablecimiento de la cuota desconocida.',
+      cancel: 'Cancelar la reanudación',
+      schedule: 'Reanudar a esa hora',
+      resumePrompt: 'Continuar el trabajo donde se detuvo.',
+    },
     commands: {
       createSkill: 'Creación de skill',
       editSkill: 'Edición de {name}',
@@ -127,6 +144,8 @@ export default {
     deny: 'Rechazar',
   },
   composer: {
+    queue: 'Enviar tras la respuesta',
+    steer: 'Añadir a la respuesta en curso',
     label: 'Mensaje',
     placeholder: 'Describir lo que hay que construir…',
     send: 'Enviar',
@@ -588,6 +607,8 @@ export default {
       openFailed: 'No se pudo abrir la página de instalación',
     },
     archive: {
+      autoArchive: 'Archivado automático',
+      autoArchiveHint: 'Las sesiones sin mensajes nuevos durante este plazo pasan a los archivos. Una sesión abierta en una pestaña se queda en el historial.',
       empty: 'No hay sesiones archivadas',
       emptyHint: 'Archivar una sesión desde la barra lateral, o todas las sesiones de un proyecto desde sus ajustes.',
       project: 'Archivos que mostrar',
@@ -685,6 +706,20 @@ export default {
       },
     },
     general: {
+      sessions: {
+        title: 'Sesiones',
+        followUp: 'Mensaje enviado durante una respuesta',
+        followUpOptions: {
+          queue: 'Esperar al final',
+          steer: 'Añadir a la respuesta',
+        },
+        followUpHints: {
+          queue: 'El mensaje se envía cuando termina la respuesta.',
+          steer: 'El agente lee el mensaje en su siguiente paso, sin esperar al final de su respuesta.',
+        },
+        autoResume: 'Reanudación tras un límite de uso',
+        autoResumeHint: 'Una sesión detenida por un límite de uso se reanuda sola cuando la cuota se restablece.',
+      },
       notifications: {
         title: 'Notificaciones',
         system: 'Notificaciones del sistema',

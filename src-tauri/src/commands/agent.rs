@@ -93,6 +93,17 @@ async fn place(
     Ok(Place::Ready(Some(root)))
 }
 
+/// Rend faux si la réponse est déjà complète : le message partira au tour suivant.
+#[tauri::command]
+pub fn agent_steer(
+    chat_id: String,
+    prompt: String,
+    attachments: Vec<Attachment>,
+    agents: State<'_, AgentService>,
+) -> Result<bool, AppError> {
+    agents.steer(&chat_id, &prompt, &attachments)
+}
+
 #[tauri::command]
 pub fn agent_stop(chat_id: String, agents: State<'_, AgentService>) {
     agents.stop(&chat_id);

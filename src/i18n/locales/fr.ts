@@ -67,6 +67,23 @@ export default {
     },
   },
   chat: {
+    queue: {
+      label: 'Messages en attente',
+      waiting: 'En attente',
+      steer: 'Ajouter à la réponse en cours',
+      send: 'Envoyer maintenant',
+      remove: 'Retirer de la file',
+      steered: 'Ajouté pendant la réponse',
+    },
+    limit: {
+      title: 'Limite d\'utilisation atteinte',
+      resuming: 'Reprise automatique à {time}.',
+      resets: 'Quota rétabli à {time}.',
+      unknown: 'Heure de rétablissement du quota inconnue.',
+      cancel: 'Annuler la reprise',
+      schedule: 'Reprendre à cette heure',
+      resumePrompt: 'Reprendre le travail là où il s\'est arrêté.',
+    },
     commands: {
       createSkill: 'Création de skill',
       editSkill: 'Modification de {name}',
@@ -127,6 +144,8 @@ export default {
     deny: 'Refuser',
   },
   composer: {
+    queue: 'Envoyer après la réponse',
+    steer: 'Ajouter à la réponse en cours',
     label: 'Message',
     placeholder: 'Décrire ce qu\'il faut construire…',
     send: 'Envoyer',
@@ -588,6 +607,8 @@ export default {
       openFailed: 'Impossible d\'ouvrir la page d\'installation',
     },
     archive: {
+      autoArchive: 'Archivage automatique',
+      autoArchiveHint: 'Les sessions sans nouveau message depuis ce délai rejoignent les archives. Une session ouverte dans un onglet reste dans l\'historique.',
       empty: 'Aucune session archivée',
       emptyHint: 'Archiver une session depuis la barre latérale, ou toutes les sessions d\'un projet depuis ses réglages.',
       project: 'Archives à afficher',
@@ -685,6 +706,20 @@ export default {
       },
     },
     general: {
+      sessions: {
+        title: 'Sessions',
+        followUp: 'Message envoyé pendant une réponse',
+        followUpOptions: {
+          queue: 'Attendre la fin',
+          steer: 'Ajouter à la réponse',
+        },
+        followUpHints: {
+          queue: 'Le message part une fois la réponse terminée.',
+          steer: 'L\'agent lit le message à sa prochaine étape, sans attendre la fin de sa réponse.',
+        },
+        autoResume: 'Reprise après une limite d\'utilisation',
+        autoResumeHint: 'Une session arrêtée par une limite d\'utilisation reprend seule quand le quota se rétablit.',
+      },
       notifications: {
         title: 'Notifications',
         system: 'Notifications du système',

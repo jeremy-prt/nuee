@@ -33,6 +33,8 @@ pub(super) struct Turn {
     pub channel: Channel<AgentEvent>,
     pub stopped: bool,
     pub number: u64,
+    /// Réponse complète : un message ajouté maintenant ouvrirait un tour que personne n'écoute.
+    pub answered: bool,
 }
 
 struct Slot {
@@ -190,6 +192,17 @@ impl Session {
         self.input.send(line).is_ok()
     }
 
+    /// Ajoute un message au tour en cours, que l'agent lit à sa prochaine étape. Faux si le tour est
+    /// déjà répondu ou arrêté : le message attend alors le tour suivant.
+    pub fn steer(&self, line: String) -> bool {
+        let slot = lock(&self.slot);
+        let open = slot
+            .current
+            .as_ref()
+            .is_some_and(|turn| !turn.stopped && !turn.answered);
+        open && self.input.send(line).is_ok()
+    }
+
     /// L'écriture a échoué : ce tour n'aura jamais de fin.
     pub fn abandon(&self) {
         lock(&self.slot).current = None;
@@ -295,6 +308,11 @@ fn deliver(slot: &Mutex<Slot>, event: AgentEvent) {
         }
         event => {
             match &event {
+                AgentEvent::Answered => {
+                    if let Some(turn) = slot.current.as_mut() {
+                        turn.answered = true;
+                    }
+                }
                 AgentEvent::Approval { id, input, .. } => {
                     slot.approvals.insert(id.clone(), input.clone());
                 }
@@ -485,6 +503,7 @@ mod tests {
                 channel,
                 stopped: false,
                 number: 0,
+                answered: false,
             });
             lock(&sessions).insert("c1".into(), session);
             if let Some(session) = lock(&sessions).get("c1") {

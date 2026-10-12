@@ -27,6 +27,8 @@ export interface Tab {
   // Masqué de l'historique, retrouvé dans Réglages › Archives.
   archived: boolean
   archivedAt: number | null
+  // Dernier message (ms) : point de départ de l'archivage automatique.
+  updatedAt: number
 }
 
 interface PaneLayout {
@@ -80,8 +82,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       }
     })
     .then(() => {
-      purgeArchives()
-      setInterval(purgeArchives, PURGE_EVERY)
+      tidy()
+      setInterval(tidy, PURGE_EVERY)
     })
     .catch((error) => console.error('historique', error))
     .finally(() => {
@@ -145,7 +147,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const projectId = navigation.projectId
     const agent = projects.chatAgent(projectId)
     const worktree = worktreePath === undefined ? !!projects.byId(projectId)?.worktree : worktreePath !== null
-    const summary = { id: crypto.randomUUID(), projectId, number: nextChatNumber(projectId), agent, title, started: false, worktree, worktreePath: worktreePath ?? null, archived: false, archivedAt: null }
+    const summary = { id: crypto.randomUUID(), projectId, number: nextChatNumber(projectId), agent, title, started: false, worktree, worktreePath: worktreePath ?? null, archived: false, archivedAt: null, updatedAt: Date.now() }
     const tab: Tab = { ...summary, kind: 'chat' }
     tabs.value.push(tab)
     conversations.create(summary)
@@ -301,6 +303,28 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     warnKept(kept.filter((path) => path !== null))
   }
 
+  function touch(id: string) {
+    const tab = tabs.value.find((item) => item.id === id)
+    if (tab) tab.updatedAt = Date.now()
+  }
+
+  // Sessions sans nouveau message depuis le délai choisi. Un onglet ouvert ou un agent au travail les garde.
+  async function autoArchive() {
+    const days = general.autoArchiveDays
+    if (!days) return
+    const limit = Date.now() - days * DAY
+    const open = new Set(Object.values(layouts).flatMap((layout) => layout.tabs))
+    const idle = tabs.value.filter(
+      (tab) => tab.started && !tab.archived && tab.updatedAt < limit && !open.has(tab.id) && (conversations.find(tab.id)?.phase ?? 'idle') === 'idle',
+    )
+    await archive(idle).catch((error) => console.error('archivage', error))
+  }
+
+  async function tidy() {
+    await autoArchive()
+    await purgeArchives()
+  }
+
   // Premier message du chat : il entre dans l'historique, et l'agent résume le message en titre
   // (quelques secondes) ; le début du message sert de titre en attendant.
   function startChat(id: string, prompt: string, attachments: Attachment[]) {
@@ -372,6 +396,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     restoreChat,
     expiredArchives,
     purgeArchives,
+    tidy,
+    touch,
     startChat,
     moveTab,
     dropTab,

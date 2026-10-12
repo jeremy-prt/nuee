@@ -65,6 +65,23 @@ export default {
     },
   },
   chat: {
+    queue: {
+      label: 'Waiting messages',
+      waiting: 'Waiting',
+      steer: 'Add to the current answer',
+      send: 'Send now',
+      remove: 'Remove from the queue',
+      steered: 'Added during the answer',
+    },
+    limit: {
+      title: 'Usage limit reached',
+      resuming: 'Resumes automatically at {time}.',
+      resets: 'Quota back at {time}.',
+      unknown: 'Quota reset time unknown.',
+      cancel: 'Cancel resuming',
+      schedule: 'Resume at that time',
+      resumePrompt: 'Continue the work where it stopped.',
+    },
     commands: {
       createSkill: 'Creating a skill',
       editSkill: 'Editing {name}',
@@ -125,6 +142,8 @@ export default {
     deny: 'Deny',
   },
   composer: {
+    queue: 'Send after the answer',
+    steer: 'Add to the current answer',
     label: 'Message',
     placeholder: 'Describe what to build…',
     send: 'Send',
@@ -586,6 +605,8 @@ export default {
       openFailed: 'Could not open the installation page',
     },
     archive: {
+      autoArchive: 'Automatic archiving',
+      autoArchiveHint: 'Sessions without a new message for this long move to the archives. A session open in a tab stays in the history.',
       empty: 'No archived sessions',
       emptyHint: 'Archive a session from the sidebar, or all the sessions of a project from its settings.',
       project: 'Archives to show',
@@ -683,6 +704,20 @@ export default {
       },
     },
     general: {
+      sessions: {
+        title: 'Sessions',
+        followUp: 'Message sent during an answer',
+        followUpOptions: {
+          queue: 'Wait for the end',
+          steer: 'Add to the answer',
+        },
+        followUpHints: {
+          queue: 'The message is sent once the answer is complete.',
+          steer: 'The agent reads the message at its next step, without waiting for the end of its answer.',
+        },
+        autoResume: 'Resume after a usage limit',
+        autoResumeHint: 'A session stopped by a usage limit resumes on its own when the quota is back.',
+      },
       notifications: {
         title: 'Notifications',
         system: 'System notifications',

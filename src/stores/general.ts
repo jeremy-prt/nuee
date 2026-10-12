@@ -12,6 +12,13 @@ export type LanguageChoice = Locale | 'auto'
 export const archiveDayChoices = [0, 7, 30, 90] as const
 export type ArchiveDays = (typeof archiveDayChoices)[number]
 
+// Jours sans nouveau message avant l'archivage automatique d'une session ; 0 le coupe.
+export const autoArchiveChoices = [0, 7, 14, 30] as const
+export type AutoArchiveDays = (typeof autoArchiveChoices)[number]
+
+// Message envoyé pendant une réponse : il attend la fin du tour, ou rejoint la réponse en cours.
+export type FollowUp = 'queue' | 'steer'
+
 interface GeneralState {
   systemNotifications: boolean
   appNotifications: boolean
@@ -22,6 +29,9 @@ interface GeneralState {
   checkUpdates: boolean
   language: LanguageChoice
   archiveDays: ArchiveDays
+  autoArchiveDays: AutoArchiveDays
+  followUp: FollowUp
+  autoResume: boolean
 }
 
 const STORAGE_KEY = 'nuee.general.v1'
@@ -37,6 +47,9 @@ function defaults(): GeneralState {
     checkUpdates: true,
     language: 'auto',
     archiveDays: 30,
+    autoArchiveDays: 30,
+    followUp: 'queue',
+    autoResume: true,
   }
 }
 
@@ -49,6 +62,8 @@ function load(): GeneralState {
     }
     if (saved.language === 'auto' || locales.includes(saved.language)) state.language = saved.language
     if (archiveDayChoices.includes(saved.archiveDays)) state.archiveDays = saved.archiveDays
+    if (autoArchiveChoices.includes(saved.autoArchiveDays)) state.autoArchiveDays = saved.autoArchiveDays
+    if (saved.followUp === 'queue' || saved.followUp === 'steer') state.followUp = saved.followUp
   } catch {
     // Réglages illisibles : on repart des valeurs par défaut.
   }

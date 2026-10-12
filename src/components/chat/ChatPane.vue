@@ -3,6 +3,8 @@ import { computed, onMounted, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatApproval from '@/components/chat/ChatApproval.vue'
 import ChatComposer from '@/components/chat/ChatComposer.vue'
+import ChatLimit from '@/components/chat/ChatLimit.vue'
+import ChatQueue from '@/components/chat/ChatQueue.vue'
 import ChatTranscript from '@/components/chat/ChatTranscript.vue'
 import { useFileDrop } from '@/composables/useFileDrop'
 import { useCatalogStore } from '@/stores/catalog'
@@ -32,8 +34,14 @@ const conversation = computed(() => conversations.find(props.tab.id))
 const items = computed(() => conversation.value?.items ?? [])
 const answering = computed(() => conversation.value?.phase === 'answering')
 // Une réponse est attendue : l'agent répond, ou un message attend la fin du tour précédent.
-const waiting = computed(() => answering.value || !!conversation.value?.queued)
+const waiting = computed(() => answering.value || (conversation.value?.phase === 'finishing' && !!conversation.value.queue.length))
 const loaded = computed(() => conversation.value?.loaded ?? false)
+// Bandeau de limite tant que le dernier tour s'est arrêté sur elle.
+const limit = computed(() => {
+  const current = conversation.value
+  const last = current?.items.at(-1)
+  return current?.limited && current.phase === 'idle' && last?.kind === 'end' && last.status === 'failed' ? current.limited : null
+})
 const agent = computed(() => props.tab.agent)
 const options = computed({
   get: () => catalog.resolve(agent.value, conversation.value?.options ?? projects.chatOptions(props.tab.projectId, agent.value)),
@@ -123,6 +131,22 @@ onMounted(() => {
         :approval="approval"
         :agent-name="agents[agent].name"
         @answer="conversations.approve(tab.id, approval.id, $event)"
+      />
+      <ChatLimit
+        v-if="limit"
+        class="w-full max-w-(--chat-width)"
+        :resets-at="limit.resetsAt"
+        :resume-at="conversation?.resumeAt ?? null"
+        @schedule="conversations.scheduleResume(tab.id)"
+        @cancel="conversations.cancelResume(tab.id)"
+      />
+      <ChatQueue
+        v-if="conversation?.queue.length"
+        class="w-full max-w-(--chat-width)"
+        :queue="conversation.queue"
+        :answering="answering"
+        @send="conversations.sendNow(tab.id, $event)"
+        @remove="conversations.unqueue(tab.id, $event)"
       />
       <ChatComposer
         ref="composer"

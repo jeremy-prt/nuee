@@ -67,6 +67,23 @@ export default {
     },
   },
   chat: {
+    queue: {
+      label: '待機中のメッセージ',
+      waiting: '待機中',
+      steer: '進行中の回答に追加',
+      send: '今すぐ送信',
+      remove: 'キューから削除',
+      steered: '回答中に追加',
+    },
+    limit: {
+      title: '使用上限に達しました',
+      resuming: '{time} に自動で再開します。',
+      resets: '{time} にクォータが回復します。',
+      unknown: 'クォータの回復時刻は不明です。',
+      cancel: '再開を取り消す',
+      schedule: 'その時刻に再開',
+      resumePrompt: '止まったところから作業を続ける。',
+    },
     commands: {
       createSkill: 'スキルを作成中',
       editSkill: '{name} を編集中',
@@ -127,6 +144,8 @@ export default {
     deny: '拒否',
   },
   composer: {
+    queue: '回答後に送信',
+    steer: '進行中の回答に追加',
     label: 'メッセージ',
     placeholder: '作るものを説明…',
     send: '送信',
@@ -588,6 +607,8 @@ export default {
       openFailed: 'インストールページを開けませんでした',
     },
     archive: {
+      autoArchive: '自動アーカイブ',
+      autoArchiveHint: 'この期間新しいメッセージのないセッションはアーカイブに移ります。タブで開いているセッションは履歴に残ります。',
       empty: 'アーカイブ済みのセッションはありません',
       emptyHint: 'セッションはサイドバーから、プロジェクトのすべてのセッションはその設定からアーカイブします。',
       project: '表示するアーカイブ',
@@ -685,6 +706,20 @@ export default {
       },
     },
     general: {
+      sessions: {
+        title: 'セッション',
+        followUp: '回答中に送信したメッセージ',
+        followUpOptions: {
+          queue: '終了を待つ',
+          steer: '回答に追加',
+        },
+        followUpHints: {
+          queue: '回答が終わってからメッセージを送信します。',
+          steer: 'エージェントは回答の終了を待たず、次のステップでメッセージを読みます。',
+        },
+        autoResume: '使用上限後の再開',
+        autoResumeHint: '使用上限で止まったセッションは、クォータが回復すると自動で再開します。',
+      },
       notifications: {
         title: '通知',
         system: 'システム通知',

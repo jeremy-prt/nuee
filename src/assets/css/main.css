@@ -340,7 +340,8 @@ html:has([data-edge='panel']:focus-visible) [data-title-edge='panel'] {
     transition: scale 120ms ease-out;
   }
 
-  :is(button, label)[data-control]:active:not(:disabled, :has(:disabled)) {
+  /* Pas sur un bouton qui ouvre un menu : la liste se placerait sous le bouton rétréci, puis décalée. */
+  :is(button, label)[data-control]:active:not(:disabled, :has(:disabled), [aria-haspopup], [aria-expanded]) {
     scale: 0.97;
   }
 

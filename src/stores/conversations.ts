@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, shallowReactive } from 'vue'
-import { agentApprove, agentSend, agentStop, agentWarm, isAppError } from '@/ipc/agent'
+import { agentApprove, agentSend, agentSteer, agentStop, agentWarm, isAppError } from '@/ipc/agent'
 import type { AgentEvent } from '@/ipc/bindings/AgentEvent'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { AppError } from '@/ipc/bindings/AppError'
@@ -11,16 +11,19 @@ import type { SessionSpec } from '@/ipc/bindings/SessionSpec'
 import type { ToolKind } from '@/ipc/bindings/ToolKind'
 import type { TurnOptions } from '@/ipc/bindings/TurnOptions'
 import type { TurnStatus } from '@/ipc/bindings/TurnStatus'
+import { i18nGlobal } from '@/i18n'
 import { chatContent, chatCreate, chatDelete, chatSave } from '@/ipc/chat'
 import { useAgentsStore } from '@/stores/agents'
 import { type Signal, useAttentionStore } from '@/stores/attention'
 import { useCatalogStore } from '@/stores/catalog'
+import { useGeneralStore } from '@/stores/general'
 import { useProjectsStore } from '@/stores/projects'
 import { useSkillsStore } from '@/stores/skills'
 import { useWorkspaceStore } from '@/stores/workspace'
 
 export type ChatItem =
-  | { kind: 'user'; id: string; text: string; attachments?: Attachment[] }
+  // steered : ajouté à une réponse en cours, l'agent l'a lu sans ouvrir de nouveau tour.
+  | { kind: 'user'; id: string; text: string; attachments?: Attachment[]; steered?: boolean }
   // Chat ouvert par une commande de Nuée : son message d'ouverture est rendu depuis cet élément, sans tour
   // d'agent. `skill` : le skill à modifier tel qu'il était à l'ouverture.
   | { kind: 'command'; id: string; command: ChatCommand; skill?: { name: string; description: string; automatic: boolean } }
@@ -47,6 +50,13 @@ export interface Place {
   worktreePath: string | null
 }
 
+export interface Queued {
+  id: string
+  place: Place
+  prompt: string
+  attachments: Attachment[]
+}
+
 export type Approval = Omit<Extract<AgentEvent, { type: 'approval' }>, 'type'>
 
 // answering : l'agent répond. finishing : réponse complète, l'agent range encore son tour (résumé, hooks).
@@ -62,8 +72,14 @@ export interface Conversation {
   // Temps passé à attendre une réponse à une demande d'autorisation : il ne compte pas dans la durée.
   pausedMs: number
   pausedAt: number | null
-  // Message envoyé pendant que l'agent range son tour : il part dès que le tour se clôt.
-  queued: { place: Place; prompt: string; attachments: Attachment[] } | null
+  // Messages envoyés pendant un tour, qui partent un par un aux tours suivants. Non enregistrés.
+  queue: readonly Queued[]
+  // Limite d'utilisation atteinte pendant le dernier tour : remise à zéro annoncée par l'agent (ms), si connue.
+  limited: { resetsAt: number | null } | null
+  // Reprise programmée après une limite : heure prévue (ms). Non enregistrée.
+  resumeAt: number | null
+  // Dossier du dernier tour : la reprise automatique repart au même endroit.
+  lastPlace: Place | null
   // Demandes d'autorisation (mode Auto) en attente de réponse, la plus ancienne d'abord. Non enregistrées.
   approvals: readonly Approval[]
   // Faux tant que l'historique n'est pas lu : envoyer avant écraserait la conversation chargée.
@@ -73,6 +89,7 @@ export interface Conversation {
 }
 
 const SAVE_DELAY = 600
+const RESUME_MARGIN = 5000
 
 // findLastIndex n'est pas dans la lib TS du projet (ES2022).
 function lastIndex(items: readonly ChatItem[], match: (item: ChatItem) => boolean) {
@@ -167,6 +184,9 @@ function apply(conversation: Conversation, events: AgentEvent[]) {
       case 'approvalCancelled':
         setApprovals(conversation, conversation.approvals.filter((approval) => approval.id !== event.id))
         break
+      case 'limited':
+        conversation.limited = { resetsAt: event.resetsAt }
+        break
       case 'answered': {
         if (conversation.phase !== 'answering') break
         settleTools(items, 'done')
@@ -229,6 +249,7 @@ export const useConversationsStore = defineStore('conversations', () => {
   const busy = computed(() => [...conversations.values()].some((conversation) => conversation.phase !== 'idle'))
   const pending = new Map<string, AgentEvent[]>()
   const timers = new Map<string, number>()
+  const resumeTimers = new Map<string, number>()
   const writes = new Map<string, Promise<void>>()
   let frame = 0
 
@@ -242,7 +263,10 @@ export const useConversationsStore = defineStore('conversations', () => {
       startedAt: 0,
       pausedMs: 0,
       pausedAt: null,
-      queued: null,
+      queue: [],
+      limited: null,
+      resumeAt: null,
+      lastPlace: null,
       approvals: [],
       loaded,
       items: [],
@@ -315,11 +339,7 @@ export const useConversationsStore = defineStore('conversations', () => {
       if (signal) useAttentionStore().signal(chatId, signal)
       // Un chat de skill peut écrire le fichier à n'importe quel tour : chaque fin de tour fait relire la config.
       if (ended && conversation.items.some((item) => item.kind === 'command')) skills.loadSkills()
-      const queued = conversation.queued
-      if (ended && queued) {
-        conversation.queued = null
-        dispatch(chatId, conversation, queued.place, queued.prompt, queued.attachments)
-      }
+      if (ended) afterTurn(chatId, conversation)
     }
     pending.clear()
   }
@@ -342,6 +362,7 @@ export const useConversationsStore = defineStore('conversations', () => {
   }
 
   async function dispatch(chatId: string, conversation: Conversation, place: Place, prompt: string, attachments: Attachment[]) {
+    conversation.lastPlace = place
     // Calculé avant que le nouveau message ne s'ajoute : il porte sur le tour précédent.
     const recap = interruptedText(conversation.items.slice(0, lastIndex(conversation.items, (item) => item.kind === 'user')))
     // Les consignes partent tant qu'aucun tour n'a abouti : la session les garde ensuite, `--resume` compris.
@@ -362,13 +383,99 @@ export const useConversationsStore = defineStore('conversations', () => {
     }
   }
 
-  function send(chatId: string, place: Place, prompt: string, attachments: Attachment[]) {
-    const conversation = conversations.get(chatId)
-    if (!conversation?.loaded || conversation.phase === 'answering' || conversation.queued) return
+  function start(chatId: string, conversation: Conversation, message: Omit<Queued, 'id'>) {
+    const { place, prompt, attachments } = message
+    useWorkspaceStore().touch(chatId)
     push(conversation, { kind: 'user', id: crypto.randomUUID(), text: prompt, attachments })
     save(chatId)
-    if (conversation.phase === 'finishing') conversation.queued = { place, prompt, attachments }
-    else dispatch(chatId, conversation, place, prompt, attachments)
+    dispatch(chatId, conversation, place, prompt, attachments)
+  }
+
+  // Le message rejoint la réponse en cours ; trop tard (réponse complète), il reste dans la file.
+  async function steer(chatId: string, conversation: Conversation, message: Queued) {
+    const steered = await agentSteer(chatId, message.prompt, message.attachments).catch(() => false)
+    if (!steered) {
+      if (conversation.phase === 'idle') afterTurn(chatId, conversation)
+      return
+    }
+    conversation.queue = conversation.queue.filter((item) => item.id !== message.id)
+    push(conversation, { kind: 'user', id: message.id, text: message.prompt, attachments: message.attachments, steered: true })
+    save(chatId)
+  }
+
+  // Fin de tour : la reprise après une limite se programme, sinon le message suivant de la file part.
+  // Après un arrêt demandé, la file attend un geste de l'utilisateur.
+  function afterTurn(chatId: string, conversation: Conversation) {
+    const last = conversation.items.at(-1)
+    if (conversation.limited && last?.kind === 'end' && last.status === 'failed') {
+      if (useGeneralStore().autoResume) scheduleResume(chatId)
+      return
+    }
+    conversation.limited = null
+    if (last?.kind === 'end' && last.status === 'stopped') return
+    const [next, ...rest] = conversation.queue
+    if (!next) return
+    conversation.queue = rest
+    start(chatId, conversation, next)
+  }
+
+  // Pendant un tour, le message attend la fin, ou rejoint la réponse en cours selon Réglages › Général.
+  function send(chatId: string, place: Place, prompt: string, attachments: Attachment[]) {
+    const conversation = conversations.get(chatId)
+    if (!conversation?.loaded) return
+    const message: Queued = { id: crypto.randomUUID(), place, prompt, attachments }
+    // L'agent attend : le message part, une reprise programmée devient inutile.
+    if (conversation.phase === 'idle') {
+      cancelResume(chatId)
+      conversation.limited = null
+      return start(chatId, conversation, message)
+    }
+    conversation.queue = [...conversation.queue, message]
+    if (conversation.phase === 'answering' && useGeneralStore().followUp === 'steer') steer(chatId, conversation, message)
+  }
+
+  // Message de la file envoyé tout de suite : ajouté à la réponse en cours, ou envoyé si l'agent attend.
+  function sendNow(chatId: string, id: string) {
+    const conversation = conversations.get(chatId)
+    const message = conversation?.queue.find((item) => item.id === id)
+    if (!conversation || !message) return
+    if (conversation.phase === 'answering') return steer(chatId, conversation, message)
+    if (conversation.phase !== 'idle') return
+    cancelResume(chatId)
+    conversation.limited = null
+    conversation.queue = conversation.queue.filter((item) => item.id !== id)
+    start(chatId, conversation, message)
+  }
+
+  function unqueue(chatId: string, id: string) {
+    const conversation = conversations.get(chatId)
+    if (conversation) conversation.queue = conversation.queue.filter((item) => item.id !== id)
+  }
+
+  // Quelques secondes après la remise à zéro annoncée : l'agent reprend où il s'était arrêté.
+  function scheduleResume(chatId: string) {
+    const conversation = conversations.get(chatId)
+    const at = conversation?.limited?.resetsAt
+    if (!conversation || !at) return
+    clearTimeout(resumeTimers.get(chatId))
+    conversation.resumeAt = at
+    resumeTimers.set(chatId, window.setTimeout(() => resume(chatId), Math.max(0, at - Date.now()) + RESUME_MARGIN))
+  }
+
+  function cancelResume(chatId: string) {
+    clearTimeout(resumeTimers.get(chatId))
+    resumeTimers.delete(chatId)
+    const conversation = conversations.get(chatId)
+    if (conversation) conversation.resumeAt = null
+  }
+
+  function resume(chatId: string) {
+    const conversation = conversations.get(chatId)
+    cancelResume(chatId)
+    const place = conversation?.lastPlace
+    if (!conversation || !place || conversation.phase !== 'idle') return
+    conversation.limited = null
+    start(chatId, conversation, { place, prompt: i18nGlobal().t('chat.limit.resumePrompt'), attachments: [] })
   }
 
   // Chat ouvert par une commande de Nuée (création de skill...) : le message d'ouverture s'affiche aussitôt,
@@ -401,6 +508,7 @@ export const useConversationsStore = defineStore('conversations', () => {
 
   async function remove(chatId: string): Promise<string | null> {
     stop(chatId)
+    cancelResume(chatId)
     clearTimeout(timers.get(chatId))
     timers.delete(chatId)
     conversations.delete(chatId)
@@ -413,5 +521,5 @@ export const useConversationsStore = defineStore('conversations', () => {
     return kept
   }
 
-  return { busy, find, create, open, setOptions, send, begin, warm, approve, stop, remove }
+  return { busy, find, create, open, setOptions, send, sendNow, unqueue, scheduleResume, cancelResume, begin, warm, approve, stop, remove }
 })
