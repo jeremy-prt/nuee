@@ -132,8 +132,8 @@ export default {
     worktree: {
       label: 'Worktree',
       menu: 'Where this session works',
-      project: 'Project folder',
-      projectHint: 'The agent works right in the project folder.',
+      project: 'Main folder',
+      projectHint: 'The agent works right in the main folder of the repository.',
       new: 'New worktree',
       newHint: 'A copy of the repository on its own branch, just for this session.',
     },
@@ -323,7 +323,7 @@ export default {
       model: 'Model',
       effort: 'Effort',
       worktree: 'One worktree per session',
-      worktreeHint: 'Each new session gets its own copy of the repository at its first message, on a nuee/… branch created automatically. The project folder stays as it is.',
+      worktreeHint: 'Each new session gets its own worktree at its first message, on a branch created automatically. The main folder of the repository stays as it is.',
       worktreeSupport: {
         notRepo: 'This folder is not a git repository.',
         noCommit: 'The repository has no commit yet.',
@@ -331,16 +331,16 @@ export default {
       },
       worktrees: {
         title: 'Worktrees',
-        hint: 'A worktree is a copy of the repository on its own branch. A session working in it leaves the project folder untouched, so several tasks can move forward side by side. Several sessions can share the same worktree.',
+        hint: 'A worktree is a second folder of the same repository, on another branch. A session working in it does not touch the main folder, so several tasks can move forward side by side. Several sessions can share the same worktree.',
         create: 'New worktree',
         loading: 'Reading worktrees…',
         empty: 'No worktree',
         emptyHint: 'A worktree starts from a new branch or from an existing branch of the repository.',
         sessions: '1 session | {n} sessions',
         newSession: 'New session here',
-        count: 'Only the project folder | 1 worktree | {n} worktrees',
+        count: 'A worktree is a second folder of the same repository, on another branch. A session can work there without touching the main folder of the repository. | 1 worktree | {n} worktrees',
         open: 'Manage the worktrees',
-        projectFolder: 'Project folder',
+        projectFolder: 'Main folder',
         detached: 'No branch',
         states: {
           changed: 'Uncommitted changes',
@@ -353,7 +353,7 @@ export default {
           detached: 'This worktree is not on a branch. Its commits would be lost.',
         },
         deleteTitle: 'Delete the {branch} worktree?',
-        deleteMessage: 'The folder goes away, the branch stays. | The folder goes away, the branch stays. The session working in it will go back to the project folder. | The folder goes away, the branch stays. The {n} sessions working in it will go back to the project folder.',
+        deleteMessage: 'The folder goes away, the branch stays. | The folder goes away, the branch stays. The session working in it will go back to the main folder. | The folder goes away, the branch stays. The {n} sessions working in it will go back to the main folder.',
         deleteConfirm: 'Delete',
         deleteFailed: 'Could not delete the worktree',
         dialog: {

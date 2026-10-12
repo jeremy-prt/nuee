@@ -134,8 +134,8 @@ export default {
     worktree: {
       label: 'Worktree',
       menu: 'このセッションの作業場所',
-      project: 'プロジェクトフォルダー',
-      projectHint: 'エージェントはプロジェクトフォルダーで直接作業します。',
+      project: 'メインフォルダー',
+      projectHint: 'エージェントはリポジトリのメインフォルダーで直接作業します。',
       new: '新しい worktree',
       newHint: 'このセッション専用の、リポジトリのコピー上のブランチです。',
     },
@@ -325,7 +325,7 @@ export default {
       model: 'モデル',
       effort: '思考量',
       worktree: 'セッションごとに worktree',
-      worktreeHint: '新しいセッションは最初のメッセージで、自動作成される nuee/… ブランチ上にリポジトリのコピーを受け取ります。フォルダーは変わりません。',
+      worktreeHint: '新しいセッションは最初のメッセージで、自動作成されるブランチ上に専用の worktree を受け取ります。リポジトリのメインフォルダーは変わりません。',
       worktreeSupport: {
         notRepo: 'このフォルダーは git リポジトリではありません。',
         noCommit: 'リポジトリにまだコミットがありません。',
@@ -333,16 +333,16 @@ export default {
       },
       worktrees: {
         title: 'Worktree',
-        hint: 'worktree は、専用のブランチを持つリポジトリのコピーです。worktree で作業するセッションはプロジェクトフォルダーに触れないため、複数の作業を並行して進められます。複数のセッションで同じ worktree を共有できます。',
+        hint: 'worktree は、同じリポジトリの別ブランチを置く 2 つ目のフォルダーです。そこで作業するセッションはメインフォルダーに触れないため、複数の作業を並行して進められます。複数のセッションで同じ worktree を共有できます。',
         create: '新しい worktree',
         loading: 'worktree を読み込み中…',
         empty: 'worktree はありません',
         emptyHint: 'worktree は、新しいブランチまたはリポジトリの既存のブランチから作成します。',
         sessions: '1 件のセッション | {n} 件のセッション',
         newSession: 'ここで新しいセッション',
-        count: 'プロジェクトフォルダーのみ | 1 件の worktree | {n} 件の worktree',
+        count: 'worktree は、同じリポジトリの別ブランチを置く 2 つ目のフォルダーです。セッションはリポジトリのメインフォルダーに触れずにそこで作業できます。 | 1 件の worktree | {n} 件の worktree',
         open: 'worktree を管理',
-        projectFolder: 'プロジェクトフォルダー',
+        projectFolder: 'メインフォルダー',
         detached: 'ブランチなし',
         states: {
           changed: '未コミットの変更',
@@ -355,7 +355,7 @@ export default {
           detached: 'この worktree はどのブランチにもありません。コミットが失われます。',
         },
         deleteTitle: 'worktree {branch} を削除しますか？',
-        deleteMessage: 'フォルダーは削除され、ブランチは残ります。 | フォルダーは削除され、ブランチは残ります。ここで作業しているセッションはプロジェクトフォルダーに戻ります。 | フォルダーは削除され、ブランチは残ります。ここで作業している {n} 件のセッションはプロジェクトフォルダーに戻ります。',
+        deleteMessage: 'フォルダーは削除され、ブランチは残ります。 | フォルダーは削除され、ブランチは残ります。ここで作業しているセッションはメインフォルダーに戻ります。 | フォルダーは削除され、ブランチは残ります。ここで作業している {n} 件のセッションはメインフォルダーに戻ります。',
         deleteConfirm: '削除',
         deleteFailed: 'worktree を削除できませんでした',
         dialog: {

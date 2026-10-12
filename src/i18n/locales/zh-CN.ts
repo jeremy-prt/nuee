@@ -134,8 +134,8 @@ export default {
     worktree: {
       label: 'Worktree',
       menu: '此会话的工作位置',
-      project: '项目文件夹',
-      projectHint: '智能体直接在项目文件夹中工作。',
+      project: '主文件夹',
+      projectHint: '智能体直接在仓库的主文件夹中工作。',
       new: '新建 worktree',
       newHint: '仓库的一个副本，在自己的分支上，只给这个会话用。',
     },
@@ -325,7 +325,7 @@ export default {
       model: '模型',
       effort: '推理强度',
       worktree: '每个会话一个 worktree',
-      worktreeHint: '每个新会话在第一条消息时获得自己的仓库副本，位于自动创建的 nuee/… 分支上。项目文件夹保持不变。',
+      worktreeHint: '每个新会话在第一条消息时获得自己的 worktree，位于自动创建的分支上。仓库的主文件夹保持不变。',
       worktreeSupport: {
         notRepo: '此文件夹不是 git 仓库。',
         noCommit: '仓库还没有任何提交。',
@@ -333,16 +333,16 @@ export default {
       },
       worktrees: {
         title: 'Worktree',
-        hint: 'worktree 是仓库在自己分支上的副本。在其中工作的会话不会改动项目文件夹，因此多个任务可以并行推进。多个会话可以共用同一个 worktree。',
+        hint: 'worktree 是同一仓库在另一个分支上的第二个文件夹。在其中工作的会话不会改动主文件夹，因此多个任务可以并行推进。多个会话可以共用同一个 worktree。',
         create: '新建 worktree',
         loading: '正在读取 worktree…',
         empty: '没有 worktree',
         emptyHint: 'worktree 可以从新分支或仓库中已有的分支创建。',
         sessions: '1 个会话 | {n} 个会话',
         newSession: '在此新建会话',
-        count: '只有项目文件夹 | 1 个 worktree | {n} 个 worktree',
+        count: 'worktree 是同一仓库在另一个分支上的第二个文件夹。会话可以在其中工作，不会改动仓库的主文件夹。 | 1 个 worktree | {n} 个 worktree',
         open: '管理 worktree',
-        projectFolder: '项目文件夹',
+        projectFolder: '主文件夹',
         detached: '无分支',
         states: {
           changed: '有未提交的改动',
@@ -355,7 +355,7 @@ export default {
           detached: '此 worktree 不在任何分支上。它的提交会丢失。',
         },
         deleteTitle: '删除 worktree {branch}？',
-        deleteMessage: '文件夹会被移除，分支保留。 | 文件夹会被移除，分支保留。在其中工作的会话会回到项目文件夹。 | 文件夹会被移除，分支保留。在其中工作的 {n} 个会话会回到项目文件夹。',
+        deleteMessage: '文件夹会被移除，分支保留。 | 文件夹会被移除，分支保留。在其中工作的会话会回到主文件夹。 | 文件夹会被移除，分支保留。在其中工作的 {n} 个会话会回到主文件夹。',
         deleteConfirm: '删除',
         deleteFailed: '无法删除 worktree',
         dialog: {

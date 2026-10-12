@@ -134,8 +134,8 @@ export default {
     worktree: {
       label: 'Worktree',
       menu: 'Dónde trabaja esta sesión',
-      project: 'Carpeta del proyecto',
-      projectHint: 'El agente trabaja directamente en la carpeta del proyecto.',
+      project: 'Carpeta principal',
+      projectHint: 'El agente trabaja directamente en la carpeta principal del repositorio.',
       new: 'Nuevo worktree',
       newHint: 'Una copia del repositorio en su propia rama, solo para esta sesión.',
     },
@@ -325,7 +325,7 @@ export default {
       model: 'Modelo',
       effort: 'Esfuerzo',
       worktree: 'Un worktree por sesión',
-      worktreeHint: 'Cada nueva sesión recibe su copia del repositorio con su primer mensaje, en una rama nuee/… creada automáticamente. La carpeta del proyecto no cambia.',
+      worktreeHint: 'Cada nueva sesión recibe su propio worktree con su primer mensaje, en una rama creada automáticamente. La carpeta principal del repositorio no cambia.',
       worktreeSupport: {
         notRepo: 'Esta carpeta no es un repositorio git.',
         noCommit: 'El repositorio aún no tiene ningún commit.',
@@ -333,16 +333,16 @@ export default {
       },
       worktrees: {
         title: 'Worktrees',
-        hint: 'Un worktree es una copia del repositorio en su propia rama. Una sesión que trabaja en él no toca la carpeta del proyecto, así que varias tareas pueden avanzar en paralelo. Varias sesiones pueden compartir el mismo worktree.',
+        hint: 'Un worktree es una segunda carpeta del mismo repositorio, en otra rama. Una sesión que trabaja en él no toca la carpeta principal, así que varias tareas pueden avanzar en paralelo. Varias sesiones pueden compartir el mismo worktree.',
         create: 'Nuevo worktree',
         loading: 'Leyendo los worktrees…',
         empty: 'Ningún worktree',
         emptyHint: 'Un worktree se crea a partir de una rama nueva o de una rama existente del repositorio.',
         sessions: '1 sesión | {n} sesiones',
         newSession: 'Nueva sesión aquí',
-        count: 'Solo la carpeta del proyecto | 1 worktree | {n} worktrees',
+        count: 'Un worktree es una segunda carpeta del mismo repositorio, en otra rama. Una sesión puede trabajar ahí sin tocar la carpeta principal del repositorio. | 1 worktree | {n} worktrees',
         open: 'Gestionar los worktrees',
-        projectFolder: 'Carpeta del proyecto',
+        projectFolder: 'Carpeta principal',
         detached: 'Sin rama',
         states: {
           changed: 'Cambios sin confirmar',
@@ -355,7 +355,7 @@ export default {
           detached: 'Este worktree no está en ninguna rama. Sus commits se perderían.',
         },
         deleteTitle: '¿Eliminar el worktree {branch}?',
-        deleteMessage: 'La carpeta se elimina, la rama se queda. | La carpeta se elimina, la rama se queda. La sesión que trabaja en él volverá a la carpeta del proyecto. | La carpeta se elimina, la rama se queda. Las {n} sesiones que trabajan en él volverán a la carpeta del proyecto.',
+        deleteMessage: 'La carpeta se elimina, la rama se queda. | La carpeta se elimina, la rama se queda. La sesión que trabaja en él volverá a la carpeta principal. | La carpeta se elimina, la rama se queda. Las {n} sesiones que trabajan en él volverán a la carpeta principal.',
         deleteConfirm: 'Eliminar',
         deleteFailed: 'No se pudo eliminar el worktree',
         dialog: {

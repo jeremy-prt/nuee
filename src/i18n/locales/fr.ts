@@ -134,8 +134,8 @@ export default {
     worktree: {
       label: 'Worktree',
       menu: 'Où travaille cette session',
-      project: 'Dossier du projet',
-      projectHint: 'L\'agent travaille directement dans le dossier du projet.',
+      project: 'Dossier principal',
+      projectHint: 'L\'agent travaille directement dans le dossier principal du dépôt.',
       new: 'Nouveau worktree',
       newHint: 'Une copie du dépôt sur sa propre branche, rien que pour cette session.',
     },
@@ -325,7 +325,7 @@ export default {
       model: 'Modèle',
       effort: 'Effort',
       worktree: 'Un worktree par session',
-      worktreeHint: 'Chaque nouvelle session reçoit sa copie du dépôt à son premier message, sur une branche nuee/… créée automatiquement. Le dossier du projet ne change pas.',
+      worktreeHint: 'Chaque nouvelle session reçoit son propre worktree à son premier message, sur une branche créée automatiquement. Le dossier principal du dépôt ne change pas.',
       worktreeSupport: {
         notRepo: 'Ce dossier n\'est pas un dépôt git.',
         noCommit: 'Le dépôt n\'a encore aucun commit.',
@@ -333,16 +333,16 @@ export default {
       },
       worktrees: {
         title: 'Worktrees',
-        hint: 'Un worktree est une copie du dépôt sur sa propre branche. Une session qui y travaille ne touche pas au dossier du projet, ce qui permet de mener plusieurs tâches en parallèle. Plusieurs sessions peuvent partager le même worktree.',
+        hint: 'Un worktree est un second dossier du même dépôt, sur une autre branche. Une session qui y travaille ne touche pas au dossier principal, ce qui permet de mener plusieurs tâches en parallèle. Plusieurs sessions peuvent partager le même worktree.',
         create: 'Nouveau worktree',
         loading: 'Lecture des worktrees…',
         empty: 'Aucun worktree',
         emptyHint: 'Un worktree se crée sur une nouvelle branche ou sur une branche existante du dépôt.',
         sessions: '1 session | {n} sessions',
         newSession: 'Nouvelle session ici',
-        count: 'Seulement le dossier du projet | 1 worktree | {n} worktrees',
+        count: 'Un worktree est un second dossier du même dépôt, sur une autre branche. Une session peut y travailler sans toucher au dossier principal du dépôt. | 1 worktree | {n} worktrees',
         open: 'Gérer les worktrees',
-        projectFolder: 'Dossier du projet',
+        projectFolder: 'Dossier principal',
         detached: 'Sans branche',
         states: {
           changed: 'Changements non commités',
@@ -355,7 +355,7 @@ export default {
           detached: 'Ce worktree n\'est sur aucune branche. Ses commits seraient perdus.',
         },
         deleteTitle: 'Supprimer le worktree {branch} ?',
-        deleteMessage: 'Le dossier est retiré, la branche reste. | Le dossier est retiré, la branche reste. La session qui y travaille repartira dans le dossier du projet. | Le dossier est retiré, la branche reste. Les {n} sessions qui y travaillent repartiront dans le dossier du projet.',
+        deleteMessage: 'Le dossier est retiré, la branche reste. | Le dossier est retiré, la branche reste. La session qui y travaille repartira dans le dossier principal. | Le dossier est retiré, la branche reste. Les {n} sessions qui y travaillent repartiront dans le dossier principal.',
         deleteConfirm: 'Supprimer',
         deleteFailed: 'Impossible de supprimer le worktree',
         dialog: {

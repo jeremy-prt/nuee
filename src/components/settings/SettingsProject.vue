@@ -283,14 +283,17 @@ async function remove(event: MouseEvent) {
       </SettingsRow>
     </SettingsGroup>
 
-    <SettingsGroup v-if="support === 'ready'">
+    <!-- Hors dépôt git, la ligne reste visible et grisée : l'aide dit pourquoi. -->
+    <SettingsGroup>
       <SettingsRow
         data-setting="project-worktrees"
         :label="t('settings.projects.worktrees.title')"
-        :hint="t('settings.projects.worktrees.count', { n: worktreeCount }, worktreeCount)"
+        :hint="worktreeReady ? t('settings.projects.worktrees.count', { n: worktreeCount }, worktreeCount) : worktreeHint"
+        :disabled="!worktreeReady"
       >
         <UiIconButton
           :label="t('settings.projects.worktrees.open')"
+          :disabled="!worktreeReady"
           :data-customize="`worktrees:${project.id}`"
           @click="navigation.showSettingsDetail(`worktrees:${project.id}`)"
         >

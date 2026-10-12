@@ -134,8 +134,8 @@ export default {
     worktree: {
       label: 'Worktree',
       menu: 'Onde esta sessão trabalha',
-      project: 'Pasta do projeto',
-      projectHint: 'O agente trabalha direto na pasta do projeto.',
+      project: 'Pasta principal',
+      projectHint: 'O agente trabalha direto na pasta principal do repositório.',
       new: 'Novo worktree',
       newHint: 'Uma cópia do repositório no seu próprio branch, só para esta sessão.',
     },
@@ -325,7 +325,7 @@ export default {
       model: 'Modelo',
       effort: 'Esforço',
       worktree: 'Um worktree por sessão',
-      worktreeHint: 'Cada nova sessão recebe a sua cópia do repositório na primeira mensagem, em um branch nuee/… criado automaticamente. A pasta do projeto não muda.',
+      worktreeHint: 'Cada nova sessão recebe o seu próprio worktree na primeira mensagem, em um branch criado automaticamente. A pasta principal do repositório não muda.',
       worktreeSupport: {
         notRepo: 'Esta pasta não é um repositório git.',
         noCommit: 'O repositório ainda não tem nenhum commit.',
@@ -333,16 +333,16 @@ export default {
       },
       worktrees: {
         title: 'Worktrees',
-        hint: 'Um worktree é uma cópia do repositório no seu próprio branch. Uma sessão que trabalha nele não mexe na pasta do projeto, então várias tarefas podem avançar em paralelo. Várias sessões podem compartilhar o mesmo worktree.',
+        hint: 'Um worktree é uma segunda pasta do mesmo repositório, em outro branch. Uma sessão que trabalha nele não mexe na pasta principal, então várias tarefas podem avançar em paralelo. Várias sessões podem compartilhar o mesmo worktree.',
         create: 'Novo worktree',
         loading: 'Lendo os worktrees…',
         empty: 'Nenhum worktree',
         emptyHint: 'Um worktree é criado a partir de um branch novo ou de um branch existente do repositório.',
         sessions: '1 sessão | {n} sessões',
         newSession: 'Nova sessão aqui',
-        count: 'Só a pasta do projeto | 1 worktree | {n} worktrees',
+        count: 'Um worktree é uma segunda pasta do mesmo repositório, em outro branch. Uma sessão pode trabalhar nela sem mexer na pasta principal do repositório. | 1 worktree | {n} worktrees',
         open: 'Gerenciar os worktrees',
-        projectFolder: 'Pasta do projeto',
+        projectFolder: 'Pasta principal',
         detached: 'Sem branch',
         states: {
           changed: 'Alterações não commitadas',
@@ -355,7 +355,7 @@ export default {
           detached: 'Este worktree não está em nenhum branch. Os commits dele seriam perdidos.',
         },
         deleteTitle: 'Excluir o worktree {branch}?',
-        deleteMessage: 'A pasta é removida, o branch fica. | A pasta é removida, o branch fica. A sessão que trabalha nele volta para a pasta do projeto. | A pasta é removida, o branch fica. As {n} sessões que trabalham nele voltam para a pasta do projeto.',
+        deleteMessage: 'A pasta é removida, o branch fica. | A pasta é removida, o branch fica. A sessão que trabalha nele volta para a pasta principal. | A pasta é removida, o branch fica. As {n} sessões que trabalham nele voltam para a pasta principal.',
         deleteConfirm: 'Excluir',
         deleteFailed: 'Não foi possível excluir o worktree',
         dialog: {
