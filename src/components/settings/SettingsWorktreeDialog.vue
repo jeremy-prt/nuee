@@ -116,7 +116,7 @@ const field =
               spellcheck="false"
               writingsuggestions="false"
               placeholder="feat/…"
-              :class="[field, 'mt-1.5 font-mono']"
+              data-control :class="[field, 'mt-1.5 font-mono']"
               :aria-describedby="`${id}-from`"
             />
             <p :id="`${id}-from`" class="mt-1.5 text-xs/relaxed text-muted">
@@ -137,7 +137,7 @@ const field =
               spellcheck="false"
               writingsuggestions="false"
               :placeholder="t('settings.projects.worktrees.dialog.search')"
-              :class="[field, 'mt-1.5']"
+              data-control :class="[field, 'mt-1.5']"
             />
             <RadioGroupRoot
               v-model="chosen"

@@ -328,3 +328,25 @@ html:has([data-edge='panel']:focus-visible) [data-title-edge='panel'] {
     cursor: pointer;
   }
 }
+
+/* Relief des contrôles bordés (boutons, listes, champs, cartes de choix), repris de T3 Code : trait clair en
+   haut, ombre douce dessous, léger enfoncement au clic. Un contrôle l'obtient avec l'attribut `data-control`. */
+@layer components {
+  [data-control] {
+    background-color: color-mix(in srgb, var(--color-content) 4%, transparent);
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, var(--color-content) 7%, transparent),
+      0 1px 2px rgb(0 0 0 / 0.2);
+    transition: scale 120ms ease-out;
+  }
+
+  :is(button, label)[data-control]:active:not(:disabled, :has(:disabled)) {
+    scale: 0.97;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-control]:active {
+      scale: none;
+    }
+  }
+}

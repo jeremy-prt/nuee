@@ -13,6 +13,7 @@ const selected = computed(() => props.checked ?? model.value === props.value)
 
 <template>
   <label
+    data-control
     class="rounded-xl border has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-ring"
     :class="[
       selected ? 'border-transparent bg-signal/15' : 'border-stroke',

@@ -6,12 +6,11 @@ import { useI18n } from 'vue-i18n'
 import ChatIcon from '@/components/chat/ChatIcon.vue'
 import ProjectIcon from '@/components/project/ProjectIcon.vue'
 import { useProjectsStore } from '@/stores/projects'
-import { shortPath } from '@/utils/projects'
 import { normalize } from '@/utils/search'
 
 // Titre cliquable qui ouvre la liste des projets. `noneLabel` ajoute en tête le choix « sans projet » (valeur '').
-// counts : nombre affiché à droite de chaque choix, clé '' pour « sans projet ».
-const props = defineProps<{ label: string; noneLabel?: string; counts?: Record<string, number> }>()
+// counts : nombre affiché à droite de chaque choix, clé '' pour « sans projet ». large : titre de page.
+const props = defineProps<{ label: string; noneLabel?: string; counts?: Record<string, number>; large?: boolean }>()
 const model = defineModel<string>({ required: true })
 
 const { t } = useI18n()
@@ -43,9 +42,10 @@ const item =
 <template>
   <PopoverRoot v-model:open="open">
     <PopoverTrigger
-      class="group -ms-2 flex h-8 max-w-full min-w-0 items-center gap-2 rounded-md ps-2 pe-1.5 text-[15px] font-semibold hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring data-[state=open]:bg-selection"
+      class="group -ms-2 inline-flex max-w-full min-w-0 items-center gap-2 rounded-md ps-2 pe-1.5 font-semibold hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring data-[state=open]:bg-selection"
+      :class="large ? 'h-9 text-xl' : 'h-8 text-[15px]'"
     >
-      <ProjectIcon v-if="current" :project="current" class="size-4.5 shrink-0 rounded-sm" />
+      <ProjectIcon v-if="current" :project="current" class="shrink-0 rounded-sm" :class="large ? 'size-6' : 'size-4.5'" />
       <ChatIcon v-else many class="size-4 shrink-0 text-muted" />
       <span class="sr-only">{{ label }}</span>
       <span class="truncate">{{ current?.name ?? noneLabel }}</span>
@@ -60,7 +60,7 @@ const item =
         align="start"
         :side-offset="6"
         :collision-padding="8"
-        class="ui-pop z-50 w-80 text-[13px] text-content select-none"
+        class="ui-pop z-50 w-64 text-[13px] text-content select-none"
         :style="{ transformOrigin: 'var(--reka-popover-content-transform-origin)' }"
       >
         <ListboxRoot :model-value="model" highlight-on-hover :aria-label="label" @update:model-value="choose">
@@ -91,8 +91,7 @@ const item =
             <ListboxItem v-for="project in shown" :key="project.id" :value="project.id" :class="item">
               <span class="grid size-3.5 shrink-0 place-items-center"><Check v-if="project.id === model" class="size-3.5" aria-hidden="true" /></span>
               <ProjectIcon :project="project" class="size-4 shrink-0 rounded-sm" />
-              <span class="max-w-40 shrink-0 truncate font-medium">{{ project.name }}</span>
-              <span class="min-w-0 flex-1 truncate font-mono text-[11px] text-muted">{{ shortPath(project.path) }}</span>
+              <span class="min-w-0 flex-1 truncate font-medium">{{ project.name }}</span>
               <span v-if="counts" class="shrink-0 text-xs text-muted tabular-nums">{{ counts[project.id] ?? 0 }}</span>
             </ListboxItem>
           </ListboxContent>

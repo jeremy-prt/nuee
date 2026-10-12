@@ -71,6 +71,7 @@ function onFilterKeydown(event: KeyboardEvent) {
         type="button"
         aria-pressed="false"
         aria-disabled="true"
+        data-control
         class="flex h-8 cursor-not-allowed items-center gap-1.5 rounded-lg border border-stroke ps-1.5 pe-3 text-xs text-muted focus-visible:outline-2 focus-visible:outline-ring"
       >
         <SettingsAgentLogo :id="agent.id" muted small />{{ agent.name }}
@@ -79,7 +80,7 @@ function onFilterKeydown(event: KeyboardEvent) {
   </div>
 
   <div class="flex items-center gap-1.5 pt-4">
-    <label class="flex h-7 min-w-0 flex-1 items-center gap-1.5 rounded-md border border-stroke bg-selection/50 px-2 focus-within:border-stroke-focus">
+    <label data-control class="flex h-7 min-w-0 flex-1 items-center gap-1.5 rounded-md border border-stroke bg-selection/50 px-2 focus-within:border-stroke-focus">
       <Search class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
       <input
         v-model="query"

@@ -92,6 +92,8 @@ export const useNavigationStore = defineStore('navigation', () => {
   const projectId = ref<string | null>(null)
   const settingsSection = ref<SettingsSection>('general')
   const settingsDetail = ref<SettingsDetail | null>(null)
+  // Projet affiché par Réglages › Projets : le dernier ouvert, que sa sous-page reprend en titre.
+  const settingsProjectId = ref<string | null>(null)
   // Vue que le bouton Retour des réglages retrouve.
   const beforeSettings = ref<View>('home')
   // Réglage choisi dans la recherche : SettingsView le fait défiler jusqu'à lui et le met en avant.
@@ -143,6 +145,7 @@ export const useNavigationStore = defineStore('navigation', () => {
   }
 
   function showSettingsDetail(detail: SettingsDetail | null) {
+    if (detail && isProjectDetail(detail)) settingsProjectId.value = projectOfDetail(detail)
     return crossfade(() => {
       settingsDetail.value = detail
     })
@@ -154,6 +157,7 @@ export const useNavigationStore = defineStore('navigation', () => {
 
   // `focus` : choisi au clavier, le focus passe sur le réglage trouvé.
   function revealSetting(section: SettingsSection, detail: SettingsDetail | null, id: string, focus: boolean) {
+    if (detail && isProjectDetail(detail)) settingsProjectId.value = projectOfDetail(detail)
     const update = () => {
       settingsSection.value = section
       settingsDetail.value = detail
@@ -168,6 +172,7 @@ export const useNavigationStore = defineStore('navigation', () => {
     projectId,
     settingsSection,
     settingsDetail,
+    settingsProjectId,
     hasPanel,
     go,
     openChats,

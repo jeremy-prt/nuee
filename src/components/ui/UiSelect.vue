@@ -45,6 +45,7 @@ function onCloseAutoFocus(event: Event) {
   <SelectRoot v-model="model" :disabled="disabled">
     <SelectTrigger
       :aria-label="label"
+      data-control
       class="flex h-7 min-w-24 cursor-pointer items-center justify-between gap-2 rounded-md border border-stroke ps-2.5 pe-2 text-xs whitespace-nowrap hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-40 data-[state=open]:bg-selection"
       @pointerdown="openedBy(true)"
       @keydown="openedBy(false)"

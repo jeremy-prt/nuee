@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { FolderPlus, SlidersHorizontal } from '@lucide/vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import ProjectIcon from '@/components/project/ProjectIcon.vue'
+import ProjectPicker from '@/components/project/ProjectPicker.vue'
+import SettingsGroup from '@/components/settings/SettingsGroup.vue'
+import SettingsProjectDefaults from '@/components/settings/SettingsProjectDefaults.vue'
+import SettingsProjectFolder from '@/components/settings/SettingsProjectFolder.vue'
 import UiButton from '@/components/ui/UiButton.vue'
-import UiIconButton from '@/components/ui/UiIconButton.vue'
 import { useAddProject } from '@/composables/useAddProject'
 import { useRefocus } from '@/composables/useRefocus'
 import { useNavigationStore } from '@/stores/navigation'
@@ -14,6 +17,14 @@ const projects = useProjectsStore()
 const navigation = useNavigationStore()
 const addProject = useAddProject()
 const refocusAfter = useRefocus()
+
+// Le dernier projet ouvert ici, sinon celui de la barre latérale, sinon le premier.
+const selected = computed({
+  get: () =>
+    projects.byId(navigation.settingsProjectId)?.id ?? projects.byId(navigation.projectId)?.id ?? projects.projects[0]?.id ?? '',
+  set: (id: string) => (navigation.settingsProjectId = id),
+})
+const project = computed(() => projects.byId(selected.value || null))
 </script>
 
 <template>
@@ -28,30 +39,21 @@ const refocusAfter = useRefocus()
     </UiButton>
   </div>
 
-  <ul v-else data-setting="projects-list" class="mt-8 overflow-hidden rounded-xl border border-stroke bg-content/3">
-    <li v-for="project in projects.projects" :key="project.id" class="group flex items-center gap-3 border-b border-stroke px-4 py-2 last:border-b-0">
-      <ProjectIcon :project="project" class="size-6 shrink-0" />
-      <div class="min-w-0 flex-1">
-        <!-- Raccourci souris : au clavier, le bouton de réglages de la ligne fait la même chose. -->
-        <button
-          type="button"
-          tabindex="-1"
-          class="block max-w-full cursor-pointer truncate text-start text-sm font-medium hover:underline"
-          @click="navigation.showSettingsDetail(`project:${project.id}`)"
-        >
-          {{ project.name }}
-        </button>
-        <p class="truncate font-mono text-xs text-muted" :title="project.path">{{ project.path }}</p>
-      </div>
-      <!-- Visible au survol ou quand le clavier entre dans la ligne : la liste reste calme. -->
-      <UiIconButton
-        class="opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 motion-reduce:transition-none"
-        :label="t('settings.projects.configure', { name: project.name })"
+  <template v-else-if="project">
+    <div data-setting="projects-list" class="flex min-w-0 items-center gap-3 pt-8">
+      <ProjectPicker v-model="selected" :label="t('settings.projects.pick')" />
+      <UiButton
+        size="sm"
+        class="ms-auto"
         :data-customize="`project:${project.id}`"
         @click="navigation.showSettingsDetail(`project:${project.id}`)"
       >
-        <SlidersHorizontal class="size-3.5" aria-hidden="true" />
-      </UiIconButton>
-    </li>
-  </ul>
+        <SlidersHorizontal class="size-3.5" aria-hidden="true" />{{ t('settings.projects.allSettings') }}
+      </UiButton>
+    </div>
+    <SettingsGroup>
+      <SettingsProjectFolder :project="project" />
+    </SettingsGroup>
+    <SettingsProjectDefaults :id="project.id" />
+  </template>
 </template>

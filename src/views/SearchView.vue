@@ -35,6 +35,7 @@ onMounted(() => input.value?.focus())
       autocapitalize="off"
       spellcheck="false"
       writingsuggestions="false"
+      data-control
       class="h-10 w-full rounded-lg border border-stroke bg-selection/50 px-3 text-sm select-text outline-none placeholder:text-muted focus:border-stroke-focus"
       :placeholder="t('search.placeholder')"
     />

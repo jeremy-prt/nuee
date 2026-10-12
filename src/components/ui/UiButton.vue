@@ -24,6 +24,7 @@ withDefaults(
         'disabled:opacity-50': !loading,
       },
     ]"
+    :data-control="variant === 'secondary' || undefined"
     :disabled="disabled || loading || undefined"
     :aria-busy="loading || undefined"
   >

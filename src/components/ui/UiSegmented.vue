@@ -27,6 +27,7 @@ const item =
   <RadioGroupRoot
     v-model="model"
     :aria-label="label"
+    data-control
     :disabled="disabled"
     orientation="horizontal"
     class="relative inline-grid shrink-0 auto-cols-fr grid-flow-col gap-0.5 rounded-md border border-stroke p-0.5 text-xs rtl:[--dir:-1]"

@@ -1,15 +1,12 @@
 <script setup lang="ts">
-import { ArchiveRestore, Search, Trash2 } from '@lucide/vue'
+import { Search } from '@lucide/vue'
 import { computed, nextTick, ref, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import ChatIcon from '@/components/chat/ChatIcon.vue'
-import ProjectIcon from '@/components/project/ProjectIcon.vue'
 import ProjectPicker from '@/components/project/ProjectPicker.vue'
 import SettingsGroup from '@/components/settings/SettingsGroup.vue'
 import SettingsRow from '@/components/settings/SettingsRow.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
-import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { useTabTitle } from '@/composables/useTabTitle'
 import { chatArchivedTexts } from '@/ipc/chat'
 import { useDialogStore } from '@/stores/dialog'
@@ -135,13 +132,24 @@ function onSearchKeydown(event: KeyboardEvent) {
 }
 
 const relative = computed(() => new Intl.RelativeTimeFormat(locale.value, { numeric: 'auto' }))
+const shortDate = computed(() => new Intl.DateTimeFormat(locale.value, { day: 'numeric', month: 'short' }))
+const longDate = computed(() => new Intl.DateTimeFormat(locale.value, { day: 'numeric', month: 'short', year: 'numeric' }))
 
-function dates(tab: Tab) {
-  const at = tab.archivedAt ?? Date.now()
-  const archived = t('settings.archive.archivedWhen', { when: relative.value.format(-Math.floor((Date.now() - at) / DAY), 'day') })
-  if (!general.archiveDays) return archived
-  const left = Math.max(0, Math.ceil((at + general.archiveDays * DAY - Date.now()) / DAY))
-  return `${archived} · ${t('settings.archive.deletedWhen', { when: relative.value.format(left, 'day') })}`
+function archivedOn(tab: Tab) {
+  const at = new Date(tab.archivedAt ?? Date.now())
+  return (at.getFullYear() === new Date().getFullYear() ? shortDate : longDate).value.format(at)
+}
+
+function deletion(tab: Tab) {
+  if (!general.archiveDays) return null
+  const left = Math.max(0, Math.ceil(((tab.archivedAt ?? Date.now()) + general.archiveDays * DAY - Date.now()) / DAY))
+  return t('settings.archive.deletedWhen', { when: relative.value.format(left, 'day') })
+}
+
+// Ligne sous le titre : d'où vient la session pendant une recherche, puis le temps avant suppression.
+function details(tab: Tab) {
+  const origin = tokens.value.length ? (projects.byId(tab.projectId)?.name ?? t('settings.archive.noProject')) : null
+  return [origin, deletion(tab)].filter(Boolean).join(' · ')
 }
 
 // La ligne disparaît : validé au clavier, le focus passe à la ligne suivante, sinon à la précédente.
@@ -211,6 +219,7 @@ const emptyText = computed(() => {
     <div class="flex flex-wrap items-center gap-2 pb-2.5">
       <ProjectPicker v-model="ownerId" :label="t('settings.archive.project')" :none-label="t('settings.archive.noProject')" :counts="counts" />
       <label
+        data-control
         class="ms-auto flex h-7 w-72 min-w-0 items-center gap-1.5 rounded-md border border-stroke bg-selection/50 px-2 focus-within:border-stroke-focus"
       >
         <Search class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
@@ -240,34 +249,18 @@ const emptyText = computed(() => {
       <p v-if="!rows.length" class="px-4 py-3.5 text-xs text-muted" role="status">{{ emptyText }}</p>
       <ul v-else :aria-label="t('settings.sections.archive')">
         <li v-for="{ tab, snippet: excerpt } in rows" :key="tab.id" class="flex items-center gap-3 border-b border-stroke py-2 ps-4 pe-2 last:border-b-0">
-          <ChatIcon class="size-4 shrink-0 text-muted" />
           <div class="min-w-0 flex-1">
             <p class="truncate text-[13px]">{{ tabTitle(tab) }}</p>
             <p v-if="excerpt" class="mt-0.5 truncate text-[11px] text-muted">
               {{ excerpt.before }}<mark class="rounded-sm bg-signal/20 text-content">{{ excerpt.match }}</mark>{{ excerpt.after }}
             </p>
-            <p class="mt-0.5 flex min-w-0 items-center gap-1 text-[11px] text-muted tabular-nums">
-              <template v-if="tokens.length">
-                <ProjectIcon v-if="projects.byId(tab.projectId)" :project="projects.byId(tab.projectId)!" class="size-3 shrink-0 rounded-sm" />
-                <ChatIcon v-else many class="size-3 shrink-0" />
-                <span class="shrink-0">{{ projects.byId(tab.projectId)?.name ?? t('settings.archive.noProject') }} ·</span>
-              </template>
-              <span class="truncate">{{ dates(tab) }}</span>
-            </p>
+            <p v-if="details(tab)" class="mt-0.5 truncate text-[11px] text-muted">{{ details(tab) }}</p>
           </div>
-          <UiButton size="xs" :data-archive-restore="tab.id" @click="restore($event, tab)">
-            <ArchiveRestore class="size-3.5" aria-hidden="true" />{{ t('settings.archive.restoreButton') }}
-          </UiButton>
-          <UiTooltip :label="t('settings.archive.delete')">
-            <button
-              type="button"
-              class="grid size-6 shrink-0 place-items-center rounded-md text-muted hover:bg-danger/15 hover:text-danger focus-visible:outline-2 focus-visible:outline-ring"
-              :aria-label="t('settings.archive.delete')"
-              @click="remove($event, tab)"
-            >
-              <Trash2 class="size-3.5" aria-hidden="true" />
-            </button>
-          </UiTooltip>
+          <span class="shrink-0 text-xs text-muted tabular-nums">
+            <span class="sr-only">{{ t('settings.archive.archivedOn') }}</span>{{ archivedOn(tab) }}
+          </span>
+          <UiButton size="sm" :data-archive-restore="tab.id" @click="restore($event, tab)">{{ t('settings.archive.restoreButton') }}</UiButton>
+          <UiButton size="sm" class="text-danger enabled:hover:bg-danger/15!" @click="remove($event, tab)">{{ t('settings.archive.deleteConfirm') }}</UiButton>
         </li>
       </ul>
     </div>

@@ -46,6 +46,7 @@ function onKeydown(event: KeyboardEvent) {
 <template>
   <ComboboxRoot v-model:open="open" ignore-filter :reset-search-term-on-blur="false" class="w-56 shrink-0">
     <ComboboxAnchor
+      data-control
       class="flex h-7 items-center gap-1.5 rounded-md border border-stroke bg-selection/50 px-2 focus-within:border-stroke-focus"
     >
       <Search class="size-3.5 shrink-0 text-muted" aria-hidden="true" />

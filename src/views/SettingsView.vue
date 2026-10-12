@@ -15,6 +15,7 @@ import SettingsGlass from '@/components/settings/SettingsGlass.vue'
 import SettingsInterface from '@/components/settings/SettingsInterface.vue'
 import SettingsResetButton from '@/components/settings/SettingsResetButton.vue'
 import SettingsMcpServer from '@/components/settings/SettingsMcpServer.vue'
+import ProjectPicker from '@/components/project/ProjectPicker.vue'
 import SettingsProject from '@/components/settings/SettingsProject.vue'
 import SettingsProjects from '@/components/settings/SettingsProjects.vue'
 import SettingsShortcuts from '@/components/settings/SettingsShortcuts.vue'
@@ -163,10 +164,18 @@ onUnmounted(() => {
           <UiIconButton :label="backLabel()" @click="back($event)">
             <ArrowLeft class="size-4" aria-hidden="true" />
           </UiIconButton>
-          <h2 ref="heading" tabindex="-1" class="text-xl font-semibold outline-none">
+          <h2 ref="heading" tabindex="-1" class="min-w-0 flex-1 text-xl font-semibold outline-none">
             <template v-if="isWindowStyle(navigation.settingsDetail)">
               {{ t('settings.glass.heading', { style: settingsDetailTitle(navigation.settingsDetail, t) }) }}
             </template>
+            <!-- Changer de projet sans repasser par la liste. -->
+            <ProjectPicker
+              v-else-if="isProjectDetail(navigation.settingsDetail)"
+              :model-value="projectOfDetail(navigation.settingsDetail)"
+              :label="t('settings.projects.pick')"
+              large
+              @update:model-value="navigation.showSettingsDetail(`project:${$event}`)"
+            />
             <template v-else>{{ settingsDetailTitle(navigation.settingsDetail, t) }}</template>
           </h2>
           <UiButton v-if="worktreesProject()" variant="primary" class="ms-auto" data-worktree-create @click="worktrees.creating = true">
@@ -195,7 +204,7 @@ onUnmounted(() => {
             <Sparkles class="size-4" aria-hidden="true" />{{ t('settings.skills.create') }}
           </UiButton>
           <!-- Sans projet, le bouton descend dans l'état vide de la page. -->
-          <UiButton v-else-if="navigation.settingsSection === 'projects' && projects.projects.length" variant="primary" data-project-add @click="addProject()">
+          <UiButton v-else-if="navigation.settingsSection === 'projects' && projects.projects.length" variant="primary" data-project-add @click="addProject().then((added) => added && (navigation.settingsProjectId = added.id))">
             <FolderPlus class="size-4" aria-hidden="true" />{{ t('settings.projects.add') }}
           </UiButton>
         </div>
