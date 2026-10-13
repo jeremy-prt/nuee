@@ -210,6 +210,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     layout.tabs.splice(index, 1)
     // Fermé sans message, il ne serait plus visible nulle part : on ne le garde pas.
     if (tabs.value.some((tab) => tab.id === id && !tab.started)) deleteChat(id)
+    else if (!Object.values(layouts).some((other) => other.tabs.includes(id))) conversations.release(id)
 
     const paneIndex = layout.panes.indexOf(id)
     if (paneIndex === -1) return

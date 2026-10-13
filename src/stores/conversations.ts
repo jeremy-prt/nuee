@@ -279,8 +279,10 @@ export const useConversationsStore = defineStore('conversations', () => {
     writes.set(chatId, next)
   }
 
+  // Une écriture au plus par SAVE_DELAY : pendant une réponse en flux, chaque image redemandait la sauvegarde et
+  // repoussait le délai, rien n'était écrit avant la fin. La conversation est lue au moment d'écrire.
   function save(chatId: string) {
-    clearTimeout(timers.get(chatId))
+    if (timers.has(chatId)) return
     const timer = window.setTimeout(() => {
       timers.delete(chatId)
       const conversation = conversations.get(chatId)
@@ -521,5 +523,15 @@ export const useConversationsStore = defineStore('conversations', () => {
     return kept
   }
 
-  return { busy, find, create, open, setOptions, send, sendNow, unqueue, scheduleResume, cancelResume, begin, warm, approve, stop, remove }
+  // Session fermée et au repos : ses messages quittent la mémoire, `open` les relira en base. Rien n'est libéré tant
+  // qu'il reste à écrire, à envoyer ou à afficher (file, autorisation, limite, reprise).
+  function release(chatId: string) {
+    const conversation = conversations.get(chatId)
+    if (!conversation?.loaded || conversation.phase !== 'idle') return
+    if (conversation.queue.length || conversation.approvals.length || conversation.limited || conversation.resumeAt) return
+    if (timers.has(chatId) || pending.has(chatId) || resumeTimers.has(chatId)) return
+    conversations.delete(chatId)
+  }
+
+  return { busy, find, create, open, release, setOptions, send, sendNow, unqueue, scheduleResume, cancelResume, begin, warm, approve, stop, remove }
 })

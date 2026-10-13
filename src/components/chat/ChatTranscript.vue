@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CircleAlert, CornerDownRight, File, Folder, LoaderCircle } from '@/components/ui/icons'
-import { computed, onMounted, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatCommandRow from '@/components/chat/ChatCommandRow.vue'
 import ChatMarkdown from '@/components/chat/ChatMarkdown.vue'
@@ -17,12 +17,35 @@ const { t, locale } = useI18n()
 const scroller = useTemplateRef('scroller')
 const lastUser = computed(() => props.items.map((item) => item.kind).lastIndexOf('user'))
 
+// Une longue conversation ne monte que ses derniers messages ; les plus anciens viennent en remontant, comme dans
+// une messagerie. `start` est l'indice du premier affiché, les indices du modèle restent absolus.
+const PAGE = 60
+const limit = ref(PAGE)
+const start = computed(() => Math.max(0, props.items.length - limit.value))
+const shown = computed(() => props.items.slice(start.value))
+watch(
+  () => props.items[0]?.id,
+  () => (limit.value = PAGE),
+)
+
+// La hauteur ajoutée au-dessus est compensée : ce qu'on lisait ne saute pas.
+async function showEarlier() {
+  const el = scroller.value
+  if (!el || !start.value) return
+  const height = el.scrollHeight
+  limit.value += PAGE
+  await nextTick()
+  el.scrollTop += el.scrollHeight - height
+}
+
 // Suit le bas tant que l'utilisateur n'est pas remonté lire plus haut.
 let stick = true
 
 function onScroll() {
   const el = scroller.value
-  if (el) stick = el.scrollHeight - el.scrollTop - el.clientHeight < 48
+  if (!el) return
+  stick = el.scrollHeight - el.scrollTop - el.clientHeight < 48
+  if (el.scrollTop < 200) showEarlier()
 }
 
 function scrollToEnd() {
@@ -53,7 +76,16 @@ function agentParams() {
 <template>
   <div ref="scroller" class="overflow-y-auto" @scroll.passive="onScroll">
     <ol class="mx-auto flex max-w-(--chat-width) flex-col gap-3 px-6 py-6" role="log" :aria-busy="running" :aria-label="t('chat.transcript')">
-      <li v-for="(item, index) in items" :key="item.id" :class="{ 'flex flex-col items-end gap-1': item.kind === 'user' }">
+      <li v-if="start" class="flex justify-center">
+        <button
+          type="button"
+          class="rounded-md px-2 py-1 text-xs text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-ring"
+          @click="showEarlier"
+        >
+          {{ t('chat.earlier', { n: start }, start) }}
+        </button>
+      </li>
+      <li v-for="(item, offset) in shown" :key="item.id" :class="{ 'flex flex-col items-end gap-1': item.kind === 'user' }">
         <template v-if="item.kind === 'command'">
           <ChatCommandRow :item="item" :running="running" />
           <ChatSkillForm :item="item" :agent-name="agents[agent].name" />
@@ -81,14 +113,14 @@ function agentParams() {
             <CornerDownRight class="size-3" aria-hidden="true" />{{ t('chat.queue.steered') }}
           </p>
         </template>
-        <ChatMarkdown v-else-if="item.kind === 'text'" :text="item.text" :streaming="running && index > lastUser" />
+        <ChatMarkdown v-else-if="item.kind === 'text'" :text="item.text" :streaming="running && start + offset > lastUser" />
         <ChatTool v-else-if="item.kind === 'tool'" :item="item" />
         <template v-else-if="item.kind === 'end'">
           <p v-if="item.status === 'completed'" class="text-xs text-muted">
             {{ item.durationMs === null ? t('chat.end.done') : t('chat.end.completed', { duration: duration(item.durationMs) }) }}
           </p>
           <p v-else-if="item.status === 'stopped'" class="text-xs text-muted">
-            {{ items[index - 1]?.kind === 'text' ? t('chat.end.stoppedKept', agentParams()) : t('chat.end.stopped') }}
+            {{ items[start + offset - 1]?.kind === 'text' ? t('chat.end.stoppedKept', agentParams()) : t('chat.end.stopped') }}
           </p>
           <div v-else class="flex gap-2 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm" role="alert">
             <CircleAlert class="mt-0.5 size-4 shrink-0 text-danger" aria-hidden="true" />

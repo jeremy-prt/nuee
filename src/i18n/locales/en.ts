@@ -97,6 +97,7 @@ export default {
     },
   },
   chat: {
+    earlier: 'Show the earlier message | Show the {n} earlier messages',
     queue: {
       label: 'Waiting messages',
       waiting: 'Waiting',

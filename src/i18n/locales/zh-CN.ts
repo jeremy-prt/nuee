@@ -99,6 +99,7 @@ export default {
     },
   },
   chat: {
+    earlier: '显示之前的 {n} 条消息',
     queue: {
       label: '等待中的消息',
       waiting: '等待中',

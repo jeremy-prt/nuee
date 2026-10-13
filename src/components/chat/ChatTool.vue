@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Bot, Check, ChevronRight, FilePen, FileText, Globe, LoaderCircle, Search, SquareTerminal, Wrench, X } from '@/components/ui/icons'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ToolKind } from '@/ipc/bindings/ToolKind'
 import type { ChatItem } from '@/stores/conversations'
@@ -20,6 +20,8 @@ const ICONS: Record<ToolKind, typeof Wrench> = {
 }
 
 const icon = computed(() => ICONS[props.item.tool])
+// La sortie (jusqu'à 4 000 caractères) n'entre dans la page qu'une fois l'outil déplié.
+const open = ref(false)
 </script>
 
 <template>
@@ -27,6 +29,7 @@ const icon = computed(() => ICONS[props.item.tool])
     :is="item.output ? 'details' : 'div'"
     class="group text-xs"
     :class="item.output ? undefined : 'px-2 py-1'"
+    @toggle="open = ($event.target as HTMLDetailsElement).open"
   >
     <component
       :is="item.output ? 'summary' : 'div'"
@@ -45,7 +48,7 @@ const icon = computed(() => ICONS[props.item.tool])
       </span>
     </component>
     <pre
-      v-if="item.output"
+      v-if="item.output && open"
       class="mt-1 max-h-64 overflow-auto rounded-md bg-selection/50 p-2 font-mono whitespace-pre-wrap text-muted select-text"
     >{{ item.output }}</pre>
   </component>

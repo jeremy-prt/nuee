@@ -99,6 +99,7 @@ export default {
     },
   },
   chat: {
+    earlier: 'Mostrar el mensaje anterior | Mostrar los {n} mensajes anteriores',
     queue: {
       label: 'Mensajes en espera',
       waiting: 'En espera',

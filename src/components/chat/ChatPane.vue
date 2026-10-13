@@ -54,7 +54,7 @@ const approval = computed(() => conversation.value?.approvals[0] ?? null)
 // Le worktree se choisit jusqu'au premier message. D'ici là, un dossier hors git (ou git absent) le coupe.
 const started = computed(() => props.tab.started || items.value.some((item) => item.kind === 'user'))
 if (project.value && !started.value) projects.checkWorktree(project.value)
-if (project.value && (!started.value || props.tab.worktree)) worktrees.load(project.value)
+if (project.value && (!started.value || props.tab.worktree)) worktrees.ensure(project.value)
 const support = computed(() => (project.value ? projects.support[project.value.id] : undefined))
 const blocked = computed(() => (support.value && support.value !== 'ready' ? support.value : null))
 const worktree = computed(() => !!project.value && props.tab.worktree && (started.value || !blocked.value))

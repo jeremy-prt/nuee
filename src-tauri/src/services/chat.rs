@@ -88,6 +88,9 @@ const MIGRATIONS: &[&str] = &[
     "ALTER TABLE chats ADD COLUMN archived_at INTEGER;
      UPDATE chats SET archived_at = CAST(strftime('%s', 'now') AS INTEGER) * 1000 WHERE archived = 1",
     "ALTER TABLE chats ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0",
+    // La liste lisait toute la conversation (`items != '[]'`) pour savoir si un chat avait commencé.
+    "ALTER TABLE chats ADD COLUMN started INTEGER NOT NULL DEFAULT 0;
+     UPDATE chats SET started = 1 WHERE items != '[]'",
 ];
 
 /// Historique des chats dans une base SQLite du dossier de données de l'app.
@@ -109,7 +112,7 @@ impl ChatService {
     pub fn list(&self) -> Result<Vec<ChatSummary>, AppError> {
         let db = self.lock();
         let mut query = db.prepare(
-            "SELECT id, project_id, number, agent, title, items != '[]', worktree, worktree_path, archived, archived_at, updated_at, pinned FROM chats ORDER BY created_at",
+            "SELECT id, project_id, number, agent, title, started, worktree, worktree_path, archived, archived_at, updated_at, pinned FROM chats ORDER BY created_at",
         )?;
         let rows = query.query_map([], |row| {
             Ok((
@@ -206,8 +209,15 @@ impl ChatService {
         let options = serde_json::to_string(&content.options).map_err(invalid)?;
         let items = serde_json::to_string(&content.items).map_err(invalid)?;
         self.lock().execute(
-            "UPDATE chats SET session_id = ?1, options = ?2, items = ?3, updated_at = ?4 WHERE id = ?5",
-            params![content.session_id, options, items, now(), id],
+            "UPDATE chats SET session_id = ?1, options = ?2, items = ?3, updated_at = ?4, started = ?5 WHERE id = ?6",
+            params![
+                content.session_id,
+                options,
+                items,
+                now(),
+                content.items.as_array().is_some_and(|items| !items.is_empty()),
+                id
+            ],
         )?;
         Ok(())
     }
@@ -275,7 +285,7 @@ impl ChatService {
         let ids: Vec<String> = {
             let db = self.lock();
             let mut query = db.prepare(
-                "SELECT id FROM chats WHERE worktree = 1 AND worktree_path IS NULL AND items != '[]'",
+                "SELECT id FROM chats WHERE worktree = 1 AND worktree_path IS NULL AND started = 1",
             )?;
             query
                 .query_map([], |row| row.get(0))?

@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import ShellChatItem from '@/components/shell/ShellChatItem.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import { useNewChat } from '@/composables/useNewChat'
+import { useProgressiveList } from '@/composables/useProgressiveList'
 import { useNavigationStore } from '@/stores/navigation'
 import { useProjectsStore } from '@/stores/projects'
 import { useShortcutsStore } from '@/stores/shortcuts'
@@ -16,6 +17,10 @@ const navigation = useNavigationStore()
 const projects = useProjectsStore()
 const workspace = useWorkspaceStore()
 const newChat = useNewChat()
+const { shown: recentShown, more, limit, sentinel } = useProgressiveList(
+  computed(() => workspace.recentChats),
+  () => navigation.projectId,
+)
 
 const title = computed(() => {
   if (navigation.view !== 'chats') return t(`rail.${navigation.view}`)
@@ -53,8 +58,9 @@ const title = computed(() => {
             </h2>
           </template>
           <ul class="space-y-0.5">
-            <li v-for="tab in workspace.recentChats" :key="tab.id"><ShellChatItem :tab="tab" /></li>
+            <li v-for="tab in recentShown" :key="tab.id"><ShellChatItem :tab="tab" /></li>
           </ul>
+          <div v-if="more" :key="limit" ref="sentinel" class="h-px" aria-hidden="true" />
         </template>
         <p v-else class="px-2 text-sm text-muted">{{ shortcuts.label('newChat') ? t('chats.empty', { shortcut: shortcuts.label('newChat') }) : t('chats.emptyNoShortcut') }}</p>
       </template>

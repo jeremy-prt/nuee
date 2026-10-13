@@ -20,6 +20,11 @@ export const useWorktreesStore = defineStore('worktrees', () => {
     }
   }
 
+  // Ouvrir une session n'a besoin que d'une liste déjà lue : relire lancerait git à chaque changement d'onglet.
+  function ensure(project: Project) {
+    if (!lists[project.id]) return load(project)
+  }
+
   async function create(project: Project, branch: string, existing: boolean) {
     const created = await worktreeCreate(project.id, project.path, branch, existing)
     await load(project)
@@ -36,5 +41,5 @@ export const useWorktreesStore = defineStore('worktrees', () => {
     return (projectId && path && lists[projectId]?.find((tree) => tree.path === path)) || null
   }
 
-  return { lists, creating, load, create, remove, find }
+  return { lists, creating, load, ensure, create, remove, find }
 })

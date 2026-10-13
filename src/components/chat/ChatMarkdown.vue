@@ -102,7 +102,24 @@ function table(token: Tokens.Table) {
 // streaming : l'agent écrit encore ce texte.
 const props = defineProps<{ text: string; streaming?: boolean }>()
 
-const tokens = computed(() => Lexer.lex(props.text))
+// Pendant l'écriture, seule la fin est relue à chaque bout de texte : le début, coupé sur une ligne vide hors d'un
+// bloc de code, garde ses blocs déjà lus. Le texte fini est relu en entier (une liste coupée en deux se recolle).
+let head = { text: '', tokens: [] as Token[] }
+
+function safeCut(text: string) {
+  for (let at = text.lastIndexOf('\n\n'); at > 0; at = text.lastIndexOf('\n\n', at - 1)) {
+    if ((text.slice(0, at).match(/^(```|~~~)/gm)?.length ?? 0) % 2 === 0) return at + 2
+  }
+  return 0
+}
+
+const tokens = computed(() => {
+  const text = props.text
+  if (!props.streaming) return Lexer.lex(text)
+  const cut = safeCut(text)
+  if (cut !== head.text.length || !text.startsWith(head.text)) head = { text: text.slice(0, cut), tokens: Lexer.lex(text.slice(0, cut)) }
+  return [...head.tokens, ...Lexer.lex(text.slice(cut))]
+})
 const Rendered = () => blocks(tokens.value)
 </script>
 

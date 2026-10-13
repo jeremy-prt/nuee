@@ -7,6 +7,8 @@ import SettingsGroup from '@/components/settings/SettingsGroup.vue'
 import SettingsRow from '@/components/settings/SettingsRow.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
+import { useDebounced } from '@/composables/useDebounced'
+import { useProgressiveList } from '@/composables/useProgressiveList'
 import { useTabTitle } from '@/composables/useTabTitle'
 import { chatArchivedTexts } from '@/ipc/chat'
 import { useDialogStore } from '@/stores/dialog'
@@ -76,7 +78,8 @@ const owner = computed(() => projects.byId(ownerId.value || null)?.id ?? null)
 const inScope = computed(() => workspace.archivedChats.filter((tab) => tab.projectId === owner.value))
 
 const query = ref('')
-const tokens = computed(() => normalize(query.value).split(' ').filter(Boolean))
+const searched = useDebounced(query)
+const tokens = computed(() => normalize(searched.value).split(' ').filter(Boolean))
 // Texte de chaque archive, lu à la première recherche puis à chaque nouvelle archive.
 const texts = shallowRef(new Map<string, { raw: string; folded: string }>())
 
@@ -125,17 +128,26 @@ function snippet(raw: string, token: string): Snippet | null {
   }
 }
 
+// L'extrait n'est calculé que pour les lignes affichées : le mot cherché suffit pour filtrer.
 const rows = computed(() => {
-  if (!tokens.value.length) return inScope.value.map((tab) => ({ tab, snippet: null as Snippet | null }))
+  if (!tokens.value.length) return inScope.value.map((tab) => ({ tab, inText: null as string | null }))
   // Une recherche couvre toutes les archives : la ligne dit alors d'où vient la session.
   return workspace.archivedChats.flatMap((tab) => {
     const title = normalize(tabTitle(tab))
     const text = texts.value.get(tab.id)
     if (!tokens.value.every((token) => title.includes(token) || text?.folded.includes(token))) return []
     const inText = tokens.value.find((token) => !title.includes(token))
-    return [{ tab, snippet: inText && text ? snippet(text.raw, inText) : null }]
+    return [{ tab, inText: inText ?? null }]
   })
 })
+
+const { shown, more, limit, sentinel } = useProgressiveList(rows, () => searched.value)
+const shownRows = computed(() =>
+  shown.value.map(({ tab, inText }) => {
+    const text = texts.value.get(tab.id)
+    return { tab, snippet: inText && text ? snippet(text.raw, inText) : null }
+  }),
+)
 
 function onSearchKeydown(event: KeyboardEvent) {
   if (event.key !== 'Escape' || !query.value) return
@@ -263,7 +275,7 @@ const emptyText = computed(() => {
       </div>
       <p v-if="!rows.length" class="px-4 py-3.5 text-xs text-muted" role="status">{{ emptyText }}</p>
       <ul v-else :aria-label="t('settings.sections.archive')">
-        <li v-for="{ tab, snippet: excerpt } in rows" :key="tab.id" class="flex items-center gap-3 border-b border-stroke py-2 ps-4 pe-2 last:border-b-0">
+        <li v-for="{ tab, snippet: excerpt } in shownRows" :key="tab.id" class="flex items-center gap-3 border-b border-stroke py-2 ps-4 pe-2 last:border-b-0">
           <div class="min-w-0 flex-1">
             <p class="truncate text-[13px]">{{ tabTitle(tab) }}</p>
             <p v-if="excerpt" class="mt-0.5 truncate text-[11px] text-muted">
@@ -278,6 +290,7 @@ const emptyText = computed(() => {
           <UiButton size="sm" class="text-danger enabled:hover:bg-danger/15!" @click="remove($event, tab)">{{ t('settings.archive.deleteConfirm') }}</UiButton>
         </li>
       </ul>
+      <div v-if="more" :key="limit" ref="sentinel" class="h-px" aria-hidden="true" />
     </div>
   </section>
 </template>

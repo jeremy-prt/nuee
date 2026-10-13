@@ -99,6 +99,7 @@ export default {
     },
   },
   chat: {
+    earlier: '以前のメッセージ {n} 件を表示',
     queue: {
       label: '待機中のメッセージ',
       waiting: '待機中',
