@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Columns2, LayoutList, PanelBottom, PanelRight, X } from '@lucide/vue'
+import { Columns2, LayoutList, PanelBottom, PanelRight, X } from '@/components/ui/icons'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatIcon from '@/components/chat/ChatIcon.vue'

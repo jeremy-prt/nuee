@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { BellOff } from '@lucide/vue'
+import { BellOff, Pin } from '@/components/ui/icons'
 import { computed, nextTick, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ProjectIcon from '@/components/project/ProjectIcon.vue'
@@ -8,14 +8,13 @@ import ShellRailItem from '@/components/shell/ShellRailItem.vue'
 import UiContextMenu from '@/components/ui/UiContextMenu.vue'
 import UiMoreMenu from '@/components/ui/UiMoreMenu.vue'
 import UiRenameInput from '@/components/ui/UiRenameInput.vue'
-import UiTooltip from '@/components/ui/UiTooltip.vue'
-import { PinIcon, PinOffIcon } from '@/components/ui/pinIcons'
+import { useLayoutDrag } from '@/composables/useLayoutDrag'
 import { useProjectActions } from '@/composables/useProjectActions'
+import { useDragStore } from '@/stores/drag'
 import { useLayoutStore } from '@/stores/layout'
 import { useNavigationStore } from '@/stores/navigation'
 import { type Project, useProjectsStore } from '@/stores/projects'
 import { useShortcutsStore } from '@/stores/shortcuts'
-import { colorVar } from '@/utils/projects'
 
 const props = defineProps<{ project: Project }>()
 
@@ -25,6 +24,8 @@ const navigation = useNavigationStore()
 const projects = useProjectsStore()
 const shortcuts = useShortcutsStore()
 const actions = useProjectActions()
+const drag = useDragStore()
+const { startProjectDrag } = useLayoutDrag()
 
 const active = computed(() => navigation.view === 'chats' && navigation.projectId === props.project.id)
 const renaming = ref(false)
@@ -79,40 +80,25 @@ function onDoubleClick() {
           :expanded="layout.rail.expanded"
           :active="active"
           :end-space="layout.rail.expanded"
-          :tint="project.background ? colorVar(project.background) : undefined"
+          :tint="project.background ?? undefined"
           :held="menuOpen"
+          :class="{ 'opacity-50': drag.source?.kind === 'project' && drag.source.id === project.id }"
           :aria-keyshortcuts="shortcuts.aria('rename')"
           @click="navigation.openChats(project.id)"
+          @pointerdown="startProjectDrag($event, project.id)"
           @dblclick="onDoubleClick"
           @keydown="onKeydown"
         >
-          <template #icon>
-            <ProjectIcon
-              :project="project"
-              class="size-4 shrink-0"
-              :class="{ 'transition-opacity duration-150 group-focus-within:opacity-0 group-hover:opacity-0 motion-reduce:transition-none': layout.rail.expanded }"
-            />
-          </template>
+          <template #icon><ProjectIcon :project="project" class="size-4 shrink-0" /></template>
           <template v-if="projects.isMuted(project.id) || (project.pinned && project.group)" #end>
             <BellOff v-if="projects.isMuted(project.id)" class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
             <!-- Épinglé dans un groupe : en tête du groupe, l'épingle dit pourquoi. -->
-            <PinIcon v-if="project.pinned && project.group" class="size-3 shrink-0 text-muted" aria-hidden="true" />
+            <Pin v-if="project.pinned && project.group" class="size-3 shrink-0 text-muted" aria-hidden="true" />
           </template>
         </ShellRailItem>
-        <!-- Épingle à la place de l'icône au survol, comme monocode. Repliée, la barre n'a que l'icône. -->
-        <UiTooltip v-if="layout.rail.expanded" :label="project.pinned ? t('menu.unpinProject') : t('menu.pinProject')">
-          <button
-            type="button"
-            class="absolute start-1 top-1 grid size-6 place-items-center rounded text-muted opacity-0 transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-ring motion-reduce:transition-none"
-            :aria-label="project.pinned ? t('menu.unpinProject') : t('menu.pinProject')"
-            @click="project.pinned = !project.pinned"
-          >
-            <component :is="project.pinned ? PinOffIcon : PinIcon" class="size-3.5" aria-hidden="true" />
-          </button>
-        </UiTooltip>
         <div
           v-if="layout.rail.expanded"
-          class="absolute end-1 top-1 transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100 motion-reduce:transition-none"
+          class="absolute end-1 top-1 transition-opacity duration-(--hover-duration) ease-out group-hover:opacity-100 focus-within:opacity-100 motion-reduce:transition-none"
           :class="menuOpen ? 'opacity-100' : 'opacity-0'"
         >
           <UiMoreMenu :label="t('menu.projectMore')" :keep-focus="() => renaming" @update:open="menuOpen = $event">

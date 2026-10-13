@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Search } from '@lucide/vue'
+import { Search } from '@/components/ui/icons'
 import {
   ComboboxAnchor,
   ComboboxContent,

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { SlidersHorizontal } from '@lucide/vue'
+import { SlidersHorizontal } from '@/components/ui/icons'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 
 // Posé en absolu sur la carte du choix en cours : il n'apparaît que sur celle-ci. Fond léger et flou pour

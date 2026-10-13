@@ -3,16 +3,16 @@ import {
   ArrowLeft,
   CircleDot,
   FolderPlus,
-  Folders,
   Gauge,
   GitPullRequest,
   House,
   NotebookPen,
+  Plus,
   PanelLeftOpen,
   RefreshCw,
   Search,
   Settings,
-} from '@lucide/vue'
+} from '@/components/ui/icons'
 import { nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatIcon from '@/components/chat/ChatIcon.vue'
@@ -131,7 +131,7 @@ function footerLabel(id: (typeof footer)[number]['id']) {
         </ShellRailItem>
 
         <template v-if="projects.pinned.length">
-          <div class="mt-3 flex h-8 shrink-0 items-center ps-2">
+          <div data-pinned-heading class="mt-3 flex h-8 shrink-0 items-center ps-2">
             <p v-if="layout.rail.expanded" class="min-w-0 flex-1 truncate text-xs font-medium whitespace-nowrap text-muted">
               {{ t('rail.pinned') }}
             </p>
@@ -139,19 +139,39 @@ function footerLabel(id: (typeof footer)[number]['id']) {
           <ShellProjectItem v-for="project in projects.pinned" :key="project.id" :project="project" />
         </template>
 
+        <!-- Section à part, comme monocode : un groupe ne contient que des projets. Repliée, la barre n'a pas la
+             place des groupes : leurs projets passent à la suite dans Projets. -->
+        <template v-if="layout.rail.expanded && projects.groups.length">
+          <div class="mt-3 flex h-8 shrink-0 items-center ps-2">
+            <p class="min-w-0 flex-1 truncate text-xs font-medium whitespace-nowrap text-muted">{{ t('rail.groups') }}</p>
+            <UiTooltip :label="t('groups.create')" side="top" :side-offset="8">
+              <button
+                type="button"
+                class="grid size-7 shrink-0 place-items-center rounded-md text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+                :aria-label="t('groups.create')"
+                @click="projects.createGroup()"
+              >
+                <FolderPlus class="size-4" aria-hidden="true" />
+              </button>
+            </UiTooltip>
+          </div>
+          <ShellProjectGroup v-for="group in projects.groups" :key="group.id" :group="group" />
+        </template>
+
         <!-- Même hauteur dans les deux états : les projets en dessous ne bougent pas au repli. -->
-        <div class="mt-3 flex h-8 shrink-0 items-center" :class="{ 'ps-2': layout.rail.expanded }">
+        <div data-projects-heading class="mt-3 flex h-8 shrink-0 items-center" :class="{ 'ps-2': layout.rail.expanded }">
           <p v-if="layout.rail.expanded" class="min-w-0 flex-1 truncate text-xs font-medium whitespace-nowrap text-muted">
             {{ t('rail.projects') }}
           </p>
-          <UiTooltip v-if="layout.rail.expanded" :label="t('groups.create')" side="top" :side-offset="8">
+          <!-- Tant qu'aucun groupe n'existe, sa section n'a pas d'en-tête : le bouton de création est ici. -->
+          <UiTooltip v-if="layout.rail.expanded && !projects.groups.length" :label="t('groups.create')" side="top" :side-offset="8">
             <button
               type="button"
               class="grid size-7 shrink-0 place-items-center rounded-md text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
               :aria-label="t('groups.create')"
               @click="projects.createGroup()"
             >
-              <Folders class="size-4" aria-hidden="true" />
+              <FolderPlus class="size-4" aria-hidden="true" />
             </button>
           </UiTooltip>
           <UiTooltip :label="t('rail.addProject')" :side="layout.rail.expanded ? 'top' : 'right'" :side-offset="8">
@@ -162,21 +182,16 @@ function footerLabel(id: (typeof footer)[number]['id']) {
               :aria-label="t('rail.addProject')"
               @click="addProject()"
             >
-              <FolderPlus class="size-4" aria-hidden="true" />
+              <Plus class="size-4" aria-hidden="true" />
             </button>
           </UiTooltip>
         </div>
-        <!-- Repliée, la barre n'a pas la place des groupes : tous les projets à la suite, dans l'ordre des groupes. -->
-        <template v-if="layout.rail.expanded">
-          <ShellProjectGroup v-for="group in projects.groups" :key="group.id" :group="group" />
-          <ShellProjectItem v-for="project in projects.ungrouped" :key="project.id" :project="project" />
-        </template>
-        <template v-else>
+        <template v-if="!layout.rail.expanded">
           <template v-for="group in projects.groups" :key="group.id">
             <ShellProjectItem v-for="project in projects.projectsIn(group.id)" :key="project.id" :project="project" />
           </template>
-          <ShellProjectItem v-for="project in projects.ungrouped" :key="project.id" :project="project" />
         </template>
+        <ShellProjectItem v-for="project in projects.ungrouped" :key="project.id" :project="project" />
       </template>
     </nav>
 

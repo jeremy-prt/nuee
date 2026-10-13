@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CircleDot, Gauge, GitPullRequest, NotebookPen } from '@lucide/vue'
+import { CircleDot, Gauge, GitPullRequest, NotebookPen } from '@/components/ui/icons'
 import { useI18n } from 'vue-i18n'
 
 // Écrans pas encore construits : chacun aura sa propre vue quand il aura du contenu.

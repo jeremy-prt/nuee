@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { LoaderCircle } from '@lucide/vue'
+import { LoaderCircle } from '@/components/ui/icons'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 
 // Le composant racine est l'infobulle : les attributs (click, aria) vont sur le bouton.

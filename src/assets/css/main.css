@@ -317,8 +317,58 @@ html:has([data-edge='panel']:focus-visible) [data-title-edge='panel'] {
   }
 }
 
-/* Main sur tout ce qui se clique, d'un seul endroit : Tailwind remet les boutons au curseur flèche. */
+/* Main sur tout ce qui se clique, d'un seul endroit : Tailwind remet les boutons au curseur flèche. Même endroit
+   pour le fondu du survol (fond, texte, bordure, apparition), doux mais court : un survol qui traîne derrière le
+   curseur se remarque plus qu'un survol sec (choix de Jérémy). Une classe `transition-*` sur l'élément le remplace. */
+:root {
+  --hover-duration: 120ms;
+  --hover-transition:
+    background-color var(--hover-duration) ease-out, color var(--hover-duration) ease-out,
+    border-color var(--hover-duration) ease-out, opacity var(--hover-duration) ease-out;
+}
+
+/* Titre d'une ligne au survol : il s'estompe sous les boutons qui apparaissent au lieu de se raccourcir d'un coup.
+   Les distances partent du bord droit du titre (un bouton, ou deux). */
+@utility fade-under-one {
+  mask-image: linear-gradient(to left, transparent 1.25rem, black 2.25rem);
+}
+
+@utility fade-under-two {
+  mask-image: linear-gradient(to left, transparent 2.875rem, black 3.875rem);
+}
+
 @layer base {
+  :is(
+      a,
+      button,
+      summary,
+      input,
+      textarea,
+      [role='button'],
+      [role='option'],
+      [role='menuitem'],
+      [role='menuitemradio'],
+      [role='menuitemcheckbox'],
+      [role='radio'],
+      [role='switch'],
+      [role='checkbox'],
+      [role='tab']
+    ) {
+    transition: var(--hover-transition);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --hover-duration: 0ms;
+    }
+  }
+
+  /* Pendant un glisser (useLayoutDrag), la main fermée l'emporte sur le curseur des éléments survolés. */
+  html.is-dragging,
+  html.is-dragging * {
+    cursor: grabbing !important;
+  }
+
   :is(
       button,
       summary,
@@ -344,7 +394,9 @@ html:has([data-edge='panel']:focus-visible) [data-title-edge='panel'] {
     box-shadow:
       inset 0 1px 0 color-mix(in srgb, var(--color-content) 7%, transparent),
       0 1px 2px rgb(0 0 0 / 0.2);
-    transition: scale 120ms ease-out;
+    transition:
+      scale 120ms ease-out,
+      var(--hover-transition);
   }
 
   /* Pas sur un bouton qui ouvre une liste : elle se placerait sous le bouton rétréci, puis décalée. */

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CircleAlert, CornerDownRight, File, Folder, LoaderCircle } from '@lucide/vue'
+import { CircleAlert, CornerDownRight, File, Folder, LoaderCircle } from '@/components/ui/icons'
 import { computed, onMounted, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatCommandRow from '@/components/chat/ChatCommandRow.vue'

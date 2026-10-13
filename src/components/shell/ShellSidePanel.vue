@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { Plus } from '@lucide/vue'
+import { Pin, Plus } from '@/components/ui/icons'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ShellChatItem from '@/components/shell/ShellChatItem.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
-import { PinIcon } from '@/components/ui/pinIcons'
 import { useNewChat } from '@/composables/useNewChat'
 import { useNavigationStore } from '@/stores/navigation'
 import { useProjectsStore } from '@/stores/projects'
@@ -44,7 +43,7 @@ const title = computed(() => {
           <!-- Titres de groupe seulement s'il y a des sessions épinglées : sinon la liste se suffit. -->
           <template v-if="workspace.pinnedChats.length">
             <h2 class="flex h-7 items-center gap-1.5 px-2 text-xs font-medium text-muted">
-              <PinIcon class="size-3" aria-hidden="true" />{{ t('chats.pinned') }}
+              <Pin class="size-3" aria-hidden="true" />{{ t('chats.pinned') }}
             </h2>
             <ul class="space-y-0.5">
               <li v-for="tab in workspace.pinnedChats" :key="tab.id"><ShellChatItem :tab="tab" /></li>

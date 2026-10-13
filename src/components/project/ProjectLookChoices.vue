@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check } from '@lucide/vue'
+import { Check } from '@/components/ui/icons'
 import { DropdownMenuItemIndicator, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem } from 'reka-ui'
 import { useId } from 'vue'
 import { useI18n } from 'vue-i18n'

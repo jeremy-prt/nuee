@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { SquarePen } from '@lucide/vue'
+import { SquarePen } from '@/components/ui/icons'
 import { useI18n } from 'vue-i18n'
 import UiButton from '@/components/ui/UiButton.vue'
 import { useNewChat } from '@/composables/useNewChat'

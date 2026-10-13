@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronRight, Folder, FolderOpen } from '@lucide/vue'
+import { ChevronRight, Folder, FolderOpen } from '@/components/ui/icons'
 import { computed, nextTick, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ProjectGroupMenu from '@/components/project/ProjectGroupMenu.vue'
@@ -9,6 +9,7 @@ import UiMoreMenu from '@/components/ui/UiMoreMenu.vue'
 import UiRenameInput from '@/components/ui/UiRenameInput.vue'
 import { type ProjectGroup, useProjectsStore } from '@/stores/projects'
 import { useShortcutsStore } from '@/stores/shortcuts'
+import { rowTint } from '@/utils/projects'
 
 // Groupe de la barre latérale dépliée : un dossier, ses projets décalés en dessous.
 const props = defineProps<{ group: ProjectGroup }>()
@@ -56,7 +57,7 @@ function onKeydown(event: KeyboardEvent) {
 <template>
   <div>
     <UiContextMenu :disabled="renaming" @update:open="menuOpen = $event">
-      <div class="group relative">
+      <div class="group relative" :data-group-id="group.id">
         <UiRenameInput v-if="renaming" :value="group.name" :label="t('groups.nameLabel')" wide @commit="stopRename" @cancel="stopRename()">
           <component :is="group.collapsed ? Folder : FolderOpen" class="size-4 shrink-0 text-muted" aria-hidden="true" />
         </UiRenameInput>
@@ -64,8 +65,13 @@ function onKeydown(event: KeyboardEvent) {
           <button
             ref="header"
             type="button"
-            class="flex h-8 w-full items-center gap-2.5 rounded-md ps-2 pe-8 text-sm group-focus-within:pe-14 group-hover:pe-14 whitespace-nowrap text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
-            :class="{ 'bg-selection-hover text-content': menuOpen }"
+            class="flex h-8 w-full items-center gap-2.5 rounded-md ps-2 pe-8 text-sm whitespace-nowrap text-muted hover:text-content focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+            :class="
+              group.background
+                ? menuOpen ? 'bg-(--row-hover) text-content' : 'bg-(--row-rest) hover:bg-(--row-hover)'
+                : menuOpen ? 'bg-selection-hover text-content' : 'hover:bg-selection-hover'
+            "
+            :style="group.background ? rowTint(group.background) : undefined"
             :aria-expanded="!group.collapsed"
             :aria-label="`${group.name}, ${t('groups.count', { n: members.length }, members.length)}`"
             :aria-keyshortcuts="shortcuts.aria('rename')"
@@ -74,7 +80,12 @@ function onKeydown(event: KeyboardEvent) {
             @keydown="onKeydown"
           >
             <component :is="group.collapsed ? Folder : FolderOpen" class="size-4 shrink-0" aria-hidden="true" />
-            <span class="min-w-0 flex-1 truncate text-start">{{ group.name }}</span>
+            <span
+              class="min-w-0 flex-1 truncate text-start"
+              :class="menuOpen ? 'fade-under-one' : 'group-focus-within:fade-under-one group-hover:fade-under-one'"
+            >
+              {{ group.name }}
+            </span>
           </button>
           <!-- Chevron toujours visible tout à droite ; le bouton « … » apparaît à sa gauche au survol. -->
           <ChevronRight
@@ -83,7 +94,7 @@ function onKeydown(event: KeyboardEvent) {
             aria-hidden="true"
           />
           <div
-            class="absolute end-7 top-1 transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100 motion-reduce:transition-none"
+            class="absolute end-7 top-1 transition-opacity duration-(--hover-duration) ease-out group-hover:opacity-100 focus-within:opacity-100 motion-reduce:transition-none"
             :class="menuOpen ? 'opacity-100' : 'opacity-0'"
           >
             <UiMoreMenu :label="t('groups.more')" :keep-focus="() => renaming" @update:open="menuOpen = $event">
@@ -94,8 +105,8 @@ function onKeydown(event: KeyboardEvent) {
       </div>
       <template #menu><ProjectGroupMenu :group="group" @rename="startRename()" /></template>
     </UiContextMenu>
-    <!-- Projets décalés sous l'en-tête : on lit qu'ils appartiennent au groupe. -->
-    <div v-if="!group.collapsed" class="space-y-0.5 ps-4">
+    <!-- Projets décalés sous l'en-tête, avec un trait aligné sur l'icône du dossier : ils appartiennent au groupe. -->
+    <div v-if="!group.collapsed" class="ms-4 mt-0.5 space-y-0.5 border-s border-stroke ps-1.5">
       <ShellProjectItem v-for="project in members" :key="project.id" :project="project" />
     </div>
   </div>

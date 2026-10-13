@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { Archive, Columns2, Pencil, Trash2 } from '@lucide/vue'
+import { Archive, Columns2, Pencil, Pin, PinOff, Trash2 } from '@/components/ui/icons'
 import { useI18n } from 'vue-i18n'
 import UiMenuItem from '@/components/ui/UiMenuItem.vue'
 import UiMenuSeparator from '@/components/ui/UiMenuSeparator.vue'
-import { PinIcon, PinOffIcon } from '@/components/ui/pinIcons'
 import { useProjectActions } from '@/composables/useProjectActions'
 import { useNavigationStore } from '@/stores/navigation'
 import { useShortcutsStore } from '@/stores/shortcuts'
@@ -28,7 +27,7 @@ function openBeside() {
 <template>
   <UiMenuItem
     :label="tab.pinned ? t('chats.unpin') : t('chats.pin')"
-    :icon="tab.pinned ? PinOffIcon : PinIcon"
+    :icon="tab.pinned ? PinOff : Pin"
     @select="actions.togglePin(tab)"
   />
   <UiMenuItem :label="t('menu.rename')" :icon="Pencil" :shortcut="shortcuts.label('rename')" @select="emit('rename')" />

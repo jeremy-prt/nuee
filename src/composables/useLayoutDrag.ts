@@ -1,5 +1,6 @@
 import { type DragSource, type PreviewRect, useDragStore } from '@/stores/drag'
 import { type DockView, useLayoutStore } from '@/stores/layout'
+import { useProjectsStore } from '@/stores/projects'
 import { useWorkspaceStore } from '@/stores/workspace'
 
 // Distance avant que l'appui devienne un glisser : un simple clic reste un clic.
@@ -17,6 +18,7 @@ export function useLayoutDrag() {
   const drag = useDragStore()
   const layout = useLayoutStore()
   const workspace = useWorkspaceStore()
+  const projects = useProjectsStore()
 
   function track(event: PointerEvent, source: DragSource, onMove: (x: number, y: number) => void, onDrop: () => void) {
     if (event.button !== 0) return
@@ -28,7 +30,7 @@ export function useLayoutDrag() {
         if (Math.hypot(e.clientX - start.x, e.clientY - start.y) < THRESHOLD) return
         started = true
         drag.source = source
-        document.documentElement.style.cursor = 'grabbing'
+        document.documentElement.classList.add('is-dragging')
       }
       onMove(e.clientX, e.clientY)
     }
@@ -36,8 +38,15 @@ export function useLayoutDrag() {
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
       window.removeEventListener('keydown', escape, true)
-      document.documentElement.style.cursor = ''
+      document.documentElement.classList.remove('is-dragging')
       if (started && apply) onDrop()
+      // Le relâché d'un glisser ne doit pas valoir un clic sur l'élément d'arrivée (ouvrir un projet, un onglet). Le
+      // clic suit le relâché dans la même tâche ; sans clic (relâché hors de l'élément), l'écouteur part au tour suivant.
+      if (started) {
+        const swallow = (e: MouseEvent) => e.stopPropagation()
+        window.addEventListener('click', swallow, { capture: true, once: true })
+        setTimeout(() => window.removeEventListener('click', swallow, { capture: true }))
+      }
       drag.reset()
     }
     const up = () => finish(true)
@@ -135,5 +144,50 @@ export function useLayoutDrag() {
     )
   }
 
-  return { startTabDrag, startViewDrag }
+  // Projets de la barre latérale, comme les panneaux : rien ne bouge avant le relâché, un aperçu montre où le projet
+  // ira. Sur l'en-tête d'un groupe (cadre), il y entre ; entre deux lignes (trait), il prend cette place avec son
+  // groupe et son épingle ; sous le titre Épinglés ou Projets, il passe en tête de la section.
+  function projectTarget(id: string, x: number, y: number) {
+    const hit = document.elementFromPoint(x, y)
+    const el = hit?.closest<HTMLElement>('[data-group-id], [data-project-row], [data-projects-heading], [data-pinned-heading]')
+    // Dans l'espace entre deux lignes, l'aperçu reste où il était : il ne clignote pas.
+    if (!el && hit?.closest('#shell-rail')) return
+    drag.target = null
+    drag.preview = null
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    const line = (top: number) => ({ left: r.left, top, width: r.width, height: 0, line: true })
+    const others = projects.projects.filter((item) => item.id !== id)
+
+    if (el.dataset.groupId) {
+      drag.target = { kind: 'project', group: el.dataset.groupId, pinned: false, before: null }
+      drag.preview = rect(r)
+    } else if (el.dataset.projectsHeading !== undefined) {
+      drag.target = { kind: 'project', group: null, pinned: false, before: projects.ungrouped.find((item) => item.id !== id)?.id ?? null }
+      drag.preview = line(r.bottom)
+    } else if (el.dataset.pinnedHeading !== undefined) {
+      drag.target = { kind: 'project', group: null, pinned: true, before: projects.pinned.find((item) => item.id !== id)?.id ?? null }
+      drag.preview = line(r.bottom)
+    } else {
+      const target = projects.byId(el.dataset.projectRow ?? null)
+      if (!target || target.id === id) return
+      const after = y > r.top + r.height / 2
+      const before = after ? (others[others.indexOf(target) + 1]?.id ?? null) : target.id
+      drag.target = { kind: 'project', group: target.group, pinned: target.pinned, before }
+      drag.preview = line(after ? r.bottom + 1 : r.top - 1)
+    }
+  }
+
+  function startProjectDrag(event: PointerEvent, id: string) {
+    track(
+      event,
+      { kind: 'project', id },
+      (x, y) => projectTarget(id, x, y),
+      () => {
+        if (drag.target?.kind === 'project') projects.moveProject(id, drag.target)
+      },
+    )
+  }
+
+  return { startTabDrag, startViewDrag, startProjectDrag }
 }

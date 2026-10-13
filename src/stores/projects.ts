@@ -53,6 +53,7 @@ export interface ProjectGroup {
   id: string
   name: string
   collapsed: boolean
+  background: ProjectColor | null
 }
 
 const STORAGE_KEY = 'nuee.projects.v1'
@@ -86,7 +87,12 @@ function restore(value: Partial<Record<keyof Project, unknown>>): Project | null
 
 function restoreGroup(value: Partial<Record<keyof ProjectGroup, unknown>>): ProjectGroup | null {
   if (typeof value.id !== 'string' || typeof value.name !== 'string') return null
-  return { id: value.id, name: value.name, collapsed: value.collapsed === true }
+  return {
+    id: value.id,
+    name: value.name,
+    collapsed: value.collapsed === true,
+    background: isProjectColor(value.background) ? value.background : null,
+  }
 }
 
 function loadGroups(): ProjectGroup[] {
@@ -191,7 +197,9 @@ export const useProjectsStore = defineStore('projects', () => {
   }
 
   function remove(id: string) {
+    const group = byId(id)?.group ?? null
     projects.value = projects.value.filter((project) => project.id !== id)
+    dropIfEmpty(group)
     delete icons[id]
     requested.delete(id)
     delete support[id]
@@ -210,7 +218,7 @@ export const useProjectsStore = defineStore('projects', () => {
     const names = new Set(groups.value.map((group) => group.name))
     let n = 1
     while (names.has(name(n))) n++
-    const group: ProjectGroup = { id: crypto.randomUUID(), name: name(n), collapsed: false }
+    const group: ProjectGroup = { id: crypto.randomUUID(), name: name(n), collapsed: false, background: null }
     editingGroupId.value = group.id
     groups.value.push(group)
     return group
@@ -227,11 +235,31 @@ export const useProjectsStore = defineStore('projects', () => {
     groups.value = groups.value.filter((group) => group.id !== id)
   }
 
-  // Un projet rangé dans un groupe replié le déplie : il ne disparaît pas sous les yeux.
+  // Un projet rangé dans un groupe replié le déplie : il ne disparaît pas sous les yeux. Le groupe qu'il quitte
+  // disparaît s'il est vide (choix de Jérémy) ; un groupe tout juste créé, lui, attend son premier projet.
   function moveToGroup(project: Project, groupId: string | null) {
+    const left = project.group
     project.group = groupId
     const group = groups.value.find((item) => item.id === groupId)
     if (group) group.collapsed = false
+    dropIfEmpty(left)
+  }
+
+  function dropIfEmpty(groupId: string | null) {
+    if (groupId && !projects.value.some((project) => project.group === groupId)) removeGroup(groupId)
+  }
+
+  // Glisser-déposer : le projet prend le groupe et l'épingle de sa nouvelle place, juste avant `before` (sinon en fin
+  // de liste). L'ordre de la barre latérale est celui du tableau, donc l'ordre d'ajout tant qu'on ne glisse rien.
+  function moveProject(id: string, place: { group: string | null; pinned: boolean; before: string | null }) {
+    const project = byId(id)
+    if (!project) return
+    const rest = projects.value.filter((item) => item.id !== id)
+    const index = place.before ? rest.findIndex((item) => item.id === place.before) : -1
+    rest.splice(index === -1 ? rest.length : index, 0, project)
+    if (rest.some((item, i) => item !== projects.value[i])) projects.value = rest
+    if (project.pinned !== place.pinned) project.pinned = place.pinned
+    if (project.group !== place.group) moveToGroup(project, place.group)
   }
 
   // `refresh` : relue même si elle l'a déjà été (le dossier a pu changer depuis).
@@ -312,6 +340,7 @@ export const useProjectsStore = defineStore('projects', () => {
     renameGroup,
     removeGroup,
     moveToGroup,
+    moveProject,
     now,
     icons,
     support,

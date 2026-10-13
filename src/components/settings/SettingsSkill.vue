@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, Copy, FolderOpen, Sparkles } from '@lucide/vue'
+import { Check, Copy, FolderOpen, Sparkles } from '@/components/ui/icons'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsGroup from '@/components/settings/SettingsGroup.vue'

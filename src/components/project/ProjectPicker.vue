@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, ChevronDown, Search } from '@lucide/vue'
+import { Check, ChevronDown, Search } from '@/components/ui/icons'
 import { ListboxContent, ListboxFilter, ListboxItem, ListboxRoot, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from 'reka-ui'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'

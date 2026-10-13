@@ -12,6 +12,7 @@ export default {
     search: '検索',
     chats: 'チャット',
     pinned: 'ピン留め',
+    groups: 'グループ',
     projects: 'プロジェクト',
     addProject: 'プロジェクトを追加',
     pickProject: 'プロジェクトのフォルダー。エージェントは許可を求めずにここで作業し、プロジェクトのフックと MCP サーバーも使用します。',

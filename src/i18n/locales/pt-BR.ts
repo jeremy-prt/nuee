@@ -12,6 +12,7 @@ export default {
     search: 'Pesquisar',
     chats: 'Chat',
     pinned: 'Fixados',
+    groups: 'Grupos',
     projects: 'Projetos',
     addProject: 'Adicionar um projeto',
     pickProject: 'Pasta do projeto. Os agentes trabalham nela sem pedir permissão, incluindo os hooks e servidores MCP do projeto.',

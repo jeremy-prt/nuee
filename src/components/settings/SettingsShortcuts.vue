@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { RotateCcw } from '@lucide/vue'
+import { RotateCcw } from '@/components/ui/icons'
 import { nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsGroup from '@/components/settings/SettingsGroup.vue'

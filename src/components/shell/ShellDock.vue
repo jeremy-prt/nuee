@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FileText, GitCompare, SquareTerminal, X } from '@lucide/vue'
+import { FileText, GitCompare, SquareTerminal, X } from '@/components/ui/icons'
 import { TabsContent, TabsList, TabsRoot, TabsTrigger } from 'reka-ui'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'

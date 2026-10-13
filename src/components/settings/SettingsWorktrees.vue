@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FolderOpen, GitBranch, MessageSquarePlus, Trash2 } from '@lucide/vue'
+import { FolderOpen, GitBranch, MessageSquarePlus, Trash2 } from '@/components/ui/icons'
 import { computed, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsWorktreeDialog from '@/components/settings/SettingsWorktreeDialog.vue'

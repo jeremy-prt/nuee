@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ImagePlus } from '@lucide/vue'
+import { ImagePlus } from '@/components/ui/icons'
 import { ref, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsBackgroundThumb from '@/components/settings/SettingsBackgroundThumb.vue'

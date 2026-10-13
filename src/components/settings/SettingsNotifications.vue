@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Volume2 } from '@lucide/vue'
+import { Volume2 } from '@/components/ui/icons'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsGroup from '@/components/settings/SettingsGroup.vue'

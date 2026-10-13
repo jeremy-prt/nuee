@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Clock, CornerDownRight, SendHorizontal, X } from '@lucide/vue'
+import { Clock, CornerDownRight, SendHorizontal, X } from '@/components/ui/icons'
 import { useI18n } from 'vue-i18n'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import type { Queued } from '@/stores/conversations'

@@ -209,7 +209,13 @@ onUnmounted(() => {
     </div>
 
     <div
-      v-if="drag.preview"
+      v-if="drag.preview?.line"
+      class="pointer-events-none fixed z-50 h-0.5 -translate-y-1/2 rounded-full bg-ring transition-all duration-100 ease-out motion-reduce:transition-none"
+      :style="{ left: `${drag.preview.left + 4}px`, top: `${drag.preview.top}px`, width: `${drag.preview.width - 8}px` }"
+      aria-hidden="true"
+    />
+    <div
+      v-else-if="drag.preview"
       class="pointer-events-none fixed z-50 rounded-lg border-2 border-ring bg-signal/15 transition-all duration-100 ease-out motion-reduce:transition-none"
       :style="{
         left: `${drag.preview.left + 4}px`,

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CircleCheck, ExternalLink, RefreshCw, SlidersHorizontal } from '@lucide/vue'
+import { CircleCheck, ExternalLink, RefreshCw, SlidersHorizontal } from '@/components/ui/icons'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsGithubAvatar from '@/components/settings/SettingsGithubAvatar.vue'

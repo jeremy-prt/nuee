@@ -1,20 +1,18 @@
 <script setup lang="ts">
-import { Archive, Bell, Check, FolderInput, PaintBucket, FolderOpen, ImageUp, Pencil, Plus, SlidersHorizontal, Trash2 } from '@lucide/vue'
-import { DropdownMenuItemIndicator, DropdownMenuRadioGroup, DropdownMenuRadioItem } from 'reka-ui'
+import { Archive, Bell, FolderInput, FolderOpen, ImageUp, Pencil, Pin, PinOff, Plus, SlidersHorizontal, Trash2 } from '@/components/ui/icons'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import ProjectBackgroundMenu from '@/components/project/ProjectBackgroundMenu.vue'
 import ProjectLookChoices from '@/components/project/ProjectLookChoices.vue'
 import UiMenuChoices from '@/components/ui/UiMenuChoices.vue'
 import UiMenuItem from '@/components/ui/UiMenuItem.vue'
 import UiMenuSeparator from '@/components/ui/UiMenuSeparator.vue'
 import UiMenuSub from '@/components/ui/UiMenuSub.vue'
-import { PinIcon, PinOffIcon } from '@/components/ui/pinIcons'
 import { useNewChat } from '@/composables/useNewChat'
 import { useProjectActions } from '@/composables/useProjectActions'
 import { isMacosApp } from '@/ipc/system'
 import { type IconMode, type MuteKind, type Project, useProjectsStore } from '@/stores/projects'
 import { useWorkspaceStore } from '@/stores/workspace'
-import { colorVar, type ProjectColor, projectColors } from '@/utils/projects'
 
 // Contenu du menu d'un projet, posé dans son clic droit et dans son bouton « … ».
 const props = defineProps<{ project: Project }>()
@@ -49,14 +47,6 @@ const muteOptions = computed(() =>
 )
 
 const activeChats = computed(() => workspace.tabsFor(props.project.id).some((tab) => tab.started && !tab.archived))
-
-const backgroundName = computed(() =>
-  props.project.background ? t(`settings.projects.colors.${props.project.background}`) : t('settings.projects.backgroundNone'),
-)
-
-function pickBackground(value: unknown) {
-  props.project.background = (value || null) as ProjectColor | null
-}
 
 const groupValue = computed(() => props.project.group ?? '')
 const groupOptions = computed(() => [
@@ -102,27 +92,7 @@ function pickMute(value: string) {
     </template>
   </UiMenuSub>
 
-  <UiMenuSub :label="t('settings.projects.background')" :icon="PaintBucket" :value="backgroundName">
-    <DropdownMenuRadioGroup :model-value="project.background ?? ''" @update:model-value="pickBackground">
-      <DropdownMenuRadioItem
-        v-for="color in ['', ...projectColors]"
-        :key="color"
-        :value="color"
-        class="flex cursor-pointer items-center gap-2 rounded-md py-1.5 ps-1.5 pe-2.5 text-content/75 outline-none data-[highlighted]:bg-selection data-[highlighted]:text-content data-[state=checked]:text-content"
-      >
-        <span class="grid size-3.5 shrink-0 place-items-center">
-          <DropdownMenuItemIndicator><Check class="size-3" aria-hidden="true" /></DropdownMenuItemIndicator>
-        </span>
-        <span
-          class="size-3 shrink-0 rounded-full"
-          :class="{ 'border border-stroke-focus': !color }"
-          :style="color ? { background: colorVar(color as ProjectColor) } : undefined"
-          aria-hidden="true"
-        />
-        {{ color ? t(`settings.projects.colors.${color}`) : t('settings.projects.backgroundNone') }}
-      </DropdownMenuRadioItem>
-    </DropdownMenuRadioGroup>
-  </UiMenuSub>
+  <ProjectBackgroundMenu v-model="project.background" />
   <UiMenuSub :label="t('groups.moveTo')" :icon="FolderInput" :value="groupName">
     <UiMenuItem :label="t('groups.create')" :icon="Plus" @select="newGroup" />
     <template v-if="projects.groups.length">
@@ -137,7 +107,7 @@ function pickMute(value: string) {
   <UiMenuSeparator />
   <UiMenuItem
     :label="project.pinned ? t('menu.unpinProject') : t('menu.pinProject')"
-    :icon="project.pinned ? PinOffIcon : PinIcon"
+    :icon="project.pinned ? PinOff : Pin"
     @select="project.pinned = !project.pinned"
   />
   <UiMenuItem :label="t('chats.newChat')" :icon="Plus" @select="newChat(project.id)" />

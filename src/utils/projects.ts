@@ -22,6 +22,13 @@ export function colorVar(color: ProjectColor) {
   return `var(--project-${color})`
 }
 
+// Fond d'une ligne teintée (projet, groupe), comme les onglets de Brume : toujours là, plus fort au survol et
+// quand la ligne est active.
+export function rowTint(color: ProjectColor) {
+  const mix = (amount: number) => `color-mix(in srgb, ${colorVar(color)} ${amount}%, transparent)`
+  return { '--row-rest': mix(12), '--row-hover': mix(19), '--row-active': mix(28) }
+}
+
 // Même règle que `branch` dans services/worktree.rs.
 export function worktreeBranch(chatId: string) {
   return `nuee/${chatId.slice(0, 8)}`

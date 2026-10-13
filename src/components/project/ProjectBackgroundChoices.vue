@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Ban, Check } from '@lucide/vue'
+import { Ban, Check } from '@/components/ui/icons'
 import { RadioGroupIndicator, RadioGroupItem, RadioGroupRoot } from 'reka-ui'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'

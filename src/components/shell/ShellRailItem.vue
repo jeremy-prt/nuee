@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { type Component, computed } from 'vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
+import { type ProjectColor, rowTint } from '@/utils/projects'
 
 defineOptions({ inheritAttrs: false })
 // Le slot `icon` remplace l'icône (celle d'un projet), `end` ajoute un indicateur à droite du libellé.
 // state : un état lu avec le libellé (« notifications coupées »), que l'indicateur ne dit qu'à l'œil.
-// endSpace : place gardée à droite pour un bouton posé par-dessus la ligne (« … » d'un projet).
-// tint : couleur de fond d'un projet. Comme les onglets de Brume, elle teinte toujours la ligne, plus fort
-// au survol et quand elle est active.
+// endSpace : au survol, le libellé s'estompe sous le bouton « … » posé par-dessus la ligne.
+// tint : couleur de fond d'un projet (voir rowTint).
 const props = defineProps<{
   icon?: Component
   label: string
@@ -16,20 +16,12 @@ const props = defineProps<{
   shortcut?: string
   state?: string
   endSpace?: boolean
-  tint?: string
+  tint?: ProjectColor
   // Menu de la ligne ouvert : elle garde son fond de survol.
   held?: boolean
 }>()
 
-const tintVars = computed(() =>
-  props.tint
-    ? {
-        '--row-rest': `color-mix(in srgb, ${props.tint} 12%, transparent)`,
-        '--row-hover': `color-mix(in srgb, ${props.tint} 19%, transparent)`,
-        '--row-active': `color-mix(in srgb, ${props.tint} 28%, transparent)`,
-      }
-    : undefined,
-)
+const tintVars = computed(() => (props.tint ? rowTint(props.tint) : undefined))
 </script>
 
 <template>
@@ -44,7 +36,7 @@ const tintVars = computed(() =>
         tint
           ? active ? 'bg-(--row-active)' : held ? 'bg-(--row-hover)' : 'bg-(--row-rest) hover:bg-(--row-hover)'
           : active ? 'bg-selection' : held ? 'bg-selection-hover' : 'hover:bg-selection-hover',
-        endSpace ? 'ps-2 pe-8' : 'px-2',
+        'px-2',
       ]"
       :style="tintVars"
       :aria-label="state ? `${label}, ${state}` : label"
@@ -53,7 +45,10 @@ const tintVars = computed(() =>
       <slot name="icon"><component :is="icon" class="size-4 shrink-0" aria-hidden="true" /></slot>
       <span
         class="min-w-0 flex-1 truncate text-start"
-        :class="{ 'opacity-0': !expanded }"
+        :class="[
+          { 'opacity-0': !expanded },
+          endSpace && expanded && (held ? 'fade-under-one' : 'group-focus-within:fade-under-one group-hover:fade-under-one'),
+        ]"
       >
         {{ label }}
       </span>

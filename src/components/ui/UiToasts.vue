@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CircleAlert, CircleCheck, Info, X } from '@lucide/vue'
+import { CircleAlert, CircleCheck, Info, X } from '@/components/ui/icons'
 import { ToastAction, ToastClose, ToastDescription, ToastProvider, ToastRoot, ToastTitle, ToastViewport } from 'reka-ui'
 import type { Component } from 'vue'
 import { useI18n } from 'vue-i18n'

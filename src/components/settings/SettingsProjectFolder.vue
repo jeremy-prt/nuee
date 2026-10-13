@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, Copy, FolderOpen } from '@lucide/vue'
+import { Check, Copy, FolderOpen } from '@/components/ui/icons'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsRow from '@/components/settings/SettingsRow.vue'

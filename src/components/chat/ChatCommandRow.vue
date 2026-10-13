@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Sparkles } from '@lucide/vue'
+import { Sparkles } from '@/components/ui/icons'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { CommandItem } from '@/stores/conversations'

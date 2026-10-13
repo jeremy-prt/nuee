@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CircleCheck, LoaderCircle } from '@lucide/vue'
+import { CircleCheck, LoaderCircle } from '@/components/ui/icons'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsGroup from '@/components/settings/SettingsGroup.vue'

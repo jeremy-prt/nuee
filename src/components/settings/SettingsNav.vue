@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Archive, Bot, Folder, Keyboard, Palette, Plug, SlidersHorizontal, Sparkles } from '@lucide/vue'
+import { Archive, Bot, Folder, Keyboard, Palette, Plug, SlidersHorizontal, Sparkles } from '@/components/ui/icons'
 import { onMounted, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ShellRailItem from '@/components/shell/ShellRailItem.vue'

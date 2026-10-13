@@ -10,6 +10,7 @@ export default {
     search: 'Search',
     chats: 'Chat',
     pinned: 'Pinned',
+    groups: 'Groups',
     projects: 'Projects',
     addProject: 'Add a project',
     pickProject: 'Project folder. Agents work in it without asking for permission, including its hooks and MCP servers.',

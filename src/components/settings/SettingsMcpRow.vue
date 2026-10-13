@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { SlidersHorizontal, X } from '@lucide/vue'
+import { SlidersHorizontal, X } from '@/components/ui/icons'
 import { computed, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import UiButton from '@/components/ui/UiButton.vue'

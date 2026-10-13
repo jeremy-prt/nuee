@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronRight, Eye, FolderOpen, RefreshCw, Search, SlidersHorizontal } from '@lucide/vue'
+import { ChevronRight, Eye, FolderOpen, RefreshCw, Search, SlidersHorizontal } from '@/components/ui/icons'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsAgentLogo from '@/components/settings/SettingsAgentLogo.vue'

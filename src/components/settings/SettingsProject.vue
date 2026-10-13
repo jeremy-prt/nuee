@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { SlidersHorizontal } from '@lucide/vue'
+import { SlidersHorizontal } from '@/components/ui/icons'
 import { computed, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsGroup from '@/components/settings/SettingsGroup.vue'

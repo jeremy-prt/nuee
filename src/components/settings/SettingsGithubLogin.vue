@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, Copy, ExternalLink, LoaderCircle, Plus } from '@lucide/vue'
+import { Check, Copy, ExternalLink, LoaderCircle, Plus } from '@/components/ui/icons'
 import { computed, onUnmounted, ref, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import UiButton from '@/components/ui/UiButton.vue'

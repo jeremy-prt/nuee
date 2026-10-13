@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FolderPlus, SlidersHorizontal } from '@lucide/vue'
+import { SlidersHorizontal } from '@/components/ui/icons'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ProjectPicker from '@/components/project/ProjectPicker.vue'
@@ -35,7 +35,7 @@ const project = computed(() => projects.byId(selected.value || null))
       <p class="mt-0.5 text-xs/relaxed text-muted">{{ t('settings.projects.emptyHint') }}</p>
     </div>
     <UiButton variant="primary" data-project-add @click="refocusAfter($event, addProject, '[data-project-add]')">
-      <FolderPlus class="size-4" aria-hidden="true" />{{ t('settings.projects.add') }}
+      <Plus class="size-4" aria-hidden="true" />{{ t('settings.projects.add') }}
     </UiButton>
   </div>
 

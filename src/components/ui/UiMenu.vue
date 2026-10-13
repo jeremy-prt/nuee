@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronDown, ChevronRight } from '@lucide/vue'
+import { ChevronDown, ChevronRight } from '@/components/ui/icons'
 import {
   DropdownMenuContent,
   DropdownMenuLabel,

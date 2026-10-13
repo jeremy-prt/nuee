@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, Copy, FolderOpen, Sparkles, X } from '@lucide/vue'
+import { Check, Copy, FolderOpen, Sparkles, X } from '@/components/ui/icons'
 import { computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatMarkdown from '@/components/chat/ChatMarkdown.vue'

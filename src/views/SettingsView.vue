@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft, FolderPlus, Plus, Sparkles } from '@lucide/vue'
+import { ArrowLeft, Plus, Sparkles } from '@/components/ui/icons'
 import { nextTick, onMounted, onUnmounted, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsAbout from '@/components/settings/SettingsAbout.vue'
@@ -206,7 +206,7 @@ onUnmounted(() => {
           </UiButton>
           <!-- Sans projet, le bouton descend dans l'état vide de la page. -->
           <UiButton v-else-if="navigation.settingsSection === 'projects' && projects.projects.length" variant="primary" data-project-add @click="addProject().then((added) => added && (navigation.settingsProjectId = added.id))">
-            <FolderPlus class="size-4" aria-hidden="true" />{{ t('settings.projects.add') }}
+            <Plus class="size-4" aria-hidden="true" />{{ t('settings.projects.add') }}
           </UiButton>
         </div>
         <template v-if="navigation.settingsSection === 'general'">

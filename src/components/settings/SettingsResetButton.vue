@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { RotateCcw } from '@lucide/vue'
+import { RotateCcw } from '@/components/ui/icons'
 import { useI18n } from 'vue-i18n'
 import UiButton from '@/components/ui/UiButton.vue'
 

@@ -12,6 +12,7 @@ export default {
     search: '搜索',
     chats: '聊天',
     pinned: '已置顶',
+    groups: '分组',
     projects: '项目',
     addProject: '添加项目',
     pickProject: '项目文件夹。智能体在其中工作时不请求授权，项目的钩子和 MCP 服务器也包括在内。',

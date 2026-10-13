@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Ellipsis } from '@lucide/vue'
+import { Ellipsis } from '@/components/ui/icons'
 import { DropdownMenuContent, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuTrigger } from 'reka-ui'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Hourglass } from '@lucide/vue'
+import { Hourglass } from '@/components/ui/icons'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import UiButton from '@/components/ui/UiButton.vue'

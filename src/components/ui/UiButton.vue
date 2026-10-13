@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { LoaderCircle } from '@lucide/vue'
+import { LoaderCircle } from '@/components/ui/icons'
 
 // primary : l'action principale, à la couleur du thème. danger : une action qu'on ne défait pas. ghost : discret.
 // loading : le libellé reste en place (invisible) sous l'indicateur, le bouton ne change pas de largeur.

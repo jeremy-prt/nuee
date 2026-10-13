@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Bot, Check, ChevronRight, FilePen, FileText, Globe, LoaderCircle, Search, SquareTerminal, Wrench, X } from '@lucide/vue'
+import { Bot, Check, ChevronRight, FilePen, FileText, Globe, LoaderCircle, Search, SquareTerminal, Wrench, X } from '@/components/ui/icons'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ToolKind } from '@/ipc/bindings/ToolKind'

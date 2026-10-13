@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ExternalLink } from '@lucide/vue'
+import { ExternalLink } from '@/components/ui/icons'
 import { useI18n } from 'vue-i18n'
 import SettingsRow from '@/components/settings/SettingsRow.vue'
 import UiButton from '@/components/ui/UiButton.vue'
