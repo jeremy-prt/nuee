@@ -80,7 +80,7 @@ function onDoubleClick() {
           :active="active"
           :end-space="layout.rail.expanded"
           :tint="project.background ? colorVar(project.background) : undefined"
-          :class="menuOpen && !active ? ['text-content', project.background ? 'bg-(--row-hover)' : 'bg-selection-hover'] : undefined"
+          :held="menuOpen"
           :aria-keyshortcuts="shortcuts.aria('rename')"
           @click="navigation.openChats(project.id)"
           @dblclick="onDoubleClick"

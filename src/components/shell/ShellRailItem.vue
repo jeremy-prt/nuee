@@ -6,7 +6,8 @@ defineOptions({ inheritAttrs: false })
 // Le slot `icon` remplace l'icône (celle d'un projet), `end` ajoute un indicateur à droite du libellé.
 // state : un état lu avec le libellé (« notifications coupées »), que l'indicateur ne dit qu'à l'œil.
 // endSpace : place gardée à droite pour un bouton posé par-dessus la ligne (« … » d'un projet).
-// tint : couleur de fond d'un projet, qui remplace le gris de la ligne active et teinte son survol.
+// tint : couleur de fond d'un projet. Comme les onglets de Brume, elle teinte toujours la ligne, plus fort
+// au survol et quand elle est active.
 const props = defineProps<{
   icon?: Component
   label: string
@@ -16,13 +17,16 @@ const props = defineProps<{
   state?: string
   endSpace?: boolean
   tint?: string
+  // Menu de la ligne ouvert : elle garde son fond de survol.
+  held?: boolean
 }>()
 
 const tintVars = computed(() =>
   props.tint
     ? {
+        '--row-rest': `color-mix(in srgb, ${props.tint} 12%, transparent)`,
+        '--row-hover': `color-mix(in srgb, ${props.tint} 19%, transparent)`,
         '--row-active': `color-mix(in srgb, ${props.tint} 28%, transparent)`,
-        '--row-hover': `color-mix(in srgb, ${props.tint} 14%, transparent)`,
       }
     : undefined,
 )
@@ -36,8 +40,10 @@ const tintVars = computed(() =>
       type="button"
       class="flex h-8 w-full shrink-0 items-center gap-2.5 overflow-hidden rounded-md text-sm whitespace-nowrap focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
       :class="[
-        active ? 'text-content' : 'text-muted hover:text-content',
-        tint ? (active ? 'bg-(--row-active)' : 'hover:bg-(--row-hover)') : active ? 'bg-selection' : 'hover:bg-selection-hover',
+        active || held ? 'text-content' : 'text-muted hover:text-content',
+        tint
+          ? active ? 'bg-(--row-active)' : held ? 'bg-(--row-hover)' : 'bg-(--row-rest) hover:bg-(--row-hover)'
+          : active ? 'bg-selection' : held ? 'bg-selection-hover' : 'hover:bg-selection-hover',
         endSpace ? 'ps-2 pe-8' : 'px-2',
       ]"
       :style="tintVars"
