@@ -298,6 +298,7 @@ const projectRows: (Pick<SettingEntry, 'label' | 'hint' | 'terms' | 'keywords'> 
   // Mascotte et couleur n'apparaissent qu'avec une mascotte : la recherche mène à la ligne Icône, toujours là.
   { row: 'icon', label: 'settings.projects.mascot' },
   { row: 'icon', label: 'settings.projects.color' },
+  { row: 'background', label: 'settings.projects.background', hint: 'settings.projects.backgroundHint' },
   { row: 'agent', label: 'settings.projects.agent', hint: 'settings.projects.defaults', keywords: ['agentDefaults'] },
   { row: 'model', label: 'settings.projects.model', hint: 'settings.projects.defaults', keywords: ['agentDefaults'] },
   { row: 'effort', label: 'settings.projects.effort', hint: 'settings.projects.defaults', keywords: ['agentDefaults'] },

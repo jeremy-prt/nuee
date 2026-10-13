@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, reactive, ref, watch } from 'vue'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { Attachment } from '@/ipc/bindings/Attachment'
-import { chatList, chatSetArchived, chatSetWorktree, chatTitle } from '@/ipc/chat'
+import { chatList, chatRename, chatSetArchived, chatSetPinned, chatSetWorktree, chatTitle } from '@/ipc/chat'
 import { i18nGlobal } from '@/i18n'
 import { useConversationsStore } from '@/stores/conversations'
 import { useGeneralStore } from '@/stores/general'
@@ -29,6 +29,8 @@ export interface Tab {
   archivedAt: number | null
   // Dernier message (ms) : point de départ de l'archivage automatique.
   updatedAt: number
+  // En haut de la liste du contexte ; l'archivage automatique le laisse.
+  pinned: boolean
 }
 
 interface PaneLayout {
@@ -126,8 +128,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const archivedChats = computed(() =>
     tabs.value.filter((tab) => tab.archived).sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0)),
   )
-  // Historique de la barre latérale, le plus récent en haut.
+  // Historique de la barre latérale, le plus récent en haut, les sessions épinglées à part.
   const contextChats = computed(() => tabsFor(navigation.projectId).filter((tab) => tab.started && !tab.archived).reverse())
+  const pinnedChats = computed(() => contextChats.value.filter((tab) => tab.pinned))
+  const recentChats = computed(() => contextChats.value.filter((tab) => !tab.pinned))
 
   function tabsFor(projectId: string | null) {
     return tabs.value.filter((tab) => tab.projectId === projectId)
@@ -147,7 +151,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const projectId = navigation.projectId
     const agent = projects.chatAgent(projectId)
     const worktree = worktreePath === undefined ? !!projects.byId(projectId)?.worktree : worktreePath !== null
-    const summary = { id: crypto.randomUUID(), projectId, number: nextChatNumber(projectId), agent, title, started: false, worktree, worktreePath: worktreePath ?? null, archived: false, archivedAt: null, updatedAt: Date.now() }
+    const summary = { id: crypto.randomUUID(), projectId, number: nextChatNumber(projectId), agent, title, started: false, worktree, worktreePath: worktreePath ?? null, archived: false, archivedAt: null, updatedAt: Date.now(), pinned: false }
     const tab: Tab = { ...summary, kind: 'chat' }
     tabs.value.push(tab)
     conversations.create(summary)
@@ -174,6 +178,18 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const tab = createChat(title, worktreePath)
     show(tab.id)
     return tab
+  }
+
+  // Dans le second pane, ouvert au besoin ; avec deux panes, la session remplace celle qui n'a pas le focus.
+  function openBeside(id: string) {
+    const layout = current()
+    const index = layout.panes.indexOf(id)
+    if (index !== -1 && layout.panes.length > 1) return void (layout.focused = index)
+    if (!layout.panes.length || index !== -1) return show(id)
+    if (!layout.tabs.includes(id)) layout.tabs.push(id)
+    if (layout.panes.length < MAX_PANES) layout.panes.push(id)
+    else layout.panes[layout.focused === 0 ? 1 : 0] = id
+    layout.focused = layout.panes.indexOf(id)
   }
 
   function split() {
@@ -308,14 +324,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (tab) tab.updatedAt = Date.now()
   }
 
-  // Sessions sans nouveau message depuis le délai choisi. Un onglet ouvert ou un agent au travail les garde.
+  // Sessions sans nouveau message depuis le délai choisi. Un onglet ouvert, un agent au travail ou une épingle les garde.
   async function autoArchive() {
     const days = general.autoArchiveDays
     if (!days) return
     const limit = Date.now() - days * DAY
     const open = new Set(Object.values(layouts).flatMap((layout) => layout.tabs))
     const idle = tabs.value.filter(
-      (tab) => tab.started && !tab.archived && tab.updatedAt < limit && !open.has(tab.id) && (conversations.find(tab.id)?.phase ?? 'idle') === 'idle',
+      (tab) => tab.started && !tab.archived && !tab.pinned && tab.updatedAt < limit && !open.has(tab.id) && (conversations.find(tab.id)?.phase ?? 'idle') === 'idle',
     )
     await archive(idle).catch((error) => console.error('archivage', error))
   }
@@ -338,9 +354,46 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     chatTitle(id, tab.agent, prompt, seed)
       .then((title) => {
         const current = tabs.value.find((item) => item.id === id)
-        if (current) current.title = title
+        if (!current) return
+        // Renommée à la main pendant que l'agent cherchait : son titre, déjà en base, ne doit pas l'emporter.
+        if (current.title === seed) current.title = title
+        else if (current.title) chatRename(id, current.title).catch((error) => console.error('titre', error))
       })
       .catch((error) => console.error('titre', error))
+  }
+
+  // Session que sa ligne de la barre latérale doit passer en renommage (raccourci).
+  const renamingId = ref<string | null>(null)
+
+  function requestRename() {
+    const tab = tabs.value.find((item) => item.id === activeTabId.value)
+    if (tab?.started && !tab.archived) renamingId.value = tab.id
+  }
+
+  // Un titre vide est ignoré : la session garde le sien.
+  async function renameChat(id: string, title: string) {
+    const tab = tabs.value.find((item) => item.id === id)
+    if (!tab || !title.trim() || title.trim() === tab.title) return
+    const previous = tab.title
+    tab.title = title.trim()
+    try {
+      tab.title = await chatRename(id, title)
+    } catch (error) {
+      tab.title = previous
+      throw error
+    }
+  }
+
+  async function setPinned(id: string, pinned: boolean) {
+    const tab = tabs.value.find((item) => item.id === id)
+    if (!tab || tab.pinned === pinned) return
+    tab.pinned = pinned
+    try {
+      await chatSetPinned(id, pinned)
+    } catch (error) {
+      tab.pinned = !pinned
+      throw error
+    }
   }
 
   // Réordonne les onglets ouverts en plaçant `id` juste avant `beforeId` (ou en fin de liste).
@@ -377,11 +430,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     activeTabId,
     contextTabs,
     contextChats,
+    pinnedChats,
+    recentChats,
     startedChats,
     archivedChats,
     tabsFor,
     show,
     openChat,
+    openBeside,
     split,
     closePane,
     closeTab,
@@ -399,6 +455,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     tidy,
     touch,
     startChat,
+    renameChat,
+    renamingId,
+    requestRename,
+    setPinned,
     moveTab,
     dropTab,
   }

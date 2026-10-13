@@ -26,6 +26,15 @@ export function chatTitle(id: string, agent: AgentKind, prompt: string, seed: st
   return invoke<string>('chat_title', { id, agent, prompt, seed })
 }
 
+// Rend le titre enregistré, nettoyé des espaces et raccourci.
+export function chatRename(id: string, title: string) {
+  return invoke<string>('chat_rename', { id, title })
+}
+
+export function chatSetPinned(id: string, pinned: boolean) {
+  return invoke<void>('chat_set_pinned', { id, pinned })
+}
+
 // Avant le premier message seulement. path : worktree existant rejoint ; null avec worktree : le sien.
 export function chatSetWorktree(id: string, worktree: boolean, path: string | null) {
   return invoke<void>('chat_set_worktree', { id, worktree, path })

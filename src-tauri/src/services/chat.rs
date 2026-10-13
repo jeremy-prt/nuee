@@ -42,6 +42,9 @@ pub struct ChatSummary {
     #[serde(default)]
     #[ts(type = "number")]
     pub updated_at: i64,
+    /// Épinglé en haut de la liste du projet ; l'archivage automatique le laisse.
+    #[serde(default)]
+    pub pinned: bool,
 }
 
 /// Texte d'une session archivée (messages et réponses, sans les outils) pour la recherche.
@@ -84,6 +87,7 @@ const MIGRATIONS: &[&str] = &[
     // Les archives d'avant la colonne repartent du jour de la migration : aucune ne disparaît au lancement.
     "ALTER TABLE chats ADD COLUMN archived_at INTEGER;
      UPDATE chats SET archived_at = CAST(strftime('%s', 'now') AS INTEGER) * 1000 WHERE archived = 1",
+    "ALTER TABLE chats ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0",
 ];
 
 /// Historique des chats dans une base SQLite du dossier de données de l'app.
@@ -105,7 +109,7 @@ impl ChatService {
     pub fn list(&self) -> Result<Vec<ChatSummary>, AppError> {
         let db = self.lock();
         let mut query = db.prepare(
-            "SELECT id, project_id, number, agent, title, items != '[]', worktree, worktree_path, archived, archived_at, updated_at FROM chats ORDER BY created_at",
+            "SELECT id, project_id, number, agent, title, items != '[]', worktree, worktree_path, archived, archived_at, updated_at, pinned FROM chats ORDER BY created_at",
         )?;
         let rows = query.query_map([], |row| {
             Ok((
@@ -120,6 +124,7 @@ impl ChatService {
                 row.get::<_, bool>(8)?,
                 row.get(9)?,
                 row.get::<_, i64>(10)?,
+                row.get::<_, bool>(11)?,
             ))
         })?;
         let mut chats = Vec::new();
@@ -136,6 +141,7 @@ impl ChatService {
                 archived,
                 archived_at,
                 updated_at,
+                pinned,
             ) = row?;
             // Un agent retiré d'une future version ne doit pas faire tomber toute la liste.
             if let Ok(agent) = serde_json::from_value(Value::String(agent)) {
@@ -151,6 +157,7 @@ impl ChatService {
                     archived,
                     archived_at,
                     updated_at,
+                    pinned,
                 });
             }
         }
@@ -209,6 +216,14 @@ impl ChatService {
         self.lock().execute(
             "UPDATE chats SET title = ?1 WHERE id = ?2",
             params![title, id],
+        )?;
+        Ok(())
+    }
+
+    pub fn set_pinned(&self, id: &str, pinned: bool) -> Result<(), AppError> {
+        self.lock().execute(
+            "UPDATE chats SET pinned = ?1 WHERE id = ?2",
+            params![pinned, id],
         )?;
         Ok(())
     }
@@ -370,6 +385,7 @@ mod tests {
             archived: false,
             archived_at: None,
             updated_at: 0,
+            pinned: false,
         };
         let content = ChatContent {
             session_id: Some("s1".into()),
@@ -386,6 +402,7 @@ mod tests {
         assert_eq!(chats.content("c1").expect("lecture"), None);
         chats.save("c1", &content).expect("enregistrement");
         chats.set_title("c1", "Inverser une liste").expect("titre");
+        chats.set_pinned("c1", true).expect("épingle");
         chats
             .set_worktree("c1", true, Some("/tmp/arbre"))
             .expect("worktree");
@@ -411,6 +428,7 @@ mod tests {
             archived: true,
             archived_at,
             updated_at: listed.updated_at,
+            pinned: true,
             ..chat
         };
         assert_eq!(chats.list().expect("liste"), vec![titled]);

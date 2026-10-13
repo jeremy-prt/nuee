@@ -69,6 +69,12 @@ function togglePanel() {
   if (navigation.hasPanel) layout.togglePanel()
 }
 
+// La ligne de la session doit être visible pour s'éditer : le panneau latéral s'ouvre au besoin.
+function renameActive() {
+  layout.panel.open = true
+  workspace.requestRename()
+}
+
 const actions: [ShortcutId, () => void][] = [
   ['toggleRail', layout.toggleRail],
   ['newChat', () => newChat()],
@@ -78,6 +84,7 @@ const actions: [ShortcutId, () => void][] = [
   ['toggleBottomDock', inChatsOnly(() => layout.toggleDock('bottom'))],
   ['closeTab', inChatsOnly(workspace.closeActiveTab)],
   ['split', inChatsOnly(workspace.split)],
+  ['rename', inChatsOnly(renameActive)],
   ['settings', () => navigation.go('settings')],
   ['zoomIn', () => appearance.stepZoom(1)],
   ['zoomOut', () => appearance.stepZoom(-1)],

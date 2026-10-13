@@ -20,6 +20,7 @@ export interface UiMenuOption {
   hint?: string
   icon?: Component
   iconClass?: string
+  disabled?: boolean
 }
 
 // Un groupe de choix exclusifs. Plusieurs groupes (modèle et effort) passent chacun en sous-menu, comme monocode :

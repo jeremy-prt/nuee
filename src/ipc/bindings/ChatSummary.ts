@@ -32,4 +32,8 @@ archivedAt: number | null,
 /**
  * Dernier enregistrement de la conversation, en millisecondes : point de départ de l'archivage automatique.
  */
-updatedAt: number, };
+updatedAt: number, 
+/**
+ * Épinglé en haut de la liste du projet ; l'archivage automatique le laisse.
+ */
+pinned: boolean, };

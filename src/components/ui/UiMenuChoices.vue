@@ -18,7 +18,8 @@ const emit = defineEmits<{ select: [value: string] }>()
       v-for="option in section.options"
       :key="option.value"
       :value="option.value"
-      class="flex cursor-pointer items-start gap-2 rounded-md py-1.5 ps-1.5 pe-2.5 text-content/75 outline-none data-[highlighted]:bg-selection data-[highlighted]:text-content data-[state=checked]:text-content"
+      :disabled="option.disabled"
+      class="flex cursor-pointer items-start gap-2 rounded-md py-1.5 ps-1.5 pe-2.5 text-content/75 outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-40 data-[highlighted]:bg-selection data-[highlighted]:text-content data-[state=checked]:text-content"
     >
       <span class="grid size-3.5 shrink-0 place-items-center pt-px">
         <DropdownMenuItemIndicator><Check class="size-3" aria-hidden="true" /></DropdownMenuItemIndicator>

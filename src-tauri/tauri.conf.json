@@ -20,7 +20,8 @@
         "minHeight": 500,
         "theme": "Dark",
         "backgroundColor": "#171717",
-        "visible": false
+        "visible": false,
+        "devtools": false
       }
     ],
     "macOSPrivateApi": true,

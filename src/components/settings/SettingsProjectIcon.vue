@@ -3,6 +3,7 @@ import { Check } from '@lucide/vue'
 import { RadioGroupIndicator, RadioGroupItem, RadioGroupRoot } from 'reka-ui'
 import { computed, ref } from 'vue'
 import { Translation, useI18n } from 'vue-i18n'
+import ProjectBackgroundChoices from '@/components/project/ProjectBackgroundChoices.vue'
 import ProjectIcon from '@/components/project/ProjectIcon.vue'
 import ProjectMascot from '@/components/project/ProjectMascot.vue'
 import SettingsRow from '@/components/settings/SettingsRow.vue'
@@ -119,6 +120,10 @@ async function importImage() {
       </RadioGroupRoot>
     </SettingsRow>
   </template>
+
+  <SettingsRow data-setting="project-background" :label="t('settings.projects.background')" :hint="t('settings.projects.backgroundHint')">
+    <ProjectBackgroundChoices :project="project" />
+  </SettingsRow>
 
   <SettingsRow v-if="mode === 'image'" v-slot="{ hintId }" data-setting="project-image" :label="t('settings.projects.image')" :hint="t('settings.projects.imageHint')">
     <UiButton size="sm" :loading="importing" :aria-describedby="hintId" @click="importImage">

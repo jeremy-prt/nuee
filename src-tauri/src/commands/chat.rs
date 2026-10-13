@@ -6,6 +6,8 @@ use crate::services::attachment::AttachmentService;
 use crate::services::chat::{ChatContent, ChatService, ChatSummary, ChatText};
 use crate::services::worktree::WorktreeService;
 
+const TITLE_MAX: usize = 200;
+
 #[tauri::command]
 pub async fn chat_list(chats: State<'_, ChatService>) -> Result<Vec<ChatSummary>, AppError> {
     chats.list()
@@ -33,6 +35,30 @@ pub async fn chat_title(
     .unwrap_or(seed);
     chats.set_title(&id, &title)?;
     Ok(title)
+}
+
+/// Titre choisi à la main ; vide, la commande est refusée.
+#[tauri::command]
+pub async fn chat_rename(
+    id: String,
+    title: String,
+    chats: State<'_, ChatService>,
+) -> Result<String, AppError> {
+    let title: String = title.trim().chars().take(TITLE_MAX).collect();
+    if title.is_empty() {
+        return Err(AppError::InvalidInput("title".into()));
+    }
+    chats.set_title(&id, &title)?;
+    Ok(title)
+}
+
+#[tauri::command]
+pub async fn chat_set_pinned(
+    id: String,
+    pinned: bool,
+    chats: State<'_, ChatService>,
+) -> Result<(), AppError> {
+    chats.set_pinned(&id, pinned)
 }
 
 /// `None` tant que le chat n'a jamais été enregistré.

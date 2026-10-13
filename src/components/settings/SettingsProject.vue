@@ -71,7 +71,16 @@ async function settle(event: MouseEvent, action: () => Promise<void>) {
   document.querySelector<HTMLElement>('[data-setting="project-delete"] button')?.focus()
 }
 
-function archiveChats(event: MouseEvent) {
+async function archiveChats(event: MouseEvent) {
+  const current = project.value
+  const n = activeChats.value
+  if (!current || !n) return
+  const confirmed = await dialog.confirm({
+    title: t('settings.projects.chats.archiveTitle', { name: current.name }),
+    message: t('settings.projects.chats.archiveMessage', { n }, n),
+    confirmLabel: t('settings.projects.chats.archiveConfirm'),
+  })
+  if (!confirmed) return
   settle(event, async () => {
     try {
       const n = await workspace.archiveProjectChats(props.id)

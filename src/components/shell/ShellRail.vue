@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import {
   ArrowLeft,
-  BellOff,
   CircleDot,
   FolderPlus,
+  Folders,
   Gauge,
   GitPullRequest,
   House,
@@ -16,8 +16,9 @@ import {
 import { nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatIcon from '@/components/chat/ChatIcon.vue'
-import ProjectIcon from '@/components/project/ProjectIcon.vue'
 import SettingsNav from '@/components/settings/SettingsNav.vue'
+import ShellProjectGroup from '@/components/shell/ShellProjectGroup.vue'
+import ShellProjectItem from '@/components/shell/ShellProjectItem.vue'
 import ShellRailItem from '@/components/shell/ShellRailItem.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { useAddProject } from '@/composables/useAddProject'
@@ -129,11 +130,30 @@ function footerLabel(id: (typeof footer)[number]['id']) {
           <template #icon><ChatIcon many class="size-4 shrink-0" /></template>
         </ShellRailItem>
 
+        <template v-if="projects.pinned.length">
+          <div class="mt-3 flex h-8 shrink-0 items-center ps-2">
+            <p v-if="layout.rail.expanded" class="min-w-0 flex-1 truncate text-xs font-medium whitespace-nowrap text-muted">
+              {{ t('rail.pinned') }}
+            </p>
+          </div>
+          <ShellProjectItem v-for="project in projects.pinned" :key="project.id" :project="project" />
+        </template>
+
         <!-- Même hauteur dans les deux états : les projets en dessous ne bougent pas au repli. -->
         <div class="mt-3 flex h-8 shrink-0 items-center" :class="{ 'ps-2': layout.rail.expanded }">
           <p v-if="layout.rail.expanded" class="min-w-0 flex-1 truncate text-xs font-medium whitespace-nowrap text-muted">
             {{ t('rail.projects') }}
           </p>
+          <UiTooltip v-if="layout.rail.expanded" :label="t('groups.create')" side="top" :side-offset="8">
+            <button
+              type="button"
+              class="grid size-7 shrink-0 place-items-center rounded-md text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+              :aria-label="t('groups.create')"
+              @click="projects.createGroup()"
+            >
+              <Folders class="size-4" aria-hidden="true" />
+            </button>
+          </UiTooltip>
           <UiTooltip :label="t('rail.addProject')" :side="layout.rail.expanded ? 'top' : 'right'" :side-offset="8">
             <button
               type="button"
@@ -146,20 +166,17 @@ function footerLabel(id: (typeof footer)[number]['id']) {
             </button>
           </UiTooltip>
         </div>
-        <ShellRailItem
-          v-for="project in projects.projects"
-          :key="project.id"
-          :label="project.name"
-          :state="projects.isMuted(project.id) ? t('settings.projects.muted') : undefined"
-          :expanded="layout.rail.expanded"
-          :active="navigation.view === 'chats' && navigation.projectId === project.id"
-          @click="navigation.openChats(project.id)"
-        >
-          <template #icon><ProjectIcon :project="project" class="size-4 shrink-0" /></template>
-          <template v-if="projects.isMuted(project.id)" #end>
-            <BellOff class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
+        <!-- Repliée, la barre n'a pas la place des groupes : tous les projets à la suite, dans l'ordre des groupes. -->
+        <template v-if="layout.rail.expanded">
+          <ShellProjectGroup v-for="group in projects.groups" :key="group.id" :group="group" />
+          <ShellProjectItem v-for="project in projects.ungrouped" :key="project.id" :project="project" />
+        </template>
+        <template v-else>
+          <template v-for="group in projects.groups" :key="group.id">
+            <ShellProjectItem v-for="project in projects.projectsIn(group.id)" :key="project.id" :project="project" />
           </template>
-        </ShellRailItem>
+          <ShellProjectItem v-for="project in projects.ungrouped" :key="project.id" :project="project" />
+        </template>
       </template>
     </nav>
 

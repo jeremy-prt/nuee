@@ -94,6 +94,8 @@ pub fn run() {
             commands::chat::chat_content,
             commands::chat::chat_save,
             commands::chat::chat_title,
+            commands::chat::chat_rename,
+            commands::chat::chat_set_pinned,
             commands::chat::chat_set_worktree,
             commands::chat::chat_set_archived,
             commands::chat::chat_archived_texts,

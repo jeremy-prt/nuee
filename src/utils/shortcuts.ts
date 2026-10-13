@@ -35,6 +35,7 @@ export const defaultShortcuts = {
   newChat: { group: 'chats', key: 'n' },
   closeTab: { group: 'chats', key: 'w' },
   split: { group: 'chats', key: 'd' },
+  rename: { group: 'chats', key: 'r' },
   send: { group: 'message', key: 'Enter', mod: 'any', when: 'composer' },
   // Comportement natif du champ, laissé libre par `send` : listé pour qu'on le trouve.
   newline: { group: 'message', key: 'Enter', mod: false, shift: true, when: 'composer', fixed: true },

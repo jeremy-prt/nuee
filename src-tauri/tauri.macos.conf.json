@@ -17,7 +17,8 @@
           "x": 16,
           "y": 22
         },
-        "visible": false
+        "visible": false,
+        "devtools": false
       }
     ]
   }

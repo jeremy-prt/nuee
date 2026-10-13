@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { Effort } from '@/ipc/bindings/Effort'
 import type { ProjectIcons } from '@/ipc/bindings/ProjectIcons'
@@ -7,6 +7,7 @@ import type { TurnOptions } from '@/ipc/bindings/TurnOptions'
 import type { WorktreeSupport } from '@/ipc/bindings/WorktreeSupport'
 import { projectIcon, projectIconReset, projectIconSet } from '@/ipc/project'
 import { worktreeSupport } from '@/ipc/worktree'
+import { i18nGlobal } from '@/i18n'
 import { useAgentsStore } from '@/stores/agents'
 import { agents, defaultAgent } from '@/utils/agents'
 import { colorFromName, isProjectColor, mascotIds, mascotOf, type ProjectColor } from '@/utils/projects'
@@ -39,9 +40,23 @@ export interface Project {
   // Chaque nouveau chat travaille dans un worktree git plutôt que dans le dossier.
   worktree: boolean
   muted: Mute | null
+  // Groupe de la barre latérale ; null : dans la liste hors groupe.
+  group: string | null
+  // En tête de son groupe, ou dans la section Épinglés de la barre latérale s'il n'en a pas.
+  pinned: boolean
+  // Teinte du fond de ses sessions ; null : le fond de l'app.
+  background: ProjectColor | null
+}
+
+// Groupe de projets de la barre latérale, comme monocode.
+export interface ProjectGroup {
+  id: string
+  name: string
+  collapsed: boolean
 }
 
 const STORAGE_KEY = 'nuee.projects.v1'
+const GROUPS_KEY = 'nuee.projectGroups.v1'
 
 function folderName(path: string) {
   return path.split(/[\\/]/).filter(Boolean).pop() ?? path
@@ -63,6 +78,23 @@ function restore(value: Partial<Record<keyof Project, unknown>>): Project | null
     effort: typeof value.effort === 'string' ? (value.effort as Effort) : null,
     worktree: value.worktree === true,
     muted: restoreMute(value.muted),
+    group: typeof value.group === 'string' ? value.group : null,
+    pinned: value.pinned === true,
+    background: isProjectColor(value.background) ? value.background : null,
+  }
+}
+
+function restoreGroup(value: Partial<Record<keyof ProjectGroup, unknown>>): ProjectGroup | null {
+  if (typeof value.id !== 'string' || typeof value.name !== 'string') return null
+  return { id: value.id, name: value.name, collapsed: value.collapsed === true }
+}
+
+function loadGroups(): ProjectGroup[] {
+  try {
+    const saved: unknown = JSON.parse(localStorage.getItem(GROUPS_KEY) ?? '[]')
+    return Array.isArray(saved) ? saved.flatMap((value) => restoreGroup(value ?? {}) ?? []) : []
+  } catch {
+    return []
   }
 }
 
@@ -84,6 +116,15 @@ function load(): Project[] {
 export const useProjectsStore = defineStore('projects', () => {
   const agentSettings = useAgentsStore()
   const projects = ref<Project[]>(load())
+  const groups = ref<ProjectGroup[]>(loadGroups())
+  // Un groupe disparu (stockage effacé à moitié) rend ses projets à la liste hors groupe.
+  for (const project of projects.value) {
+    if (project.group && !groups.value.some((group) => group.id === project.group)) project.group = null
+  }
+  const pinned = computed(() => projects.value.filter((project) => project.pinned && !project.group))
+  const ungrouped = computed(() => projects.value.filter((project) => !project.pinned && !project.group))
+  // Groupe qui vient d'être créé : son en-tête passe aussitôt en renommage.
+  const editingGroupId = ref<string | null>(null)
   // Absente : pas encore lue.
   const icons = reactive<Record<string, ProjectIcons>>({})
   const requested = new Set<string>()
@@ -99,6 +140,18 @@ export const useProjectsStore = defineStore('projects', () => {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(value))
       } catch {
         // Stockage indisponible : la liste reste valable pour la session.
+      }
+    },
+    { deep: true },
+  )
+
+  watch(
+    groups,
+    (value) => {
+      try {
+        localStorage.setItem(GROUPS_KEY, JSON.stringify(value))
+      } catch {
+        // Stockage indisponible : les groupes restent valables pour la session.
       }
     },
     { deep: true },
@@ -120,6 +173,9 @@ export const useProjectsStore = defineStore('projects', () => {
       effort: null,
       worktree: false,
       muted: null,
+      group: null,
+      pinned: false,
+      background: null,
     }
     projects.value.push(project)
     return project
@@ -140,6 +196,42 @@ export const useProjectsStore = defineStore('projects', () => {
     requested.delete(id)
     delete support[id]
     projectIconReset(id).catch(() => {})
+  }
+
+  function projectsIn(groupId: string) {
+    const members = projects.value.filter((project) => project.group === groupId)
+    return [...members.filter((project) => project.pinned), ...members.filter((project) => !project.pinned)]
+  }
+
+  // Nom de départ libre : « Nouveau groupe », puis « Nouveau groupe 2 »… L'en-tête passe aussitôt en renommage.
+  function createGroup() {
+    const { t } = i18nGlobal()
+    const name = (n: number) => (n > 1 ? t('groups.newNameN', { n }) : t('groups.newName'))
+    const names = new Set(groups.value.map((group) => group.name))
+    let n = 1
+    while (names.has(name(n))) n++
+    const group: ProjectGroup = { id: crypto.randomUUID(), name: name(n), collapsed: false }
+    editingGroupId.value = group.id
+    groups.value.push(group)
+    return group
+  }
+
+  // Vide : le groupe garde son nom.
+  function renameGroup(group: ProjectGroup, name: string) {
+    if (name.trim()) group.name = name.trim()
+  }
+
+  // Les projets du groupe restent, hors groupe.
+  function removeGroup(id: string) {
+    for (const project of projects.value) if (project.group === id) project.group = null
+    groups.value = groups.value.filter((group) => group.id !== id)
+  }
+
+  // Un projet rangé dans un groupe replié le déplie : il ne disparaît pas sous les yeux.
+  function moveToGroup(project: Project, groupId: string | null) {
+    project.group = groupId
+    const group = groups.value.find((item) => item.id === groupId)
+    if (group) group.collapsed = false
   }
 
   // `refresh` : relue même si elle l'a déjà été (le dossier a pu changer depuis).
@@ -211,6 +303,15 @@ export const useProjectsStore = defineStore('projects', () => {
 
   return {
     projects,
+    groups,
+    pinned,
+    ungrouped,
+    editingGroupId,
+    projectsIn,
+    createGroup,
+    renameGroup,
+    removeGroup,
+    moveToGroup,
     now,
     icons,
     support,

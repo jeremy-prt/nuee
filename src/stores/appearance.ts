@@ -39,8 +39,8 @@ export const themeIntensities = ['light', 'strong'] as const
 export type ThemeIntensity = (typeof themeIntensities)[number]
 // Part de l'accent dans le voile du fond et dans les fonds d'éléments actifs (survol un cran en dessous).
 const THEME_TINT: Record<ThemeIntensity, { veil: number; selection: number; hover: number }> = {
-  light: { veil: 8, selection: 18, hover: 12 },
-  strong: { veil: 16, selection: 26, hover: 18 },
+  light: { veil: 8, selection: 18, hover: 9 },
+  strong: { veil: 16, selection: 26, hover: 13 },
 }
 
 export function veilTint(scope: ThemeScope, intensity: ThemeIntensity) {
