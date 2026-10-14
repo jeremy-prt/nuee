@@ -7,6 +7,7 @@ import ChatDiffStat from '@/components/chat/ChatDiffStat.vue'
 import ChatMarkdown from '@/components/chat/ChatMarkdown.vue'
 import ChatThumb from '@/components/chat/ChatThumb.vue'
 import type { ToolItem } from '@/stores/conversations'
+import { useLayoutStore } from '@/stores/layout'
 import { capitalize, fileName, fileVerb, toolName } from '@/utils/activity'
 import { formatDuration } from '@/utils/duration'
 
@@ -15,6 +16,7 @@ import { formatDuration } from '@/utils/duration'
 const props = defineProps<{ item: ToolItem }>()
 
 const { t, locale } = useI18n()
+const layout = useLayoutStore()
 
 const task = computed(() => props.item.task ?? null)
 const running = computed(() => props.item.status === 'running' || task.value?.status === 'running')
@@ -66,7 +68,6 @@ const open = ref(false)
         >{{ title.text }}</span>
         <ChatDiffStat v-if="item.change" :added="item.change.added" :removed="item.change.removed" />
         <span v-if="item.status === 'failed'" class="shrink-0 text-danger">{{ t('chat.tool.failed') }}</span>
-        <span v-if="background" class="shrink-0">{{ t('chat.tool.background') }}</span>
         <span v-if="task && running && task.progress" class="max-w-56 truncate" :title="task.progress">{{ task.progress }}</span>
         <span v-if="task?.durationMs && !running" class="shrink-0 tabular-nums">{{ formatDuration(task.durationMs, locale) }}</span>
         <span class="sr-only">{{ t(`chat.tool.${running ? 'running' : item.status}`) }}</span>
@@ -77,6 +78,14 @@ const open = ref(false)
           aria-hidden="true"
         />
       </component>
+      <button
+        v-if="background && running"
+        type="button"
+        class="shrink-0 rounded px-1.5 py-0.5 text-content hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring"
+        @click="layout.showView('tasks')"
+      >
+        {{ t('chat.tool.live') }}
+      </button>
       <ChatThumb v-if="item.image" :path="item.image" :alt="item.summary ?? item.name" :caption="item.name" class="ms-auto me-1" />
     </div>
     <div v-if="open" class="mx-2 mt-1 mb-2 flex flex-col gap-2 text-xs">

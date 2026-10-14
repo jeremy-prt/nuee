@@ -103,6 +103,8 @@ export default {
       title: 'Tasks',
       empty: 'Subagents and background commands of this session will show up here.',
       stop: 'Stop the task',
+      noOutput: 'Nothing written yet.',
+      outputGone: 'The output is no longer available.',
       background: 'In the background',
       kind: {
         command: 'Command',
@@ -192,7 +194,7 @@ export default {
       running: 'Running',
       done: 'Done',
       failed: 'Failed',
-      background: 'Background',
+      live: 'See live',
     },
     activity: {
       thinking: 'Thinking',

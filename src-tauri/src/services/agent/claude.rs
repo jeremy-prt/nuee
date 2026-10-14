@@ -619,6 +619,24 @@ impl Driver for Claude {
         Ok(())
     }
 
+    fn task_output_request(&self, request_id: &str, task_id: &str) -> String {
+        serde_json::json!({
+            "type": "control_request",
+            "request_id": request_id,
+            "request": { "subtype": "get_task_output", "task_id": task_id },
+        })
+        .to_string()
+    }
+
+    fn read_task_output(&self, response: &Value) -> Option<String> {
+        let output = response["output"].as_str()?;
+        Some(if response["truncated"] == true {
+            format!("…{output}")
+        } else {
+            output.to_owned()
+        })
+    }
+
     fn stop_task_message(&self, task_id: &str) -> String {
         serde_json::json!({
             "type": "control_request",
@@ -1283,6 +1301,18 @@ mod tests {
         let (id, response) = claude.control_response(refused).unwrap();
         claude.read_rewind(&id, response, &mut rewind).unwrap();
         assert_eq!(rewind.files_error.as_deref(), Some("No checkpoint"));
+    }
+
+    #[test]
+    fn a_cut_task_output_says_so() {
+        let claude = Claude::new(Path::new("/projet"));
+        let answer = r#"{"type":"control_response","response":{"subtype":"success","request_id":"nuee-output-3","response":{"output":"ligne 4\n","total_bytes":9000,"truncated":true}}}"#;
+        let (id, response) = claude.control_response(answer).unwrap();
+        assert_eq!(id, "nuee-output-3");
+        assert_eq!(
+            claude.read_task_output(&response.unwrap()).as_deref(),
+            Some("…ligne 4\n")
+        );
     }
 
     #[test]

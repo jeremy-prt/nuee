@@ -80,6 +80,7 @@ pub fn run() {
             commands::agent::agent_steer,
             commands::agent::agent_stop,
             commands::agent::agent_stop_task,
+            commands::agent::agent_task_output,
             commands::agent::agent_rewind,
             commands::agent::agent_approve,
             commands::agent::agent_catalog,

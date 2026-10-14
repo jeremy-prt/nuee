@@ -105,6 +105,8 @@ export default {
       title: 'Tarefas',
       empty: 'Os subagentes e comandos em segundo plano desta sessão aparecem aqui.',
       stop: 'Parar a tarefa',
+      noOutput: 'Nada escrito ainda.',
+      outputGone: 'A saída não está mais disponível.',
       background: 'Em segundo plano',
       kind: {
         command: 'Comando',
@@ -194,7 +196,7 @@ export default {
       running: 'Em andamento',
       done: 'Concluído',
       failed: 'Falhou',
-      background: 'Segundo plano',
+      live: 'Ver ao vivo',
     },
     activity: {
       thinking: 'Pensando',

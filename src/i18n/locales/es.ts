@@ -105,6 +105,8 @@ export default {
       title: 'Tareas',
       empty: 'Los subagentes y comandos en segundo plano de esta sesión aparecen aquí.',
       stop: 'Detener la tarea',
+      noOutput: 'Todavía no hay salida.',
+      outputGone: 'La salida ya no está disponible.',
       background: 'En segundo plano',
       kind: {
         command: 'Comando',
@@ -194,7 +196,7 @@ export default {
       running: 'En curso',
       done: 'Hecho',
       failed: 'Error',
-      background: 'Segundo plano',
+      live: 'Ver en directo',
     },
     activity: {
       thinking: 'Razonando',

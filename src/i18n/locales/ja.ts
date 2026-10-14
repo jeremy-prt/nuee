@@ -105,6 +105,8 @@ export default {
       title: 'タスク',
       empty: 'このセッションのサブエージェントとバックグラウンドのコマンドがここに表示されます。',
       stop: 'タスクを停止',
+      noOutput: 'まだ出力はありません。',
+      outputGone: '出力はもう利用できません。',
       background: 'バックグラウンド',
       kind: {
         command: 'コマンド',
@@ -194,7 +196,7 @@ export default {
       running: '実行中',
       done: '完了',
       failed: '失敗',
-      background: 'バックグラウンド',
+      live: 'ライブで見る',
     },
     activity: {
       thinking: '思考中',

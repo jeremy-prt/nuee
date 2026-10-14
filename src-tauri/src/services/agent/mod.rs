@@ -436,6 +436,9 @@ trait Driver: Send + Sync {
     fn interrupt_message(&self) -> String;
     /// Ligne qui arrête une tâche (commande en arrière-plan, sous-agent).
     fn stop_task_message(&self, task_id: &str) -> String;
+    /// Requête qui demande la fin de la sortie d'une commande en arrière-plan ; `read_task_output` lit la réponse.
+    fn task_output_request(&self, request_id: &str, task_id: &str) -> String;
+    fn read_task_output(&self, response: &serde_json::Value) -> Option<String>;
     /// `Some` quand la ligne répond à une requête de Nuée : son identifiant et la réponse.
     fn control_response(&self, line: &str) -> Option<(String, Result<serde_json::Value, String>)>;
     /// Requêtes qui ramènent la session avant le message `message_id`, à envoyer une à une : identifiant et ligne.
@@ -463,6 +466,7 @@ const UPDATE_TIMEOUT: Duration = Duration::from_secs(300);
 const TITLE_TIMEOUT: Duration = Duration::from_secs(45);
 /// Un process relancé pour revenir en arrière doit d'abord relire la session.
 const REWIND_TIMEOUT: Duration = Duration::from_secs(30);
+const TASK_OUTPUT_TIMEOUT: Duration = Duration::from_secs(5);
 /// Assez pour comprendre la demande ; un long message collé n'apporte rien de plus au titre.
 const TITLE_INPUT_LIMIT: usize = 8000;
 /// Un process inutilisé si longtemps est arrêté ; le tour suivant le relance avec `--resume`.
@@ -472,6 +476,7 @@ const IDLE: Duration = Duration::from_secs(5 * 60);
 pub struct AgentService {
     sessions: Sessions,
     next_session: AtomicU64,
+    next_request: AtomicU64,
     /// Parent des dossiers de travail des chats sans projet.
     scratch: PathBuf,
     catalogs: Mutex<HashMap<AgentKind, Catalog>>,
@@ -488,6 +493,7 @@ impl AgentService {
         Self {
             sessions,
             next_session: AtomicU64::new(0),
+            next_request: AtomicU64::new(0),
             scratch,
             catalogs: Mutex::default(),
             paths: Mutex::default(),
@@ -631,6 +637,33 @@ impl AgentService {
                 .map_err(AppError::AgentFailed)?;
         }
         Ok(rewind)
+    }
+
+    /// Fin de la sortie d'une commande en arrière-plan ; `None` quand le process du chat ne tourne plus.
+    pub async fn task_output(
+        &self,
+        chat_id: &str,
+        task_id: &str,
+    ) -> Result<Option<String>, AppError> {
+        let id = format!(
+            "nuee-output-{}",
+            self.next_request.fetch_add(1, Ordering::Relaxed)
+        );
+        let (answer, driver) = {
+            let sessions = lock(&self.sessions);
+            let Some(session) = sessions.get(chat_id) else {
+                return Ok(None);
+            };
+            let driver = session.key.agent.driver(&session.key.cwd);
+            let line = driver.task_output_request(&id, task_id);
+            (session.request(id, line), driver)
+        };
+        let response = timeout(TASK_OUTPUT_TIMEOUT, answer)
+            .await
+            .map_err(|_| AppError::AgentFailed("pas de réponse de l'agent".into()))?
+            .map_err(|_| AppError::AgentFailed("l'agent s'est arrêté".into()))?
+            .map_err(AppError::AgentFailed)?;
+        Ok(driver.read_task_output(&response))
     }
 
     pub fn stop_task(&self, chat_id: &str, task_id: &str) {

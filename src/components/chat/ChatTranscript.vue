@@ -117,7 +117,8 @@ onMounted(scrollToEnd)
 </script>
 
 <template>
-  <div ref="scroller" class="overflow-y-auto" @scroll.passive="onScroll">
+  <!-- Le bas s'estompe sous le champ de saisie au lieu d'être coupé net. -->
+  <div ref="scroller" class="overflow-y-auto mask-b-from-[calc(100%-1.5rem)]" @scroll.passive="onScroll">
     <ol class="mx-auto flex max-w-(--chat-width) flex-col gap-3 px-6 py-6" role="log" :aria-busy="running" :aria-label="t('chat.transcript')">
       <li v-if="start" class="flex justify-center">
         <button
@@ -163,13 +164,14 @@ onMounted(scrollToEnd)
         </button>
       </li>
     </ol>
-    <div v-if="away" class="pointer-events-none sticky bottom-3 flex justify-center">
+    <div v-if="away" class="pointer-events-none sticky bottom-6 flex justify-center">
       <UiIconButton
         :label="t('chat.backToEnd')"
         class="pointer-events-auto size-8! rounded-full! border border-stroke bg-popover! shadow-md"
         @click="backToEnd"
       >
-        <ArrowDown class="size-4" aria-hidden="true" />
+        <ChatSpinner v-if="running" :agent="agent" class="text-base" />
+        <ArrowDown v-else class="size-4" aria-hidden="true" />
       </UiIconButton>
     </div>
   </div>

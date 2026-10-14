@@ -105,6 +105,8 @@ export default {
       title: 'Tâches',
       empty: 'Les sous-agents et commandes en arrière-plan de cette session s\'affichent ici.',
       stop: 'Arrêter la tâche',
+      noOutput: 'Rien d\'écrit pour l\'instant.',
+      outputGone: 'La sortie n\'est plus disponible.',
       background: 'En arrière-plan',
       kind: {
         command: 'Commande',
@@ -194,7 +196,7 @@ export default {
       running: 'En cours',
       done: 'Terminé',
       failed: 'Échec',
-      background: 'Arrière-plan',
+      live: 'Voir en direct',
     },
     activity: {
       thinking: 'Réflexion en cours',

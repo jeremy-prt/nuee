@@ -532,6 +532,12 @@ mod tests {
         fn stop_task_message(&self, _: &str) -> String {
             String::new()
         }
+        fn task_output_request(&self, _: &str, _: &str) -> String {
+            String::new()
+        }
+        fn read_task_output(&self, _: &serde_json::Value) -> Option<String> {
+            None
+        }
         fn control_response(&self, _: &str) -> Option<(String, Result<serde_json::Value, String>)> {
             None
         }

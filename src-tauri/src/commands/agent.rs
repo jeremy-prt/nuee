@@ -125,6 +125,15 @@ pub async fn agent_rewind(
 }
 
 #[tauri::command]
+pub async fn agent_task_output(
+    chat_id: String,
+    task_id: String,
+    agents: State<'_, AgentService>,
+) -> Result<Option<String>, AppError> {
+    agents.task_output(&chat_id, &task_id).await
+}
+
+#[tauri::command]
 pub fn agent_stop_task(chat_id: String, task_id: String, agents: State<'_, AgentService>) {
     agents.stop_task(&chat_id, &task_id);
 }

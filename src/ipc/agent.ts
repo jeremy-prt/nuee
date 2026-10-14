@@ -43,6 +43,10 @@ export function agentRewind(spec: SessionSpec, messageId: string) {
   return invoke<Rewind>('agent_rewind', { spec, messageId })
 }
 
+export function agentTaskOutput(chatId: string, taskId: string) {
+  return invoke<string | null>('agent_task_output', { chatId, taskId })
+}
+
 export function agentStopTask(chatId: string, taskId: string) {
   return invoke<void>('agent_stop_task', { chatId, taskId })
 }

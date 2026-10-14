@@ -105,6 +105,8 @@ export default {
       title: '任务',
       empty: '此会话的子代理和后台命令会显示在这里。',
       stop: '停止任务',
+      noOutput: '暂无输出。',
+      outputGone: '输出已不可用。',
       background: '后台运行',
       kind: {
         command: '命令',
@@ -194,7 +196,7 @@ export default {
       running: '进行中',
       done: '已完成',
       failed: '失败',
-      background: '后台',
+      live: '实时查看',
     },
     activity: {
       thinking: '思考中',
