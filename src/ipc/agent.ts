@@ -6,6 +6,7 @@ import type { AppError } from '@/ipc/bindings/AppError'
 import type { Attachment } from '@/ipc/bindings/Attachment'
 import type { Catalog } from '@/ipc/bindings/Catalog'
 import type { ChatCommand } from '@/ipc/bindings/ChatCommand'
+import type { Rewind } from '@/ipc/bindings/Rewind'
 import type { SessionSpec } from '@/ipc/bindings/SessionSpec'
 
 // Se résout dès que le message est parti, avec le worktree où travaille l'agent ; les événements arrivent
@@ -36,6 +37,14 @@ export function agentSteer(chatId: string, prompt: string, attachments: Attachme
 
 export function agentStop(chatId: string) {
   return invoke<void>('agent_stop', { chatId })
+}
+
+export function agentRewind(spec: SessionSpec, messageId: string) {
+  return invoke<Rewind>('agent_rewind', { spec, messageId })
+}
+
+export function agentStopTask(chatId: string, taskId: string) {
+  return invoke<void>('agent_stop_task', { chatId, taskId })
 }
 
 // Réponse à une demande d'autorisation du mode Auto ; l'agent attend pour continuer.

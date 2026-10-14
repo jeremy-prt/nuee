@@ -5,7 +5,7 @@ use tauri::ipc::Channel;
 
 use crate::error::AppError;
 use crate::services::agent::{
-    AgentEvent, AgentKind, AgentService, AgentStatus, Catalog, ChatCommand, SessionSpec,
+    AgentEvent, AgentKind, AgentService, AgentStatus, Catalog, ChatCommand, Rewind, SessionSpec,
 };
 use crate::services::attachment::Attachment;
 use crate::services::chat::ChatService;
@@ -107,6 +107,26 @@ pub fn agent_steer(
 #[tauri::command]
 pub fn agent_stop(chat_id: String, agents: State<'_, AgentService>) {
     agents.stop(&chat_id);
+}
+
+/// Revient avant le message `message_id` (identifiant donné par l'agent) : conversation et fichiers.
+#[tauri::command]
+pub async fn agent_rewind(
+    mut spec: SessionSpec,
+    message_id: String,
+    agents: State<'_, AgentService>,
+    chats: State<'_, ChatService>,
+    worktrees: State<'_, WorktreeService>,
+) -> Result<Rewind, AppError> {
+    let Place::Ready(_) = place(&mut spec, &chats, &worktrees, false).await? else {
+        return Err(AppError::InvalidInput("aucun message à retrouver".into()));
+    };
+    agents.rewind(spec, message_id).await
+}
+
+#[tauri::command]
+pub fn agent_stop_task(chat_id: String, task_id: String, agents: State<'_, AgentService>) {
+    agents.stop_task(&chat_id, &task_id);
 }
 
 #[tauri::command]

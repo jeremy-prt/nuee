@@ -7,7 +7,10 @@ import ChatLimit from '@/components/chat/ChatLimit.vue'
 import ChatQueue from '@/components/chat/ChatQueue.vue'
 import ChatTranscript from '@/components/chat/ChatTranscript.vue'
 import { useFileDrop } from '@/composables/useFileDrop'
+import { isAppError } from '@/ipc/agent'
 import { useCatalogStore } from '@/stores/catalog'
+import { useDialogStore } from '@/stores/dialog'
+import { useToastsStore } from '@/stores/toasts'
 import { type Place, useConversationsStore } from '@/stores/conversations'
 import type { Attachment } from '@/ipc/bindings/Attachment'
 import { useProjectsStore } from '@/stores/projects'
@@ -24,6 +27,8 @@ const conversations = useConversationsStore()
 const catalog = useCatalogStore()
 const workspace = useWorkspaceStore()
 const worktrees = useWorktreesStore()
+const dialog = useDialogStore()
+const toasts = useToastsStore()
 
 // Le pane est recréé à chaque changement d'onglet (:key), l'historique se charge donc ici.
 conversations.open(props.tab.id, props.tab.agent, props.tab.projectId)
@@ -50,6 +55,10 @@ const options = computed({
 
 const cwd = computed(() => project.value?.path ?? null)
 const approval = computed(() => conversation.value?.approvals[0] ?? null)
+const clock = computed(() => {
+  const current = conversation.value
+  return current?.startedAt ? { since: current.startedAt, pausedMs: current.pausedMs, pausedAt: current.pausedAt } : null
+})
 
 // Le worktree se choisit jusqu'au premier message. D'ici là, un dossier hors git (ou git absent) le coupe.
 const started = computed(() => props.tab.started || items.value.some((item) => item.kind === 'user'))
@@ -95,6 +104,27 @@ function send(prompt: string, attachments: Attachment[]) {
   conversations.send(props.tab.id, place.value, prompt, attachments)
 }
 
+// La suite de la conversation disparaît, côté agent comme à l'écran : on demande d'abord.
+async function rewindTo(itemId: string) {
+  const confirmed = await dialog.confirm({
+    title: t('chat.rewind.title'),
+    message: t('chat.rewind.message', { agent: agents[agent.value].name }),
+    confirmLabel: t('chat.rewind.confirm'),
+  })
+  if (!confirmed) return
+  try {
+    const result = await conversations.rewind(props.tab.id, place.value, itemId)
+    if (!result) return
+    composer.value?.fill(result.prefill, result.attachments)
+    const body = result.filesError
+      ? t('chat.rewind.filesKept', { detail: result.filesError })
+      : t('chat.rewind.files', { n: result.files.length }, result.files.length)
+    toasts.push({ kind: result.filesError ? 'error' : 'success', title: t('chat.rewind.done'), body })
+  } catch (error) {
+    toasts.push({ kind: 'error', title: t('chat.rewind.failed'), body: isAppError(error) ? error.message : String(error) })
+  }
+}
+
 const pane = useTemplateRef('pane')
 const composer = useTemplateRef('composer')
 const { over } = useFileDrop(pane, (paths) => {
@@ -110,7 +140,15 @@ onMounted(() => {
 <template>
   <!-- Le champ reste le même élément quand la conversation démarre : il garde le focus. -->
   <div ref="pane" class="relative flex flex-col">
-    <ChatTranscript v-if="items.length" :items="items" :running="waiting" :agent="agent" class="min-h-0 flex-1" />
+    <ChatTranscript
+      v-if="items.length"
+      :items="items"
+      :running="waiting"
+      :agent="agent"
+      :clock="clock"
+      class="min-h-0 flex-1"
+      @rewind="rewindTo"
+    />
     <div v-else-if="loaded" class="flex flex-1 flex-col items-center justify-end px-6 pb-8 text-center">
       <p class="text-3xl font-semibold tracking-tight">Nuée</p>
       <p class="mt-2 text-sm text-muted">

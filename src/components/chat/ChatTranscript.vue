@@ -1,19 +1,30 @@
 <script setup lang="ts">
-import { CircleAlert, CornerDownRight, File, Folder, LoaderCircle } from '@/components/ui/icons'
+import { ArrowDown } from '@/components/ui/icons'
 import { computed, nextTick, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import ChatCommandRow from '@/components/chat/ChatCommandRow.vue'
-import ChatMarkdown from '@/components/chat/ChatMarkdown.vue'
-import ChatSkillForm from '@/components/chat/ChatSkillForm.vue'
-import ChatTool from '@/components/chat/ChatTool.vue'
-import { previewSrc } from '@/ipc/attachment'
+import ChatActivity from '@/components/chat/ChatActivity.vue'
+import ChatMessage from '@/components/chat/ChatMessage.vue'
+import ChatSpinner from '@/components/chat/ChatSpinner.vue'
+import UiIconButton from '@/components/ui/UiIconButton.vue'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { ChatItem } from '@/stores/conversations'
-import { agents } from '@/utils/agents'
+import { useLayoutStore } from '@/stores/layout'
+import type { ActivityItem } from '@/utils/activity'
+import { tasksOf } from '@/utils/tasks'
+import { turnText } from '@/utils/transcript'
 
-const props = defineProps<{ items: readonly ChatItem[]; running: boolean; agent: AgentKind }>()
+// `clock` : horloge du tour en cours (voir `Conversation`), pour le temps écoulé.
+const props = defineProps<{
+  items: readonly ChatItem[]
+  running: boolean
+  agent: AgentKind
+  clock: { since: number; pausedMs: number; pausedAt: number | null } | null
+}>()
 
-const { t, locale } = useI18n()
+const emit = defineEmits<{ rewind: [itemId: string] }>()
+
+const { t } = useI18n()
+const layout = useLayoutStore()
 const scroller = useTemplateRef('scroller')
 const lastUser = computed(() => props.items.map((item) => item.kind).lastIndexOf('user'))
 
@@ -23,6 +34,36 @@ const PAGE = 60
 const limit = ref(PAGE)
 const start = computed(() => Math.max(0, props.items.length - limit.value))
 const shown = computed(() => props.items.slice(start.value))
+
+// Outils et réflexions qui se suivent forment une ligne d'activité. Une fois le tour passé, la réflexion ne s'affiche
+// plus (comme dans l'app Claude) et un outil seul reste une ligne simple. Pendant un tour, la dernière suite reste une
+// ligne d'activité, même seule : c'est elle qui dit ce que fait l'agent.
+// `index` : position absolue du premier élément de la ligne.
+type Row = { kind: 'item'; item: ChatItem; index: number } | { kind: 'activity'; id: string; items: ActivityItem[]; index: number }
+const rows = computed(() => {
+  const out: Row[] = []
+  let run: ActivityItem[] = []
+  const close = (index: number) => {
+    const first = run.find((item) => item.kind === 'tool')
+    const tools = run.filter((item) => item.kind === 'tool').length
+    if (tools > 1 && first) out.push({ kind: 'activity', id: first.id, items: run, index: index - run.length })
+    else run.forEach((item, offset) => item.kind === 'tool' && out.push({ kind: 'item', item, index: index - run.length + offset }))
+    run = []
+  }
+  shown.value.forEach((item, offset) => {
+    if (item.kind === 'tool' || item.kind === 'thinking') run.push(item)
+    else {
+      close(start.value + offset)
+      out.push({ kind: 'item', item, index: start.value + offset })
+    }
+  })
+  const first = run.find((item) => item.kind === 'tool') ?? run[0]
+  if (props.running && first) out.push({ kind: 'activity', id: first.id, items: run, index: props.items.length - run.length })
+  else close(props.items.length)
+  return out
+})
+const liveRun = computed(() => props.running && rows.value.at(-1)?.kind === 'activity')
+const background = computed(() => tasksOf(props.items).filter(({ task }) => task.background && task.status === 'running').length)
 watch(
   () => props.items[0]?.id,
   () => (limit.value = PAGE),
@@ -38,14 +79,24 @@ async function showEarlier() {
   el.scrollTop += el.scrollHeight - height
 }
 
-// Suit le bas tant que l'utilisateur n'est pas remonté lire plus haut.
+// Suit le bas tant que l'utilisateur n'est pas remonté lire plus haut ; remonté, un bouton l'y ramène.
 let stick = true
+const away = ref(false)
 
 function onScroll() {
   const el = scroller.value
   if (!el) return
   stick = el.scrollHeight - el.scrollTop - el.clientHeight < 48
+  away.value = !stick
   if (el.scrollTop < 200) showEarlier()
+}
+
+function backToEnd() {
+  const el = scroller.value
+  if (!el) return
+  stick = true
+  const smooth = !matchMedia('(prefers-reduced-motion: reduce)').matches
+  el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'instant' })
 }
 
 function scrollToEnd() {
@@ -63,14 +114,6 @@ watch(
 )
 
 onMounted(scrollToEnd)
-
-function duration(ms: number) {
-  return new Intl.NumberFormat(locale.value, { style: 'unit', unit: 'second', maximumFractionDigits: 1 }).format(ms / 1000)
-}
-
-function agentParams() {
-  return { agent: agents[props.agent].name, command: agents[props.agent].command }
-}
 </script>
 
 <template>
@@ -85,65 +128,49 @@ function agentParams() {
           {{ t('chat.earlier', { n: start }, start) }}
         </button>
       </li>
-      <li v-for="(item, offset) in shown" :key="item.id" :class="{ 'flex flex-col items-end gap-1': item.kind === 'user' }">
-        <template v-if="item.kind === 'command'">
-          <ChatCommandRow :item="item" :running="running" />
-          <ChatSkillForm :item="item" :agent-name="agents[agent].name" />
-        </template>
-        <template v-else-if="item.kind === 'user'">
-          <ul v-if="item.attachments?.length" class="flex max-w-[85%] flex-wrap justify-end gap-2" :aria-label="t('composer.attachments')">
-            <li v-for="attachment in item.attachments" :key="attachment.preview ?? attachment.path" :title="attachment.path">
-              <img
-                v-if="attachment.preview"
-                :src="previewSrc(attachment.preview)"
-                :alt="attachment.name"
-                class="max-h-40 max-w-60 rounded-lg border border-stroke object-contain"
-              />
-              <span v-else class="flex max-w-60 items-center gap-2 rounded-lg border border-stroke px-2 py-1.5 text-xs">
-                <component :is="attachment.kind === 'folder' ? Folder : File" class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
-                <span class="min-w-0 truncate">{{ attachment.name }}</span>
-              </span>
-            </li>
-          </ul>
-          <p
-            v-if="item.text"
-            class="max-w-[85%] rounded-xl bg-selection px-3 py-2 text-sm whitespace-pre-wrap break-words select-text"
-          >{{ item.text }}</p>
-          <p v-if="item.steered" class="flex items-center gap-1 text-[11px] text-muted">
-            <CornerDownRight class="size-3" aria-hidden="true" />{{ t('chat.queue.steered') }}
-          </p>
-        </template>
-        <ChatMarkdown v-else-if="item.kind === 'text'" :text="item.text" :streaming="running && start + offset > lastUser" />
-        <ChatTool v-else-if="item.kind === 'tool'" :item="item" />
-        <template v-else-if="item.kind === 'end'">
-          <p v-if="item.status === 'completed'" class="text-xs text-muted">
-            {{ item.durationMs === null ? t('chat.end.done') : t('chat.end.completed', { duration: duration(item.durationMs) }) }}
-          </p>
-          <p v-else-if="item.status === 'stopped'" class="text-xs text-muted">
-            {{ items[start + offset - 1]?.kind === 'text' ? t('chat.end.stoppedKept', agentParams()) : t('chat.end.stopped') }}
-          </p>
-          <div v-else class="flex gap-2 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm" role="alert">
-            <CircleAlert class="mt-0.5 size-4 shrink-0 text-danger" aria-hidden="true" />
-            <div class="min-w-0">
-              <p v-if="item.status === 'unauthenticated'">{{ t('chat.end.unauthenticated', agentParams()) }}</p>
-              <template v-else>
-                <p>{{ t('chat.end.failed', agentParams()) }}</p>
-                <pre v-if="item.error" class="mt-1 font-mono text-xs whitespace-pre-wrap break-words text-muted select-text">{{ item.error }}</pre>
-              </template>
-            </div>
-          </div>
-        </template>
-        <div v-else class="flex gap-2 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm" role="alert">
-          <CircleAlert class="mt-0.5 size-4 shrink-0 text-danger" aria-hidden="true" />
-          <p class="min-w-0 break-words select-text">
-            {{ t(`chat.errors.${item.error.kind}`, { ...agentParams(), detail: item.error.message }) }}
-          </p>
-        </div>
+      <li v-for="(row, offset) in rows" :key="row.kind === 'item' ? row.item.id : row.id" :class="{ 'group flex flex-col items-end gap-1': row.kind === 'item' && row.item.kind === 'user' }">
+        <ChatActivity
+          v-if="row.kind === 'activity'"
+          :items="row.items"
+          :agent="agent"
+          :clock="liveRun && offset === rows.length - 1 ? clock : null"
+          :background="background"
+        />
+        <ChatMessage
+          v-else
+          :item="row.item"
+          :agent="agent"
+          :running="running"
+          :streaming="running && row.index > lastUser"
+          :after-text="items[row.index - 1]?.kind === 'text'"
+          :answer="row.item.kind === 'end' ? () => turnText(items, row.index) : undefined"
+          :rewindable="!running && row.item.kind === 'user' && !!row.item.agentId"
+          @rewind="emit('rewind', row.item.id)"
+        />
       </li>
-      <li v-if="running" class="flex items-center gap-2 text-xs text-muted">
-        <LoaderCircle class="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-        {{ t('chat.working', agentParams()) }}
+      <li v-if="running && clock && !liveRun">
+        <ChatActivity :items="[]" :agent="agent" :clock="clock" :background="background" :writing="items.at(-1)?.kind === 'text'" />
+      </li>
+      <li v-if="background && !running" class="flex items-center gap-2 text-sm text-muted">
+        <ChatSpinner :agent="agent" muted class="text-sm" />
+        <span>{{ t('chat.backgroundTasks', { n: background }, background) }}</span>
+        <button
+          type="button"
+          class="rounded px-1.5 py-0.5 text-content hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring"
+          @click="layout.showView('tasks')"
+        >
+          {{ t('chat.showTasks') }}
+        </button>
       </li>
     </ol>
+    <div v-if="away" class="pointer-events-none sticky bottom-3 flex justify-center">
+      <UiIconButton
+        :label="t('chat.backToEnd')"
+        class="pointer-events-auto size-8! rounded-full! border border-stroke bg-popover! shadow-md"
+        @click="backToEnd"
+      >
+        <ArrowDown class="size-4" aria-hidden="true" />
+      </UiIconButton>
+    </div>
   </div>
 </template>

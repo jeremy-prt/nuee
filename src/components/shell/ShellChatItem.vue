@@ -3,6 +3,7 @@ import { Archive } from '@/components/ui/icons'
 import { nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatIcon from '@/components/chat/ChatIcon.vue'
+import ChatSpinner from '@/components/chat/ChatSpinner.vue'
 import ShellChatMenu from '@/components/shell/ShellChatMenu.vue'
 import UiContextMenu from '@/components/ui/UiContextMenu.vue'
 import UiMoreMenu from '@/components/ui/UiMoreMenu.vue'
@@ -11,14 +12,17 @@ import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { useProjectActions } from '@/composables/useProjectActions'
 import { useTabTitle } from '@/composables/useTabTitle'
 import { useAttentionStore } from '@/stores/attention'
+import { useConversationsStore } from '@/stores/conversations'
 import { useNavigationStore } from '@/stores/navigation'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { type Tab, useWorkspaceStore } from '@/stores/workspace'
+import { agents } from '@/utils/agents'
 
 const props = defineProps<{ tab: Tab }>()
 
 const { t } = useI18n()
 const attention = useAttentionStore()
+const conversations = useConversationsStore()
 const navigation = useNavigationStore()
 const shortcuts = useShortcutsStore()
 const workspace = useWorkspaceStore()
@@ -93,7 +97,8 @@ watch(
           @dblclick="startRename()"
           @keydown="onKeydown"
         >
-          <ChatIcon class="size-4 shrink-0 text-muted" />
+          <ChatSpinner v-if="conversations.working(tab.id)" :agent="tab.agent" class="size-4 text-sm" />
+          <ChatIcon v-else class="size-4 shrink-0 text-muted" />
           <span
             class="min-w-0 flex-1 truncate text-start"
             :class="menuOpen ? 'fade-under-two' : 'group-focus-within:fade-under-two group-hover:fade-under-two'"
@@ -103,6 +108,7 @@ watch(
           <span v-if="attention.isUnseen(tab.id)" class="size-1.5 shrink-0 rounded-full bg-signal">
             <span class="sr-only">{{ t('attention.unseen') }}</span>
           </span>
+          <span v-if="conversations.working(tab.id)" class="sr-only">{{ t('chat.working', { agent: agents[tab.agent].name }) }}</span>
         </button>
         <div
           class="absolute end-1 top-1 flex gap-0.5 transition-opacity duration-(--hover-duration) ease-out group-hover:opacity-100 focus-within:opacity-100 motion-reduce:transition-none"

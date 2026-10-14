@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { reactive, toRefs, watch } from 'vue'
 
 export type DockPosition = 'right' | 'bottom'
-export type DockView = 'terminal' | 'changes' | 'files'
+export type DockView = 'terminal' | 'changes' | 'files' | 'tasks'
 
 interface Dock {
   open: boolean
@@ -35,7 +35,7 @@ function defaults(): LayoutState {
     panel: { open: true, width: SIZES.panel.defaultSize },
     right: { open: false, size: SIZES.right.defaultSize, active: 'changes' },
     bottom: { open: false, size: SIZES.bottom.defaultSize, active: 'terminal' },
-    views: { terminal: 'bottom', changes: 'right', files: 'right' },
+    views: { terminal: 'bottom', changes: 'right', files: 'right', tasks: 'right' },
   }
 }
 
@@ -43,6 +43,8 @@ function load(): LayoutState {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
     const state: LayoutState = saved ? { ...defaults(), ...JSON.parse(saved) } : defaults()
+    // Une vue ajoutée depuis l'enregistrement prend sa place par défaut.
+    state.views = { ...defaults().views, ...state.views }
     // Une largeur enregistrée avant un changement de minimum reste dans les bornes actuelles.
     state.rail.width = Math.min(SIZES.rail.max, Math.max(SIZES.rail.min, state.rail.width))
     return state
@@ -96,9 +98,15 @@ export const useLayoutStore = defineStore('layout', () => {
     if (!remaining.length) state[from].open = false
   }
 
+  function showView(view: DockView) {
+    const position = state.views[view]
+    state[position].active = view
+    state[position].open = true
+  }
+
   function reset() {
     Object.assign(state, defaults())
   }
 
-  return { ...toRefs(state), viewsIn, toggleRail, togglePanel, toggleDock, moveView, reset }
+  return { ...toRefs(state), viewsIn, toggleRail, togglePanel, toggleDock, moveView, showView, reset }
 })

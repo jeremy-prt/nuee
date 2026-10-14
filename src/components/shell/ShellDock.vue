@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { FileText, GitCompare, SquareTerminal, X } from '@/components/ui/icons'
+import { FileText, GitCompare, Layers, SquareTerminal, X } from '@/components/ui/icons'
 import { TabsContent, TabsList, TabsRoot, TabsTrigger } from 'reka-ui'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import ChatTasks from '@/components/chat/ChatTasks.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import { useLayoutDrag } from '@/composables/useLayoutDrag'
 import { useDragStore } from '@/stores/drag'
@@ -15,7 +16,7 @@ const layout = useLayoutStore()
 const drag = useDragStore()
 const { startViewDrag } = useLayoutDrag()
 
-const icons = { terminal: SquareTerminal, changes: GitCompare, files: FileText }
+const icons = { terminal: SquareTerminal, changes: GitCompare, files: FileText, tasks: Layers }
 
 const views = computed(() => layout.viewsIn(props.position))
 const active = computed({
@@ -53,14 +54,12 @@ const active = computed({
         </UiIconButton>
       </div>
 
-      <TabsContent
-        v-for="view in views"
-        :key="view"
-        :value="view"
-        class="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 p-6 text-center outline-none"
-      >
-        <component :is="icons[view]" class="size-6 text-muted" aria-hidden="true" />
-        <p class="text-sm text-muted">{{ t(`dock.${view}.empty`) }}</p>
+      <TabsContent v-for="view in views" :key="view" :value="view" class="flex min-h-0 flex-1 flex-col outline-none">
+        <ChatTasks v-if="view === 'tasks'" />
+        <div v-else class="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
+          <component :is="icons[view]" class="size-6 text-muted" aria-hidden="true" />
+          <p class="text-sm text-muted">{{ t(`dock.${view}.empty`) }}</p>
+        </div>
       </TabsContent>
     </TabsRoot>
   </section>

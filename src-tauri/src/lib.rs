@@ -79,6 +79,8 @@ pub fn run() {
             commands::agent::agent_warm,
             commands::agent::agent_steer,
             commands::agent::agent_stop,
+            commands::agent::agent_stop_task,
+            commands::agent::agent_rewind,
             commands::agent::agent_approve,
             commands::agent::agent_catalog,
             commands::agent::agent_probe,

@@ -124,7 +124,7 @@ impl AgentService {
         let driver = kind.driver(&self.scratch);
         let program = self.program(kind)?;
         let (args, requests) = driver.mcp_probe();
-        let mut child = session::spawn(&program, args, &self.scratch)?;
+        let mut child = session::spawn(&program, args, &[], &self.scratch)?;
         let pid = child.id().unwrap_or_default();
         lock(&self.logins).insert(name.to_owned(), pid);
 
@@ -261,7 +261,7 @@ impl AgentService {
         let driver = kind.driver(&self.scratch);
         let program = self.program(kind)?;
         let (args, requests) = driver.mcp_probe();
-        let mut child = session::spawn(&program, args, &self.scratch)?;
+        let mut child = session::spawn(&program, args, &[], &self.scratch)?;
         let started = Instant::now();
         let deadline = started + MCP_TIMEOUT;
 

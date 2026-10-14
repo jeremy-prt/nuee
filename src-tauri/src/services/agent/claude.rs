@@ -4,16 +4,25 @@ use std::path::{Path, PathBuf};
 use serde_json::Value;
 
 use super::{
-    Account, AgentEvent, Attached, Catalog, Driver, Effort, McpAuth, McpServer, McpStatus,
-    ModelInfo, ModelQuota, PermissionMode, Probe, Quota, SessionSpec, ToolKind, TurnStatus, Usage,
+    Account, AgentEvent, Attached, Catalog, Driver, Effort, FileChange, McpAuth, McpServer,
+    McpStatus, ModelInfo, ModelQuota, PermissionMode, Probe, Quota, Rewind, SessionSpec, TaskKind,
+    TaskStatus, ToolDetail, ToolImage, ToolKind, TurnStatus, Usage,
 };
 
 const OUTPUT_LIMIT: usize = 4000;
+/// Lignes d'un diff gardées dans l'historique ; les compteurs portent quand même sur tout le diff.
+const PATCH_LIMIT: usize = 400;
+const PATCH_LINE_LIMIT: usize = 400;
+/// Au-delà (en base64), l'image n'est pas montrée : la CLI réduit déjà celles qu'elle lit.
+const IMAGE_LIMIT: usize = 8 * 1024 * 1024;
 const INITIALIZE: &str =
     r#"{"type":"control_request","request_id":"nuee-init","request":{"subtype":"initialize"}}"#;
 const MCP_STATUS: &str =
     r#"{"type":"control_request","request_id":"nuee-mcp","request":{"subtype":"mcp_status"}}"#;
 const TITLE_LIMIT: usize = 50;
+const REWIND_FILES_PREVIEW: &str = "nuee-rewind-preview";
+const REWIND_FILES: &str = "nuee-rewind-files";
+const REWIND_CONVERSATION: &str = "nuee-rewind";
 /// En anglais pour le modèle, mais le titre suit la langue du message.
 const TITLE_PROMPT: &str = "You name coding chats so the user can recognize them weeks later. \
 Reply with the title only: 3 to 6 words, under 40 characters, in the same language as the user's message. \
@@ -54,6 +63,7 @@ impl Claude {
                     name: name.to_owned(),
                     kind: describe(name, &Value::Null, &self.cwd).0,
                     summary: None,
+                    detail: None,
                 });
             }
             // Fin d'un message qui n'appelle pas d'outil : la réponse est là, le reste n'est que rangement.
@@ -69,6 +79,13 @@ impl Claude {
                 events.push(AgentEvent::Text {
                     id: format!("{}:{}", self.message_id, event["index"]),
                     delta: str_of(&event["delta"]["text"]).to_owned(),
+                });
+            }
+            Some("content_block_delta") if event["delta"]["type"] == "thinking_delta" => {
+                self.streamed.insert(self.message_id.clone());
+                events.push(AgentEvent::Thinking {
+                    id: format!("{}:{}", self.message_id, event["index"]),
+                    delta: str_of(&event["delta"]["thinking"]).to_owned(),
                 });
             }
             _ => {}
@@ -94,6 +111,14 @@ impl Claude {
                     id: format!("{id}:{index}"),
                     delta: str_of(&block["text"]).to_owned(),
                 });
+            } else if block["type"] == "thinking"
+                && !self.streamed.contains(id)
+                && !str_of(&block["thinking"]).is_empty()
+            {
+                events.push(AgentEvent::Thinking {
+                    id: format!("{id}:{index}"),
+                    delta: str_of(&block["thinking"]).to_owned(),
+                });
             } else if is_tool(block) {
                 let name = str_of(&block["name"]);
                 let (kind, summary) = describe(name, &block["input"], &self.cwd);
@@ -102,22 +127,83 @@ impl Claude {
                     name: name.to_owned(),
                     kind,
                     summary,
+                    detail: detail_of(name, &block["input"]),
                 });
             }
         }
     }
 
-    fn tool_results(&self, content: &Value, events: &mut Vec<AgentEvent>) {
-        for block in content.as_array().into_iter().flatten() {
-            if block["type"] != "tool_result" {
-                continue;
-            }
+    fn tool_results(&self, line: &Value, events: &mut Vec<AgentEvent>) {
+        let results: Vec<&Value> = line["message"]["content"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter(|block| block["type"] == "tool_result")
+            .collect();
+        // `tool_use_result` (la sortie structurée) vaut pour tout le message : seulement s'il n'a qu'un résultat.
+        let structured = (results.len() == 1).then(|| &line["tool_use_result"]);
+        for block in results {
             events.push(AgentEvent::ToolResult {
                 id: str_of(&block["tool_use_id"]).to_owned(),
                 output: truncate(&text_of(&block["content"])),
                 is_error: block["is_error"].as_bool().unwrap_or(false),
+                change: structured.and_then(change_of),
+                image: image_of(&block["content"]),
             });
         }
+    }
+
+    fn task(&self, line: &Value) -> Option<AgentEvent> {
+        let usage = &line["usage"];
+        let count = |value: &Value| value.as_u64().and_then(|n| u32::try_from(n).ok());
+        let text = |value: &Value| {
+            value
+                .as_str()
+                .filter(|text| !text.is_empty())
+                .map(str::to_owned)
+        };
+        let mut task = AgentEvent::Task {
+            id: line["task_id"].as_str()?.to_owned(),
+            tool_id: text(&line["tool_use_id"]),
+            kind: None,
+            status: None,
+            description: None,
+            progress: None,
+            background: None,
+            tool_uses: count(&usage["tool_uses"]),
+            duration_ms: count(&usage["duration_ms"]),
+        };
+        let AgentEvent::Task {
+            kind,
+            status,
+            description,
+            progress,
+            background,
+            ..
+        } = &mut task
+        else {
+            return None;
+        };
+        match line["subtype"].as_str()? {
+            "task_started" => {
+                *kind = Some(match str_of(&line["task_type"]) {
+                    "local_bash" => TaskKind::Command,
+                    "local_agent" => TaskKind::Agent,
+                    _ => TaskKind::Other,
+                });
+                *status = Some(TaskStatus::Running);
+                *description = text(&line["description"]);
+                *background = line["is_backgrounded"].as_bool();
+            }
+            "task_progress" => *progress = text(&line["description"]),
+            "task_updated" => *status = task_status(&line["patch"]["status"]),
+            "task_notification" => {
+                *status = task_status(&line["status"]);
+                *progress = text(&line["summary"]);
+            }
+            _ => return None,
+        }
+        Some(task)
     }
 
     fn approval(&self, line: &Value) -> AgentEvent {
@@ -357,6 +443,11 @@ impl Driver for Claude {
             // Les demandes d'autorisation du mode Auto arrivent sur stdout et attendent la réponse de Nuée.
             "--permission-prompt-tool",
             "stdio",
+            // Chaque message renvoyé avec son identifiant : de quoi revenir avant lui.
+            "--replay-user-messages",
+            // Sans lui, la réflexion arrive vide : seul son résumé est montrable.
+            "--thinking-display",
+            "summarized",
         ]
         .map(String::from)
         .into();
@@ -387,6 +478,11 @@ impl Driver for Claude {
             args.extend(["--resume".to_owned(), id.clone()]);
         }
         args
+    }
+
+    fn session_env(&self) -> &'static [(&'static str, &'static str)] {
+        // Points de retour des fichiers, pour `rewind_files`.
+        &[("CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING", "1")]
     }
 
     fn user_message(&self, prompt: &str, attachments: &[Attached]) -> String {
@@ -445,6 +541,93 @@ impl Driver for Claude {
         .to_string()
     }
 
+    fn control_response(&self, line: &str) -> Option<(String, Result<Value, String>)> {
+        if !line.contains("\"control_response\"") {
+            return None;
+        }
+        let line: Value = serde_json::from_str(line).ok()?;
+        let response = &line["response"];
+        let id = response["request_id"].as_str()?.to_owned();
+        let result = if response["subtype"] == "success" {
+            Ok(response["response"].clone())
+        } else {
+            Err(str_of(&response["error"]).to_owned())
+        };
+        (line["type"] == "control_response").then_some((id, result))
+    }
+
+    fn rewind_requests(&self, message_id: &str) -> Vec<(String, String)> {
+        let request = |id: &str, body: Value| {
+            let line =
+                serde_json::json!({ "type": "control_request", "request_id": id, "request": body });
+            (id.to_owned(), line.to_string())
+        };
+        vec![
+            request(
+                REWIND_FILES_PREVIEW,
+                serde_json::json!({ "subtype": "rewind_files", "user_message_id": message_id, "dry_run": true }),
+            ),
+            request(
+                REWIND_FILES,
+                serde_json::json!({ "subtype": "rewind_files", "user_message_id": message_id }),
+            ),
+            request(
+                REWIND_CONVERSATION,
+                serde_json::json!({ "subtype": "rewind_conversation", "target_message_uuid": message_id }),
+            ),
+        ]
+    }
+
+    fn read_rewind(
+        &self,
+        request_id: &str,
+        response: Result<Value, String>,
+        rewind: &mut Rewind,
+    ) -> Result<(), String> {
+        // Des fichiers qui ne reviennent pas n'empêchent pas de revenir dans la conversation.
+        let files_error = |response: &Result<Value, String>| match response {
+            Ok(answer) if answer["canRewind"] == false => Some(str_of(&answer["error"]).to_owned()),
+            Ok(_) => None,
+            Err(error) => Some(error.clone()),
+        };
+        match request_id {
+            REWIND_FILES_PREVIEW => {
+                rewind.files_error = files_error(&response);
+                if let Ok(answer) = &response {
+                    rewind.files = answer["filesChanged"]
+                        .as_array()
+                        .into_iter()
+                        .flatten()
+                        .filter_map(Value::as_str)
+                        .map(str::to_owned)
+                        .collect();
+                }
+            }
+            REWIND_FILES => {
+                if rewind.files_error.is_none() {
+                    rewind.files_error = files_error(&response);
+                }
+            }
+            _ => {
+                let answer = response?;
+                if answer["rewound"] != true {
+                    return Err(str_of(&answer["error"]).to_owned());
+                }
+                rewind.prefill = answer["prefillText"].as_str().map(str::to_owned);
+            }
+        }
+        Ok(())
+    }
+
+    fn stop_task_message(&self, task_id: &str) -> String {
+        serde_json::json!({
+            "type": "control_request",
+            "request_id": format!("nuee-stop-{task_id}"),
+            "request": { "subtype": "stop_task", "task_id": task_id },
+        })
+        .to_string()
+    }
+
     fn interrupt_message(&self) -> String {
         r#"{"type":"control_request","request_id":"nuee-interrupt","request":{"subtype":"interrupt"}}"#.to_owned()
     }
@@ -459,15 +642,26 @@ impl Driver for Claude {
         }
         let mut events = Vec::new();
         match line["type"].as_str() {
-            Some("system") if line["subtype"] == "init" && !self.session_sent => {
-                if let Some(id) = line["session_id"].as_str() {
+            Some("system") if line["subtype"] == "init" => {
+                if let Some(id) = line["session_id"].as_str()
+                    && !self.session_sent
+                {
                     self.session_sent = true;
                     events.push(AgentEvent::Session { id: id.to_owned() });
                 }
             }
+            Some("system") => events.extend(self.task(&line)),
             Some("stream_event") => self.stream_event(&line["event"], &mut events),
             Some("assistant") => self.assistant(&line, &mut events),
-            Some("user") => self.tool_results(&line["message"]["content"], &mut events),
+            Some("user") if line["isReplay"] == true => {
+                if let Some(id) = line["uuid"].as_str() {
+                    events.push(AgentEvent::UserMessage {
+                        id: id.to_owned(),
+                        text: text_of(&line["message"]["content"]),
+                    });
+                }
+            }
+            Some("user") => self.tool_results(&line, &mut events),
             Some("result") => self.result(&line, &mut events),
             Some("rate_limit_event") => {
                 let info = &line["rate_limit_info"];
@@ -633,6 +827,112 @@ fn describe(name: &str, input: &Value, cwd: &Path) -> (ToolKind, Option<String>)
         "WebSearch" => (ToolKind::Web, field("query").map(str::to_owned)),
         "Task" | "Agent" => (ToolKind::Agent, field("description").map(str::to_owned)),
         _ => (ToolKind::Other, None),
+    }
+}
+
+/// Paramètres de l'outil gardés en entier pour le détail déplié ; un outil inconnu (MCP...) les montre en JSON.
+fn detail_of(name: &str, input: &Value) -> Option<ToolDetail> {
+    let field = |key: &str| {
+        input[key]
+            .as_str()
+            .filter(|text| !text.is_empty())
+            .map(str::to_owned)
+    };
+    let background = input["run_in_background"].as_bool().unwrap_or(false);
+    let (text, description) = match name {
+        "Read" | "Write" | "Edit" | "MultiEdit" => (field("file_path"), None),
+        "NotebookEdit" => (field("notebook_path"), None),
+        "Bash" | "PowerShell" => (field("command"), field("description")),
+        "Glob" | "Grep" => (field("pattern"), field("path")),
+        "WebFetch" => (field("url"), field("prompt")),
+        "WebSearch" => (field("query"), None),
+        "Task" | "Agent" => (field("prompt"), field("description")),
+        _ => match input.as_object() {
+            Some(fields) if !fields.is_empty() => (
+                serde_json::to_string_pretty(input)
+                    .ok()
+                    .map(|json| truncate(&json)),
+                None,
+            ),
+            _ => (None, None),
+        },
+    };
+    (text.is_some() || description.is_some()).then_some(ToolDetail {
+        text,
+        description,
+        background,
+    })
+}
+
+/// Diff d'un fichier écrit ou modifié, tiré de la sortie structurée de l'outil.
+fn change_of(result: &Value) -> Option<FileChange> {
+    let created = result["type"] == "create";
+    let mut lines: Vec<String> = Vec::new();
+    match result["structuredPatch"].as_array() {
+        Some(hunks) if !hunks.is_empty() => {
+            for hunk in hunks {
+                lines.push(format!(
+                    "@@ -{},{} +{},{} @@",
+                    hunk["oldStart"], hunk["oldLines"], hunk["newStart"], hunk["newLines"]
+                ));
+                lines.extend(
+                    hunk["lines"]
+                        .as_array()
+                        .into_iter()
+                        .flatten()
+                        .filter_map(Value::as_str)
+                        .map(str::to_owned),
+                );
+            }
+        }
+        _ if created => {
+            let content = result["content"].as_str()?;
+            lines.push(format!("@@ -0,0 +1,{} @@", content.lines().count()));
+            lines.extend(content.lines().map(|line| format!("+{line}")));
+        }
+        _ => return None,
+    }
+    let count = |sign: char| {
+        let total = lines.iter().filter(|line| line.starts_with(sign)).count();
+        u32::try_from(total).unwrap_or(u32::MAX)
+    };
+    let (added, removed) = (count('+'), count('-'));
+    let patch = lines
+        .iter()
+        .take(PATCH_LIMIT)
+        .map(|line| match line.char_indices().nth(PATCH_LINE_LIMIT) {
+            Some((end, _)) => format!("{}…", &line[..end]),
+            None => line.clone(),
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    Some(FileChange {
+        patch,
+        added,
+        removed,
+        created,
+    })
+}
+
+fn image_of(content: &Value) -> Option<ToolImage> {
+    let source = &content
+        .as_array()?
+        .iter()
+        .find(|block| block["type"] == "image")?["source"];
+    let base64 = source["data"].as_str()?;
+    (source["type"] == "base64" && base64.len() <= IMAGE_LIMIT).then(|| ToolImage {
+        media_type: str_of(&source["media_type"]).to_owned(),
+        base64: base64.to_owned(),
+    })
+}
+
+fn task_status(status: &Value) -> Option<TaskStatus> {
+    match status.as_str()? {
+        "pending" | "running" => Some(TaskStatus::Running),
+        "completed" => Some(TaskStatus::Completed),
+        "failed" | "error" => Some(TaskStatus::Failed),
+        "killed" | "stopped" | "cancelled" => Some(TaskStatus::Stopped),
+        _ => None,
     }
 }
 
@@ -859,24 +1159,188 @@ mod tests {
                     id: "t1".into(),
                     name: "Read".into(),
                     kind: ToolKind::Read,
-                    summary: None
+                    summary: None,
+                    detail: None
                 },
                 AgentEvent::Tool {
                     id: "t1".into(),
                     name: "Read".into(),
                     kind: ToolKind::Read,
-                    summary: Some("src/a.txt".into())
+                    summary: Some("src/a.txt".into()),
+                    detail: Some(ToolDetail {
+                        text: Some("/projet/src/a.txt".into()),
+                        description: None,
+                        background: false
+                    })
                 },
                 AgentEvent::ToolResult {
                     id: "t1".into(),
                     output: "banane".into(),
-                    is_error: false
+                    is_error: false,
+                    change: None,
+                    image: None
                 },
                 AgentEvent::TurnEnd {
                     status: TurnStatus::Completed,
                     error: None,
                     duration_ms: Some(9631)
                 },
+            ]
+        );
+    }
+
+    #[test]
+    fn a_command_keeps_its_full_text_and_what_the_agent_says_it_does() {
+        let (_, events) = parse(&[
+            r#"{"type":"assistant","message":{"id":"m1","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"cd src\nls -la","description":"List files","run_in_background":true}}]}}"#,
+        ]);
+        assert_eq!(
+            events,
+            vec![AgentEvent::Tool {
+                id: "t1".into(),
+                name: "Bash".into(),
+                kind: ToolKind::Command,
+                summary: Some("cd src".into()),
+                detail: Some(ToolDetail {
+                    text: Some("cd src\nls -la".into()),
+                    description: Some("List files".into()),
+                    background: true
+                })
+            }]
+        );
+    }
+
+    #[test]
+    fn an_edit_brings_its_diff() {
+        let (_, events) = parse(&[
+            r#"{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t1","content":"ok"}]},"tool_use_result":{"filePath":"/projet/a.txt","structuredPatch":[{"oldStart":1,"oldLines":2,"newStart":1,"newLines":2,"lines":[" un","-hello","+hello world"]}]}}"#,
+            r#"{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t2","content":"ok"}]},"tool_use_result":{"type":"create","filePath":"/projet/b.txt","content":"un\ndeux\n","structuredPatch":[]}}"#,
+        ]);
+        let changes: Vec<_> = events
+            .into_iter()
+            .map(|event| match event {
+                AgentEvent::ToolResult { change, .. } => change,
+                _ => None,
+            })
+            .collect();
+        assert_eq!(
+            changes,
+            vec![
+                Some(FileChange {
+                    patch: "@@ -1,2 +1,2 @@\n un\n-hello\n+hello world".into(),
+                    added: 1,
+                    removed: 1,
+                    created: false
+                }),
+                Some(FileChange {
+                    patch: "@@ -0,0 +1,2 @@\n+un\n+deux".into(),
+                    added: 2,
+                    removed: 0,
+                    created: true
+                }),
+            ]
+        );
+    }
+
+    #[test]
+    fn an_image_read_by_a_tool_is_passed_on() {
+        let (_, events) = parse(&[
+            r#"{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t1","content":[{"type":"image","source":{"type":"base64","media_type":"image/png","data":"iVBORw0"}}]}]}}"#,
+        ]);
+        assert_eq!(
+            events,
+            vec![AgentEvent::ToolResult {
+                id: "t1".into(),
+                output: String::new(),
+                is_error: false,
+                change: None,
+                image: Some(ToolImage {
+                    media_type: "image/png".into(),
+                    base64: "iVBORw0".into()
+                })
+            }]
+        );
+    }
+
+    #[test]
+    fn a_replayed_message_brings_its_id_and_answers_are_routed() {
+        let (claude, events) = parse(&[
+            r#"{"type":"user","isReplay":true,"uuid":"6994-b7","message":{"role":"user","content":"Crée b.txt"}}"#,
+        ]);
+        assert_eq!(
+            events,
+            vec![AgentEvent::UserMessage {
+                id: "6994-b7".into(),
+                text: "Crée b.txt".into()
+            }]
+        );
+        let answer = r#"{"type":"control_response","response":{"subtype":"success","request_id":"nuee-rewind","response":{"rewound":true,"prefillText":"Crée b.txt"}}}"#;
+        let (id, response) = claude.control_response(answer).unwrap();
+        let mut rewind = Rewind::default();
+        claude.read_rewind(&id, response, &mut rewind).unwrap();
+        assert_eq!(rewind.prefill.as_deref(), Some("Crée b.txt"));
+        let refused = r#"{"type":"control_response","response":{"subtype":"success","request_id":"nuee-rewind-preview","response":{"canRewind":false,"error":"No checkpoint"}}}"#;
+        let (id, response) = claude.control_response(refused).unwrap();
+        claude.read_rewind(&id, response, &mut rewind).unwrap();
+        assert_eq!(rewind.files_error.as_deref(), Some("No checkpoint"));
+    }
+
+    #[test]
+    fn summarized_thinking_is_streamed_once() {
+        let (_, events) = parse(&[
+            r#"{"type":"stream_event","event":{"type":"message_start","message":{"id":"m1"}}}"#,
+            r#"{"type":"stream_event","event":{"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":"Je compte"}}}"#,
+            r#"{"type":"assistant","message":{"id":"m1","content":[{"type":"thinking","thinking":"Je compte"}]}}"#,
+            r#"{"type":"assistant","message":{"id":"m2","content":[{"type":"thinking","thinking":""}]}}"#,
+        ]);
+        assert_eq!(
+            events,
+            vec![AgentEvent::Thinking {
+                id: "m1:0".into(),
+                delta: "Je compte".into()
+            }]
+        );
+    }
+
+    #[test]
+    fn a_subagent_is_followed_from_start_to_end() {
+        let (_, events) = parse(&[
+            r#"{"type":"system","subtype":"task_started","task_id":"a1","tool_use_id":"t1","description":"Run echo sub","is_backgrounded":false,"task_type":"local_agent"}"#,
+            r#"{"type":"system","subtype":"task_progress","task_id":"a1","tool_use_id":"t1","description":"Running Print sub","usage":{"total_tokens":20651,"tool_uses":1,"duration_ms":1554}}"#,
+            r#"{"type":"system","subtype":"task_notification","task_id":"a1","tool_use_id":"t1","status":"completed","summary":"sub","usage":{"tool_uses":1,"duration_ms":3246}}"#,
+        ]);
+        let task = |status, progress: Option<&str>, tool_uses, duration_ms| AgentEvent::Task {
+            id: "a1".into(),
+            tool_id: Some("t1".into()),
+            kind: None,
+            status,
+            description: None,
+            progress: progress.map(str::to_owned),
+            background: None,
+            tool_uses,
+            duration_ms,
+        };
+        assert_eq!(
+            events,
+            vec![
+                AgentEvent::Task {
+                    id: "a1".into(),
+                    tool_id: Some("t1".into()),
+                    kind: Some(TaskKind::Agent),
+                    status: Some(TaskStatus::Running),
+                    description: Some("Run echo sub".into()),
+                    progress: None,
+                    background: Some(false),
+                    tool_uses: None,
+                    duration_ms: None,
+                },
+                task(None, Some("Running Print sub"), Some(1), Some(1554)),
+                task(
+                    Some(TaskStatus::Completed),
+                    Some("sub"),
+                    Some(1),
+                    Some(3246)
+                ),
             ]
         );
     }
@@ -925,7 +1389,7 @@ mod tests {
             worktree_path: None,
         };
         let args = Claude::new(Path::new("/projet")).args(&request);
-        let tail: Vec<&str> = args.iter().skip(9).map(String::as_str).collect();
+        let tail: Vec<&str> = args.iter().skip(12).map(String::as_str).collect();
         assert_eq!(
             tail,
             [

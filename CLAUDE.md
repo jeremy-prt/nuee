@@ -30,4 +30,5 @@ Ton pro et clair (choix de Jérémy), dans les 6 langues : les textes ne s'adres
 - `productName` reste en ASCII (`Nuee`) : un accent casse le paquet `.deb`. Le titre de fenêtre garde « Nuée ».
 - Pinia 4 exige `@vue/devtools-api` installé à côté.
 - Dev et build partagent l'historique (même `identifier`) : `nuee.db` dans le dossier de données de l'app (`~/Library/Application Support/io.github.jeremy-prt.nuee/` sur macOS).
+- Nouvelle icône importée pendant `tauri dev` : Vite peut rester bloqué en « 504 Outdated Optimize Dep », fenêtre vide. `touch vite.config.ts` relance Vite.
 - En dev, après une grosse modif de composants, le rechargement à chaud peut laisser la fenêtre Tauri dans un état périmé (écouteurs en double, ancien rendu) : recharger la page (`touch src/main.ts`) avant de conclure à un bug.

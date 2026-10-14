@@ -143,6 +143,70 @@ pub enum ToolKind {
     Other,
 }
 
+/// Paramètres d'un outil en entier, là où `summary` n'en garde qu'une ligne.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct ToolDetail {
+    /// Commande, chemin, adresse, motif ou consigne d'un sous-agent.
+    pub text: Option<String>,
+    /// Ce que l'agent dit faire (« List directory contents »), dans sa langue à lui.
+    pub description: Option<String>,
+    pub background: bool,
+}
+
+/// Retour à un message : la conversation reprend juste avant lui, les fichiers retrouvent leur état d'alors.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct Rewind {
+    /// Texte du message retiré, à remettre dans le champ de saisie.
+    pub prefill: Option<String>,
+    /// Fichiers remis dans leur état d'avant le message.
+    pub files: Vec<String>,
+    /// Les fichiers n'ont pas pu revenir en arrière (la conversation, si).
+    pub files_error: Option<String>,
+}
+
+/// Fichier écrit ou modifié par un outil.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct FileChange {
+    /// Diff unifié (`@@`, puis lignes en ` `, `-`, `+`), coupé au-delà de quelques centaines de lignes.
+    pub patch: String,
+    pub added: u32,
+    pub removed: u32,
+    pub created: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct ToolImage {
+    pub media_type: String,
+    pub base64: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum TaskKind {
+    Command,
+    Agent,
+    Other,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum TaskStatus {
+    Running,
+    Completed,
+    Failed,
+    Stopped,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
@@ -257,17 +321,39 @@ pub enum AgentEvent {
         id: String,
         delta: String,
     },
+    /// Morceau de la réflexion de l'agent (un résumé), découpé comme `Text`.
+    Thinking {
+        id: String,
+        delta: String,
+    },
     /// Outil appelé. Peut revenir avec le même `id` quand ses paramètres sont complets.
     Tool {
         id: String,
         name: String,
         kind: ToolKind,
         summary: Option<String>,
+        detail: Option<ToolDetail>,
     },
     ToolResult {
         id: String,
         output: String,
         is_error: bool,
+        change: Option<FileChange>,
+        /// Image rendue par l'outil (fichier lu, capture) : le front la range avec les pièces jointes.
+        image: Option<ToolImage>,
+    },
+    /// Tâche lancée par un outil (sous-agent, commande en arrière-plan). Seuls les champs présents changent.
+    Task {
+        id: String,
+        tool_id: Option<String>,
+        kind: Option<TaskKind>,
+        status: Option<TaskStatus>,
+        description: Option<String>,
+        /// Ce que fait la tâche en ce moment, ou son bilan une fois finie.
+        progress: Option<String>,
+        background: Option<bool>,
+        tool_uses: Option<u32>,
+        duration_ms: Option<u32>,
     },
     /// L'agent demande s'il peut utiliser un outil (mode Auto) ; il attend la réponse pour continuer.
     Approval {
@@ -298,6 +384,13 @@ pub enum AgentEvent {
         #[ts(type = "number | null")]
         resets_at: Option<i64>,
     },
+    /// Message de l'utilisateur tel que l'agent l'a enregistré : `id` sert à revenir avant lui.
+    UserMessage {
+        id: String,
+        text: String,
+    },
+    /// L'agent ouvre un tour de lui-même (une tâche de fond vient de finir) ; il se clôt par `turnEnd`.
+    TurnStart,
     /// La réponse est complète. L'agent range encore son tour (résumé, hooks) avant `turnEnd`.
     Answered,
     /// Toujours le dernier événement d'un tour.
@@ -335,10 +428,25 @@ trait Driver: Send + Sync {
     fn title_args(&self) -> Vec<String>;
     fn parse_title(&self, output: &str) -> Option<String>;
     fn args(&self, spec: &SessionSpec) -> Vec<String>;
+    /// Variables ajoutées au process d'un chat.
+    fn session_env(&self) -> &'static [(&'static str, &'static str)];
     /// Ligne à écrire sur stdin pour lancer un tour.
     fn user_message(&self, prompt: &str, attachments: &[Attached]) -> String;
     /// Ligne qui interrompt le tour en cours sans arrêter le process.
     fn interrupt_message(&self) -> String;
+    /// Ligne qui arrête une tâche (commande en arrière-plan, sous-agent).
+    fn stop_task_message(&self, task_id: &str) -> String;
+    /// `Some` quand la ligne répond à une requête de Nuée : son identifiant et la réponse.
+    fn control_response(&self, line: &str) -> Option<(String, Result<serde_json::Value, String>)>;
+    /// Requêtes qui ramènent la session avant le message `message_id`, à envoyer une à une : identifiant et ligne.
+    fn rewind_requests(&self, message_id: &str) -> Vec<(String, String)>;
+    /// Lit la réponse à l'une de ces requêtes. Une erreur arrête le retour.
+    fn read_rewind(
+        &self,
+        request_id: &str,
+        response: Result<serde_json::Value, String>,
+        rewind: &mut Rewind,
+    ) -> Result<(), String>;
     /// Réponse à une demande `Approval`.
     fn approval_message(&self, id: &str, input: &serde_json::Value, allow: bool) -> String;
     /// Traduit une ligne de sortie ; renvoie `TurnEnd` quand l'agent clôt le tour.
@@ -353,6 +461,8 @@ const USAGE_TIMEOUT: Duration = Duration::from_secs(8);
 /// Téléchargement, plus une installation npm complète pour une CLI installée par npm.
 const UPDATE_TIMEOUT: Duration = Duration::from_secs(300);
 const TITLE_TIMEOUT: Duration = Duration::from_secs(45);
+/// Un process relancé pour revenir en arrière doit d'abord relire la session.
+const REWIND_TIMEOUT: Duration = Duration::from_secs(30);
 /// Assez pour comprendre la demande ; un long message collé n'apporte rien de plus au titre.
 const TITLE_INPUT_LIMIT: usize = 8000;
 /// Un process inutilisé si longtemps est arrêté ; le tour suivant le relance avec `--resume`.
@@ -488,6 +598,48 @@ impl AgentService {
         }
     }
 
+    /// Revient avant un message sur le process du chat, lancé (avec `--resume`) s'il ne tourne plus. Les requêtes
+    /// partent une à une : les fichiers d'abord, tant que le message est encore dans la conversation.
+    pub async fn rewind(&self, spec: SessionSpec, message_id: String) -> Result<Rewind, AppError> {
+        if spec.session_id.is_none() || !valid_session_id(&message_id) {
+            return Err(AppError::InvalidInput("aucun message à retrouver".into()));
+        }
+        let (key, cwd) = self.key(&spec)?;
+        let driver = spec.agent.driver(&cwd);
+        let mut rewind = Rewind::default();
+        for (id, line) in driver.rewind_requests(&message_id) {
+            let answer = {
+                let mut sessions = lock(&self.sessions);
+                if !sessions.contains_key(&spec.chat_id) {
+                    let session = self.start(&spec, key.clone(), &cwd)?;
+                    sessions.insert(spec.chat_id.clone(), session);
+                }
+                let Some(session) = sessions.get(&spec.chat_id) else {
+                    return Err(AppError::AgentFailed("process introuvable".into()));
+                };
+                if session.busy() {
+                    return Err(AppError::Busy);
+                }
+                session.request(id.clone(), line)
+            };
+            let response = timeout(REWIND_TIMEOUT, answer)
+                .await
+                .map_err(|_| AppError::AgentFailed("pas de réponse de l'agent".into()))?
+                .map_err(|_| AppError::AgentFailed("l'agent s'est arrêté".into()))?;
+            driver
+                .read_rewind(&id, response, &mut rewind)
+                .map_err(AppError::AgentFailed)?;
+        }
+        Ok(rewind)
+    }
+
+    pub fn stop_task(&self, chat_id: &str, task_id: &str) {
+        if let Some(session) = lock(&self.sessions).get(chat_id) {
+            let driver = session.key.agent.driver(&session.key.cwd);
+            session.write(driver.stop_task_message(task_id));
+        }
+    }
+
     pub fn approve(&self, chat_id: &str, request_id: &str, allow: bool) {
         if let Some(session) = lock(&self.sessions).get(chat_id) {
             session.answer(request_id, allow);
@@ -581,7 +733,7 @@ impl AgentService {
         let driver = kind.driver(&self.scratch);
         let program = self.program(kind)?;
         std::fs::create_dir_all(&self.scratch)?;
-        let mut child = session::spawn(&program, driver.update_args(), &self.scratch)?;
+        let mut child = session::spawn(&program, driver.update_args(), &[], &self.scratch)?;
         // stdin fermé : une CLI qui voudrait poser une question échoue au lieu d'attendre.
         drop(child.stdin.take());
         let output = timeout(UPDATE_TIMEOUT, child.wait_with_output())
@@ -603,7 +755,7 @@ impl AgentService {
         let driver = kind.driver(&self.scratch);
         let program = self.program(kind)?;
         let (args, requests) = driver.probe(usage);
-        let mut child = session::spawn(&program, args, &self.scratch)?;
+        let mut child = session::spawn(&program, args, &[], &self.scratch)?;
 
         // stdin reste ouvert : à sa fermeture l'agent quitterait avant d'avoir répondu.
         let mut stdin = child.stdin.take();
@@ -657,7 +809,7 @@ impl AgentService {
         std::fs::create_dir_all(&self.scratch).ok()?;
         let driver = kind.driver(&self.scratch);
         let program = self.program(kind).ok()?;
-        let mut child = session::spawn(&program, driver.title_args(), &self.scratch).ok()?;
+        let mut child = session::spawn(&program, driver.title_args(), &[], &self.scratch).ok()?;
         let input: String = prompt.chars().take(TITLE_INPUT_LIMIT).collect();
         // stdin fermé après le message : l'agent sait qu'il n'y en aura pas d'autre.
         if let Some(mut stdin) = child.stdin.take() {

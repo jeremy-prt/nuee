@@ -3,6 +3,7 @@ import { Columns2, LayoutList, PanelBottom, PanelRight, X } from '@/components/u
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatIcon from '@/components/chat/ChatIcon.vue'
+import ChatSpinner from '@/components/chat/ChatSpinner.vue'
 import SettingsSearch from '@/components/settings/SettingsSearch.vue'
 import ShellRailToggle from '@/components/shell/ShellRailToggle.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
@@ -12,6 +13,7 @@ import { useTabTitle } from '@/composables/useTabTitle'
 import { isMacosApp } from '@/ipc/system'
 import { useAppearanceStore } from '@/stores/appearance'
 import { useAttentionStore } from '@/stores/attention'
+import { useConversationsStore } from '@/stores/conversations'
 import { useDragStore } from '@/stores/drag'
 import { RAIL_COLLAPSED_WIDTH, useLayoutStore } from '@/stores/layout'
 import { parentDetail, settingsDetailTitle, useNavigationStore } from '@/stores/navigation'
@@ -24,6 +26,7 @@ const layout = useLayoutStore()
 const navigation = useNavigationStore()
 const appearance = useAppearanceStore()
 const attention = useAttentionStore()
+const conversations = useConversationsStore()
 const workspace = useWorkspaceStore()
 const drag = useDragStore()
 const { startTabDrag } = useLayoutDrag()
@@ -154,7 +157,8 @@ const spacer = computed(() => Math.max(0, centerStart.value - leftZone.value))
             @keydown.space.prevent="workspace.show(tab.id)"
             @auxclick.middle="workspace.closeTab(tab.id)"
           >
-            <ChatIcon class="size-3.5 shrink-0" />
+            <ChatSpinner v-if="conversations.working(tab.id)" :agent="tab.agent" class="size-3.5 text-xs" />
+            <ChatIcon v-else class="size-3.5 shrink-0" />
             <span class="truncate">{{ tabTitle(tab) }}</span>
             <span v-if="attention.isUnseen(tab.id)" class="size-1.5 shrink-0 rounded-full bg-signal">
               <span class="sr-only">{{ t('attention.unseen') }}</span>

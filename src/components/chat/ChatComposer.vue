@@ -233,7 +233,14 @@ function remove(index: number) {
   input.value?.focus()
 }
 
-defineExpose({ attach, focus: focusInput })
+// Message repris après un retour en arrière : il remplace la saisie en cours.
+function fill(text: string, files: Attachment[]) {
+  prompt.value = text
+  attachments.value = files
+  focusInput()
+}
+
+defineExpose({ attach, fill, focus: focusInput })
 
 // Maj+Entrée va à la ligne (natif). Pendant une saisie IME, Entrée valide le mot.
 function onKeydown(event: KeyboardEvent) {

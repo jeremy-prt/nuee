@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { Lexer, type Token, type Tokens } from 'marked'
 import { computed, h, type VNodeChild } from 'vue'
+import ChatCopyButton from '@/components/chat/ChatCopyButton.vue'
 import ChatSkillResult from '@/components/chat/ChatSkillResult.vue'
+import { i18nGlobal } from '@/i18n'
 import { parseSkillResult } from '@/utils/skillResult'
 
 // Markdown d'agent rendu en nœuds Vue, jamais en HTML brut : le HTML du texte reste du texte.
@@ -30,7 +32,17 @@ function block(token: Token): VNodeChild {
         // JSON encore incomplet pendant la réponse ; s'il reste illisible à la fin, le bloc brut s'affiche.
         if (props.streaming) return null
       }
-      return h('pre', { class: CODE_BLOCK }, h('code', code.text))
+      return h('div', { class: 'group relative' }, [
+        h('pre', { class: CODE_BLOCK }, h('code', code.text)),
+        h(
+          'div',
+          {
+            class:
+              'absolute end-1 top-1 rounded-md bg-surface opacity-0 transition-opacity duration-(--hover-duration) group-hover:opacity-100 focus-within:opacity-100 motion-reduce:transition-none',
+          },
+          h(ChatCopyButton, { text: () => code.text, label: i18nGlobal().t('chat.copy.code') }),
+        ),
+      ])
     }
     case 'blockquote':
       return h('blockquote', { class: 'my-2 border-s-2 border-stroke ps-3 text-muted' }, blocks((token as Tokens.Blockquote).tokens))

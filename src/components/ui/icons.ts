@@ -4,11 +4,14 @@ import Add01Icon from '@hugeicons/core-free-icons/Add01Icon'
 import AlertCircleIcon from '@hugeicons/core-free-icons/AlertCircleIcon'
 import Archive02Icon from '@hugeicons/core-free-icons/Archive02Icon'
 import ArrowDown01Icon from '@hugeicons/core-free-icons/ArrowDown01Icon'
+import ArrowDown02Icon from '@hugeicons/core-free-icons/ArrowDown02Icon'
 import ArrowLeft02Icon from '@hugeicons/core-free-icons/ArrowLeft02Icon'
 import ArrowRight01Icon from '@hugeicons/core-free-icons/ArrowRight01Icon'
+import ArrowTurnBackwardIcon from '@hugeicons/core-free-icons/ArrowTurnBackwardIcon'
 import ArrowTurnForwardIcon from '@hugeicons/core-free-icons/ArrowTurnForwardIcon'
 import ArrowUp02Icon from '@hugeicons/core-free-icons/ArrowUp02Icon'
 import BotIcon from '@hugeicons/core-free-icons/BotIcon'
+import BrainIcon from '@hugeicons/core-free-icons/BrainIcon'
 import Cancel01Icon from '@hugeicons/core-free-icons/Cancel01Icon'
 import CheckmarkCircle02Icon from '@hugeicons/core-free-icons/CheckmarkCircle02Icon'
 import CircleDotIcon from '@hugeicons/core-free-icons/CircleDotIcon'
@@ -38,6 +41,7 @@ import ImageAdd01Icon from '@hugeicons/core-free-icons/ImageAdd01Icon'
 import ImageUpload01Icon from '@hugeicons/core-free-icons/ImageUpload01Icon'
 import InformationCircleIcon from '@hugeicons/core-free-icons/InformationCircleIcon'
 import KeyboardIcon from '@hugeicons/core-free-icons/KeyboardIcon'
+import LayerIcon from '@hugeicons/core-free-icons/LayerIcon'
 import LayoutBottomIcon from '@hugeicons/core-free-icons/LayoutBottomIcon'
 import LayoutTwoColumnIcon from '@hugeicons/core-free-icons/LayoutTwoColumnIcon'
 import LeftToRightListBulletIcon from '@hugeicons/core-free-icons/LeftToRightListBulletIcon'
@@ -87,12 +91,14 @@ const SidebarOpenIcon = SidebarLeft01Icon.map(([tag, attrs]) =>
 ) as Glyph
 
 export const Archive = icon(Archive02Icon)
+export const ArrowDown = icon(ArrowDown02Icon)
 export const ArrowLeft = icon(ArrowLeft02Icon)
 export const ArrowUp = icon(ArrowUp02Icon)
 export const Ban = icon(UnavailableIcon)
 export const Bell = icon(Notification01Icon)
 export const BellOff = icon(NotificationOff01Icon)
 export const Bot = icon(BotIcon)
+export const Brain = icon(BrainIcon)
 export const Check = icon(Tick02Icon)
 export const ChevronDown = icon(ArrowDown01Icon)
 export const ChevronRight = icon(ArrowRight01Icon)
@@ -126,6 +132,7 @@ export const ImagePlus = icon(ImageAdd01Icon)
 export const ImageUp = icon(ImageUpload01Icon)
 export const Info = icon(InformationCircleIcon)
 export const Keyboard = icon(KeyboardIcon)
+export const Layers = icon(LayerIcon)
 export const LayoutList = icon(LeftToRightListBulletIcon)
 export const LoaderCircle = icon(Loading03Icon)
 export const MessageSquarePlus = icon(CommentAdd01Icon)
@@ -154,6 +161,7 @@ export const Square = icon(SquareIcon)
 export const SquarePen = icon(PencilEdit01Icon)
 export const SquareTerminal = icon(ComputerTerminal01Icon)
 export const Trash2 = icon(Delete02Icon)
+export const Undo = icon(ArrowTurnBackwardIcon)
 export const Volume2 = icon(VolumeHighIcon)
 export const Wrench = icon(Wrench01Icon)
 export const X = icon(Cancel01Icon)

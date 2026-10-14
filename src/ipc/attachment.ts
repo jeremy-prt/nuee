@@ -10,7 +10,11 @@ export async function attachmentSave(chatId: string, file: File) {
     reader.onerror = () => reject(reader.error)
     reader.readAsDataURL(file)
   })
-  return invoke<Attachment>('attachment_save', { chatId, name: file.name, base64 })
+  return attachmentSaveBase64(chatId, file.name, base64)
+}
+
+export function attachmentSaveBase64(chatId: string, name: string, base64: string) {
+  return invoke<Attachment>('attachment_save', { chatId, name, base64 })
 }
 
 export function attachmentImport(chatId: string, paths: string[]) {

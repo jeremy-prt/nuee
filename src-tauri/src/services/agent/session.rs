@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -8,10 +8,12 @@ use std::time::{Duration, Instant};
 use tauri::ipc::Channel;
 use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, Command};
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, oneshot};
 use tokio::time::timeout;
 
-use super::{AgentEvent, AgentKind, Driver, GRACE, TurnOptions, TurnStatus, lock, process};
+use super::{
+    AgentEvent, AgentKind, Driver, GRACE, TaskStatus, TurnOptions, TurnStatus, lock, process,
+};
 use crate::utils::shell_env;
 
 const STDERR_TAIL: usize = 2000;
@@ -39,6 +41,12 @@ pub(super) struct Turn {
 
 struct Slot {
     current: Option<Turn>,
+    /// Canal du dernier tour : ce qui arrive entre deux tours (tâche de fond, tour ouvert par l'agent) y passe.
+    listener: Option<Channel<AgentEvent>>,
+    /// Tâches en cours : tant qu'il en reste, le process n'est pas arrêté pour inactivité.
+    tasks: HashSet<String>,
+    /// Requêtes de Nuée qui attendent leur réponse, par identifiant.
+    waiting: HashMap<String, oneshot::Sender<Result<serde_json::Value, String>>>,
     turns: u64,
     idle_since: Instant,
     /// Demandes d'autorisation en attente, avec les paramètres à renvoyer en cas d'accord.
@@ -79,7 +87,7 @@ impl Session {
             key,
             sessions,
         } = launch;
-        let mut child = spawn(program, args, cwd)?;
+        let mut child = spawn(program, args, driver.session_env(), cwd)?;
         let pid = child.id().unwrap_or_default();
         let interrupt = driver.interrupt_message();
 
@@ -102,6 +110,9 @@ impl Session {
 
         let slot = Arc::new(Mutex::new(Slot {
             current: None,
+            listener: None,
+            tasks: HashSet::new(),
+            waiting: HashMap::new(),
             turns: 0,
             idle_since: Instant::now(),
             approvals: HashMap::new(),
@@ -117,6 +128,13 @@ impl Session {
             if let Some(stdout) = stdout {
                 let mut lines = BufReader::new(stdout).lines();
                 while let Ok(Some(line)) = lines.next_line().await {
+                    if let Some((id, response)) = driver.control_response(&line) {
+                        let waiter = lock(&reader_slot).waiting.remove(&id);
+                        if let Some(waiter) = waiter {
+                            let _ = waiter.send(response);
+                            continue;
+                        }
+                    }
                     for event in driver.parse_line(&line) {
                         deliver(&reader_slot, event);
                     }
@@ -146,7 +164,31 @@ impl Session {
                     map.remove(&chat_id);
                 }
             }
-            let turn = lock(&reader_slot).current.take();
+            let (turn, orphans) = {
+                let mut slot = lock(&reader_slot);
+                let tasks: Vec<String> = slot.tasks.drain().collect();
+                slot.waiting.clear();
+                (
+                    slot.current.take(),
+                    slot.listener.take().map(|channel| (channel, tasks)),
+                )
+            };
+            // Ses tâches de fond meurent avec le process.
+            if let Some((channel, tasks)) = orphans {
+                for id in tasks {
+                    let _ = channel.send(AgentEvent::Task {
+                        id,
+                        tool_id: None,
+                        kind: None,
+                        status: Some(TaskStatus::Stopped),
+                        description: None,
+                        progress: None,
+                        background: None,
+                        tool_uses: None,
+                        duration_ms: None,
+                    });
+                }
+            }
             if let Some(turn) = turn {
                 let (status, error) = if turn.stopped {
                     (TurnStatus::Stopped, None)
@@ -185,11 +227,24 @@ impl Session {
         let mut slot = lock(&self.slot);
         slot.turns += 1;
         turn.number = slot.turns;
+        slot.listener = Some(turn.channel.clone());
         slot.current = Some(turn);
     }
 
     pub fn write(&self, line: String) -> bool {
         self.input.send(line).is_ok()
+    }
+
+    /// Écrit une requête et rend de quoi attendre sa réponse ; fermé sans réponse si le process s'arrête.
+    pub fn request(
+        &self,
+        id: String,
+        line: String,
+    ) -> oneshot::Receiver<Result<serde_json::Value, String>> {
+        let (sender, receiver) = oneshot::channel();
+        lock(&self.slot).waiting.insert(id, sender);
+        let _ = self.input.send(line);
+        receiver
     }
 
     /// Ajoute un message au tour en cours, que l'agent lit à sa prochaine étape. Faux si le tour est
@@ -273,7 +328,7 @@ impl Session {
 
     fn idle_for(&self) -> Duration {
         let slot = lock(&self.slot);
-        if slot.current.is_some() {
+        if slot.current.is_some() || !slot.tasks.is_empty() {
             Duration::ZERO
         } else {
             slot.idle_since.elapsed()
@@ -281,9 +336,43 @@ impl Session {
     }
 }
 
-/// Les événements hors tour (process préchauffé) n'ont personne à qui parler : ils sont ignorés.
+/// Hors tour, les événements vont au canal du dernier tour : une tâche de fond qui avance, ou un tour que l'agent
+/// ouvre lui-même pour en rendre compte. Un process préchauffé, qui n'a jamais eu de tour, n'a personne à qui parler.
 fn deliver(slot: &Mutex<Slot>, event: AgentEvent) {
     let mut slot = lock(slot);
+    if let AgentEvent::Task { id, status, .. } = &event {
+        match status {
+            Some(TaskStatus::Running) => {
+                slot.tasks.insert(id.clone());
+            }
+            Some(_) => {
+                slot.tasks.remove(id);
+            }
+            None => {}
+        }
+    }
+    if slot.current.is_none() {
+        let Some(channel) = slot.listener.clone() else {
+            return;
+        };
+        match event {
+            AgentEvent::Text { .. } | AgentEvent::Thinking { .. } | AgentEvent::Tool { .. } => {
+                slot.turns += 1;
+                slot.current = Some(Turn {
+                    channel: channel.clone(),
+                    stopped: false,
+                    number: slot.turns,
+                    answered: false,
+                });
+                let _ = channel.send(AgentEvent::TurnStart);
+            }
+            AgentEvent::TurnEnd { .. } => return,
+            event => {
+                let _ = channel.send(event);
+                return;
+            }
+        }
+    }
     match event {
         AgentEvent::TurnEnd {
             status,
@@ -348,10 +437,16 @@ pub(super) fn reap_idle(sessions: Sessions, idle: Duration) {
     });
 }
 
-pub(super) fn spawn(program: &Path, args: Vec<String>, cwd: &Path) -> std::io::Result<Child> {
+pub(super) fn spawn(
+    program: &Path,
+    args: Vec<String>,
+    env: &[(&str, &str)],
+    cwd: &Path,
+) -> std::io::Result<Child> {
     let mut command = Command::new(program);
     command
         .args(args)
+        .envs(env.iter().copied())
         .current_dir(cwd)
         .env("PATH", shell_env::search_path())
         .stdin(Stdio::piped())
@@ -431,6 +526,26 @@ mod tests {
         fn release(&self, _: &Path) -> (&'static str, &'static str) {
             ("sh", "latest")
         }
+        fn session_env(&self) -> &'static [(&'static str, &'static str)] {
+            &[]
+        }
+        fn stop_task_message(&self, _: &str) -> String {
+            String::new()
+        }
+        fn control_response(&self, _: &str) -> Option<(String, Result<serde_json::Value, String>)> {
+            None
+        }
+        fn rewind_requests(&self, _: &str) -> Vec<(String, String)> {
+            Vec::new()
+        }
+        fn read_rewind(
+            &self,
+            _: &str,
+            _: Result<serde_json::Value, String>,
+            _: &mut super::super::Rewind,
+        ) -> Result<(), String> {
+            Ok(())
+        }
         fn update_args(&self) -> Vec<String> {
             Vec::new()
         }
@@ -459,6 +574,81 @@ mod tests {
         fn parse_line(&mut self, _: &str) -> Vec<AgentEvent> {
             Vec::new()
         }
+    }
+
+    fn task(status: TaskStatus) -> AgentEvent {
+        AgentEvent::Task {
+            id: "b1".into(),
+            tool_id: None,
+            kind: None,
+            status: Some(status),
+            description: None,
+            progress: None,
+            background: Some(true),
+            tool_uses: None,
+            duration_ms: None,
+        }
+    }
+
+    #[test]
+    fn after_a_turn_the_agent_can_report_its_background_tasks_and_open_a_turn() {
+        let received = Arc::new(Mutex::new(Vec::<String>::new()));
+        let sink = received.clone();
+        let channel = Channel::new(move |body| {
+            if let tauri::ipc::InvokeResponseBody::Json(json) = body {
+                lock(&sink).push(json);
+            }
+            Ok(())
+        });
+        let slot = Mutex::new(Slot {
+            current: Some(Turn {
+                channel: channel.clone(),
+                stopped: false,
+                number: 1,
+                answered: false,
+            }),
+            listener: Some(channel),
+            tasks: HashSet::new(),
+            waiting: HashMap::new(),
+            turns: 1,
+            idle_since: Instant::now(),
+            approvals: HashMap::new(),
+        });
+        let end = || AgentEvent::TurnEnd {
+            status: TurnStatus::Completed,
+            error: None,
+            duration_ms: None,
+        };
+        deliver(&slot, task(TaskStatus::Running));
+        deliver(&slot, end());
+        assert!(
+            !lock(&slot).tasks.is_empty(),
+            "la tâche tient le process éveillé"
+        );
+        deliver(&slot, task(TaskStatus::Completed));
+        deliver(
+            &slot,
+            AgentEvent::Text {
+                id: "m2:0".into(),
+                delta: "Fini".into(),
+            },
+        );
+        deliver(&slot, end());
+        let types: Vec<String> = lock(&received)
+            .iter()
+            .map(|json| {
+                serde_json::from_str::<serde_json::Value>(json).unwrap()["type"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_owned()
+            })
+            .collect();
+        assert_eq!(
+            types,
+            ["task", "turnEnd", "task", "turnStart", "text", "turnEnd"]
+        );
+        assert!(lock(&slot).tasks.is_empty());
+        assert!(lock(&slot).current.is_none());
     }
 
     #[cfg(unix)]

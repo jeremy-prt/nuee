@@ -1,17 +1,23 @@
 import { defineStore } from 'pinia'
 import { computed, shallowReactive } from 'vue'
-import { agentApprove, agentSend, agentSteer, agentStop, agentWarm, isAppError } from '@/ipc/agent'
+import { agentApprove, agentRewind, agentSend, agentSteer, agentStop, agentStopTask, agentWarm, isAppError } from '@/ipc/agent'
 import type { AgentEvent } from '@/ipc/bindings/AgentEvent'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { AppError } from '@/ipc/bindings/AppError'
 import type { Attachment } from '@/ipc/bindings/Attachment'
 import type { ChatCommand } from '@/ipc/bindings/ChatCommand'
 import type { ChatSummary } from '@/ipc/bindings/ChatSummary'
+import type { FileChange } from '@/ipc/bindings/FileChange'
 import type { SessionSpec } from '@/ipc/bindings/SessionSpec'
+import type { TaskKind } from '@/ipc/bindings/TaskKind'
+import type { TaskStatus } from '@/ipc/bindings/TaskStatus'
+import type { ToolDetail } from '@/ipc/bindings/ToolDetail'
+import type { ToolImage } from '@/ipc/bindings/ToolImage'
 import type { ToolKind } from '@/ipc/bindings/ToolKind'
 import type { TurnOptions } from '@/ipc/bindings/TurnOptions'
 import type { TurnStatus } from '@/ipc/bindings/TurnStatus'
 import { i18nGlobal } from '@/i18n'
+import { attachmentSaveBase64 } from '@/ipc/attachment'
 import { chatContent, chatCreate, chatDelete, chatSave } from '@/ipc/chat'
 import { useAgentsStore } from '@/stores/agents'
 import { type Signal, useAttentionStore } from '@/stores/attention'
@@ -22,12 +28,16 @@ import { useSkillsStore } from '@/stores/skills'
 import { useWorkspaceStore } from '@/stores/workspace'
 
 export type ChatItem =
-  // steered : ajouté à une réponse en cours, l'agent l'a lu sans ouvrir de nouveau tour.
-  | { kind: 'user'; id: string; text: string; attachments?: Attachment[]; steered?: boolean }
+  // steered : ajouté à une réponse en cours, l'agent l'a lu sans ouvrir de nouveau tour. agentId : identifiant que
+  // l'agent lui donne, pour revenir avant lui.
+  | { kind: 'user'; id: string; text: string; attachments?: Attachment[]; steered?: boolean; agentId?: string }
   // Chat ouvert par une commande de Nuée : son message d'ouverture est rendu depuis cet élément, sans tour
   // d'agent. `skill` : le skill à modifier tel qu'il était à l'ouverture.
   | { kind: 'command'; id: string; command: ChatCommand; skill?: { name: string; description: string; automatic: boolean } }
   | { kind: 'text'; id: string; text: string }
+  // durationMs : null tant que l'agent réfléchit.
+  | { kind: 'thinking'; id: string; text: string; durationMs: number | null }
+  // Champs optionnels : absents des sessions enregistrées avant eux.
   | {
       kind: 'tool'
       id: string
@@ -36,11 +46,29 @@ export type ChatItem =
       summary: string | null
       output: string | null
       status: 'running' | 'done' | 'failed'
+      detail?: ToolDetail | null
+      change?: FileChange | null
+      // Image rendue par l'outil, copiée avec les pièces jointes du chat (seul dossier que la webview affiche).
+      image?: string
+      task?: TaskState
     }
   | { kind: 'end'; id: string; status: TurnStatus; error: string | null; durationMs: number | null }
   | { kind: 'error'; id: string; error: AppError }
 
 export type CommandItem = Extract<ChatItem, { kind: 'command' }>
+export type ToolItem = Extract<ChatItem, { kind: 'tool' }>
+
+// Tâche lancée par un outil (sous-agent, commande en arrière-plan), suivie sur l'élément de cet outil.
+export interface TaskState {
+  id: string
+  kind: TaskKind
+  status: TaskStatus
+  description: string | null
+  progress: string | null
+  background: boolean
+  toolUses: number | null
+  durationMs: number | null
+}
 
 // Où travaille l'agent. cwd null : chat sans projet, Rust lui donne un dossier vide à lui. worktree : un worktree
 // du projet, worktreePath s'il en a rejoint un (sinon le sien, que Rust crée au premier message).
@@ -69,6 +97,9 @@ export interface Conversation {
   phase: Phase
   // Début du tour en cours, pour la durée affichée à la fin de la réponse.
   startedAt: number
+  // Dernier événement reçu : une réflexion commence là, son texte n'arrive qu'à la fin.
+  activeAt: number
+  thinkingAt: number
   // Temps passé à attendre une réponse à une demande d'autorisation : il ne compte pas dans la durée.
   pausedMs: number
   pausedAt: number | null
@@ -127,6 +158,25 @@ function settleTools(items: ChatItem[], status: 'done' | 'failed') {
   })
 }
 
+// Une tâche encore en cours quand son process disparaît ne finira jamais.
+function settleTasks(items: ChatItem[]) {
+  items.forEach((item, i) => {
+    if (item.kind === 'tool' && item.task?.status === 'running') items[i] = { ...item, task: { ...item.task, status: 'stopped' } }
+  })
+}
+
+// La réflexion s'arrête dès que l'agent fait autre chose.
+function endThinking(conversation: Conversation, items: ChatItem[]) {
+  const last = items.at(-1)
+  if (last?.kind === 'thinking' && last.durationMs === null) {
+    items[items.length - 1] = { ...last, durationMs: Math.round(performance.now() - conversation.thinkingAt) }
+  }
+}
+
+function lastIndexOfTask(items: ChatItem[], id: string, toolId: string | null) {
+  return lastIndex(items, (item) => item.kind === 'tool' && (item.task?.id === id || (!!toolId && item.id === toolId)))
+}
+
 // L'agent repart après sa réponse (un hook lui a demandé de continuer) : la fin affichée était prématurée.
 function resume(conversation: Conversation, items: ChatItem[]) {
   if (conversation.phase !== 'finishing') return
@@ -147,7 +197,8 @@ function apply(conversation: Conversation, events: AgentEvent[]) {
   let ended = false
   let signal: Signal | null = null
   for (const event of events) {
-    if (event.type === 'text' || event.type === 'tool') resume(conversation, items)
+    if (event.type === 'text' || event.type === 'tool' || event.type === 'thinking') resume(conversation, items)
+    if (event.type !== 'thinking' && event.type !== 'usage' && event.type !== 'task') endThinking(conversation, items)
     switch (event.type) {
       case 'session':
         conversation.sessionId = event.id
@@ -158,21 +209,63 @@ function apply(conversation: Conversation, events: AgentEvent[]) {
         else items.push({ kind: 'text', id: event.id, text: event.delta })
         break
       }
+      case 'thinking': {
+        const last = items.at(-1)
+        if (last?.kind === 'thinking' && last.id === event.id) items[items.length - 1] = { ...last, text: last.text + event.delta }
+        else {
+          endThinking(conversation, items)
+          conversation.thinkingAt = conversation.activeAt
+          items.push({ kind: 'thinking', id: event.id, text: event.delta, durationMs: null })
+        }
+        break
+      }
       case 'tool': {
         const index = lastIndexOfTool(items, event.id)
         const tool = items[index]
         if (tool?.kind === 'tool') {
-          items[index] = { ...tool, name: event.name, tool: event.kind, summary: event.summary ?? tool.summary }
+          const { name, kind, summary, detail } = event
+          items[index] = { ...tool, name, tool: kind, summary: summary ?? tool.summary, detail: detail ?? tool.detail ?? null }
         } else {
-          const { id, name, kind, summary } = event
-          items.push({ kind: 'tool', id, name, tool: kind, summary, output: null, status: 'running' })
+          const { id, name, kind, summary, detail } = event
+          items.push({ kind: 'tool', id, name, tool: kind, summary, detail, output: null, status: 'running' })
         }
         break
       }
       case 'toolResult': {
         const index = lastIndexOfTool(items, event.id)
         const tool = items[index]
-        if (tool?.kind === 'tool') items[index] = { ...tool, output: event.output, status: event.isError ? 'failed' : 'done' }
+        if (tool?.kind === 'tool') {
+          items[index] = { ...tool, output: event.output, change: event.change, status: event.isError ? 'failed' : 'done' }
+        }
+        break
+      }
+      case 'task': {
+        const index = lastIndexOfTask(items, event.id, event.toolId)
+        const tool = items[index]
+        if (tool?.kind !== 'tool') break
+        const task: TaskState = tool.task ?? {
+          id: event.id,
+          kind: 'other',
+          status: 'running',
+          description: null,
+          progress: null,
+          background: false,
+          toolUses: null,
+          durationMs: null,
+        }
+        items[index] = {
+          ...tool,
+          task: {
+            ...task,
+            kind: event.kind ?? task.kind,
+            status: event.status ?? task.status,
+            description: event.description ?? task.description,
+            progress: event.progress ?? task.progress,
+            background: event.background ?? task.background,
+            toolUses: event.toolUses ?? task.toolUses,
+            durationMs: event.durationMs ?? task.durationMs,
+          },
+        }
         break
       }
       case 'approval': {
@@ -187,10 +280,29 @@ function apply(conversation: Conversation, events: AgentEvent[]) {
       case 'limited':
         conversation.limited = { resetsAt: event.resetsAt }
         break
+      // Le premier message encore sans identifiant qui correspond : l'agent les renvoie dans l'ordre d'envoi.
+      case 'userMessage': {
+        const after = lastIndex(items, (item) => item.kind === 'user' && !!item.agentId)
+        const index = items.findIndex((item, i) => i > after && item.kind === 'user' && event.text.includes(item.text))
+        const user = items[index]
+        if (user?.kind === 'user') items[index] = { ...user, agentId: event.id }
+        break
+      }
+      // L'agent reprend de lui-même pour rendre compte d'une tâche de fond finie.
+      case 'turnStart':
+        if (conversation.phase !== 'idle') break
+        conversation.phase = 'answering'
+        conversation.startedAt = performance.now()
+        conversation.activeAt = conversation.startedAt
+        conversation.pausedMs = 0
+        conversation.pausedAt = null
+        break
       case 'answered': {
         if (conversation.phase !== 'answering') break
         settleTools(items, 'done')
-        items.push({ kind: 'end', id: crypto.randomUUID(), status: 'completed', error: null, durationMs: elapsed(conversation) })
+        // Un tour ouvert par l'agent ne compte qu'à partir de son premier mot : une durée si courte ne dit rien.
+        const duration = elapsed(conversation)
+        items.push({ kind: 'end', id: crypto.randomUUID(), status: 'completed', error: null, durationMs: duration < 1000 ? null : duration })
         conversation.phase = 'finishing'
         signal = strongest(signal, 'done')
         break
@@ -201,7 +313,8 @@ function apply(conversation: Conversation, events: AgentEvent[]) {
         const shown = conversation.phase === 'finishing' && items.at(-1)?.kind === 'end'
         if (shown && status !== 'completed') items[items.length - 1] = { kind: 'end', id: crypto.randomUUID(), status, error, durationMs: null }
         if (!shown) {
-          const durationMs = status === 'completed' ? elapsed(conversation) : null
+          const duration = elapsed(conversation)
+          const durationMs = status === 'completed' && duration >= 1000 ? duration : null
           items.push({ kind: 'end', id: crypto.randomUUID(), status, error, durationMs })
         }
         if (status === 'failed' || status === 'unauthenticated') signal = strongest(signal, 'failed')
@@ -214,6 +327,7 @@ function apply(conversation: Conversation, events: AgentEvent[]) {
     }
   }
   conversation.items = items
+  conversation.activeAt = performance.now()
   return { ended, signal }
 }
 
@@ -229,9 +343,10 @@ function interruptedText(items: readonly ChatItem[]) {
 
 // Un tour coupé par la fermeture de l'app n'a jamais reçu sa fin : on la pose au chargement.
 function settleInterrupted(saved: ChatItem[]) {
-  const last = saved.at(-1)
-  if (!last || last.kind === 'end' || last.kind === 'error' || last.kind === 'command') return saved
   const items = [...saved]
+  settleTasks(items)
+  const last = items.at(-1)
+  if (!last || last.kind === 'end' || last.kind === 'error' || last.kind === 'command') return items
   settleTools(items, 'failed')
   items.push({ kind: 'end', id: crypto.randomUUID(), status: 'stopped', error: null, durationMs: null })
   return items
@@ -261,6 +376,8 @@ export const useConversationsStore = defineStore('conversations', () => {
       options: projects.chatOptions(projectId, agent),
       phase: 'idle',
       startedAt: 0,
+      activeAt: 0,
+      thinkingAt: 0,
       pausedMs: 0,
       pausedAt: null,
       queue: [],
@@ -295,6 +412,18 @@ export const useConversationsStore = defineStore('conversations', () => {
 
   function find(chatId: string) {
     return conversations.get(chatId)
+  }
+
+  // Messages d'un chat, lus en base s'il n'est pas en mémoire (session fermée).
+  async function itemsOf(chatId: string): Promise<readonly ChatItem[]> {
+    const conversation = conversations.get(chatId)
+    if (conversation?.loaded) return conversation.items
+    return ((await chatContent(chatId))?.items as ChatItem[] | undefined) ?? []
+  }
+
+  // L'agent répond dans ce chat (barre latérale, onglets).
+  function working(chatId: string) {
+    return conversations.get(chatId)?.phase === 'answering'
   }
 
   function create(chat: ChatSummary) {
@@ -338,12 +467,31 @@ export const useConversationsStore = defineStore('conversations', () => {
         if (event.type === 'turnEnd') agentSettings.confirm(conversation.agent, event.status)
         else if (event.type === 'usage') agentSettings.track(conversation.agent, event)
       }
+      for (const event of events) if (event.type === 'toolResult' && event.image) keepImage(chatId, event.id, event.image)
       if (signal) useAttentionStore().signal(chatId, signal)
       // Un chat de skill peut écrire le fichier à n'importe quel tour : chaque fin de tour fait relire la config.
       if (ended && conversation.items.some((item) => item.kind === 'command')) skills.loadSkills()
       if (ended) afterTurn(chatId, conversation)
     }
     pending.clear()
+  }
+
+  // L'image arrive en base64 dans le flux ; écrite sur disque, l'historique n'en garde que le chemin.
+  function keepImage(chatId: string, toolId: string, image: ToolImage) {
+    const extension = image.mediaType.split('/')[1] ?? 'png'
+    attachmentSaveBase64(chatId, `image.${extension}`, image.base64)
+      .then(({ preview }) => {
+        const conversation = conversations.get(chatId)
+        if (!conversation || !preview) return
+        const items = [...conversation.items]
+        const index = lastIndexOfTool(items, toolId)
+        const tool = items[index]
+        if (tool?.kind !== 'tool') return
+        items[index] = { ...tool, image: preview }
+        conversation.items = items
+        save(chatId)
+      })
+      .catch((error) => console.error('image', error))
   }
 
   function queue(chatId: string, event: AgentEvent) {
@@ -372,6 +520,7 @@ export const useConversationsStore = defineStore('conversations', () => {
     const command = opening?.kind === 'command' ? opening.command : null
     conversation.phase = 'answering'
     conversation.startedAt = performance.now()
+    conversation.activeAt = conversation.startedAt
     conversation.pausedMs = 0
     conversation.pausedAt = null
     try {
@@ -503,6 +652,23 @@ export const useConversationsStore = defineStore('conversations', () => {
     agentApprove(chatId, requestId, allow).catch(() => {})
   }
 
+  // Revient avant un message : l'agent oublie la suite et remet les fichiers dans leur état d'alors. Rend le texte du
+  // message, à reprendre dans le champ de saisie, et ce que l'agent a pu faire des fichiers.
+  async function rewind(chatId: string, place: Place, itemId: string) {
+    const conversation = conversations.get(chatId)
+    const index = conversation?.items.findIndex((item) => item.id === itemId) ?? -1
+    const item = conversation?.items[index]
+    if (!conversation || conversation.phase !== 'idle' || item?.kind !== 'user' || !item.agentId) return null
+    const result = await agentRewind(spec(chatId, conversation, place), item.agentId)
+    conversation.items = conversation.items.slice(0, index)
+    save(chatId)
+    return { ...result, prefill: result.prefill ?? item.text, attachments: item.attachments ?? [] }
+  }
+
+  function stopTask(chatId: string, taskId: string) {
+    agentStopTask(chatId, taskId).catch(() => {})
+  }
+
   // Le process reste ouvert : turnEnd arrive aussitôt avec le statut « stopped ».
   function stop(chatId: string) {
     if (conversations.get(chatId)?.phase === 'answering') agentStop(chatId).catch(() => {})
@@ -529,9 +695,10 @@ export const useConversationsStore = defineStore('conversations', () => {
     const conversation = conversations.get(chatId)
     if (!conversation?.loaded || conversation.phase !== 'idle') return
     if (conversation.queue.length || conversation.approvals.length || conversation.limited || conversation.resumeAt) return
+    if (conversation.items.some((item) => item.kind === 'tool' && item.task?.status === 'running')) return
     if (timers.has(chatId) || pending.has(chatId) || resumeTimers.has(chatId)) return
     conversations.delete(chatId)
   }
 
-  return { busy, find, create, open, release, setOptions, send, sendNow, unqueue, scheduleResume, cancelResume, begin, warm, approve, stop, remove }
+  return { busy, find, working, itemsOf, create, open, release, setOptions, send, sendNow, unqueue, scheduleResume, cancelResume, begin, warm, approve, stop, stopTask, rewind, remove }
 })
