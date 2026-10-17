@@ -42,6 +42,34 @@ pub struct Worktree {
     pub locked: bool,
 }
 
+/// Branches locales vues depuis le dossier d'une session : l'actuelle (`None` : HEAD détaché), puis les autres de la
+/// plus récemment modifiée à la plus ancienne.
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct BranchList {
+    pub current: Option<String>,
+    pub branches: Vec<Branch>,
+}
+
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct Branch {
+    pub name: String,
+    /// Prise par un autre worktree : git refuse d'y passer.
+    pub elsewhere: bool,
+}
+
+/// `Blocked` : des modifications non commitées seraient écrasées, git n'a rien changé.
+#[derive(Debug, Clone, Serialize, TS)]
+#[serde(rename_all = "camelCase", tag = "kind")]
+#[ts(export)]
+pub enum SwitchOutcome {
+    Done { branch: String },
+    Blocked { files: Vec<String> },
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
@@ -182,6 +210,77 @@ impl WorktreeService {
             .collect())
     }
 
+    /// Branches vues depuis `dir` : le dossier du projet ou l'un de ses worktrees, jamais un autre chemin.
+    pub async fn refs(&self, project: &Path, dir: &Path) -> Result<BranchList, AppError> {
+        let git = require_git()?;
+        let dir = session_dir(&git, project, dir).await?;
+        let current = current_branch(&git, &dir).await?;
+        let format = "--format=%(refname:short)%09%(worktreepath)";
+        let refs = [
+            "for-each-ref",
+            "--sort=-committerdate",
+            format,
+            "refs/heads/",
+        ];
+        let out = run(&git, &dir, &refs, GIT_TIMEOUT).await?;
+        let mut branches: Vec<Branch> = out
+            .lines()
+            .filter_map(|line| {
+                let (name, tree) = line.split_once('\t').unwrap_or((line, ""));
+                (Some(name) != current.as_deref()).then(|| Branch {
+                    name: name.to_owned(),
+                    elsewhere: !tree.is_empty(),
+                })
+            })
+            .collect();
+        if let Some(name) = &current {
+            branches.insert(
+                0,
+                Branch {
+                    name: name.clone(),
+                    elsewhere: false,
+                },
+            );
+        }
+        Ok(BranchList { current, branches })
+    }
+
+    /// Passe `dir` sur `branch`, créée depuis le HEAD actuel si `create`. Les modifications non commitées suivent
+    /// quand git le peut ; sinon rien ne bouge et `Blocked` nomme les fichiers en cause.
+    pub async fn switch(
+        &self,
+        project: &Path,
+        dir: &Path,
+        branch: &str,
+        create: bool,
+    ) -> Result<SwitchOutcome, AppError> {
+        let git = require_git()?;
+        let dir = session_dir(&git, project, dir).await?;
+        let branch = branch.trim();
+        valid_branch(&git, &dir, branch).await?;
+        let args: &[&str] = if create {
+            &["switch", "--create", branch]
+        } else {
+            &["switch", branch]
+        };
+        match run(&git, &dir, args, GIT_TIMEOUT).await {
+            Ok(_) => Ok(SwitchOutcome::Done {
+                branch: current_branch(&git, &dir)
+                    .await?
+                    .unwrap_or_else(|| branch.to_owned()),
+            }),
+            Err(AppError::Git(message)) => {
+                let files = blocking_files(&message);
+                if files.is_empty() {
+                    Err(AppError::Git(message))
+                } else {
+                    Ok(SwitchOutcome::Blocked { files })
+                }
+            }
+            Err(error) => Err(error),
+        }
+    }
+
     /// Worktree dans `worktrees/<id du projet>/<branche nettoyée>`, sur une nouvelle branche partie du HEAD du
     /// projet ou sur une branche locale existante.
     pub async fn create(
@@ -198,20 +297,7 @@ impl WorktreeService {
         }
         let git = require_git()?;
         let branch = branch.trim();
-        // `check-ref-format --branch` développe `@{-1}` : un nom qui commence par `@` ou `-` n'en est pas un.
-        if branch.is_empty() || branch.starts_with('-') || branch.starts_with('@') {
-            return Err(AppError::InvalidInput("nom de branche invalide".into()));
-        }
-        run(
-            &git,
-            project,
-            &["check-ref-format", "--branch", branch],
-            GIT_TIMEOUT,
-        )
-        .await
-        .map_err(|_| {
-            AppError::InvalidInput(format!("« {branch} » n'est pas un nom de branche valide"))
-        })?;
+        valid_branch(&git, project, branch).await?;
         let _ = run(&git, project, &["worktree", "prune"], GIT_TIMEOUT).await;
         if list(&git, project)
             .await?
@@ -357,6 +443,46 @@ impl WorktreeService {
     }
 }
 
+/// `check-ref-format --branch` développe `@{-1}` : un nom qui commence par `@` ou `-` n'en est pas un.
+async fn valid_branch(git: &Path, dir: &Path, branch: &str) -> Result<(), AppError> {
+    if branch.is_empty() || branch.starts_with('-') || branch.starts_with('@') {
+        return Err(AppError::InvalidInput("nom de branche invalide".into()));
+    }
+    run(
+        git,
+        dir,
+        &["check-ref-format", "--branch", branch],
+        GIT_TIMEOUT,
+    )
+    .await
+    .map(|_| ())
+    .map_err(|_| AppError::InvalidInput(format!("« {branch} » n'est pas un nom de branche valide")))
+}
+
+/// Le dossier du projet tel quel, sinon un worktree enregistré du dépôt.
+async fn session_dir(git: &Path, project: &Path, dir: &Path) -> Result<PathBuf, AppError> {
+    if canonical(dir) == canonical(project) {
+        return Ok(PathBuf::from(canonical(project)));
+    }
+    Ok(PathBuf::from(registered(git, project, dir).await?.path))
+}
+
+async fn current_branch(git: &Path, dir: &Path) -> Result<Option<String>, AppError> {
+    let out = run(git, dir, &["branch", "--show-current"], GIT_TIMEOUT).await?;
+    let name = out.trim();
+    Ok((!name.is_empty()).then(|| name.to_owned()))
+}
+
+/// Fichiers que git refuse d'écraser, cités un par ligne en retrait. Le reste du message est traduit selon la
+/// langue du système : seules ces lignes se lisent partout.
+fn blocking_files(message: &str) -> Vec<String> {
+    message
+        .lines()
+        .filter(|line| line.starts_with('\t'))
+        .map(|line| line.trim().to_owned())
+        .collect()
+}
+
 fn require_git() -> Result<PathBuf, AppError> {
     git_binary().ok_or_else(|| AppError::Git("git est introuvable sur cet ordinateur".into()))
 }
@@ -454,7 +580,7 @@ fn branch(chat_id: &str) -> String {
 
 /// Sur macOS, `/usr/bin/git` n'est qu'un relais vers les outils de développement : sans eux, il ouvre une
 /// fenêtre d'installation au lieu de répondre.
-fn git_binary() -> Option<PathBuf> {
+pub(crate) fn git_binary() -> Option<PathBuf> {
     let git = shell_env::find_binary("git")?;
     #[cfg(target_os = "macos")]
     if git == Path::new("/usr/bin/git") {
@@ -472,7 +598,12 @@ fn git_binary() -> Option<PathBuf> {
 }
 
 /// Sortie standard si git réussit ; sinon sa sortie d'erreur, qui dit pourquoi.
-async fn run(git: &Path, dir: &Path, args: &[&str], limit: Duration) -> Result<String, AppError> {
+pub(crate) async fn run(
+    git: &Path,
+    dir: &Path,
+    args: &[&str],
+    limit: Duration,
+) -> Result<String, AppError> {
     let mut command = Command::new(git);
     // Un `core.fsmonitor` dans la config du dépôt lancerait sa commande à chaque `status`.
     command
@@ -555,6 +686,60 @@ mod tests {
         git(&repo, &["add", "."]);
         git(&repo, &["commit", "-qm", "départ"]);
         repo
+    }
+
+    #[test]
+    fn switching_branch_lists_creates_and_reports_blocking_changes() {
+        if git_binary().is_none() {
+            return;
+        }
+        let root = sandbox("switch");
+        let repo = repo(&root);
+        let service = WorktreeService::new(root.join("worktrees"));
+        let main = git(&repo, &["branch", "--show-current"]).trim().to_owned();
+        git(&repo, &["branch", "autre"]);
+        git(
+            &repo,
+            &[
+                "worktree",
+                "add",
+                "-q",
+                "-b",
+                "prise",
+                root.join("ailleurs").to_str().expect("chemin"),
+            ],
+        );
+
+        let refs = block_on(service.refs(&repo, &repo)).expect("branches");
+        assert_eq!(refs.current.as_deref(), Some(main.as_str()));
+        assert_eq!(refs.branches[0].name, main);
+        let taken = refs
+            .branches
+            .iter()
+            .find(|branch| branch.name == "prise")
+            .expect("prise");
+        assert!(taken.elsewhere);
+
+        let created = block_on(service.switch(&repo, &repo, "nouvelle", true)).expect("créée");
+        assert!(matches!(created, SwitchOutcome::Done { ref branch } if branch == "nouvelle"));
+
+        // Un fichier modifié ici et différent sur `autre` bloque le passage : rien ne bouge.
+        std::fs::write(repo.join("app/main.txt"), "local").expect("modif");
+        git(&repo, &["stash", "-q"]);
+        git(&repo, &["switch", "-q", "autre"]);
+        std::fs::write(repo.join("app/main.txt"), "sur autre").expect("autre");
+        git(&repo, &["commit", "-qam", "autre"]);
+        git(&repo, &["switch", "-q", "nouvelle"]);
+        git(&repo, &["stash", "pop", "-q"]);
+        let blocked = block_on(service.switch(&repo, &repo, "autre", false)).expect("bloqué");
+        assert!(
+            matches!(blocked, SwitchOutcome::Blocked { ref files } if files == &["app/main.txt"])
+        );
+        assert_eq!(git(&repo, &["branch", "--show-current"]).trim(), "nouvelle");
+
+        assert!(block_on(service.refs(&repo, &root.join("ailleurs-faux"))).is_err());
+        assert!(block_on(service.switch(&repo, &repo, "-x", true)).is_err());
+        let _ = std::fs::remove_dir_all(root);
     }
 
     #[test]

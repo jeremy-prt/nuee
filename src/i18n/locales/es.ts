@@ -266,6 +266,8 @@ export default {
     removeAttachment: 'Quitar {name}',
     attachFailed: 'No se pudo adjuntar: {detail}',
     skills: 'Skills',
+    files: 'Archivos',
+    noFiles: 'Ningún archivo encontrado',
     default: 'Predeterminado',
     project: 'Proyecto',
     worktree: {
@@ -275,6 +277,15 @@ export default {
       projectHint: 'El agente trabaja directamente en la carpeta principal del repositorio.',
       new: 'Nuevo worktree',
       newHint: 'Una copia del repositorio en su propia rama, solo para esta sesión.',
+    },
+    branch: {
+      label: 'Rama',
+      search: 'Buscar o crear una rama',
+      create: 'Crear la rama «{name}»',
+      elsewhere: 'En otro worktree',
+      detached: 'HEAD separado',
+      none: 'Ninguna rama',
+      blocked: 'Cambios sin commit en {files}. Hacer commit o stash antes de cambiar de rama.',
     },
     mode: {
       label: 'Modo de permisos',
@@ -764,6 +775,7 @@ export default {
       placeholder: 'Buscar un ajuste',
       empty: 'Ningún ajuste coincide',
       keywords: {
+        mention: 'gitignore archivos ignorados mención arroba notas',
         quota: 'cuota uso límite plan',
         skills: 'skill skills comando slash',
         mcp: 'mcp servidor herramienta conexión',
@@ -845,6 +857,8 @@ export default {
         },
         autoResume: 'Reanudación tras un límite de uso',
         autoResumeHint: 'Una sesión detenida por un límite de uso se reanuda sola cuando la cuota se restablece.',
+        mentionIgnored: "Archivos ignorados por git en las menciones {'@'}",
+        mentionIgnoredHint: 'Las notas fuera del repositorio se pueden mencionar. Las carpetas de dependencias y de build nunca se proponen.',
       },
       notifications: {
         title: 'Notificaciones',

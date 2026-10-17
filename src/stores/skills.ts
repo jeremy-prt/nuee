@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { i18nGlobal } from '@/i18n'
 import { isAppError } from '@/ipc/agent'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
@@ -146,6 +146,9 @@ export const useSkillsStore = defineStore('skills', () => {
   function mode(skill: Skill, at: Scope = 'nuee') {
     return (at === 'nuee' && prefs.skills[skill.id]) || skill.mode
   }
+
+  // Skills appelables dans un message : leur `/nom` s'affiche en pastille, dans le champ comme dans la conversation.
+  const names = computed(() => new Set(skills.value.filter((skill) => mode(skill) !== 'off').map((skill) => skill.name)))
 
   // Nuée a son propre réglage pour ce skill, différent de celui de l'agent.
   function differs(skill: Skill) {
@@ -367,6 +370,7 @@ export const useSkillsStore = defineStore('skills', () => {
   return {
     agentName: AGENT_NAME,
     skills,
+    names,
     servers,
     loaded,
     loading,

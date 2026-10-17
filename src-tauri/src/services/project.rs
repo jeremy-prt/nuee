@@ -9,6 +9,7 @@ use ts_rs::TS;
 
 use crate::error::AppError;
 use crate::services::agent::valid_session_id;
+use crate::services::worktree;
 
 /// Au-delà, l'icône passerait mal dans l'IPC en `data:` : on cherche la suivante.
 const LIMIT: u64 = 1024 * 1024;
@@ -75,6 +76,9 @@ const SKIPPED: [&str; 10] = [
     ".next",
 ];
 const XCODE_DEPTH: usize = 4;
+/// Le menu « @ » n'en montre qu'une poignée : au-delà, un dossier énorme (home, disque) ralentirait tout.
+const FILES_LIMIT: usize = 50_000;
+const WALK_DEPTH: usize = 12;
 const XCODE_VISITS: usize = 2000;
 
 /// Images en `data:` : la CSP refuse toute autre image hors des dossiers de l'app. Le front choisit laquelle
@@ -158,6 +162,140 @@ impl ProjectService {
             .map(|extension| self.icons.join(format!("{id}.{extension}")))
             .find(|path| path.is_file()))
     }
+}
+
+/// Dossiers de dépendances, de build et de cache (et `.DS_Store`) : jamais proposés par le menu « @ », même
+/// ignorés par git.
+const HEAVY: [&str; 12] = [
+    ".nuxt",
+    ".output",
+    ".svelte-kit",
+    ".turbo",
+    ".cache",
+    ".venv",
+    "venv",
+    "__pycache__",
+    ".gradle",
+    "coverage",
+    ".parcel-cache",
+    ".DS_Store",
+];
+
+fn heavy(name: &str) -> bool {
+    SKIPPED.contains(&name) || HEAVY.contains(&name)
+}
+
+/// Fichiers du dossier pour le menu « @ », relatifs et séparés par `/`. git d'abord, qui suit le `.gitignore` ;
+/// `ignored` y ajoute les fichiers qu'il ignore (notes gardées hors du dépôt), hors dépendances et builds.
+/// Hors dépôt, un parcours borné qui saute ces mêmes dossiers.
+pub async fn files(root: &Path, ignored: bool) -> Result<Vec<String>, AppError> {
+    let root = fs::canonicalize(root)
+        .ok()
+        .filter(|root| root.is_dir())
+        .ok_or_else(|| {
+            AppError::InvalidInput(format!("dossier introuvable : {}", root.display()))
+        })?;
+    let Some(git) = worktree::git_binary() else {
+        return walk_blocking(root).await;
+    };
+    let limit = std::time::Duration::from_secs(15);
+    let args = [
+        "ls-files",
+        "--cached",
+        "--others",
+        "--exclude-standard",
+        "-z",
+    ];
+    let Ok(listed) = worktree::run(&git, &root, &args, limit).await else {
+        return walk_blocking(root).await;
+    };
+    let mut files: Vec<String> = split(&listed).map(str::to_owned).collect();
+    if ignored {
+        // `--directory` rend un dossier ignoré en une ligne au lieu de tout son contenu (node_modules).
+        let args = [
+            "ls-files",
+            "--others",
+            "--ignored",
+            "--exclude-standard",
+            "--directory",
+            "-z",
+        ];
+        let listed = worktree::run(&git, &root, &args, limit)
+            .await
+            .unwrap_or_default();
+        let entries: Vec<String> = split(&listed)
+            .filter(|path| !path.split('/').any(heavy))
+            .map(str::to_owned)
+            .collect();
+        let extra = tauri::async_runtime::spawn_blocking(move || {
+            let mut extra = Vec::new();
+            for entry in entries {
+                match entry.strip_suffix('/') {
+                    Some(dir) => extra.extend(
+                        walk(&root.join(dir))
+                            .into_iter()
+                            .map(|file| format!("{dir}/{file}")),
+                    ),
+                    None => extra.push(entry),
+                }
+                if extra.len() >= FILES_LIMIT {
+                    break;
+                }
+            }
+            extra
+        })
+        .await
+        .unwrap_or_default();
+        files.extend(extra);
+        // git peut citer un dossier ignoré et l'un de ses sous-dossiers : leurs fichiers viendraient deux fois.
+        files.sort_unstable();
+        files.dedup();
+    }
+    files.truncate(FILES_LIMIT);
+    Ok(files)
+}
+
+fn split(listed: &str) -> impl Iterator<Item = &str> {
+    listed.split('\0').filter(|path| !path.is_empty())
+}
+
+async fn walk_blocking(root: PathBuf) -> Result<Vec<String>, AppError> {
+    tauri::async_runtime::spawn_blocking(move || walk(&root))
+        .await
+        .map_err(|error| AppError::Io(std::io::Error::other(error.to_string())))
+}
+
+fn walk(root: &Path) -> Vec<String> {
+    let mut files = Vec::new();
+    let mut queue = vec![(root.to_path_buf(), 0)];
+    while let Some((dir, depth)) = queue.pop() {
+        let Ok(entries) = fs::read_dir(&dir) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            // Un lien symbolique n'est pas suivi : il peut boucler ou sortir du projet.
+            let Ok(kind) = entry.file_type() else {
+                continue;
+            };
+            let path = entry.path();
+            if kind.is_dir() {
+                let name = entry.file_name();
+                if depth < WALK_DEPTH && !heavy(&name.to_string_lossy()) {
+                    queue.push((path, depth + 1));
+                }
+            } else if kind.is_file() && !heavy(&entry.file_name().to_string_lossy()) {
+                let Ok(relative) = path.strip_prefix(root) else {
+                    continue;
+                };
+                let parts: Vec<_> = relative.iter().map(|part| part.to_string_lossy()).collect();
+                files.push(parts.join("/"));
+                if files.len() >= FILES_LIMIT {
+                    return files;
+                }
+            }
+        }
+    }
+    files
 }
 
 /// Premier fichier trouvé : favicons connus, icône déclarée par une page, puis applications natives.
@@ -384,6 +522,75 @@ mod tests {
         bytes.extend(width.to_be_bytes());
         bytes.extend(width.to_be_bytes());
         bytes
+    }
+
+    #[test]
+    fn files_outside_git_skip_dependencies() {
+        let root = project("walk");
+        write(&root, "src/main.ts", b"");
+        write(&root, "README.md", b"");
+        write(&root, "node_modules/vue/index.js", b"");
+        let mut listed = walk(&root);
+        listed.sort();
+        assert_eq!(listed, ["README.md", "src/main.ts"]);
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn files_in_a_repo_follow_gitignore() {
+        let Some(git) = worktree::git_binary() else {
+            return;
+        };
+        let root = project("git");
+        write(&root, ".gitignore", b"secret.txt\n");
+        write(&root, "secret.txt", b"");
+        write(&root, "src/new.ts", b"");
+        let init = std::process::Command::new(git)
+            .args(["init", "-q", "-b", "main"])
+            .current_dir(&root)
+            .status()
+            .expect("git init");
+        assert!(init.success());
+        let mut listed = tauri::async_runtime::block_on(files(&root, false)).expect("liste");
+        listed.sort();
+        assert_eq!(listed, [".gitignore", "src/new.ts"]);
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn ignored_notes_are_listed_but_not_dependencies() {
+        let Some(git) = worktree::git_binary() else {
+            return;
+        };
+        let root = project("ignored");
+        write(
+            &root,
+            ".gitignore",
+            b"notes/\nsecret.md\nnode_modules/\n.venv/\n",
+        );
+        write(&root, "notes/idee.md", b"");
+        write(&root, "notes/plan/v2.md", b"");
+        write(&root, "secret.md", b"");
+        write(&root, "node_modules/vue/index.js", b"");
+        write(&root, ".venv/lib/site.py", b"");
+        let init = std::process::Command::new(git)
+            .args(["init", "-q", "-b", "main"])
+            .current_dir(&root)
+            .status()
+            .expect("git init");
+        assert!(init.success());
+        let mut listed = tauri::async_runtime::block_on(files(&root, true)).expect("liste");
+        listed.sort();
+        assert_eq!(
+            listed,
+            [
+                ".gitignore",
+                "notes/idee.md",
+                "notes/plan/v2.md",
+                "secret.md"
+            ]
+        );
+        let _ = fs::remove_dir_all(root);
     }
 
     #[test]

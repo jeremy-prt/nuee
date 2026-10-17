@@ -264,6 +264,8 @@ export default {
     removeAttachment: 'Remove {name}',
     attachFailed: 'Could not attach: {detail}',
     skills: 'Skills',
+    files: 'Files',
+    noFiles: 'No file found',
     default: 'Default',
     project: 'Project',
     worktree: {
@@ -273,6 +275,15 @@ export default {
       projectHint: 'The agent works right in the main folder of the repository.',
       new: 'New worktree',
       newHint: 'A copy of the repository on its own branch, just for this session.',
+    },
+    branch: {
+      label: 'Branch',
+      search: 'Search or create a branch',
+      create: 'Create branch “{name}”',
+      elsewhere: 'In another worktree',
+      detached: 'Detached HEAD',
+      none: 'No branch',
+      blocked: 'Uncommitted changes in {files}. Commit or stash them before switching branch.',
     },
     mode: {
       label: 'Permission mode',
@@ -762,6 +773,7 @@ export default {
       placeholder: 'Search settings',
       empty: 'No matching settings',
       keywords: {
+        mention: 'gitignore ignored files mention at sign notes',
         quota: 'quota usage limit plan',
         skills: 'skill skills command slash',
         mcp: 'mcp server tool connection',
@@ -843,6 +855,8 @@ export default {
         },
         autoResume: 'Resume after a usage limit',
         autoResumeHint: 'A session stopped by a usage limit resumes on its own when the quota is back.',
+        mentionIgnored: "Files ignored by git in {'@'} mentions",
+        mentionIgnoredHint: 'Notes kept out of the repository can be mentioned. Dependency and build folders are never listed.',
       },
       notifications: {
         title: 'Notifications',

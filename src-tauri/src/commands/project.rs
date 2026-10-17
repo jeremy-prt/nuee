@@ -32,6 +32,12 @@ pub async fn project_icon_reset(
     projects.reset_icon(&id)
 }
 
+/// Fichiers proposés par le menu « @ » du champ de saisie, relatifs à `path`. `ignored` : avec ceux que git ignore.
+#[tauri::command]
+pub async fn project_files(path: String, ignored: bool) -> Result<Vec<String>, AppError> {
+    crate::services::project::files(&PathBuf::from(path), ignored).await
+}
+
 #[tauri::command]
 pub async fn project_reveal(path: String) -> Result<(), AppError> {
     let dir = std::fs::canonicalize(&path)

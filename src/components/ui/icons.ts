@@ -19,12 +19,22 @@ import Clock01Icon from '@hugeicons/core-free-icons/Clock01Icon'
 import CommentAdd01Icon from '@hugeicons/core-free-icons/CommentAdd01Icon'
 import ComputerTerminal01Icon from '@hugeicons/core-free-icons/ComputerTerminal01Icon'
 import Copy01Icon from '@hugeicons/core-free-icons/Copy01Icon'
+import Css3Icon from '@hugeicons/core-free-icons/Css3Icon'
 import DashboardSpeed01Icon from '@hugeicons/core-free-icons/DashboardSpeed01Icon'
 import Delete02Icon from '@hugeicons/core-free-icons/Delete02Icon'
 import Download04Icon from '@hugeicons/core-free-icons/Download04Icon'
 import File01Icon from '@hugeicons/core-free-icons/File01Icon'
 import File02Icon from '@hugeicons/core-free-icons/File02Icon'
+import FileAudioIcon from '@hugeicons/core-free-icons/FileAudioIcon'
+import FileBracesIcon from '@hugeicons/core-free-icons/FileBracesIcon'
+import FileCodeIcon from '@hugeicons/core-free-icons/FileCodeIcon'
+import FileCogIcon from '@hugeicons/core-free-icons/FileCogIcon'
 import FileEditIcon from '@hugeicons/core-free-icons/FileEditIcon'
+import FileImageIcon from '@hugeicons/core-free-icons/FileImageIcon'
+import FileLockIcon from '@hugeicons/core-free-icons/FileLockIcon'
+import FileTerminalIcon from '@hugeicons/core-free-icons/FileTerminalIcon'
+import FileVideoIcon from '@hugeicons/core-free-icons/FileVideoIcon'
+import FileZipIcon from '@hugeicons/core-free-icons/FileZipIcon'
 import FilterHorizontalIcon from '@hugeicons/core-free-icons/FilterHorizontalIcon'
 import Folder01Icon from '@hugeicons/core-free-icons/Folder01Icon'
 import FolderAddIcon from '@hugeicons/core-free-icons/FolderAddIcon'
@@ -37,27 +47,34 @@ import GitPullRequestIcon from '@hugeicons/core-free-icons/GitPullRequestIcon'
 import Globe02Icon from '@hugeicons/core-free-icons/Globe02Icon'
 import Home01Icon from '@hugeicons/core-free-icons/Home01Icon'
 import HourglassIcon from '@hugeicons/core-free-icons/HourglassIcon'
+import Html5Icon from '@hugeicons/core-free-icons/Html5Icon'
 import ImageAdd01Icon from '@hugeicons/core-free-icons/ImageAdd01Icon'
 import ImageUpload01Icon from '@hugeicons/core-free-icons/ImageUpload01Icon'
 import InformationCircleIcon from '@hugeicons/core-free-icons/InformationCircleIcon'
+import JavaScriptIcon from '@hugeicons/core-free-icons/JavaScriptIcon'
 import KeyboardIcon from '@hugeicons/core-free-icons/KeyboardIcon'
 import LayerIcon from '@hugeicons/core-free-icons/LayerIcon'
 import LayoutBottomIcon from '@hugeicons/core-free-icons/LayoutBottomIcon'
 import LayoutTwoColumnIcon from '@hugeicons/core-free-icons/LayoutTwoColumnIcon'
 import LeftToRightListBulletIcon from '@hugeicons/core-free-icons/LeftToRightListBulletIcon'
+import LicenseIcon from '@hugeicons/core-free-icons/LicenseIcon'
 import LinkSquare02Icon from '@hugeicons/core-free-icons/LinkSquare02Icon'
 import Loading03Icon from '@hugeicons/core-free-icons/Loading03Icon'
 import MoreHorizontalIcon from '@hugeicons/core-free-icons/MoreHorizontalIcon'
 import NoteEditIcon from '@hugeicons/core-free-icons/NoteEditIcon'
 import Notification01Icon from '@hugeicons/core-free-icons/Notification01Icon'
 import NotificationOff01Icon from '@hugeicons/core-free-icons/NotificationOff01Icon'
+import NpmIcon from '@hugeicons/core-free-icons/NpmIcon'
 import PaintBoardIcon from '@hugeicons/core-free-icons/PaintBoardIcon'
 import PaintBucketIcon from '@hugeicons/core-free-icons/PaintBucketIcon'
+import Pdf01Icon from '@hugeicons/core-free-icons/Pdf01Icon'
 import PencilEdit01Icon from '@hugeicons/core-free-icons/PencilEdit01Icon'
 import PencilEdit02Icon from '@hugeicons/core-free-icons/PencilEdit02Icon'
+import PhpIcon from '@hugeicons/core-free-icons/PhpIcon'
 import PinIcon from '@hugeicons/core-free-icons/PinIcon'
 import PinOffIcon from '@hugeicons/core-free-icons/PinOffIcon'
 import Plug01Icon from '@hugeicons/core-free-icons/Plug01Icon'
+import PythonIcon from '@hugeicons/core-free-icons/PythonIcon'
 import Refresh01Icon from '@hugeicons/core-free-icons/Refresh01Icon'
 import RotateLeft01Icon from '@hugeicons/core-free-icons/RotateLeft01Icon'
 import Search01Icon from '@hugeicons/core-free-icons/Search01Icon'
@@ -68,12 +85,15 @@ import ShieldAlertIcon from '@hugeicons/core-free-icons/ShieldAlertIcon'
 import SidebarLeft01Icon from '@hugeicons/core-free-icons/SidebarLeft01Icon'
 import SidebarRight01Icon from '@hugeicons/core-free-icons/SidebarRight01Icon'
 import SparklesIcon from '@hugeicons/core-free-icons/SparklesIcon'
+import SqlIcon from '@hugeicons/core-free-icons/SqlIcon'
 import SquareIcon from '@hugeicons/core-free-icons/SquareIcon'
 import Tick02Icon from '@hugeicons/core-free-icons/Tick02Icon'
+import Typescript01Icon from '@hugeicons/core-free-icons/Typescript01Icon'
 import UnavailableIcon from '@hugeicons/core-free-icons/UnavailableIcon'
 import ViewIcon from '@hugeicons/core-free-icons/ViewIcon'
 import VolumeHighIcon from '@hugeicons/core-free-icons/VolumeHighIcon'
 import Wrench01Icon from '@hugeicons/core-free-icons/Wrench01Icon'
+import Xml01Icon from '@hugeicons/core-free-icons/Xml01Icon'
 
 // Icônes de Hugeicons (MIT), comme monocode : choix de Jérémy, pas lucide. Les glyphes sont importés un par un pour ne
 // pas charger tout le catalogue ; les noms exportés gardent ceux du code (Plus, Trash2…). Trait de 1,75 comme monocode.
@@ -114,8 +134,28 @@ export const Ellipsis = icon(MoreHorizontalIcon)
 export const ExternalLink = icon(LinkSquare02Icon)
 export const Eye = icon(ViewIcon)
 export const File = icon(File01Icon)
+export const FileAudio = icon(FileAudioIcon)
+export const FileBraces = icon(FileBracesIcon)
+export const FileCode = icon(FileCodeIcon)
+export const FileCog = icon(FileCogIcon)
+export const FileCss = icon(Css3Icon)
+export const FileHtml = icon(Html5Icon)
+export const FileImage = icon(FileImageIcon)
+export const FileJs = icon(JavaScriptIcon)
+export const FileLicense = icon(LicenseIcon)
+export const FileLock = icon(FileLockIcon)
+export const FileNpm = icon(NpmIcon)
+export const FilePdf = icon(Pdf01Icon)
 export const FilePen = icon(FileEditIcon)
+export const FilePhp = icon(PhpIcon)
+export const FilePython = icon(PythonIcon)
+export const FileSql = icon(SqlIcon)
+export const FileTerminal = icon(FileTerminalIcon)
 export const FileText = icon(File02Icon)
+export const FileTs = icon(Typescript01Icon)
+export const FileVideo = icon(FileVideoIcon)
+export const FileXml = icon(Xml01Icon)
+export const FileZip = icon(FileZipIcon)
 export const Folder = icon(Folder01Icon)
 export const FolderInput = icon(FolderTransferIcon)
 export const FolderOpen = icon(FolderOpenIcon)

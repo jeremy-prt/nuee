@@ -67,10 +67,12 @@ if (project.value && (!started.value || props.tab.worktree)) worktrees.ensure(pr
 const support = computed(() => (project.value ? projects.support[project.value.id] : undefined))
 const blocked = computed(() => (support.value && support.value !== 'ready' ? support.value : null))
 const worktree = computed(() => !!project.value && props.tab.worktree && (started.value || !blocked.value))
+const roots = computed(() => [worktree.value ? props.tab.worktreePath : null, cwd.value].filter((root) => root != null))
 const place = computed<Place>(() => ({ cwd: cwd.value, worktree: worktree.value, worktreePath: worktree.value ? props.tab.worktreePath : null }))
 
-// Le sien porte la branche tirée de son id ; un worktree rejoint, celle que git donne.
+// Nom affiché avant que git soit lu : le sien porte la branche tirée de son id, un worktree rejoint celle que git donne.
 const branch = computed(() => {
+  if (!worktree.value) return ''
   const path = props.tab.worktreePath
   const tree = worktrees.find(props.tab.projectId, path)
   if (tree) return tree.branch ?? tree.path.split(/[\\/]/).pop() ?? ''
@@ -193,6 +195,7 @@ onMounted(() => {
         v-model:options="options"
         :agent="agent"
         :project="project"
+        :roots="roots"
         :worktree="worktreeState"
         :catalog="catalog.get(agent)"
         :context="conversation?.context ?? null"

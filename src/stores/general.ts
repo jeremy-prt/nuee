@@ -32,6 +32,7 @@ interface GeneralState {
   autoArchiveDays: AutoArchiveDays
   followUp: FollowUp
   autoResume: boolean
+  mentionIgnored: boolean
 }
 
 const STORAGE_KEY = 'nuee.general.v1'
@@ -50,6 +51,7 @@ function defaults(): GeneralState {
     autoArchiveDays: 30,
     followUp: 'queue',
     autoResume: true,
+    mentionIgnored: true,
   }
 }
 

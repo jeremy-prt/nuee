@@ -263,6 +263,13 @@ const entries: SettingEntry[] = [
     hint: 'settings.general.sessions.autoResumeHint',
   },
   {
+    id: 'mentionIgnored',
+    section: 'general',
+    label: 'settings.general.sessions.mentionIgnored',
+    hint: 'settings.general.sessions.mentionIgnoredHint',
+    keywords: ['mention'],
+  },
+  {
     id: 'archive-days',
     section: 'archive',
     label: 'settings.archive.retention',

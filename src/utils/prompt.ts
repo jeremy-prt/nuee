@@ -1,4 +1,5 @@
-export type PromptPart = { text: string; kind: 'skill' | 'file' | 'folder' | null }
+// Mention : `path` sans « @ » ni guillemets, `name` son dernier élément, qui choisit l'icône.
+export type PromptPart = { text: string; kind: 'skill' | null } | { text: string; kind: 'file' | 'folder'; path: string; name: string }
 
 // `@"chemin avec espaces"` : forme des pièces jointes envoyées à Claude.
 const MENTION = /(^|\s)(@(?:"[^"\n]*"|[^\s"]+))/g
@@ -16,7 +17,8 @@ export function promptParts(text: string, skills: ReadonlySet<string>): PromptPa
   for (let match = MENTION.exec(text); match; match = MENTION.exec(text)) {
     const start = match.index + match[1]!.length
     if (start > cursor) parts.push({ text: text.slice(cursor, start), kind: null })
-    parts.push({ text: match[2]!, kind: /\/"?$/.test(match[2]!) ? 'folder' : 'file' })
+    const path = match[2]!.replace(/^@"?|"$/g, '')
+    parts.push({ text: match[2]!, kind: path.endsWith('/') ? 'folder' : 'file', path, name: path.split('/').filter(Boolean).pop() ?? '' })
     cursor = start + match[2]!.length
   }
   if (cursor < text.length) parts.push({ text: text.slice(cursor), kind: null })

@@ -266,6 +266,8 @@ export default {
     removeAttachment: '{name} を削除',
     attachFailed: '添付できませんでした: {detail}',
     skills: 'スキル',
+    files: 'ファイル',
+    noFiles: 'ファイルが見つかりません',
     default: '既定',
     project: 'プロジェクト',
     worktree: {
@@ -275,6 +277,15 @@ export default {
       projectHint: 'エージェントはリポジトリのメインフォルダーで直接作業します。',
       new: '新しい worktree',
       newHint: 'このセッション専用の、リポジトリのコピー上のブランチです。',
+    },
+    branch: {
+      label: 'ブランチ',
+      search: 'ブランチを検索または作成',
+      create: 'ブランチ「{name}」を作成',
+      elsewhere: '別の worktree で使用中',
+      detached: 'detached HEAD',
+      none: 'ブランチがありません',
+      blocked: '{files} にコミットされていない変更があります。ブランチを切り替える前にコミットまたは stash してください。',
     },
     mode: {
       label: '権限モード',
@@ -764,6 +775,7 @@ export default {
       placeholder: '設定を検索',
       empty: '一致する設定はありません',
       keywords: {
+        mention: 'gitignore 無視 ファイル メンション アットマーク メモ',
         quota: 'クォータ 使用量 上限 プラン',
         skills: 'スキル skill コマンド スラッシュ',
         mcp: 'mcp サーバー ツール 接続',
@@ -845,6 +857,8 @@ export default {
         },
         autoResume: '使用上限後の再開',
         autoResumeHint: '使用上限で止まったセッションは、クォータが回復すると自動で再開します。',
+        mentionIgnored: "{'@'} メンションに git で無視されたファイルを含める",
+        mentionIgnoredHint: 'リポジトリ外に置いたメモもメンションできます。依存関係やビルドのフォルダーは表示されません。',
       },
       notifications: {
         title: '通知',

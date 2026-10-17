@@ -266,6 +266,8 @@ export default {
     removeAttachment: 'Remover {name}',
     attachFailed: 'Não foi possível anexar: {detail}',
     skills: 'Skills',
+    files: 'Arquivos',
+    noFiles: 'Nenhum arquivo encontrado',
     default: 'Padrão',
     project: 'Projeto',
     worktree: {
@@ -275,6 +277,15 @@ export default {
       projectHint: 'O agente trabalha direto na pasta principal do repositório.',
       new: 'Novo worktree',
       newHint: 'Uma cópia do repositório no seu próprio branch, só para esta sessão.',
+    },
+    branch: {
+      label: 'Branch',
+      search: 'Buscar ou criar um branch',
+      create: 'Criar o branch “{name}”',
+      elsewhere: 'Em outro worktree',
+      detached: 'HEAD destacado',
+      none: 'Nenhum branch',
+      blocked: 'Alterações sem commit em {files}. Fazer commit ou stash antes de trocar de branch.',
     },
     mode: {
       label: 'Modo de permissão',
@@ -764,6 +775,7 @@ export default {
       placeholder: 'Pesquisar configurações',
       empty: 'Nenhuma configuração encontrada',
       keywords: {
+        mention: 'gitignore arquivos ignorados menção arroba notas',
         quota: 'cota uso limite plano',
         skills: 'skill skills comando slash',
         mcp: 'mcp servidor ferramenta conexão',
@@ -845,6 +857,8 @@ export default {
         },
         autoResume: 'Retomada após um limite de uso',
         autoResumeHint: 'Uma sessão interrompida por um limite de uso retoma sozinha quando a cota é restabelecida.',
+        mentionIgnored: "Arquivos ignorados pelo git nas menções {'@'}",
+        mentionIgnoredHint: 'As notas fora do repositório podem ser mencionadas. As pastas de dependências e de build nunca são sugeridas.',
       },
       notifications: {
         title: 'Notificações',

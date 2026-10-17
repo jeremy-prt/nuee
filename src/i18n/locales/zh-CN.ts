@@ -266,6 +266,8 @@ export default {
     removeAttachment: '移除 {name}',
     attachFailed: '无法附加：{detail}',
     skills: '技能',
+    files: '文件',
+    noFiles: '未找到文件',
     default: '默认',
     project: '项目',
     worktree: {
@@ -275,6 +277,15 @@ export default {
       projectHint: '智能体直接在仓库的主文件夹中工作。',
       new: '新建 worktree',
       newHint: '仓库的一个副本，在自己的分支上，只给这个会话用。',
+    },
+    branch: {
+      label: '分支',
+      search: '搜索或创建分支',
+      create: '创建分支“{name}”',
+      elsewhere: '在其他 worktree 中',
+      detached: '分离的 HEAD',
+      none: '没有分支',
+      blocked: '{files} 有未提交的更改。切换分支前请先提交或暂存。',
     },
     mode: {
       label: '权限模式',
@@ -764,6 +775,7 @@ export default {
       placeholder: '搜索设置',
       empty: '没有匹配的设置',
       keywords: {
+        mention: 'gitignore 忽略 文件 提及 艾特 笔记',
         quota: '配额 用量 限额 套餐',
         skills: '技能 skill 命令 斜杠',
         mcp: 'mcp 服务器 工具 连接',
@@ -845,6 +857,8 @@ export default {
         },
         autoResume: '达到使用上限后恢复',
         autoResumeHint: '因使用上限而停止的会话会在配额恢复后自动继续。',
+        mentionIgnored: "{'@'} 提及中包含被 git 忽略的文件",
+        mentionIgnoredHint: '仓库之外的笔记也可以提及。依赖和构建文件夹不会列出。',
       },
       notifications: {
         title: '通知',

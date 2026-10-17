@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { ArrowUp, File, Folder, GitBranch, GitBranchPlus, Plus, ShieldAlert, ShieldCheck, Sparkles, Square, X } from '@/components/ui/icons'
+import { ArrowUp, File, Folder, GitBranch, GitBranchPlus, Plus, ShieldAlert, ShieldCheck, Square, X } from '@/components/ui/icons'
 import { type Component, computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import ChatBranchPicker from '@/components/chat/ChatBranchPicker.vue'
 import ChatContextMeter from '@/components/chat/ChatContextMeter.vue'
+import ChatMentionMenu from '@/components/chat/ChatMentionMenu.vue'
+import ChatPromptText from '@/components/chat/ChatPromptText.vue'
 import ChatSlashMenu from '@/components/chat/ChatSlashMenu.vue'
 import ProjectIcon from '@/components/project/ProjectIcon.vue'
 import SettingsAgentLogo from '@/components/settings/SettingsAgentLogo.vue'
@@ -26,13 +29,14 @@ import type { Project } from '@/stores/projects'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { useSkillsStore } from '@/stores/skills'
 import { agents } from '@/utils/agents'
-import { promptParts } from '@/utils/prompt'
 
 const props = defineProps<{
   chatId: string
   agent: AgentKind
   // null : chat sans projet.
   project: Project | null
+  // Dossiers où chercher les fichiers du menu « @ », le plus précis d'abord ; vide sans projet.
+  roots: string[]
   // Worktree du chat : choisi avant le premier message, affiché ensuite. `choice` : 'project', 'new' ou le chemin
   // d'un worktree de `trees` ; `blocked` : pourquoi il est impossible.
   worktree: {
@@ -165,6 +169,28 @@ const slashQuery = computed(() => {
   return word.slice(1)
 })
 
+// Mention sous le curseur : du « @ » (en début de mot) jusqu'au curseur. La forme entre guillemets ne s'y prête pas.
+const mentionMenu = useTemplateRef('mentionMenu')
+const mention = computed(() => {
+  if (caret.value === null || !props.roots.length) return null
+  const start = prompt.value.slice(0, caret.value).search(/(?<=^|\s)@[^\s"]*$/)
+  if (start === -1) return null
+  const end = start + /^\S*/.exec(prompt.value.slice(start))![0].length
+  return { start, end, query: prompt.value.slice(start + 1, caret.value) }
+})
+
+async function chooseFile(path: string) {
+  const token = mention.value
+  if (!token) return
+  const head = `${prompt.value.slice(0, token.start)}@${/\s/.test(path) ? `"${path}"` : path}`
+  const rest = prompt.value.slice(token.end)
+  prompt.value = head + (/^\s/.test(rest) ? rest : ` ${rest}`)
+  const position = head.length + 1
+  caret.value = position
+  await nextTick()
+  input.value?.setSelectionRange(position, position)
+}
+
 async function chooseSkill(name: string) {
   const head = `/${name}`
   const rest = prompt.value.replace(/^\/\S*/, '')
@@ -176,21 +202,12 @@ async function chooseSkill(name: string) {
 }
 
 const highlight = useTemplateRef('highlight')
-const skillNames = computed(() => new Set(skills.skills.filter((skill) => skills.mode(skill) !== 'off').map((skill) => skill.name)))
-// Un saut de ligne final n'ouvre pas de ligne dans une div : sans l'espace ajoutée, le calque en aurait une de moins.
-const parts = computed(() => promptParts(prompt.value.endsWith('\n') ? `${prompt.value} ` : prompt.value, skillNames.value))
 // Le skill est toujours en tête : son icône prend place dans un retrait de première ligne, posé sur les deux
 // couches pour qu'elles passent à la ligne au même endroit.
-const indent = computed(() => (parts.value[0]?.kind === 'skill' ? { textIndent: '1.125rem' } : undefined))
+const indent = computed(() => (skills.names.has(/^\/(\S+)/.exec(prompt.value)?.[1] ?? '') ? { textIndent: '1.125rem' } : undefined))
 const syncScroll = () => {
   if (highlight.value && input.value) highlight.value.scrollTop = input.value.scrollTop
 }
-// Message repris ou rempli sans passer par le menu « / » : ses skills ne sont pas encore lus.
-watch(
-  () => prompt.value.startsWith('/') && !skills.skills.length,
-  (missing) => missing && skills.loadSkills(),
-)
-
 const canSend = computed(() => (!!prompt.value.trim() || attachments.value.length > 0) && !saving.value)
 
 // Le champ suit la hauteur du texte jusqu'à son max-h, puis défile.
@@ -270,7 +287,7 @@ defineExpose({ attach, fill, focus: focusInput })
 
 // Maj+Entrée va à la ligne (natif). Pendant une saisie IME, Entrée valide le mot.
 function onKeydown(event: KeyboardEvent) {
-  if (event.isComposing || slashMenu.value?.keydown(event) || !shortcuts.matches(event, 'send')) return
+  if (event.isComposing || slashMenu.value?.keydown(event) || mentionMenu.value?.keydown(event) || !shortcuts.matches(event, 'send')) return
   event.preventDefault()
   submit()
 }
@@ -290,11 +307,10 @@ function onKeydown(event: KeyboardEvent) {
           <span class="truncate">{{ project.name }}</span>
         </p>
         <template v-if="worktree">
-          <p v-if="worktree.started && worktree.choice !== 'project'" class="ms-auto flex shrink-0 items-center gap-1">
-            <GitBranch class="size-3.5" aria-hidden="true" />
-            <span class="sr-only">{{ t('composer.worktree.label') }}</span>{{ worktree.branch }}
-          </p>
-          <span v-else-if="!worktree.started" class="ms-auto flex min-w-0 shrink-0">
+          <span v-if="worktree.started" class="ms-auto flex min-w-0 shrink-0">
+            <ChatBranchPicker :key="chatId" :chat-id="chatId" :project="project" :fallback="worktree.branch" :disabled="disabled || running" />
+          </span>
+          <span v-else class="ms-auto flex min-w-0 shrink-0">
             <UiMenu
               :label="worktreeLabel"
               :sections="worktreeSections"
@@ -350,12 +366,7 @@ function onKeydown(event: KeyboardEvent) {
           :style="indent"
           class="pointer-events-none absolute inset-0 overflow-hidden px-3 py-3 text-sm leading-5.5 wrap-break-word whitespace-pre-wrap"
         >
-          <!-- Fonds et icônes ne changent aucune largeur (marges négatives, « @ » transparent) : le calque reste calé sur le texte du champ. -->
-          <template v-for="(part, index) in parts" :key="index">
-            <span v-if="part.kind === 'skill'" class="relative -ms-4.5 -me-1 rounded-md bg-skill/15 py-0.5 ps-4.5 pe-1 text-skill"><Sparkles class="absolute start-1 top-1/2 size-3 -translate-y-1/2" aria-hidden="true" />{{ part.text }}</span>
-            <span v-else-if="part.kind" class="-mx-0.5 rounded-md bg-mention/15 px-0.5 py-0.5 text-mention"><span class="relative text-transparent">@<component :is="part.kind === 'folder' ? Folder : File" class="absolute start-1/2 top-1/2 size-3.5 -translate-1/2 text-mention" aria-hidden="true" /></span>{{ part.text.slice(1) }}</span>
-            <template v-else>{{ part.text }}</template>
-          </template>
+          <ChatPromptText :text="prompt" fit />
         </div>
         <textarea
           :id="id"
@@ -363,8 +374,8 @@ function onKeydown(event: KeyboardEvent) {
           v-model="prompt"
           rows="1"
           aria-autocomplete="list"
-          :aria-controls="slashMenu?.open ? `${id}-skills` : undefined"
-          :aria-activedescendant="slashMenu?.activeId"
+          :aria-controls="slashMenu?.activeId ? `${id}-skills` : mentionMenu?.activeId ? `${id}-files` : undefined"
+          :aria-activedescendant="slashMenu?.activeId ?? mentionMenu?.activeId"
           autocorrect="off"
           autocapitalize="off"
           spellcheck="false"
@@ -446,5 +457,6 @@ function onKeydown(event: KeyboardEvent) {
       </div>
     </div>
     <ChatSlashMenu ref="slashMenu" :id="`${id}-skills`" :query="slashQuery" @choose="chooseSkill" />
+    <ChatMentionMenu ref="mentionMenu" :id="`${id}-files`" :query="mention?.query ?? null" :roots="roots" @choose="chooseFile" />
   </form>
 </template>

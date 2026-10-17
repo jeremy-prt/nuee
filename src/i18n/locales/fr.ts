@@ -266,6 +266,8 @@ export default {
     removeAttachment: 'Retirer {name}',
     attachFailed: 'Impossible de joindre : {detail}',
     skills: 'Skills',
+    files: 'Fichiers',
+    noFiles: 'Aucun fichier trouvé',
     default: 'Par défaut',
     project: 'Projet',
     worktree: {
@@ -275,6 +277,15 @@ export default {
       projectHint: 'L\'agent travaille directement dans le dossier principal du dépôt.',
       new: 'Nouveau worktree',
       newHint: 'Une copie du dépôt sur sa propre branche, rien que pour cette session.',
+    },
+    branch: {
+      label: 'Branche',
+      search: 'Rechercher ou créer une branche',
+      create: 'Créer la branche « {name} »',
+      elsewhere: 'Dans un autre worktree',
+      detached: 'HEAD détaché',
+      none: 'Aucune branche',
+      blocked: 'Modifications non commitées dans {files}. Les committer ou les remiser avant de changer de branche.',
     },
     mode: {
       label: 'Mode de permission',
@@ -764,6 +775,7 @@ export default {
       placeholder: 'Rechercher un réglage',
       empty: 'Aucun réglage trouvé',
       keywords: {
+        mention: 'gitignore fichiers ignorés mention arobase notes',
         quota: 'quota utilisation limite forfait abonnement',
         skills: 'skill skills commande slash compétence',
         mcp: 'mcp serveur outil connexion',
@@ -845,6 +857,8 @@ export default {
         },
         autoResume: 'Reprise après une limite d\'utilisation',
         autoResumeHint: 'Une session arrêtée par une limite d\'utilisation reprend seule quand le quota se rétablit.',
+        mentionIgnored: "Fichiers ignorés par git dans les mentions {'@'}",
+        mentionIgnoredHint: 'Les notes gardées hors du dépôt restent mentionnables. Les dossiers de dépendances et de build ne sont jamais proposés.',
       },
       notifications: {
         title: 'Notifications',

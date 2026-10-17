@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import ChatCommandRow from '@/components/chat/ChatCommandRow.vue'
 import ChatCopyButton from '@/components/chat/ChatCopyButton.vue'
 import ChatMarkdown from '@/components/chat/ChatMarkdown.vue'
+import ChatPromptText from '@/components/chat/ChatPromptText.vue'
 import ChatSkillForm from '@/components/chat/ChatSkillForm.vue'
 import ChatTool from '@/components/chat/ChatTool.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
@@ -53,7 +54,7 @@ const agentParams = computed(() => ({ agent: agents[props.agent].name, command: 
     <p
       v-if="item.text"
       class="max-w-[85%] rounded-xl bg-selection px-3 py-2 text-sm whitespace-pre-wrap break-words select-text"
-    >{{ item.text }}</p>
+    ><ChatPromptText :text="item.text" /></p>
     <p v-if="item.steered" class="flex items-center gap-1 text-[11px] text-muted">
       <CornerDownRight class="size-3" aria-hidden="true" />{{ t('chat.queue.steered') }}
     </p>

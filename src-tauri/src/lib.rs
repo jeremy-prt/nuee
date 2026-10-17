@@ -124,6 +124,7 @@ pub fn run() {
             commands::project::project_icon,
             commands::project::project_icon_set,
             commands::project::project_icon_reset,
+            commands::project::project_files,
             commands::project::project_reveal,
             commands::skills::skills_list,
             commands::skills::skills_read,
@@ -135,6 +136,8 @@ pub fn run() {
             commands::worktree::worktree_support,
             commands::worktree::worktree_list,
             commands::worktree::worktree_branches,
+            commands::worktree::worktree_refs,
+            commands::worktree::worktree_switch,
             commands::worktree::worktree_create,
             commands::worktree::worktree_remove,
         ])
