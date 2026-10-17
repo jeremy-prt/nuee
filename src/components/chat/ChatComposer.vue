@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowUp, File, Folder, GitBranch, GitBranchPlus, Plus, ShieldAlert, ShieldCheck, Square, X } from '@/components/ui/icons'
+import { ArrowUp, File, Folder, GitBranch, GitBranchPlus, Plus, ShieldAlert, ShieldCheck, Sparkles, Square, X } from '@/components/ui/icons'
 import { type Component, computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatContextMeter from '@/components/chat/ChatContextMeter.vue'
@@ -24,7 +24,9 @@ import { pickFiles } from '@/ipc/dialog'
 import { useGeneralStore } from '@/stores/general'
 import type { Project } from '@/stores/projects'
 import { useShortcutsStore } from '@/stores/shortcuts'
+import { useSkillsStore } from '@/stores/skills'
 import { agents } from '@/utils/agents'
+import { promptParts } from '@/utils/prompt'
 
 const props = defineProps<{
   chatId: string
@@ -58,6 +60,7 @@ const emit = defineEmits<{ send: [prompt: string, attachments: Attachment[]]; st
 const { t } = useI18n()
 const shortcuts = useShortcutsStore()
 const general = useGeneralStore()
+const skills = useSkillsStore()
 const prompt = ref('')
 const attachments = ref<Attachment[]>([])
 // Fichiers en cours d'écriture sur disque : envoyer avant les perdrait.
@@ -172,6 +175,22 @@ async function chooseSkill(name: string) {
   input.value?.setSelectionRange(position, position)
 }
 
+const highlight = useTemplateRef('highlight')
+const skillNames = computed(() => new Set(skills.skills.filter((skill) => skills.mode(skill) !== 'off').map((skill) => skill.name)))
+// Un saut de ligne final n'ouvre pas de ligne dans une div : sans l'espace ajoutée, le calque en aurait une de moins.
+const parts = computed(() => promptParts(prompt.value.endsWith('\n') ? `${prompt.value} ` : prompt.value, skillNames.value))
+// Le skill est toujours en tête : son icône prend place dans un retrait de première ligne, posé sur les deux
+// couches pour qu'elles passent à la ligne au même endroit.
+const indent = computed(() => (parts.value[0]?.kind === 'skill' ? { textIndent: '1.125rem' } : undefined))
+const syncScroll = () => {
+  if (highlight.value && input.value) highlight.value.scrollTop = input.value.scrollTop
+}
+// Message repris ou rempli sans passer par le menu « / » : ses skills ne sont pas encore lus.
+watch(
+  () => prompt.value.startsWith('/') && !skills.skills.length,
+  (missing) => missing && skills.loadSkills(),
+)
+
 const canSend = computed(() => (!!prompt.value.trim() || attachments.value.length > 0) && !saving.value)
 
 // Le champ suit la hauteur du texte jusqu'à son max-h, puis défile.
@@ -182,6 +201,7 @@ watch(
     if (!field) return
     field.style.height = 'auto'
     field.style.height = `${field.scrollHeight}px`
+    syncScroll()
   },
   { flush: 'post' },
 )
@@ -323,29 +343,46 @@ function onKeydown(event: KeyboardEvent) {
       </ul>
       <p v-if="attachError" class="px-3 pt-2 text-xs text-danger" role="alert">{{ attachError }}</p>
       <label :for="id" class="sr-only">{{ t('composer.label') }}</label>
-      <textarea
-        :id="id"
-        ref="input"
-        v-model="prompt"
-        rows="1"
-        aria-autocomplete="list"
-        :aria-controls="slashMenu?.open ? `${id}-skills` : undefined"
-        :aria-activedescendant="slashMenu?.activeId"
-        autocorrect="off"
-        autocapitalize="off"
-        spellcheck="false"
-        writingsuggestions="false"
-        :disabled="disabled"
-        class="block max-h-60 min-h-20 w-full resize-none bg-transparent px-3 py-3 text-sm leading-5.5 select-text outline-none placeholder:truncate placeholder:text-muted"
-        :placeholder="t('composer.placeholder')"
-        @keydown="onKeydown"
-        @input="syncCaret"
-        @keyup="syncCaret"
-        @click="syncCaret"
-        @focus="syncCaret(); emit('warm')"
-        @blur="caret = null"
-        @paste="onPaste"
-      />
+      <div class="relative">
+        <div
+          ref="highlight"
+          aria-hidden="true"
+          :style="indent"
+          class="pointer-events-none absolute inset-0 overflow-hidden px-3 py-3 text-sm leading-5.5 wrap-break-word whitespace-pre-wrap"
+        >
+          <!-- Fonds et icônes ne changent aucune largeur (marges négatives, « @ » transparent) : le calque reste calé sur le texte du champ. -->
+          <template v-for="(part, index) in parts" :key="index">
+            <span v-if="part.kind === 'skill'" class="relative -ms-4.5 -me-1 rounded-md bg-skill/15 py-0.5 ps-4.5 pe-1 text-skill"><Sparkles class="absolute start-1 top-1/2 size-3 -translate-y-1/2" aria-hidden="true" />{{ part.text }}</span>
+            <span v-else-if="part.kind" class="-mx-0.5 rounded-md bg-mention/15 px-0.5 py-0.5 text-mention"><span class="relative text-transparent">@<component :is="part.kind === 'folder' ? Folder : File" class="absolute start-1/2 top-1/2 size-3.5 -translate-1/2 text-mention" aria-hidden="true" /></span>{{ part.text.slice(1) }}</span>
+            <template v-else>{{ part.text }}</template>
+          </template>
+        </div>
+        <textarea
+          :id="id"
+          ref="input"
+          v-model="prompt"
+          rows="1"
+          aria-autocomplete="list"
+          :aria-controls="slashMenu?.open ? `${id}-skills` : undefined"
+          :aria-activedescendant="slashMenu?.activeId"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+          writingsuggestions="false"
+          :disabled="disabled"
+          :style="indent"
+          class="prompt-field relative block max-h-60 min-h-20 w-full resize-none bg-transparent px-3 py-3 text-sm leading-5.5 select-text outline-none placeholder:truncate"
+          :placeholder="t('composer.placeholder')"
+          @keydown="onKeydown"
+          @input="syncCaret"
+          @keyup="syncCaret"
+          @click="syncCaret"
+          @focus="syncCaret(); emit('warm')"
+          @blur="caret = null"
+          @paste="onPaste"
+          @scroll="syncScroll"
+        />
+      </div>
       <!-- Étroite (petite fenêtre, écran partagé) : l'effort et le nom du mode ne restent que pour les lecteurs d'écran. -->
       <div class="flex items-center gap-1 px-2 pb-2">
         <UiIconButton class="bg-selection" :label="t('composer.attach')" :disabled="disabled" :loading="saving > 0" @click="pick">

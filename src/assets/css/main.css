@@ -28,6 +28,9 @@
   --color-warning: hsl(40 90% 60%);
   --color-info: hsl(210 85% 65%);
   --color-orange: hsl(16 70% 58%);
+  /* Skill et `@fichier` dans le champ de saisie (couleurs de monocode). */
+  --color-skill: hsl(48 78% 59%);
+  --color-mention: hsl(199 89% 60%);
   /* Fonds des barres et panneaux (chrome) et de la zone centrale (surface) : voir le style de fenêtre plus bas. */
   --color-chrome: var(--color-canvas);
   --color-surface: var(--color-canvas);
@@ -77,6 +80,23 @@ body,
 /* Texte sélectionné (chat, code) à la couleur du thème plutôt qu'à celle de macOS. */
 ::selection {
   background-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
+}
+
+/* Champ de saisie posé sur son calque coloré (ChatComposer) : son texte, sélection comprise, reste invisible. */
+.prompt-field,
+.prompt-field::selection {
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+.prompt-field {
+  caret-color: var(--color-content);
+  scrollbar-width: none;
+}
+.prompt-field::-webkit-scrollbar {
+  display: none;
+}
+.prompt-field::placeholder {
+  -webkit-text-fill-color: var(--color-muted);
 }
 
 /* Fenêtre transparente : macOS seulement (tauri.macos.conf.json), flou posé par window_set_blur. Le style
