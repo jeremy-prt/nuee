@@ -27,6 +27,7 @@
   --color-success: hsl(145 50% 55%);
   --color-warning: hsl(40 90% 60%);
   --color-info: hsl(210 85% 65%);
+  --color-orange: hsl(16 70% 58%);
   /* Fonds des barres et panneaux (chrome) et de la zone centrale (surface) : voir le style de fenêtre plus bas. */
   --color-chrome: var(--color-canvas);
   --color-surface: var(--color-canvas);

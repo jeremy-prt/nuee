@@ -4,9 +4,10 @@ use std::path::{Path, PathBuf};
 use serde_json::Value;
 
 use super::{
-    Account, AgentEvent, Attached, Catalog, Driver, Effort, FileChange, McpAuth, McpServer,
-    McpStatus, ModelInfo, ModelQuota, PermissionMode, Probe, Quota, Rewind, SessionSpec, TaskKind,
-    TaskStatus, ToolDetail, ToolImage, ToolKind, TurnStatus, Usage,
+    Account, AgentEvent, Attached, CONTEXT_EVENT, Catalog, ContextCategory, ContextKind,
+    ContextUsage, Driver, Effort, FileChange, McpAuth, McpServer, McpStatus, ModelInfo, ModelQuota,
+    PermissionMode, Probe, Quota, Rewind, SessionSpec, TaskKind, TaskStatus, ToolDetail, ToolImage,
+    ToolKind, TurnStatus, Usage,
 };
 
 const OUTPUT_LIMIT: usize = 4000;
@@ -541,6 +542,21 @@ impl Driver for Claude {
         .to_string()
     }
 
+    fn context_request(&self, request_id: &str) -> Option<String> {
+        Some(
+            serde_json::json!({
+                "type": "control_request",
+                "request_id": request_id,
+                "request": { "subtype": "get_context_usage" },
+            })
+            .to_string(),
+        )
+    }
+
+    fn read_context(&self, response: &Value) -> Option<ContextUsage> {
+        context_of(response)
+    }
+
     fn control_response(&self, line: &str) -> Option<(String, Result<Value, String>)> {
         if !line.contains("\"control_response\"") {
             return None;
@@ -687,6 +703,20 @@ impl Driver for Claude {
                 if info["status"] == "rejected" {
                     events.push(AgentEvent::Limited {
                         resets_at: info["resetsAt"].as_i64().map(|seconds| seconds * 1000),
+                    });
+                }
+            }
+            Some("control_response") if line["response"]["request_id"] == CONTEXT_EVENT => {
+                if let Some(ContextUsage {
+                    used,
+                    window,
+                    categories,
+                }) = self.read_context(&line["response"]["response"])
+                {
+                    events.push(AgentEvent::Context {
+                        used,
+                        window,
+                        categories,
                     });
                 }
             }
@@ -1082,6 +1112,36 @@ fn rate_limit_of(info: &Value) -> Option<AgentEvent> {
         session,
         weekly,
         model,
+    })
+}
+
+/// Réponse à `get_context_usage` : le même calcul que `/context`, prompt système et outils compris.
+fn context_of(response: &Value) -> Option<ContextUsage> {
+    let tokens = |value: &Value| value.as_u64().and_then(|n| u32::try_from(n).ok());
+    let window = tokens(&response["maxTokens"]).filter(|window| *window > 0)?;
+    let categories = response["categories"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|category| {
+            let kind = match category["kind"].as_str() {
+                Some("used") => ContextKind::Used,
+                Some("deferred") => ContextKind::Deferred,
+                Some("buffer") => ContextKind::Buffer,
+                Some("free") => ContextKind::Free,
+                _ => return None,
+            };
+            Some(ContextCategory {
+                name: category["name"].as_str()?.to_owned(),
+                tokens: tokens(&category["tokens"])?,
+                kind,
+            })
+        })
+        .collect();
+    Some(ContextUsage {
+        used: tokens(&response["totalTokens"])?,
+        window,
+        categories,
     })
 }
 
@@ -1623,6 +1683,34 @@ mod tests {
         ]);
         assert!(probe.usage_read && !probe.described);
         assert_eq!(probe.usage, None);
+    }
+
+    #[test]
+    fn context_usage_comes_from_the_cli_count() {
+        let (_, events) = parse(&[
+            r#"{"type":"control_response","response":{"subtype":"success","request_id":"nuee-context","response":{"categories":[{"name":"Messages","tokens":5206,"kind":"used"},{"name":"MCP tools (deferred)","tokens":125943,"isDeferred":true,"kind":"deferred"},{"name":"Autre","tokens":3,"kind":"inconnu"}],"totalTokens":41432,"maxTokens":1000000,"percentage":4}}}"#,
+            r#"{"type":"control_response","response":{"subtype":"error","request_id":"nuee-context","error":"Unknown subtype"}}"#,
+            r#"{"type":"control_response","response":{"subtype":"success","request_id":"nuee-usage","response":{"totalTokens":1,"maxTokens":2}}}"#,
+        ]);
+        assert_eq!(
+            events,
+            [AgentEvent::Context {
+                used: 41432,
+                window: 1_000_000,
+                categories: vec![
+                    ContextCategory {
+                        name: "Messages".into(),
+                        tokens: 5206,
+                        kind: ContextKind::Used,
+                    },
+                    ContextCategory {
+                        name: "MCP tools (deferred)".into(),
+                        tokens: 125_943,
+                        kind: ContextKind::Deferred,
+                    },
+                ],
+            }]
+        );
     }
 
     #[test]

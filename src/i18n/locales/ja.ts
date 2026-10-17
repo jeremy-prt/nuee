@@ -295,6 +295,14 @@ export default {
       xhigh: '最高',
       max: '最大',
     },
+    context: {
+      label: 'コンテキスト使用率 {percent}',
+      summary: '{percent} · {used} / {window}',
+      title: 'コンテキスト',
+      used: '{percent} 使用中',
+      compactHint: '会話を要約して空きを作ります。',
+      compact: '圧縮',
+    },
   },
   home: {
     subtitle: 'アクティビティの概要がここに表示されます。',

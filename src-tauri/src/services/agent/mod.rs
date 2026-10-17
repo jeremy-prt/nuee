@@ -292,6 +292,38 @@ pub struct Quota {
     pub resets_at: Option<i64>,
 }
 
+/// Place prise dans la fenêtre de contexte du modèle, en tokens.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct ContextUsage {
+    pub used: u32,
+    pub window: u32,
+    #[serde(default)]
+    pub categories: Vec<ContextCategory>,
+}
+
+/// Une part du contexte telle que l'agent la nomme (Messages, System tools...).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct ContextCategory {
+    pub name: String,
+    pub tokens: u32,
+    pub kind: ContextKind,
+}
+
+/// `Deferred` : outils chargés seulement à la demande, ils ne comptent pas dans le total.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum ContextKind {
+    Used,
+    Deferred,
+    Buffer,
+    Free,
+}
+
 /// Ce que l'agent dit de lui quand on le lance sans tour.
 #[derive(Default)]
 struct Probe {
@@ -372,6 +404,12 @@ pub enum AgentEvent {
     ApprovalCancelled {
         id: String,
     },
+    /// Contexte relu après chaque tour, compaction comprise.
+    Context {
+        used: u32,
+        window: u32,
+        categories: Vec<ContextCategory>,
+    },
     /// Quotas relus pendant le tour : seules les valeurs présentes changent.
     Usage {
         session: Option<Quota>,
@@ -439,6 +477,10 @@ trait Driver: Send + Sync {
     /// Requête qui demande la fin de la sortie d'une commande en arrière-plan ; `read_task_output` lit la réponse.
     fn task_output_request(&self, request_id: &str, task_id: &str) -> String;
     fn read_task_output(&self, response: &serde_json::Value) -> Option<String>;
+    /// Requête qui relève le contexte ; `read_context` lit la réponse. Celle d'identifiant
+    /// `CONTEXT_EVENT`, envoyée après chaque tour, revient par `parse_line` en `Context`.
+    fn context_request(&self, request_id: &str) -> Option<String>;
+    fn read_context(&self, response: &serde_json::Value) -> Option<ContextUsage>;
     /// `Some` quand la ligne répond à une requête de Nuée : son identifiant et la réponse.
     fn control_response(&self, line: &str) -> Option<(String, Result<serde_json::Value, String>)>;
     /// Requêtes qui ramènent la session avant le message `message_id`, à envoyer une à une : identifiant et ligne.
@@ -455,6 +497,10 @@ trait Driver: Send + Sync {
     /// Traduit une ligne de sortie ; renvoie `TurnEnd` quand l'agent clôt le tour.
     fn parse_line(&mut self, line: &str) -> Vec<AgentEvent>;
 }
+
+const CONTEXT_EVENT: &str = "nuee-context";
+/// Un process qui vient de démarrer charge encore ses serveurs MCP avant de répondre.
+const CONTEXT_TIMEOUT: Duration = Duration::from_secs(20);
 
 /// Temps laissé à l'agent pour obéir avant de passer au signal suivant.
 const GRACE: Duration = Duration::from_secs(2);
@@ -586,15 +632,35 @@ impl AgentService {
         Ok(session.steer(driver.user_message(prompt, &attached)))
     }
 
-    /// Lance le process d'un chat avant le premier message, pendant que l'utilisateur écrit.
-    pub fn warm(&self, spec: SessionSpec) -> Result<(), AppError> {
+    /// Lance le process d'un chat avant le premier message, pendant que l'utilisateur écrit, et rend son
+    /// contexte. `None` si le process sert d'autres réglages (il sera relancé au prochain message) ou travaille.
+    pub async fn warm(&self, spec: SessionSpec) -> Result<Option<ContextUsage>, AppError> {
         let (key, cwd) = self.key(&spec)?;
-        let mut sessions = lock(&self.sessions);
-        if !sessions.contains_key(&spec.chat_id) {
-            let session = self.start(&spec, key, &cwd)?;
-            sessions.insert(spec.chat_id.clone(), session);
+        let id = format!(
+            "nuee-context-{}",
+            self.next_request.fetch_add(1, Ordering::Relaxed)
+        );
+        let (answer, driver) = {
+            let mut sessions = lock(&self.sessions);
+            if !sessions.contains_key(&spec.chat_id) {
+                let session = self.start(&spec, key.clone(), &cwd)?;
+                sessions.insert(spec.chat_id.clone(), session);
+            }
+            let Some(session) = sessions.get(&spec.chat_id) else {
+                return Ok(None);
+            };
+            let driver = spec.agent.driver(&cwd);
+            match driver.context_request(&id) {
+                Some(line) if session.key == key && !session.busy() => {
+                    (session.request(id, line), driver)
+                }
+                _ => return Ok(None),
+            }
+        };
+        match timeout(CONTEXT_TIMEOUT, answer).await {
+            Ok(Ok(Ok(response))) => Ok(driver.read_context(&response)),
+            _ => Ok(None),
         }
-        Ok(())
     }
 
     /// Interrompt le tour en cours ; le process reste ouvert et garde ce qu'il avait déjà écrit.

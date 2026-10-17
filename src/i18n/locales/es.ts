@@ -295,6 +295,14 @@ export default {
       xhigh: 'Muy alto',
       max: 'Máx.',
     },
+    context: {
+      label: '{percent} del contexto usado',
+      summary: '{percent} · {used} / {window}',
+      title: 'Contexto',
+      used: '{percent} usado',
+      compactHint: 'La conversación se resume para liberar espacio.',
+      compact: 'Compactar',
+    },
   },
   home: {
     subtitle: 'Aquí aparecerá un resumen de la actividad.',

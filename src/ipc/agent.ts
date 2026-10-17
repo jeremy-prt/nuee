@@ -6,6 +6,7 @@ import type { AppError } from '@/ipc/bindings/AppError'
 import type { Attachment } from '@/ipc/bindings/Attachment'
 import type { Catalog } from '@/ipc/bindings/Catalog'
 import type { ChatCommand } from '@/ipc/bindings/ChatCommand'
+import type { ContextUsage } from '@/ipc/bindings/ContextUsage'
 import type { Rewind } from '@/ipc/bindings/Rewind'
 import type { SessionSpec } from '@/ipc/bindings/SessionSpec'
 
@@ -25,9 +26,10 @@ export function agentSend(
   return invoke<string | null>('agent_send', { spec, prompt, attachments, recap, command, onEvent: channel })
 }
 
-// Démarre le process du chat pendant que l'utilisateur écrit : le premier message part sans attendre.
+// Démarre le process du chat pendant que l'utilisateur écrit : le premier message part sans attendre. Rend le
+// contexte déjà pris (prompt système, outils), null si le process ne peut pas le dire maintenant.
 export function agentWarm(spec: SessionSpec) {
-  return invoke<void>('agent_warm', { spec })
+  return invoke<ContextUsage | null>('agent_warm', { spec })
 }
 
 // Ajoute un message à la réponse en cours. false : réponse déjà complète, il attend le tour suivant.

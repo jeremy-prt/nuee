@@ -295,6 +295,14 @@ export default {
       xhigh: '很高',
       max: '最高',
     },
+    context: {
+      label: '已使用 {percent} 上下文',
+      summary: '{percent} · {used} / {window}',
+      title: '上下文',
+      used: '已使用 {percent}',
+      compactHint: '对话将被总结以释放空间。',
+      compact: '压缩',
+    },
   },
   home: {
     subtitle: '活动摘要将显示在这里。',

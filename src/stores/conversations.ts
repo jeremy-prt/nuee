@@ -7,6 +7,7 @@ import type { AppError } from '@/ipc/bindings/AppError'
 import type { Attachment } from '@/ipc/bindings/Attachment'
 import type { ChatCommand } from '@/ipc/bindings/ChatCommand'
 import type { ChatSummary } from '@/ipc/bindings/ChatSummary'
+import type { ContextUsage } from '@/ipc/bindings/ContextUsage'
 import type { FileChange } from '@/ipc/bindings/FileChange'
 import type { SessionSpec } from '@/ipc/bindings/SessionSpec'
 import type { TaskKind } from '@/ipc/bindings/TaskKind'
@@ -113,6 +114,8 @@ export interface Conversation {
   lastPlace: Place | null
   // Demandes d'autorisation (mode Auto) en attente de réponse, la plus ancienne d'abord. Non enregistrées.
   approvals: readonly Approval[]
+  // Dernier relevé de la fenêtre de contexte, null tant que l'agent n'en a pas donné pour ce modèle.
+  context: ContextUsage | null
   // Faux tant que l'historique n'est pas lu : envoyer avant écraserait la conversation chargée.
   loaded: boolean
   // Remplacé à chaque frame, jamais muté : un élément modifié est un nouvel objet.
@@ -198,7 +201,7 @@ function apply(conversation: Conversation, events: AgentEvent[]) {
   let signal: Signal | null = null
   for (const event of events) {
     if (event.type === 'text' || event.type === 'tool' || event.type === 'thinking') resume(conversation, items)
-    if (event.type !== 'thinking' && event.type !== 'usage' && event.type !== 'task') endThinking(conversation, items)
+    if (event.type !== 'thinking' && event.type !== 'usage' && event.type !== 'task' && event.type !== 'context') endThinking(conversation, items)
     switch (event.type) {
       case 'session':
         conversation.sessionId = event.id
@@ -276,6 +279,9 @@ function apply(conversation: Conversation, events: AgentEvent[]) {
       }
       case 'approvalCancelled':
         setApprovals(conversation, conversation.approvals.filter((approval) => approval.id !== event.id))
+        break
+      case 'context':
+        conversation.context = { used: event.used, window: event.window, categories: event.categories }
         break
       case 'limited':
         conversation.limited = { resetsAt: event.resetsAt }
@@ -385,6 +391,7 @@ export const useConversationsStore = defineStore('conversations', () => {
       resumeAt: null,
       lastPlace: null,
       approvals: [],
+      context: null,
       loaded,
       items: [],
     })
@@ -404,8 +411,8 @@ export const useConversationsStore = defineStore('conversations', () => {
       timers.delete(chatId)
       const conversation = conversations.get(chatId)
       if (!conversation?.loaded) return
-      const { sessionId, options, items } = conversation
-      write(chatId, () => chatSave(chatId, { sessionId, options, items: [...items] }))
+      const { sessionId, options, items, context } = conversation
+      write(chatId, () => chatSave(chatId, { sessionId, options, items: [...items], context }))
     }, SAVE_DELAY)
     timers.set(chatId, timer)
   }
@@ -441,6 +448,7 @@ export const useConversationsStore = defineStore('conversations', () => {
         if (!content) return
         conversation.sessionId = content.sessionId
         conversation.options = content.options
+        conversation.context = content.context
         conversation.items = settleInterrupted(content.items as ChatItem[])
       })
       .catch((error) => console.error('historique', error))
@@ -452,6 +460,9 @@ export const useConversationsStore = defineStore('conversations', () => {
   function setOptions(chatId: string, options: TurnOptions) {
     const conversation = conversations.get(chatId)
     if (!conversation) return
+    // La fenêtre dépend du modèle : l'ancien relevé donnerait un faux pourcentage jusqu'au prochain tour.
+    const { agent } = conversation
+    if (catalog.resolve(agent, options).model !== catalog.resolve(agent, conversation.options).model) conversation.context = null
     conversation.options = options
     save(chatId)
   }
@@ -642,7 +653,11 @@ export const useConversationsStore = defineStore('conversations', () => {
   function warm(chatId: string, place: Place) {
     const conversation = conversations.get(chatId)
     if (!conversation?.loaded || conversation.phase !== 'idle') return
-    agentWarm(spec(chatId, conversation, place)).catch(() => {})
+    agentWarm(spec(chatId, conversation, place))
+      .then((context) => {
+        if (context && conversation.phase === 'idle') conversation.context = context
+      })
+      .catch(() => {})
   }
 
   function approve(chatId: string, requestId: string, allow: boolean) {

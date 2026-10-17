@@ -195,6 +195,8 @@ onMounted(() => {
         :project="project"
         :worktree="worktreeState"
         :catalog="catalog.get(agent)"
+        :context="conversation?.context ?? null"
+        :compactable="items.some((item) => item.kind === 'user')"
         :disabled="!loaded"
         :running="answering"
         :approving="!!approval"
@@ -202,6 +204,7 @@ onMounted(() => {
         @warm="conversations.warm(tab.id, place)"
         @worktree="chooseWorktree"
         @stop="conversations.stop(tab.id)"
+        @compact="send('/compact', [])"
       />
     </div>
     <div

@@ -12,7 +12,8 @@ use tokio::sync::{mpsc, oneshot};
 use tokio::time::timeout;
 
 use super::{
-    AgentEvent, AgentKind, Driver, GRACE, TaskStatus, TurnOptions, TurnStatus, lock, process,
+    AgentEvent, AgentKind, CONTEXT_EVENT, Driver, GRACE, TaskStatus, TurnOptions, TurnStatus, lock,
+    process,
 };
 use crate::utils::shell_env;
 
@@ -124,6 +125,8 @@ impl Session {
             .map(|stream| tauri::async_runtime::spawn(read_tail(stream)));
         let stdout = child.stdout.take();
         let (reader_slot, reader_alive) = (slot.clone(), alive.clone());
+        // Faible : la session abandonnée doit pouvoir fermer stdin pendant que la lecture continue.
+        let reader_input = input.downgrade();
         tauri::async_runtime::spawn(async move {
             if let Some(stdout) = stdout {
                 let mut lines = BufReader::new(stdout).lines();
@@ -136,7 +139,15 @@ impl Session {
                         }
                     }
                     for event in driver.parse_line(&line) {
+                        let ended = matches!(event, AgentEvent::TurnEnd { .. });
                         deliver(&reader_slot, event);
+                        if ended
+                            && let Some((input, request)) = reader_input
+                                .upgrade()
+                                .zip(driver.context_request(CONTEXT_EVENT))
+                        {
+                            let _ = input.send(request);
+                        }
                     }
                 }
             }
@@ -536,6 +547,12 @@ mod tests {
             String::new()
         }
         fn read_task_output(&self, _: &serde_json::Value) -> Option<String> {
+            None
+        }
+        fn context_request(&self, _: &str) -> Option<String> {
+            None
+        }
+        fn read_context(&self, _: &serde_json::Value) -> Option<super::super::ContextUsage> {
             None
         }
         fn control_response(&self, _: &str) -> Option<(String, Result<serde_json::Value, String>)> {

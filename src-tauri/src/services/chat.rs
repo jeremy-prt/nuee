@@ -8,7 +8,7 @@ use serde_json::Value;
 use ts_rs::TS;
 
 use crate::error::AppError;
-use crate::services::agent::{AgentKind, TurnOptions};
+use crate::services::agent::{AgentKind, ContextUsage, TurnOptions};
 use crate::services::worktree::canonical;
 
 /// Ce que la barre latérale affiche d'un chat, sans charger sa conversation.
@@ -65,6 +65,8 @@ pub struct ChatContent {
     /// Messages tels que le front les affiche : Rust les range sans les lire.
     #[ts(type = "unknown[]")]
     pub items: Value,
+    /// Dernier relevé de l'agent : la jauge s'affiche dès la réouverture du chat.
+    pub context: Option<ContextUsage>,
 }
 
 /// Une version de schéma par entrée : `PRAGMA user_version` dit lesquelles sont déjà passées.
@@ -91,6 +93,7 @@ const MIGRATIONS: &[&str] = &[
     // La liste lisait toute la conversation (`items != '[]'`) pour savoir si un chat avait commencé.
     "ALTER TABLE chats ADD COLUMN started INTEGER NOT NULL DEFAULT 0;
      UPDATE chats SET started = 1 WHERE items != '[]'",
+    "ALTER TABLE chats ADD COLUMN context TEXT",
 ];
 
 /// Historique des chats dans une base SQLite du dossier de données de l'app.
@@ -180,18 +183,19 @@ impl ChatService {
         let row = self
             .lock()
             .query_row(
-                "SELECT session_id, options, items FROM chats WHERE id = ?1",
+                "SELECT session_id, options, items, context FROM chats WHERE id = ?1",
                 [id],
                 |row| {
                     Ok((
                         row.get::<_, Option<String>>(0)?,
                         row.get::<_, Option<String>>(1)?,
                         row.get::<_, String>(2)?,
+                        row.get::<_, Option<String>>(3)?,
                     ))
                 },
             )
             .optional()?;
-        let Some((session_id, options, items)) = row else {
+        let Some((session_id, options, items, context)) = row else {
             return Ok(None);
         };
         // Un chat créé mais jamais enregistré n'a pas encore d'options : le front met les siennes.
@@ -202,20 +206,28 @@ impl ChatService {
             session_id,
             options: serde_json::from_str(&options).map_err(invalid)?,
             items: serde_json::from_str(&items).map_err(invalid)?,
+            context: context.and_then(|context| serde_json::from_str(&context).ok()),
         }))
     }
 
     pub fn save(&self, id: &str, content: &ChatContent) -> Result<(), AppError> {
         let options = serde_json::to_string(&content.options).map_err(invalid)?;
         let items = serde_json::to_string(&content.items).map_err(invalid)?;
+        let context = content
+            .context
+            .as_ref()
+            .map(serde_json::to_string)
+            .transpose()
+            .map_err(invalid)?;
         self.lock().execute(
-            "UPDATE chats SET session_id = ?1, options = ?2, items = ?3, updated_at = ?4, started = ?5 WHERE id = ?6",
+            "UPDATE chats SET session_id = ?1, options = ?2, items = ?3, updated_at = ?4, started = ?5, context = ?6 WHERE id = ?7",
             params![
                 content.session_id,
                 options,
                 items,
                 now(),
                 content.items.as_array().is_some_and(|items| !items.is_empty()),
+                context,
                 id
             ],
         )?;
@@ -405,6 +417,11 @@ mod tests {
                 effort: None,
             },
             items: serde_json::json!([{ "kind": "user", "id": "u1", "text": "salut" }]),
+            context: Some(ContextUsage {
+                used: 41_432,
+                window: 200_000,
+                categories: Vec::new(),
+            }),
         };
 
         let chats = ChatService::open(&path).expect("base");

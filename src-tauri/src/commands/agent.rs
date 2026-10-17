@@ -5,7 +5,8 @@ use tauri::ipc::Channel;
 
 use crate::error::AppError;
 use crate::services::agent::{
-    AgentEvent, AgentKind, AgentService, AgentStatus, Catalog, ChatCommand, Rewind, SessionSpec,
+    AgentEvent, AgentKind, AgentService, AgentStatus, Catalog, ChatCommand, ContextUsage, Rewind,
+    SessionSpec,
 };
 use crate::services::attachment::Attachment;
 use crate::services::chat::ChatService;
@@ -40,10 +41,10 @@ pub async fn agent_warm(
     agents: State<'_, AgentService>,
     chats: State<'_, ChatService>,
     worktrees: State<'_, WorktreeService>,
-) -> Result<(), AppError> {
+) -> Result<Option<ContextUsage>, AppError> {
     match place(&mut spec, &chats, &worktrees, false).await? {
-        Place::Ready(_) => agents.warm(spec),
-        Place::Later => Ok(()),
+        Place::Ready(_) => agents.warm(spec).await,
+        Place::Later => Ok(None),
     }
 }
 

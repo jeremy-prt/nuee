@@ -295,6 +295,14 @@ export default {
       xhigh: 'Très élevé',
       max: 'Max',
     },
+    context: {
+      label: '{percent} du contexte utilisé',
+      summary: '{percent} · {used} / {window}',
+      title: 'Contexte',
+      used: '{percent} utilisé',
+      compactHint: 'La conversation est résumée pour libérer de la place.',
+      compact: 'Compacter',
+    },
   },
   home: {
     subtitle: 'Le résumé de l\'activité apparaîtra ici.',

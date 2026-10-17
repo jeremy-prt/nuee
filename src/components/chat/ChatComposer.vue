@@ -2,6 +2,7 @@
 import { ArrowUp, File, Folder, GitBranch, GitBranchPlus, Plus, ShieldAlert, ShieldCheck, Square, X } from '@/components/ui/icons'
 import { type Component, computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import ChatContextMeter from '@/components/chat/ChatContextMeter.vue'
 import ChatSlashMenu from '@/components/chat/ChatSlashMenu.vue'
 import ProjectIcon from '@/components/project/ProjectIcon.vue'
 import SettingsAgentLogo from '@/components/settings/SettingsAgentLogo.vue'
@@ -13,6 +14,7 @@ import { isAppError } from '@/ipc/agent'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { Attachment } from '@/ipc/bindings/Attachment'
 import type { Catalog } from '@/ipc/bindings/Catalog'
+import type { ContextUsage } from '@/ipc/bindings/ContextUsage'
 import type { Effort } from '@/ipc/bindings/Effort'
 import type { PermissionMode } from '@/ipc/bindings/PermissionMode'
 import type { TurnOptions } from '@/ipc/bindings/TurnOptions'
@@ -40,6 +42,10 @@ const props = defineProps<{
   } | null
   // null tant que l'agent n'a pas décrit ses modèles : on laisse alors son choix par défaut.
   catalog: Catalog | null
+  // null tant que l'agent n'a pas relevé son contexte pour ce modèle.
+  context: ContextUsage | null
+  // Rien à compacter avant le premier échange.
+  compactable: boolean
   disabled: boolean
   running: boolean
   // Une demande d'autorisation attend : son bouton Autoriser est l'action principale, Arrêter passe au second plan.
@@ -47,7 +53,7 @@ const props = defineProps<{
 }>()
 // Réglages résolus : modèle et effort sont toujours des valeurs réelles du catalogue.
 const options = defineModel<TurnOptions>('options', { required: true })
-const emit = defineEmits<{ send: [prompt: string, attachments: Attachment[]]; stop: []; warm: []; worktree: [choice: string] }>()
+const emit = defineEmits<{ send: [prompt: string, attachments: Attachment[]]; stop: []; warm: []; worktree: [choice: string]; compact: [] }>()
 
 const { t } = useI18n()
 const shortcuts = useShortcutsStore()
@@ -356,6 +362,7 @@ function onKeydown(event: KeyboardEvent) {
           <span class="min-w-0 truncate">{{ currentModel?.label ?? agentName }}</span>
           <span v-if="options.effort" class="text-muted @max-sm:sr-only">{{ t(`composer.effort.${options.effort}`) }}</span>
         </UiMenu>
+        <ChatContextMeter v-if="context" :usage="context" :disabled="disabled || running || !compactable" @compact="emit('compact')" />
         <UiMenu
           :label="t('composer.mode.label')"
           :sections="modeSections"
