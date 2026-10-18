@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Pin, Plus } from '@/components/ui/icons'
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ShellChatItem from '@/components/shell/ShellChatItem.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
@@ -10,16 +10,27 @@ import { useNavigationStore } from '@/stores/navigation'
 import { useProjectsStore } from '@/stores/projects'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { useWorkspaceStore } from '@/stores/workspace'
+import { useWorktreesStore } from '@/stores/worktrees'
 
 const { t } = useI18n()
 const shortcuts = useShortcutsStore()
 const navigation = useNavigationStore()
 const projects = useProjectsStore()
 const workspace = useWorkspaceStore()
+const worktrees = useWorktreesStore()
 const newChat = useNewChat()
 const { shown: recentShown, more, limit, sentinel } = useProgressiveList(
   computed(() => workspace.recentChats),
   () => navigation.projectId,
+)
+
+// Branches des sessions : relues à chaque arrivée sur le projet, une branche a pu changer hors de Nuée.
+watch(
+  () => (navigation.view === 'chats' ? projects.byId(navigation.projectId) : undefined),
+  (project) => {
+    if (project) worktrees.load(project)
+  },
+  { immediate: true },
 )
 
 const title = computed(() => {

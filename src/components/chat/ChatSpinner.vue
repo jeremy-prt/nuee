@@ -2,9 +2,9 @@
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import { agents } from '@/utils/agents'
 
-// Quatre points qui tournent en se resserrant, à la couleur de l'agent (gris avec `muted`). Tout en transformations
-// CSS : l'animation reste fluide même quand la conversation se redessine.
-defineProps<{ agent: AgentKind; muted?: boolean }>()
+// Quatre points qui tournent en se resserrant, à la couleur de l'agent (gris avec `muted`, celle du texte avec
+// `inherit`). Tout en transformations CSS : l'animation reste fluide même quand la conversation se redessine.
+defineProps<{ agent: AgentKind; muted?: boolean; inherit?: boolean }>()
 
 const DOTS = [
   [0, -4.5],
@@ -19,7 +19,7 @@ const DOTS = [
     viewBox="0 0 16 16"
     class="chat-spinner size-[1em] shrink-0"
     :class="{ 'text-muted': muted }"
-    :style="muted ? undefined : { color: agents[agent].color }"
+    :style="muted || inherit ? undefined : { color: agents[agent].color }"
     aria-hidden="true"
   >
     <g class="chat-spinner-turn">

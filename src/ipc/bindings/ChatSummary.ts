@@ -36,4 +36,12 @@ updatedAt: number,
 /**
  * Épinglé en haut de la liste du projet ; l'archivage automatique le laisse.
  */
-pinned: boolean, };
+pinned: boolean, 
+/**
+ * Modèle des réglages enregistrés. `None` : celui que l'agent prend par défaut.
+ */
+model: string | null, 
+/**
+ * Lignes ajoutées et retirées par l'agent sur toute la session.
+ */
+added: number, removed: number, };

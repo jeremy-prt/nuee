@@ -48,6 +48,12 @@ export default {
     emptyNoShortcut: 'Aucune session pour le moment.',
     worktreeKept: 'Worktree gardé | {n} worktrees gardés',
     worktreeKeptBody: 'Il contient des changements pas encore commités. Il reste dans {paths} | Ils contiennent des changements pas encore commités. Ils restent dans {paths}',
+    status: {
+      approval: 'Autorisation demandée',
+      working: 'En cours',
+      done: 'Terminé',
+      failed: 'Erreur',
+    },
   },
   menu: {
     pinProject: 'Épingler le projet',

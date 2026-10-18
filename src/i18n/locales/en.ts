@@ -46,6 +46,12 @@ export default {
     emptyNoShortcut: 'No sessions yet.',
     worktreeKept: 'Worktree kept | {n} worktrees kept',
     worktreeKeptBody: 'It has changes that are not committed yet. It stays in {paths} | They have changes that are not committed yet. They stay in {paths}',
+    status: {
+      approval: 'Permission requested',
+      working: 'Working',
+      done: 'Done',
+      failed: 'Error',
+    },
   },
   menu: {
     pinProject: 'Pin the project',

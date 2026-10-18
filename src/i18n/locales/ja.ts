@@ -48,6 +48,12 @@ export default {
     emptyNoShortcut: 'まだセッションはありません。',
     worktreeKept: 'worktree を残しました | {n} 件の worktree を残しました',
     worktreeKeptBody: 'コミットされていない変更があるため、{paths} に残しています。 | コミットされていない変更があるため、{paths} に残しています。',
+    status: {
+      approval: '承認待ち',
+      working: '実行中',
+      done: '完了',
+      failed: 'エラー',
+    },
   },
   menu: {
     pinProject: 'プロジェクトをピン留め',

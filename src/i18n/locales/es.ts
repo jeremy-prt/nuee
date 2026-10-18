@@ -48,6 +48,12 @@ export default {
     emptyNoShortcut: 'Aún no hay sesiones.',
     worktreeKept: 'Worktree conservado | {n} worktrees conservados',
     worktreeKeptBody: 'Tiene cambios sin confirmar. Sigue en {paths} | Tienen cambios sin confirmar. Siguen en {paths}',
+    status: {
+      approval: 'Autorización solicitada',
+      working: 'En curso',
+      done: 'Hecho',
+      failed: 'Error',
+    },
   },
   menu: {
     pinProject: 'Fijar el proyecto',

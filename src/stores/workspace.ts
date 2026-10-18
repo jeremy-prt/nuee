@@ -28,10 +28,14 @@ export interface Tab {
   // Masqué de l'historique, retrouvé dans Réglages › Archives.
   archived: boolean
   archivedAt: number | null
-  // Dernier message (ms) : point de départ de l'archivage automatique.
+  // Dernier message ou fin de tour (ms) : affiché dans la liste, point de départ de l'archivage automatique.
   updatedAt: number
   // En haut de la liste du contexte ; l'archivage automatique le laisse.
   pinned: boolean
+  // Recopiés de la conversation à chaque enregistrement : la liste les montre sans la charger.
+  model: string | null
+  added: number
+  removed: number
 }
 
 interface PaneLayout {
@@ -153,7 +157,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const projectId = navigation.projectId
     const agent = projects.chatAgent(projectId)
     const worktree = worktreePath === undefined ? !!projects.byId(projectId)?.worktree : worktreePath !== null
-    const summary = { id: crypto.randomUUID(), projectId, number: nextChatNumber(projectId), agent, title, started: false, worktree, worktreePath: worktreePath ?? null, archived: false, archivedAt: null, updatedAt: Date.now(), pinned: false }
+    const summary = { id: crypto.randomUUID(), projectId, number: nextChatNumber(projectId), agent, title, started: false, worktree, worktreePath: worktreePath ?? null, archived: false, archivedAt: null, updatedAt: Date.now(), pinned: false, model: null, added: 0, removed: 0 }
     const tab: Tab = { ...summary, kind: 'chat' }
     tabs.value.push(tab)
     conversations.create(summary)
@@ -328,6 +332,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (tab) tab.updatedAt = Date.now()
   }
 
+  function setSummary(id: string, summary: Pick<Tab, 'model' | 'added' | 'removed'>) {
+    const tab = tabs.value.find((item) => item.id === id)
+    if (tab) Object.assign(tab, summary)
+  }
+
   // Sessions sans nouveau message depuis le délai choisi. Un onglet ouvert, un agent au travail ou une épingle les garde.
   async function autoArchive() {
     const days = general.autoArchiveDays
@@ -458,6 +467,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     purgeArchives,
     tidy,
     touch,
+    setSummary,
     startChat,
     renameChat,
     renamingId,

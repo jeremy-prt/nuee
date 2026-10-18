@@ -3,7 +3,8 @@ import { reactive, ref } from 'vue'
 import type { Worktree } from '@/ipc/bindings/Worktree'
 import { worktreeCreate, worktreeList, worktreeRemove } from '@/ipc/worktree'
 import type { Project } from '@/stores/projects'
-import { useWorkspaceStore } from '@/stores/workspace'
+import { type Tab, useWorkspaceStore } from '@/stores/workspace'
+import { worktreeBranch } from '@/utils/projects'
 
 // Worktrees du dépôt de chaque projet, relus à chaque ouverture de la page du projet ou du menu du composer.
 export const useWorktreesStore = defineStore('worktrees', () => {
@@ -41,5 +42,15 @@ export const useWorktreesStore = defineStore('worktrees', () => {
     return (projectId && path && lists[projectId]?.find((tree) => tree.path === path)) || null
   }
 
-  return { lists, creating, load, ensure, create, remove, find }
+  // Branche où travaille une session : celle de son worktree, sinon celle du dossier du projet. null hors git, ou
+  // tant que la liste n'est pas lue (sauf son propre worktree, dont la branche se tire de son id).
+  function branchOf(tab: Tab) {
+    if (!tab.projectId) return null
+    if (!tab.worktree) return lists[tab.projectId]?.find((tree) => tree.main)?.branch ?? null
+    const tree = find(tab.projectId, tab.worktreePath)
+    if (tree) return tree.branch
+    return !tab.worktreePath || tab.worktreePath.endsWith(tab.id) ? worktreeBranch(tab.id) : null
+  }
+
+  return { lists, creating, load, ensure, create, remove, find, branchOf }
 })

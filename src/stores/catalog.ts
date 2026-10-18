@@ -48,16 +48,24 @@ export const useCatalogStore = defineStore('catalog', () => {
     return catalogs[agent] ?? null
   }
 
-  // Réglages réellement envoyés : un modèle absent du catalogue retombe sur celui par défaut,
-  // un effort que le modèle ne connaît pas sur l'effort par défaut, le mode rapide tombe s'il ne l'accepte pas.
+  // Modèle réellement utilisé : un modèle absent du catalogue retombe sur celui par défaut.
+  function modelOf(catalog: Catalog, value: string | null) {
+    const { models } = catalog
+    return models.find((item) => item.value === value) ?? models.find((item) => item.value === catalog.defaultModel) ?? models[0] ?? null
+  }
+
+  // « Opus 5.5 » ; null tant que l'agent n'a pas décrit ses modèles.
+  function modelLabel(agent: AgentKind, value: string | null) {
+    const catalog = catalogs[agent]
+    return catalog ? (modelOf(catalog, value)?.label ?? null) : null
+  }
+
+  // Réglages réellement envoyés : un effort que le modèle ne connaît pas retombe sur l'effort par défaut, le mode
+  // rapide tombe s'il ne l'accepte pas.
   function resolve(agent: AgentKind, options: TurnOptions): TurnOptions {
     const catalog = catalogs[agent]
     if (!catalog) return options
-    const models = catalog.models
-    const model =
-      models.find((item) => item.value === options.model) ??
-      models.find((item) => item.value === catalog.defaultModel) ??
-      models[0]
+    const model = modelOf(catalog, options.model)
     if (!model) return { ...options, model: null, effort: null, fast: false }
     const { efforts } = model
     let effort = null
@@ -67,5 +75,5 @@ export const useCatalogStore = defineStore('catalog', () => {
     return { mode: options.mode, model: model.value, effort, fast: !!options.fast && model.fast }
   }
 
-  return { load, get, resolve, isFavorite, toggleFavorite }
+  return { load, get, resolve, modelLabel, isFavorite, toggleFavorite }
 })

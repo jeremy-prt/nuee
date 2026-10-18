@@ -45,6 +45,14 @@ pub struct ChatSummary {
     /// Épinglé en haut de la liste du projet ; l'archivage automatique le laisse.
     #[serde(default)]
     pub pinned: bool,
+    /// Modèle des réglages enregistrés. `None` : celui que l'agent prend par défaut.
+    #[serde(default)]
+    pub model: Option<String>,
+    /// Lignes ajoutées et retirées par l'agent sur toute la session.
+    #[serde(default)]
+    pub added: u32,
+    #[serde(default)]
+    pub removed: u32,
 }
 
 /// Texte d'une session archivée (messages et réponses, sans les outils) pour la recherche.
@@ -67,6 +75,11 @@ pub struct ChatContent {
     pub items: Value,
     /// Dernier relevé de l'agent : la jauge s'affiche dès la réouverture du chat.
     pub context: Option<ContextUsage>,
+    /// Compté par le front, seul à lire les messages : la liste des sessions le montre sans les charger.
+    #[serde(default)]
+    pub added: u32,
+    #[serde(default)]
+    pub removed: u32,
 }
 
 /// Une version de schéma par entrée : `PRAGMA user_version` dit lesquelles sont déjà passées.
@@ -94,6 +107,15 @@ const MIGRATIONS: &[&str] = &[
     "ALTER TABLE chats ADD COLUMN started INTEGER NOT NULL DEFAULT 0;
      UPDATE chats SET started = 1 WHERE items != '[]'",
     "ALTER TABLE chats ADD COLUMN context TEXT",
+    // Les sessions d'avant la colonne sont comptées ici, une fois ; ensuite le front envoie le compte.
+    "ALTER TABLE chats ADD COLUMN added INTEGER NOT NULL DEFAULT 0;
+     ALTER TABLE chats ADD COLUMN removed INTEGER NOT NULL DEFAULT 0;
+     UPDATE chats SET
+       added = (SELECT coalesce(sum(json_extract(value, '$.change.added')), 0) FROM json_each(chats.items)
+                WHERE json_extract(value, '$.kind') = 'tool'),
+       removed = (SELECT coalesce(sum(json_extract(value, '$.change.removed')), 0) FROM json_each(chats.items)
+                  WHERE json_extract(value, '$.kind') = 'tool')
+     WHERE json_valid(items)",
 ];
 
 /// Historique des chats dans une base SQLite du dossier de données de l'app.
@@ -115,59 +137,35 @@ impl ChatService {
     pub fn list(&self) -> Result<Vec<ChatSummary>, AppError> {
         let db = self.lock();
         let mut query = db.prepare(
-            "SELECT id, project_id, number, agent, title, started, worktree, worktree_path, archived, archived_at, updated_at, pinned FROM chats ORDER BY created_at",
+            "SELECT id, project_id, number, agent, title, started, worktree, worktree_path, archived, archived_at, updated_at, pinned,
+                    iif(json_valid(options), json_extract(options, '$.model'), NULL), added, removed
+             FROM chats ORDER BY created_at",
         )?;
         let rows = query.query_map([], |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                row.get(1)?,
-                row.get(2)?,
-                row.get::<_, String>(3)?,
-                row.get(4)?,
-                row.get::<_, bool>(5)?,
-                row.get::<_, bool>(6)?,
-                row.get(7)?,
-                row.get::<_, bool>(8)?,
-                row.get(9)?,
-                row.get::<_, i64>(10)?,
-                row.get::<_, bool>(11)?,
-            ))
-        })?;
-        let mut chats = Vec::new();
-        for row in rows {
-            let (
-                id,
-                project_id,
-                number,
-                agent,
-                title,
-                started,
-                worktree,
-                worktree_path,
-                archived,
-                archived_at,
-                updated_at,
-                pinned,
-            ) = row?;
             // Un agent retiré d'une future version ne doit pas faire tomber toute la liste.
-            if let Ok(agent) = serde_json::from_value(Value::String(agent)) {
-                chats.push(ChatSummary {
-                    id,
-                    project_id,
-                    number,
-                    agent,
-                    title,
-                    started,
-                    worktree,
-                    worktree_path,
-                    archived,
-                    archived_at,
-                    updated_at,
-                    pinned,
-                });
-            }
-        }
-        Ok(chats)
+            let Ok(agent) = serde_json::from_value(Value::String(row.get(3)?)) else {
+                return Ok(None);
+            };
+            Ok(Some(ChatSummary {
+                id: row.get(0)?,
+                project_id: row.get(1)?,
+                number: row.get(2)?,
+                agent,
+                title: row.get(4)?,
+                started: row.get(5)?,
+                worktree: row.get(6)?,
+                worktree_path: row.get(7)?,
+                archived: row.get(8)?,
+                archived_at: row.get(9)?,
+                updated_at: row.get(10)?,
+                pinned: row.get(11)?,
+                model: row.get(12)?,
+                added: row.get(13)?,
+                removed: row.get(14)?,
+            }))
+        })?;
+        let chats = rows.collect::<Result<Vec<_>, _>>()?;
+        Ok(chats.into_iter().flatten().collect())
     }
 
     pub fn create(&self, chat: &ChatSummary) -> Result<(), AppError> {
@@ -183,7 +181,7 @@ impl ChatService {
         let row = self
             .lock()
             .query_row(
-                "SELECT session_id, options, items, context FROM chats WHERE id = ?1",
+                "SELECT session_id, options, items, context, added, removed FROM chats WHERE id = ?1",
                 [id],
                 |row| {
                     Ok((
@@ -191,11 +189,13 @@ impl ChatService {
                         row.get::<_, Option<String>>(1)?,
                         row.get::<_, String>(2)?,
                         row.get::<_, Option<String>>(3)?,
+                        row.get::<_, u32>(4)?,
+                        row.get::<_, u32>(5)?,
                     ))
                 },
             )
             .optional()?;
-        let Some((session_id, options, items, context)) = row else {
+        let Some((session_id, options, items, context, added, removed)) = row else {
             return Ok(None);
         };
         // Un chat créé mais jamais enregistré n'a pas encore d'options : le front met les siennes.
@@ -207,6 +207,8 @@ impl ChatService {
             options: serde_json::from_str(&options).map_err(invalid)?,
             items: serde_json::from_str(&items).map_err(invalid)?,
             context: context.and_then(|context| serde_json::from_str(&context).ok()),
+            added,
+            removed,
         }))
     }
 
@@ -220,7 +222,7 @@ impl ChatService {
             .transpose()
             .map_err(invalid)?;
         self.lock().execute(
-            "UPDATE chats SET session_id = ?1, options = ?2, items = ?3, updated_at = ?4, started = ?5, context = ?6 WHERE id = ?7",
+            "UPDATE chats SET session_id = ?1, options = ?2, items = ?3, updated_at = ?4, started = ?5, context = ?6, added = ?7, removed = ?8 WHERE id = ?9",
             params![
                 content.session_id,
                 options,
@@ -228,6 +230,8 @@ impl ChatService {
                 now(),
                 content.items.as_array().is_some_and(|items| !items.is_empty()),
                 context,
+                content.added,
+                content.removed,
                 id
             ],
         )?;
@@ -408,6 +412,9 @@ mod tests {
             archived_at: None,
             updated_at: 0,
             pinned: false,
+            model: None,
+            added: 0,
+            removed: 0,
         };
         let content = ChatContent {
             session_id: Some("s1".into()),
@@ -423,6 +430,8 @@ mod tests {
                 window: 200_000,
                 categories: Vec::new(),
             }),
+            added: 7,
+            removed: 2,
         };
 
         let chats = ChatService::open(&path).expect("base");
@@ -457,6 +466,9 @@ mod tests {
             archived_at,
             updated_at: listed.updated_at,
             pinned: true,
+            model: Some("opus".into()),
+            added: 7,
+            removed: 2,
             ..chat
         };
         assert_eq!(chats.list().expect("liste"), vec![titled]);
@@ -472,6 +484,45 @@ mod tests {
         assert_eq!(chats.content("c1").expect("lecture"), Some(content));
         chats.delete("c1").expect("suppression");
         assert!(chats.list().expect("liste").is_empty());
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn older_sessions_get_their_changed_lines_counted() {
+        let dir = std::env::temp_dir().join(format!("nuee-test-diff-{}", std::process::id()));
+        let path = dir.join("nuee.db");
+        std::fs::create_dir_all(&dir).expect("dossier");
+        let before = MIGRATIONS.len() - 1;
+        {
+            let db = Connection::open(&path).expect("base");
+            for sql in &MIGRATIONS[..before] {
+                db.execute_batch(sql).expect("migration");
+            }
+            db.pragma_update(
+                None,
+                "user_version",
+                i64::try_from(before).expect("version"),
+            )
+            .expect("version");
+            let items = serde_json::json!([
+                { "kind": "user", "id": "u1", "text": "corrige" },
+                { "kind": "tool", "id": "t1", "change": { "patch": "", "added": 5, "removed": 1, "created": false } },
+                { "kind": "tool", "id": "t2", "change": null },
+                { "kind": "tool", "id": "t3", "change": { "patch": "", "added": 2, "removed": 3, "created": false } },
+            ]);
+            db.execute(
+                "INSERT INTO chats (id, number, agent, items, created_at, updated_at, started) VALUES ('c1', 1, 'claude', ?1, 0, 0, 1)",
+                [items.to_string()],
+            )
+            .expect("chat");
+        }
+
+        let listed = ChatService::open(&path)
+            .expect("migration")
+            .list()
+            .expect("liste")
+            .remove(0);
+        assert_eq!((listed.added, listed.removed), (7, 4));
         let _ = std::fs::remove_dir_all(dir);
     }
 }

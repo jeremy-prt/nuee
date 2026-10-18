@@ -34,7 +34,8 @@ export const useAttentionStore = defineStore('attention', () => {
     window.addEventListener('blur', () => (focused.value = false))
   }
 
-  const unseen = reactive(new Set<string>())
+  // Chats pas encore vus, avec leur dernier signal : la liste des sessions l'affiche.
+  const unseen = reactive(new Map<string, Signal>())
   const shown = computed(() => (focused.value && navigation.view === 'chats' ? workspace.panes : []))
 
   // Un chat vu sort de la liste, et ses notifications partent avec lui.
@@ -77,7 +78,7 @@ export const useAttentionStore = defineStore('attention', () => {
     // Au premier plan, le message dans la fenêtre suffit (choix de Jérémy).
     if (general.sounds && !focused.value && !muted) playCue(kind === 'done' ? 'done' : 'attention')
     if (shown.value.includes(chatId)) return
-    unseen.add(chatId)
+    unseen.set(chatId, kind)
     if (!tab || muted) return
     const { t } = i18nGlobal()
     const title = tab.title ?? t('workspace.chatTitle', { n: tab.number })
@@ -95,5 +96,9 @@ export const useAttentionStore = defineStore('attention', () => {
     return unseen.has(chatId)
   }
 
-  return { signal, isUnseen }
+  function unseenSignal(chatId: string) {
+    return unseen.get(chatId) ?? null
+  }
+
+  return { signal, isUnseen, unseenSignal }
 })

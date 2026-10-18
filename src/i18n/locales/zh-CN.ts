@@ -48,6 +48,12 @@ export default {
     emptyNoShortcut: '暂无会话。',
     worktreeKept: '已保留 worktree | 已保留 {n} 个 worktree',
     worktreeKeptBody: '它有尚未提交的更改，因此保留在 {paths} | 它们有尚未提交的更改，因此保留在 {paths}',
+    status: {
+      approval: '等待授权',
+      working: '进行中',
+      done: '已完成',
+      failed: '出错',
+    },
   },
   menu: {
     pinProject: '置顶项目',

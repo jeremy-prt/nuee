@@ -71,6 +71,18 @@ export function summarize(items: readonly ActivityItem[]) {
   return { parts, added, removed, failedFiles }
 }
 
+// Lignes ajoutées et retirées sur toute la session : enregistrées avec elle pour la liste des sessions.
+export function sessionDiff(items: readonly ChatItem[]) {
+  let added = 0
+  let removed = 0
+  for (const item of items) {
+    if (item.kind !== 'tool' || !item.change) continue
+    added += item.change.added
+    removed += item.change.removed
+  }
+  return { added, removed }
+}
+
 export function countFailures(items: readonly ActivityItem[]) {
   return items.filter((item) => item.kind === 'tool' && item.status === 'failed').length
 }

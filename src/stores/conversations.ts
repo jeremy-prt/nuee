@@ -27,6 +27,7 @@ import { useGeneralStore } from '@/stores/general'
 import { useProjectsStore } from '@/stores/projects'
 import { useSkillsStore } from '@/stores/skills'
 import { useWorkspaceStore } from '@/stores/workspace'
+import { sessionDiff } from '@/utils/activity'
 
 export type ChatItem =
   // steered : ajouté à une réponse en cours, l'agent l'a lu sans ouvrir de nouveau tour. agentId : identifiant que
@@ -413,7 +414,9 @@ export const useConversationsStore = defineStore('conversations', () => {
       const conversation = conversations.get(chatId)
       if (!conversation?.loaded) return
       const { sessionId, options, items, context } = conversation
-      write(chatId, () => chatSave(chatId, { sessionId, options, items: [...items], context }))
+      const diff = sessionDiff(items)
+      useWorkspaceStore().setSummary(chatId, { model: options.model, ...diff })
+      write(chatId, () => chatSave(chatId, { sessionId, options, items: [...items], context, ...diff }))
     }, SAVE_DELAY)
     timers.set(chatId, timer)
   }
@@ -483,7 +486,10 @@ export const useConversationsStore = defineStore('conversations', () => {
       if (signal) useAttentionStore().signal(chatId, signal)
       // Un chat de skill peut écrire le fichier à n'importe quel tour : chaque fin de tour fait relire la config.
       if (ended && conversation.items.some((item) => item.kind === 'command')) skills.loadSkills()
-      if (ended) afterTurn(chatId, conversation)
+      if (ended) {
+        useWorkspaceStore().touch(chatId)
+        afterTurn(chatId, conversation)
+      }
     }
     pending.clear()
   }

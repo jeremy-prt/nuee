@@ -48,6 +48,12 @@ export default {
     emptyNoShortcut: 'Nenhuma sessão ainda.',
     worktreeKept: 'Worktree mantido | {n} worktrees mantidos',
     worktreeKeptBody: 'Ele tem alterações ainda não commitadas. Continua em {paths} | Eles têm alterações ainda não commitadas. Continuam em {paths}',
+    status: {
+      approval: 'Autorização solicitada',
+      working: 'Em andamento',
+      done: 'Concluído',
+      failed: 'Erro',
+    },
   },
   menu: {
     pinProject: 'Fixar o projeto',

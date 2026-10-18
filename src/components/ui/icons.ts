@@ -85,6 +85,7 @@ import SecurityCheckIcon from '@hugeicons/core-free-icons/SecurityCheckIcon'
 import SentIcon from '@hugeicons/core-free-icons/SentIcon'
 import Settings01Icon from '@hugeicons/core-free-icons/Settings01Icon'
 import ShieldAlertIcon from '@hugeicons/core-free-icons/ShieldAlertIcon'
+import ShieldQuestionMarkIcon from '@hugeicons/core-free-icons/ShieldQuestionMarkIcon'
 import SidebarLeft01Icon from '@hugeicons/core-free-icons/SidebarLeft01Icon'
 import SidebarRight01Icon from '@hugeicons/core-free-icons/SidebarRight01Icon'
 import SparklesIcon from '@hugeicons/core-free-icons/SparklesIcon'
@@ -204,6 +205,7 @@ export const SendHorizontal = icon(SentIcon)
 export const Settings = icon(Settings01Icon)
 export const ShieldAlert = icon(ShieldAlertIcon)
 export const ShieldCheck = icon(SecurityCheckIcon)
+export const ShieldQuestion = icon(ShieldQuestionMarkIcon)
 export const SlidersHorizontal = icon(FilterHorizontalIcon)
 export const Sparkles = icon(SparklesIcon)
 export const Square = icon(SquareIcon)

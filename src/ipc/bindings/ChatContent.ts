@@ -10,4 +10,8 @@ items: unknown[],
 /**
  * Dernier relevé de l'agent : la jauge s'affiche dès la réouverture du chat.
  */
-context: ContextUsage | null, };
+context: ContextUsage | null, 
+/**
+ * Compté par le front, seul à lire les messages : la liste des sessions le montre sans les charger.
+ */
+added: number, removed: number, };
