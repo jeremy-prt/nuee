@@ -103,6 +103,34 @@ impl AttachmentService {
             .collect()
     }
 
+    /// Zone de l'écran choisie avec l'outil de capture de macOS. `None` : capture annulée (Échap).
+    pub async fn capture(&self, chat_id: &str) -> Result<Option<Attachment>, AppError> {
+        if !cfg!(target_os = "macos") {
+            return Err(AppError::InvalidInput(
+                "capture d'écran disponible sur macOS seulement".into(),
+            ));
+        }
+        let path = self.slot(chat_id, "capture.png")?;
+        // `-i` : sélection à la souris, Espace pour une fenêtre ; `-x` : sans le bruit de l'appareil photo.
+        tokio::process::Command::new("/usr/sbin/screencapture")
+            .args(["-i", "-x", "-t", "png"])
+            .arg(&path)
+            .stdin(std::process::Stdio::null())
+            .kill_on_drop(true)
+            .status()
+            .await?;
+        if !path.is_file() {
+            return Ok(None);
+        }
+        let path = path.display().to_string();
+        Ok(Some(Attachment {
+            preview: Some(path.clone()),
+            name: "capture.png".into(),
+            path,
+            kind: AttachmentKind::Image,
+        }))
+    }
+
     pub fn discard(&self, chat_id: &str) {
         if valid_session_id(chat_id) {
             let _ = std::fs::remove_dir_all(self.dir.join(chat_id));

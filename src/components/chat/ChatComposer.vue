@@ -1,18 +1,18 @@
 <script setup lang="ts">
-import { ArrowUp, Brain, File, Folder, GitBranch, GitBranchPlus, Plus, ShieldAlert, ShieldCheck, Square, X } from '@/components/ui/icons'
+import { ArrowUp, Brain, File, Folder, GitBranch, GitBranchPlus, ShieldAlert, ShieldCheck, Square, X } from '@/components/ui/icons'
 import { type Component, computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatBranchPicker from '@/components/chat/ChatBranchPicker.vue'
 import ChatContextMeter from '@/components/chat/ChatContextMeter.vue'
 import ChatMentionMenu from '@/components/chat/ChatMentionMenu.vue'
 import ChatModelPicker from '@/components/chat/ChatModelPicker.vue'
+import ChatPlusMenu from '@/components/chat/ChatPlusMenu.vue'
 import ChatPromptText from '@/components/chat/ChatPromptText.vue'
 import ChatSlashMenu from '@/components/chat/ChatSlashMenu.vue'
 import ProjectIcon from '@/components/project/ProjectIcon.vue'
-import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiMenu, { type UiMenuSection } from '@/components/ui/UiMenu.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
-import { attachmentImport, attachmentSave, previewSrc } from '@/ipc/attachment'
+import { attachmentCapture, attachmentImport, attachmentSave, previewSrc } from '@/ipc/attachment'
 import { isAppError } from '@/ipc/agent'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { Attachment } from '@/ipc/bindings/Attachment'
@@ -246,6 +246,38 @@ async function pick() {
   input.value?.focus()
 }
 
+function capture() {
+  return attachWith(async () => {
+    const shot = await attachmentCapture(props.chatId)
+    return shot ? [shot] : []
+  })
+}
+
+// Depuis le menu « + » : le déclencheur tapé à la place de l'utilisateur, menu ouvert au curseur.
+// Le focus d'abord : son écouteur relit la sélection, qui serait encore en fin de texte.
+async function placeCaret(position: number) {
+  await nextTick()
+  input.value?.focus()
+  input.value?.setSelectionRange(position, position)
+  caret.value = position
+}
+
+function startMention() {
+  const at = input.value?.selectionEnd ?? prompt.value.length
+  const before = prompt.value.slice(0, at)
+  const after = prompt.value.slice(at)
+  const head = `${before}${before && !/\s$/.test(before) ? ' ' : ''}@`
+  // Collé au mot suivant, le « @ » le prendrait pour sa recherche, et le choix d'un fichier l'écraserait.
+  prompt.value = head + (after && !/^\s/.test(after) ? ` ${after}` : after)
+  placeCaret(head.length)
+}
+
+// Un skill ne se lit qu'en tête de message : « / » y est ajouté, le texte déjà tapé le suit.
+function startSkill() {
+  if (!prompt.value.startsWith('/')) prompt.value = `/${prompt.value ? ` ${prompt.value}` : ''}`
+  placeCaret(/^\/\S*/.exec(prompt.value)![0].length)
+}
+
 // Capture d'écran ou fichier copié. WebKit tronque parfois `files` : `items` en a plus.
 // macOS ajoute à une capture sa copie TIFF sans nom : on la laisse de côté.
 function onPaste(event: ClipboardEvent) {
@@ -384,9 +416,16 @@ function onKeydown(event: KeyboardEvent) {
       </div>
       <!-- Étroite (petite fenêtre, écran partagé) : l'effort et le nom du mode ne restent que pour les lecteurs d'écran. -->
       <div class="flex items-center gap-1 px-2 pb-2">
-        <UiIconButton class="bg-selection" :label="t('composer.attach')" :disabled="disabled" :loading="saving > 0" @click="pick">
-          <Plus class="size-4" aria-hidden="true" />
-        </UiIconButton>
+        <ChatPlusMenu
+          :disabled="disabled"
+          :loading="saving > 0"
+          :mention="!!project"
+          :focus-after="focusInput"
+          @attach="pick"
+          @capture="capture"
+          @mention="startMention"
+          @skill="startSkill"
+        />
         <ChatModelPicker v-model="chosenModel" :agent="agent" :catalog="catalog" :disabled="disabled" :focus-after="focusInput" />
         <UiMenu
           v-if="effortSections.length"

@@ -73,6 +73,25 @@ export function agentUpdate(agent: AgentKind) {
   return invoke<string>('agent_update', { agent })
 }
 
+// Connexion du compte par la CLI de l'agent. onPage : la page de connexion est ouverte, la CLI attend le code ;
+// la promesse se résout quand le compte est enregistré.
+export function agentLogin(agent: AgentKind, onPage: () => void) {
+  return invoke<void>('agent_login', { agent, onPage: new Channel<null>(() => onPage()) })
+}
+
+// Code affiché par la page de connexion, transmis à la CLI.
+export function agentLoginCode(code: string) {
+  return invoke<void>('agent_login_code', { code })
+}
+
+export function agentLoginOpen() {
+  return invoke<void>('agent_login_open')
+}
+
+export function agentLoginCancel() {
+  return invoke<void>('agent_login_cancel')
+}
+
 export function isAppError(error: unknown): error is AppError {
   return typeof error === 'object' && error !== null && 'kind' in error && 'message' in error
 }

@@ -105,6 +105,15 @@ function send(prompt: string, attachments: Attachment[]) {
   conversations.send(props.tab.id, place.value, prompt, attachments)
 }
 
+// Après une connexion refaite : le dernier message repart tel quel, pièces jointes comprises.
+function resend() {
+  const last = [...items.value].reverse().find((item) => item.kind === 'user')
+  if (last?.kind !== 'user') return
+  send(last.text, last.attachments ?? [])
+  // Le bouton disparaît avec le tour qui démarre : le focus va au champ plutôt qu'à la page.
+  composer.value?.focus()
+}
+
 // La suite de la conversation disparaît, côté agent comme à l'écran : on demande d'abord.
 async function rewindTo(itemId: string) {
   const confirmed = await dialog.confirm({
@@ -149,6 +158,7 @@ onMounted(() => {
       :clock="clock"
       class="min-h-0 flex-1"
       @rewind="rewindTo"
+      @resend="resend"
     />
     <div v-else-if="loaded" class="flex flex-1 flex-col items-center justify-end px-6 pb-8 text-center">
       <p class="text-3xl font-semibold tracking-tight">Nuée</p>

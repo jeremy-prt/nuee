@@ -86,8 +86,13 @@ pub fn run() {
             commands::agent::agent_catalog,
             commands::agent::agent_probe,
             commands::agent::agent_update,
+            commands::agent::agent_login,
+            commands::agent::agent_login_code,
+            commands::agent::agent_login_open,
+            commands::agent::agent_login_cancel,
             commands::attachment::attachment_save,
             commands::attachment::attachment_import,
+            commands::attachment::attachment_capture,
             commands::autostart::autostart_enabled,
             commands::autostart::autostart_set,
             commands::background::background_import,
@@ -148,6 +153,7 @@ pub fn run() {
             RunEvent::Ready => services::notification::install_delegate(app),
             RunEvent::Exit => {
                 app.state::<AgentService>().stop_all();
+                app.state::<AgentService>().cancel_login();
                 app.state::<GithubService>().cancel_login();
             }
             _ => {}

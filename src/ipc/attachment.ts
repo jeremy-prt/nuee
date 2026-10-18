@@ -21,6 +21,11 @@ export function attachmentImport(chatId: string, paths: string[]) {
   return invoke<Attachment[]>('attachment_import', { chatId, paths })
 }
 
+// Outil de capture de macOS ; null si elle est annulée.
+export function attachmentCapture(chatId: string) {
+  return invoke<Attachment | null>('attachment_capture', { chatId })
+}
+
 // Seuls les fichiers du dossier des pièces jointes s'affichent (scope assetProtocol de tauri.conf.json).
 export function previewSrc(path: string) {
   return convertFileSrc(path)

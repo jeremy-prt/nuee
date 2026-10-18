@@ -1,4 +1,5 @@
 mod claude;
+mod login;
 mod mcp;
 pub(crate) mod process;
 mod release;
@@ -462,6 +463,8 @@ trait Driver: Send + Sync {
     fn release(&self, program: &Path) -> (&'static str, &'static str);
     /// Mise à jour par la CLI elle-même : elle sait mieux que Nuée comment elle a été installée.
     fn update_args(&self) -> Vec<String>;
+    /// Connexion du compte par la CLI, sans terminal ; `None` quand l'agent ne sait pas le faire ainsi.
+    fn login_args(&self) -> Option<Vec<String>>;
     /// Lance l'agent hors de tout chat pour résumer un message en titre ; le message part sur stdin.
     fn title_args(&self) -> Vec<String>;
     fn parse_title(&self, output: &str) -> Option<String>;
@@ -530,6 +533,8 @@ pub struct AgentService {
     paths: Mutex<HashMap<AgentKind, PathBuf>>,
     /// Connexions de serveurs MCP qui attendent le navigateur, par nom : de quoi les annuler.
     logins: Mutex<HashMap<String, u32>>,
+    /// Connexion du compte de l'agent en cours (`login.rs`).
+    login: Mutex<Option<login::Login>>,
 }
 
 impl AgentService {
@@ -544,6 +549,7 @@ impl AgentService {
             catalogs: Mutex::default(),
             paths: Mutex::default(),
             logins: Mutex::default(),
+            login: Mutex::default(),
         }
     }
 

@@ -572,6 +572,10 @@ mod tests {
         fn update_args(&self) -> Vec<String> {
             Vec::new()
         }
+
+        fn login_args(&self) -> Option<Vec<String>> {
+            None
+        }
         fn title_args(&self) -> Vec<String> {
             Vec::new()
         }

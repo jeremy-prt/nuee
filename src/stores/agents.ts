@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
-import { reactive, watch } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import { i18nGlobal } from '@/i18n'
-import { agentProbe, agentUpdate, isAppError } from '@/ipc/agent'
+import { agentLogin, agentLoginCancel, agentLoginCode, agentLoginOpen, agentProbe, agentUpdate, isAppError } from '@/ipc/agent'
 import type { AgentEvent } from '@/ipc/bindings/AgentEvent'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { AgentStatus as Probed } from '@/ipc/bindings/AgentStatus'
@@ -121,6 +121,63 @@ export const useAgentsStore = defineStore('agents', () => {
     }
   }
 
+  // Connexion du compte en cours, une seule à la fois. `page` : la CLI a ouvert la page de connexion et attend le
+  // code qu'elle affiche ; `sending` : code en route, la CLI le vérifie.
+  const login = ref<{ kind: AgentKind; page: boolean; sending: boolean } | null>(null)
+  const loginError = ref<{ kind: AgentKind; message: string } | null>(null)
+  const failure = (error: unknown) => (isAppError(error) ? error.message : String(error))
+
+  // Une connexion annulée ou remplacée ne touche plus à l'état.
+  let attempt = 0
+  async function signIn(kind: AgentKind) {
+    if (login.value) return
+    const current = ++attempt
+    login.value = { kind, page: false, sending: false }
+    loginError.value = null
+    try {
+      await agentLogin(kind, () => {
+        if (current === attempt && login.value) login.value.page = true
+      })
+      if (current !== attempt) return
+      await detect(kind, true)
+      const { t } = i18nGlobal()
+      useToastsStore().push({ kind: 'success', title: t('agentLogin.done', { agent: agents[kind].name }), body: t('agentLogin.doneBody') })
+    } catch (error) {
+      if (current === attempt) loginError.value = { kind, message: failure(error) }
+    } finally {
+      if (current === attempt) login.value = null
+    }
+  }
+
+  async function sendLoginCode(code: string) {
+    if (!login.value || login.value.sending) return
+    const { kind } = login.value
+    const current = attempt
+    login.value.sending = true
+    loginError.value = null
+    try {
+      await agentLoginCode(code)
+    } catch (error) {
+      if (current !== attempt) return
+      if (login.value) login.value.sending = false
+      loginError.value = { kind, message: failure(error) }
+    }
+  }
+
+  async function openLoginPage() {
+    try {
+      await agentLoginOpen()
+    } catch (error) {
+      if (login.value) loginError.value = { kind: login.value.kind, message: failure(error) }
+    }
+  }
+
+  async function cancelSignIn() {
+    attempt++
+    login.value = null
+    await agentLoginCancel()
+  }
+
   // Un tour réel fait foi : s'il contredit le compte affiché (connexion ou déconnexion faite
   // depuis un terminal), Réglages > Agents se remet à jour.
   function confirm(kind: AgentKind, outcome: TurnStatus) {
@@ -184,5 +241,5 @@ export const useAgentsStore = defineStore('agents', () => {
     )
   }
 
-  return { settings, status, detect, refresh, update, confirm, track, setPath, chatDefaults, reset }
+  return { settings, status, detect, refresh, update, confirm, track, setPath, chatDefaults, reset, login, loginError, signIn, sendLoginCode, openLoginPage, cancelSignIn }
 })

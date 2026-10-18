@@ -10,6 +10,8 @@ import ArrowRight01Icon from '@hugeicons/core-free-icons/ArrowRight01Icon'
 import ArrowTurnBackwardIcon from '@hugeicons/core-free-icons/ArrowTurnBackwardIcon'
 import ArrowTurnForwardIcon from '@hugeicons/core-free-icons/ArrowTurnForwardIcon'
 import ArrowUp02Icon from '@hugeicons/core-free-icons/ArrowUp02Icon'
+import AtIcon from '@hugeicons/core-free-icons/AtIcon'
+import Attachment01Icon from '@hugeicons/core-free-icons/Attachment01Icon'
 import BotIcon from '@hugeicons/core-free-icons/BotIcon'
 import BrainIcon from '@hugeicons/core-free-icons/BrainIcon'
 import Cancel01Icon from '@hugeicons/core-free-icons/Cancel01Icon'
@@ -19,6 +21,7 @@ import Clock01Icon from '@hugeicons/core-free-icons/Clock01Icon'
 import CommentAdd01Icon from '@hugeicons/core-free-icons/CommentAdd01Icon'
 import ComputerTerminal01Icon from '@hugeicons/core-free-icons/ComputerTerminal01Icon'
 import Copy01Icon from '@hugeicons/core-free-icons/Copy01Icon'
+import CropIcon from '@hugeicons/core-free-icons/CropIcon'
 import Css3Icon from '@hugeicons/core-free-icons/Css3Icon'
 import DashboardSpeed01Icon from '@hugeicons/core-free-icons/DashboardSpeed01Icon'
 import Delete02Icon from '@hugeicons/core-free-icons/Delete02Icon'
@@ -115,6 +118,7 @@ export const Archive = icon(Archive02Icon)
 export const ArrowDown = icon(ArrowDown02Icon)
 export const ArrowLeft = icon(ArrowLeft02Icon)
 export const ArrowUp = icon(ArrowUp02Icon)
+export const AtSign = icon(AtIcon)
 export const Ban = icon(UnavailableIcon)
 export const Bell = icon(Notification01Icon)
 export const BellOff = icon(NotificationOff01Icon)
@@ -130,6 +134,7 @@ export const Clock = icon(Clock01Icon)
 export const Columns2 = icon(LayoutTwoColumnIcon)
 export const Copy = icon(Copy01Icon)
 export const CornerDownRight = icon(ArrowTurnForwardIcon)
+export const Crop = icon(CropIcon)
 export const Download = icon(Download04Icon)
 export const Ellipsis = icon(MoreHorizontalIcon)
 export const ExternalLink = icon(LinkSquare02Icon)
@@ -184,6 +189,7 @@ export const PanelBottom = icon(LayoutBottomIcon)
 export const PanelLeftClose = icon(SidebarLeft01Icon)
 export const PanelLeftOpen = icon(SidebarOpenIcon)
 export const PanelRight = icon(SidebarRight01Icon)
+export const Paperclip = icon(Attachment01Icon)
 export const Pencil = icon(PencilEdit02Icon)
 export const Pin = icon(PinIcon)
 export const PinOff = icon(PinOffIcon)

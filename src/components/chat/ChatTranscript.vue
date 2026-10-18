@@ -21,7 +21,7 @@ const props = defineProps<{
   clock: { since: number; pausedMs: number; pausedAt: number | null } | null
 }>()
 
-const emit = defineEmits<{ rewind: [itemId: string] }>()
+const emit = defineEmits<{ rewind: [itemId: string]; resend: [] }>()
 
 const { t } = useI18n()
 const layout = useLayoutStore()
@@ -146,7 +146,9 @@ onMounted(scrollToEnd)
           :after-text="items[row.index - 1]?.kind === 'text'"
           :answer="row.item.kind === 'end' ? () => turnText(items, row.index) : undefined"
           :rewindable="!running && row.item.kind === 'user' && !!row.item.agentId"
+          :latest="!running && row.index === items.length - 1"
           @rewind="emit('rewind', row.item.id)"
+          @resend="emit('resend')"
         />
       </li>
       <li v-if="running && clock && !liveRun">

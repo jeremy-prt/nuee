@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AgentLogin from '@/components/agent/AgentLogin.vue'
 import { CircleCheck, LoaderCircle } from '@/components/ui/icons'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -181,6 +182,7 @@ async function choosePath(event: MouseEvent) {
         {{ t('settings.agents.refresh') }}
       </UiButton>
     </SettingsRow>
+    <AgentLogin v-if="status.state === 'found' && !status.account" class="px-4 pb-3" :kind="kind" :title="t('agentLogin.browserTitle')" />
   </SettingsGroup>
 
   <SettingsGroup v-if="quotas.length" :title="t('settings.agents.usage')">

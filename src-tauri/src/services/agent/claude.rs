@@ -400,6 +400,11 @@ impl Driver for Claude {
         vec!["update".to_owned()]
     }
 
+    /// Abonnement Claude par défaut : sans terminal, la CLI ouvre la page puis attend le code collé.
+    fn login_args(&self) -> Option<Vec<String>> {
+        Some(vec!["auth".to_owned(), "login".to_owned()])
+    }
+
     fn title_args(&self) -> Vec<String> {
         [
             "-p",

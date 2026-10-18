@@ -23,3 +23,12 @@ pub async fn attachment_import(
 ) -> Result<Vec<Attachment>, AppError> {
     attachments.import(&chat_id, &paths)
 }
+
+/// Capture d'une zone de l'écran, jointe au message ; rien si elle est annulée.
+#[tauri::command]
+pub async fn attachment_capture(
+    chat_id: String,
+    attachments: State<'_, AttachmentService>,
+) -> Result<Option<Attachment>, AppError> {
+    attachments.capture(&chat_id).await
+}

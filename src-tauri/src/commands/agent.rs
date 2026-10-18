@@ -166,6 +166,40 @@ pub async fn agent_update(
     agents.update(agent).await
 }
 
+/// Connexion du compte de l'agent par sa CLI : `on_page` signale la page ouverte, la commande rend la main
+/// quand la CLI a fini (compte enregistré), échoue ou est annulée.
+#[tauri::command]
+pub async fn agent_login(
+    agent: AgentKind,
+    on_page: Channel<()>,
+    agents: State<'_, AgentService>,
+) -> Result<(), AppError> {
+    agents
+        .login(agent, || {
+            let _ = on_page.send(());
+        })
+        .await
+}
+
+/// Code affiché par la page de connexion, à transmettre à la CLI.
+#[tauri::command]
+pub async fn agent_login_code(
+    code: String,
+    agents: State<'_, AgentService>,
+) -> Result<(), AppError> {
+    agents.login_code(&code).await
+}
+
+#[tauri::command]
+pub fn agent_login_open(agents: State<'_, AgentService>) -> Result<(), AppError> {
+    agents.open_login_page()
+}
+
+#[tauri::command]
+pub fn agent_login_cancel(agents: State<'_, AgentService>) {
+    agents.cancel_login();
+}
+
 #[tauri::command]
 pub fn agent_approve(
     chat_id: String,
