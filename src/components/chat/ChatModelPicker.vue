@@ -127,6 +127,14 @@ function onKeydown(event: KeyboardEvent) {
   store.toggleFavorite(props.agent, highlighted.value)
 }
 
+// Sans ça, reka donne d'abord le focus au premier bouton (l'étoile) : son infobulle s'ouvre puis disparaît quand
+// la recherche prend le focus.
+function onOpenAutoFocus(event: Event) {
+  event.preventDefault()
+  const content = event.target as HTMLElement | null
+  content?.querySelector<HTMLInputElement>('input')?.focus()
+}
+
 function onCloseAutoFocus(event: Event) {
   if (!props.focusAfter) return
   event.preventDefault()
@@ -170,6 +178,7 @@ const row =
             :side-offset="6"
             :collision-padding="8"
             class="ui-pop z-50 flex w-80 text-xs text-content select-none"
+            @open-auto-focus="onOpenAutoFocus"
             @close-auto-focus="onCloseAutoFocus"
           >
             <!-- Colonne des vues : Favoris, puis un bouton par agent. Ses boutons ne prennent pas le focus à la souris,
