@@ -9,6 +9,7 @@ import ChatMarkdown from '@/components/chat/ChatMarkdown.vue'
 import ChatPromptText from '@/components/chat/ChatPromptText.vue'
 import ChatSkillForm from '@/components/chat/ChatSkillForm.vue'
 import ChatTool from '@/components/chat/ChatTool.vue'
+import ChatTurnDetails from '@/components/chat/ChatTurnDetails.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiImagePreview from '@/components/ui/UiImagePreview.vue'
@@ -17,7 +18,7 @@ import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import { useAgentsStore } from '@/stores/agents'
 import type { ChatItem } from '@/stores/conversations'
 import { agents } from '@/utils/agents'
-import { formatDuration } from '@/utils/duration'
+import { formatClock } from '@/utils/duration'
 
 // Un élément de la conversation hors activité groupée. `streaming` : texte que l'agent écrit encore ;
 // `afterText` : l'élément précédent est un texte de l'agent ; `answer` : réponse du tour, sur sa ligne de fin.
@@ -59,7 +60,7 @@ watch(signedIn, async (now) => {
         <UiImagePreview v-if="attachment.preview" :src="previewSrc(attachment.preview)" :alt="attachment.name">
           <img :src="previewSrc(attachment.preview)" :alt="attachment.name" class="max-h-40 max-w-60 rounded-lg border border-stroke object-contain" />
         </UiImagePreview>
-        <span v-else class="flex max-w-60 items-center gap-2 rounded-lg border border-stroke px-2 py-1.5 text-xs">
+        <span v-else class="flex max-w-60 items-center gap-2 rounded-lg bg-content/6 px-2 py-1.5 text-xs">
           <component :is="attachment.kind === 'folder' ? Folder : File" class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
           <span class="min-w-0 truncate">{{ attachment.name }}</span>
         </span>
@@ -74,8 +75,11 @@ watch(signedIn, async (now) => {
     </p>
     <div
       v-if="item.text"
-      class="-mt-0.5 flex gap-0.5 opacity-0 transition-opacity duration-(--hover-duration) group-hover:opacity-100 focus-within:opacity-100 motion-reduce:transition-none"
+      class="mt-0.5 flex items-center gap-0.5 opacity-0 transition-opacity duration-(--hover-duration) group-hover:opacity-100 focus-within:opacity-100 motion-reduce:transition-none"
     >
+      <time v-if="item.at" :datetime="new Date(item.at).toISOString()" :title="formatClock(item.at, locale, true)" class="px-1 text-[11px] text-muted tabular-nums">
+        {{ formatClock(item.at, locale) }}
+      </time>
       <ChatCopyButton :text="() => item.kind === 'user' ? item.text : ''" :label="t('chat.copy.message')" />
       <UiIconButton v-if="rewindable" :label="t('chat.rewind.action')" @click="emit('rewind')">
         <Undo class="size-3.5" aria-hidden="true" />
@@ -85,10 +89,17 @@ watch(signedIn, async (now) => {
   <ChatMarkdown v-else-if="item.kind === 'text'" :text="item.text" :streaming="streaming" />
   <ChatTool v-else-if="item.kind === 'tool'" class="-mx-2 text-sm" :item="item" />
   <template v-else-if="item.kind === 'end'">
-    <!-- Le bouton déborde à gauche : son icône s'aligne sur le texte de l'agent. -->
-    <div v-if="item.status === 'completed'" class="flex items-center gap-1 text-xs text-muted">
-      <ChatCopyButton v-if="answer && afterText" class="-my-1 -ms-1.5 size-6!" :text="answer" :label="t('chat.copy.answer')" />
-      <p class="ms-auto">{{ item.durationMs === null ? t('chat.end.done') : t('chat.end.completed', { duration: formatDuration(item.durationMs, locale, true) }) }}</p>
+    <!-- Comme sous une bulle : au survol, à la même distance, l'heure d'abord (alignée sur le texte de l'agent). -->
+    <div
+      v-if="item.status === 'completed'"
+      class="-ms-1 -mt-1.5 flex items-center gap-0.5 text-xs text-muted opacity-0 transition-opacity duration-(--hover-duration) group-hover/end:opacity-100 focus-within:opacity-100 motion-reduce:transition-none [li:hover+li_&]:opacity-100"
+    >
+      <time v-if="item.at" :datetime="new Date(item.at).toISOString()" :title="formatClock(item.at, locale, true)" class="px-1 text-[11px] tabular-nums">
+        {{ formatClock(item.at, locale) }}
+      </time>
+      <p v-else-if="!afterText" class="px-1">{{ t('chat.end.done') }}</p>
+      <ChatCopyButton v-if="answer && afterText" :text="answer" :label="t('chat.copy.answer')" />
+      <ChatTurnDetails v-if="item.durationMs !== null || item.at" :duration-ms="item.durationMs" :at="item.at" />
     </div>
     <p v-else-if="item.status === 'stopped'" class="text-xs text-muted">
       {{ afterText ? t('chat.end.stoppedKept', agentParams) : t('chat.end.stopped') }}

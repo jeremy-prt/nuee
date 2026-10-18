@@ -10,8 +10,8 @@ import ArrowRight01Icon from '@hugeicons/core-free-icons/ArrowRight01Icon'
 import ArrowTurnBackwardIcon from '@hugeicons/core-free-icons/ArrowTurnBackwardIcon'
 import ArrowTurnForwardIcon from '@hugeicons/core-free-icons/ArrowTurnForwardIcon'
 import ArrowUp02Icon from '@hugeicons/core-free-icons/ArrowUp02Icon'
-import AtIcon from '@hugeicons/core-free-icons/AtIcon'
-import Attachment01Icon from '@hugeicons/core-free-icons/Attachment01Icon'
+import AtSignIcon from '@hugeicons/core-free-icons/AtSignIcon'
+import Attachment02Icon from '@hugeicons/core-free-icons/Attachment02Icon'
 import BotIcon from '@hugeicons/core-free-icons/BotIcon'
 import BrainIcon from '@hugeicons/core-free-icons/BrainIcon'
 import Cancel01Icon from '@hugeicons/core-free-icons/Cancel01Icon'
@@ -21,7 +21,6 @@ import Clock01Icon from '@hugeicons/core-free-icons/Clock01Icon'
 import CommentAdd01Icon from '@hugeicons/core-free-icons/CommentAdd01Icon'
 import ComputerTerminal01Icon from '@hugeicons/core-free-icons/ComputerTerminal01Icon'
 import Copy01Icon from '@hugeicons/core-free-icons/Copy01Icon'
-import CropIcon from '@hugeicons/core-free-icons/CropIcon'
 import Css3Icon from '@hugeicons/core-free-icons/Css3Icon'
 import DashboardSpeed01Icon from '@hugeicons/core-free-icons/DashboardSpeed01Icon'
 import Delete02Icon from '@hugeicons/core-free-icons/Delete02Icon'
@@ -43,6 +42,7 @@ import Folder01Icon from '@hugeicons/core-free-icons/Folder01Icon'
 import FolderAddIcon from '@hugeicons/core-free-icons/FolderAddIcon'
 import FolderOpenIcon from '@hugeicons/core-free-icons/FolderOpenIcon'
 import FolderTransferIcon from '@hugeicons/core-free-icons/FolderTransferIcon'
+import FolderTreeIcon from '@hugeicons/core-free-icons/FolderTreeIcon'
 import GitBranchIcon from '@hugeicons/core-free-icons/GitBranchIcon'
 import GitCompareIcon from '@hugeicons/core-free-icons/GitCompareIcon'
 import GitForkIcon from '@hugeicons/core-free-icons/GitForkIcon'
@@ -89,6 +89,7 @@ import SidebarLeft01Icon from '@hugeicons/core-free-icons/SidebarLeft01Icon'
 import SidebarRight01Icon from '@hugeicons/core-free-icons/SidebarRight01Icon'
 import SparklesIcon from '@hugeicons/core-free-icons/SparklesIcon'
 import SqlIcon from '@hugeicons/core-free-icons/SqlIcon'
+import SquareDashedIcon from '@hugeicons/core-free-icons/SquareDashedIcon'
 import SquareIcon from '@hugeicons/core-free-icons/SquareIcon'
 import StarIcon from '@hugeicons/core-free-icons/StarIcon'
 import Tick02Icon from '@hugeicons/core-free-icons/Tick02Icon'
@@ -98,6 +99,7 @@ import ViewIcon from '@hugeicons/core-free-icons/ViewIcon'
 import VolumeHighIcon from '@hugeicons/core-free-icons/VolumeHighIcon'
 import Wrench01Icon from '@hugeicons/core-free-icons/Wrench01Icon'
 import Xml01Icon from '@hugeicons/core-free-icons/Xml01Icon'
+import ZapIcon from '@hugeicons/core-free-icons/ZapIcon'
 
 // Icônes de Hugeicons (MIT), comme monocode : choix de Jérémy, pas lucide. Les glyphes sont importés un par un pour ne
 // pas charger tout le catalogue ; les noms exportés gardent ceux du code (Plus, Trash2…). Trait de 1,75 comme monocode.
@@ -118,7 +120,7 @@ export const Archive = icon(Archive02Icon)
 export const ArrowDown = icon(ArrowDown02Icon)
 export const ArrowLeft = icon(ArrowLeft02Icon)
 export const ArrowUp = icon(ArrowUp02Icon)
-export const AtSign = icon(AtIcon)
+export const AtSign = icon(AtSignIcon)
 export const Ban = icon(UnavailableIcon)
 export const Bell = icon(Notification01Icon)
 export const BellOff = icon(NotificationOff01Icon)
@@ -134,7 +136,6 @@ export const Clock = icon(Clock01Icon)
 export const Columns2 = icon(LayoutTwoColumnIcon)
 export const Copy = icon(Copy01Icon)
 export const CornerDownRight = icon(ArrowTurnForwardIcon)
-export const Crop = icon(CropIcon)
 export const Download = icon(Download04Icon)
 export const Ellipsis = icon(MoreHorizontalIcon)
 export const ExternalLink = icon(LinkSquare02Icon)
@@ -166,6 +167,7 @@ export const Folder = icon(Folder01Icon)
 export const FolderInput = icon(FolderTransferIcon)
 export const FolderOpen = icon(FolderOpenIcon)
 export const FolderPlus = icon(FolderAddIcon)
+export const FolderTree = icon(FolderTreeIcon)
 export const Gauge = icon(DashboardSpeed01Icon)
 export const GitBranch = icon(GitBranchIcon)
 export const GitBranchPlus = icon(GitForkIcon)
@@ -189,7 +191,7 @@ export const PanelBottom = icon(LayoutBottomIcon)
 export const PanelLeftClose = icon(SidebarLeft01Icon)
 export const PanelLeftOpen = icon(SidebarOpenIcon)
 export const PanelRight = icon(SidebarRight01Icon)
-export const Paperclip = icon(Attachment01Icon)
+export const Paperclip = icon(Attachment02Icon)
 export const Pencil = icon(PencilEdit02Icon)
 export const Pin = icon(PinIcon)
 export const PinOff = icon(PinOffIcon)
@@ -205,6 +207,7 @@ export const ShieldCheck = icon(SecurityCheckIcon)
 export const SlidersHorizontal = icon(FilterHorizontalIcon)
 export const Sparkles = icon(SparklesIcon)
 export const Square = icon(SquareIcon)
+export const SquareDashed = icon(SquareDashedIcon)
 export const SquarePen = icon(PencilEdit01Icon)
 export const SquareTerminal = icon(ComputerTerminal01Icon)
 export const Star = icon(StarIcon)
@@ -213,3 +216,4 @@ export const Undo = icon(ArrowTurnBackwardIcon)
 export const Volume2 = icon(VolumeHighIcon)
 export const Wrench = icon(Wrench01Icon)
 export const X = icon(Cancel01Icon)
+export const Zap = icon(ZapIcon)

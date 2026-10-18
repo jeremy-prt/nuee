@@ -9,4 +9,8 @@ export type TurnOptions = { mode: PermissionMode,
 /**
  * Valeur prise dans le catalogue de l'agent ; `None` laisse l'agent choisir.
  */
-model: string | null, effort: Effort | null, };
+model: string | null, effort: Effort | null, 
+/**
+ * Mode rapide, pour les modèles qui l'acceptent. Absent des réglages enregistrés avant son ajout.
+ */
+fast: boolean, };

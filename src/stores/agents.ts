@@ -33,7 +33,7 @@ const BLANK = { path: null, version: null, latest: null, account: null, usage: n
 const MODES: PermissionMode[] = ['bypass', 'auto']
 const kinds = Object.keys(agents) as AgentKind[]
 
-export const DEFAULT_OPTIONS: TurnOptions = { mode: 'bypass', model: null, effort: null }
+export const DEFAULT_OPTIONS: TurnOptions = { mode: 'bypass', model: null, effort: null, fast: false }
 
 function defaults(): AgentSettings {
   return { enabled: true, path: null, defaults: { ...DEFAULT_OPTIONS }, hooks: true }

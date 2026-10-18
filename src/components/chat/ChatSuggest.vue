@@ -60,21 +60,21 @@ defineExpose({ open, activeId, keydown })
 
 <template>
   <!-- mousedown empêché : le focus reste dans le champ de saisie. -->
-  <div v-if="open" class="ui-glass absolute inset-x-0 bottom-full z-10 mb-2 rounded-lg p-1 text-xs select-none">
+  <div v-if="open" class="ui-glass absolute inset-x-0 bottom-full z-10 mb-1.5 rounded-lg p-1 text-xs select-none">
     <p v-if="!items.length" role="status" class="px-2 py-1.5 text-muted">{{ empty }}</p>
-    <ul v-else :id="id" ref="list" role="listbox" :aria-label="label" class="relative max-h-60 overflow-y-auto" @mousedown.prevent>
+    <ul v-else :id="id" ref="list" role="listbox" :aria-label="label" class="relative flex max-h-60 flex-col gap-0.5 overflow-y-auto" @mousedown.prevent>
       <li
         v-for="(item, index) in items"
         :id="optionId(index)"
         :key="item.key"
         role="option"
         :aria-selected="index === active"
-        class="flex cursor-pointer items-baseline gap-3 rounded-md px-2 py-1.5 text-content/75 aria-selected:bg-selection aria-selected:text-content"
+        class="flex shrink-0 cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 text-content/75 aria-selected:bg-selection-hover aria-selected:text-content"
         @pointermove="active = index"
         @click="emit('choose', item.key)"
       >
-        <span class="flex max-w-1/2 shrink-0 items-center gap-1.5 truncate">
-          <component :is="item.icon" v-if="item.icon" v-bind="item.iconProps" class="size-3.5 shrink-0 self-center" aria-hidden="true" />
+        <span class="flex max-w-1/2 shrink-0 items-center gap-2 truncate">
+          <component :is="item.icon" v-if="item.icon" v-bind="item.iconProps" class="size-3.5 shrink-0" aria-hidden="true" />
           <span class="truncate">{{ item.label }}</span>
         </span>
         <span v-if="item.hint" class="min-w-0 flex-1 truncate text-muted">{{ item.hint }}</span>

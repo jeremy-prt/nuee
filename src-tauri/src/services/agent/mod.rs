@@ -107,6 +107,9 @@ pub struct TurnOptions {
     /// Valeur prise dans le catalogue de l'agent ; `None` laisse l'agent choisir.
     pub model: Option<String>,
     pub effort: Option<Effort>,
+    /// Mode rapide, pour les modèles qui l'acceptent. Absent des réglages enregistrés avant son ajout.
+    #[serde(default)]
+    pub fast: bool,
 }
 
 /// Pas de mode « validation manuelle » : Nuée laisse l'agent agir seul.
@@ -235,9 +238,12 @@ pub struct Catalog {
 pub struct ModelInfo {
     pub value: String,
     pub label: String,
-    pub description: String,
     /// Vide quand le modèle ne règle pas son effort.
     pub efforts: Vec<Effort>,
+    /// Accepte le mode rapide.
+    pub fast: bool,
+    /// Version précédente d'une famille, rangée à part dans le sélecteur.
+    pub legacy: bool,
 }
 
 /// Ce que Réglages > Agents montre d'un agent installé.

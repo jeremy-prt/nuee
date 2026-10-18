@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, ChevronDown, GitBranch, GitBranchPlus, Search } from '@/components/ui/icons'
+import { ChevronDown, GitBranch, GitBranchPlus, Search } from '@/components/ui/icons'
 import { ListboxContent, ListboxFilter, ListboxItem, ListboxRoot, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from 'reka-ui'
 import { computed, ref, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -92,25 +92,28 @@ const blockedText = computed(() => {
 })
 
 const item =
-  'flex h-8 cursor-pointer items-center gap-2 rounded-md px-2 text-content/80 outline-none data-[highlighted]:bg-selection data-[highlighted]:text-content data-[disabled]:cursor-default data-[disabled]:opacity-50'
+  'flex h-7 shrink-0 cursor-pointer items-center gap-2 rounded-md px-2 text-content/75 outline-none data-[highlighted]:bg-selection-hover data-[highlighted]:text-content data-[disabled]:cursor-default data-[disabled]:opacity-40'
 </script>
 
 <template>
   <PopoverRoot v-if="!failed" v-model:open="open">
     <PopoverTrigger
       :disabled="disabled"
-      class="flex h-6 min-w-0 items-center gap-1 rounded-md ps-1.5 pe-1 text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none data-[state=open]:bg-selection-hover"
+      class="group flex h-6 min-w-0 items-center gap-1.5 rounded-md px-1.5 text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none data-[state=open]:bg-selection-hover data-[state=open]:text-content"
     >
       <GitBranch class="size-3.5 shrink-0" aria-hidden="true" />
       <span class="sr-only">{{ t('composer.branch.label') }}</span>
       <span class="truncate">{{ label }}</span>
-      <ChevronDown class="size-3 shrink-0" aria-hidden="true" />
+      <ChevronDown
+        class="size-3 shrink-0 text-muted transition-transform duration-150 ease-out group-data-[state=open]:rotate-180 motion-reduce:transition-none"
+        aria-hidden="true"
+      />
     </PopoverTrigger>
     <PopoverPortal>
-      <PopoverContent side="bottom" align="end" :side-offset="6" :collision-padding="8" class="ui-pop z-50 w-72 text-[13px] text-content select-none">
+      <PopoverContent side="top" align="end" :side-offset="6" :collision-padding="8" class="ui-pop z-50 w-72 p-1 text-xs text-content select-none">
         <ListboxRoot model-value="" highlight-on-hover :aria-label="t('composer.branch.label')" @update:model-value="choose">
-          <div class="flex h-9 items-center gap-2 border-b border-stroke px-3">
-            <Search class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
+          <label class="mx-1 flex h-9 items-center gap-2 border-b border-stroke ps-2 pe-1.5 text-muted focus-within:border-ring focus-within:text-content">
+            <Search class="size-3.5 shrink-0" aria-hidden="true" />
             <ListboxFilter
               v-model="query"
               auto-focus
@@ -121,25 +124,29 @@ const item =
               writingsuggestions="false"
               :aria-label="t('composer.branch.search')"
               :placeholder="t('composer.branch.search')"
-              class="min-w-0 flex-1 bg-transparent outline-none select-text placeholder:text-muted"
+              class="min-w-0 flex-1 bg-transparent text-content outline-none select-text placeholder:text-muted"
             />
-          </div>
-          <ListboxContent class="max-h-72 overflow-y-auto p-1">
+          </label>
+          <ListboxContent class="mt-1 flex max-h-72 flex-col gap-0.5 overflow-y-auto">
             <p v-if="!shown.length && !creatable" class="px-2 py-1.5 text-muted">{{ t('composer.branch.none') }}</p>
-            <ListboxItem v-for="branch in shown" :key="branch.name" :value="branch.name" :disabled="branch.elsewhere || pending" :class="item">
-              <span class="grid size-3.5 shrink-0 place-items-center">
-                <Check v-if="branch.name === list?.current" class="size-3.5" aria-hidden="true" />
-              </span>
-              <span class="min-w-0 flex-1 truncate" :class="{ 'font-medium': branch.name === list?.current }">{{ branch.name }}</span>
-              <span v-if="branch.elsewhere" class="shrink-0 text-xs text-muted">{{ t('composer.branch.elsewhere') }}</span>
+            <ListboxItem
+              v-for="branch in shown"
+              :key="branch.name"
+              :value="branch.name"
+              :disabled="branch.elsewhere || pending"
+              :class="[item, { 'bg-selection text-content': branch.name === list?.current }]"
+            >
+              <span class="min-w-0 flex-1 truncate">{{ branch.name }}</span>
+              <span v-if="branch.name === list?.current" class="shrink-0 text-[11px] text-muted">{{ t('composer.branch.current') }}</span>
+              <span v-else-if="branch.elsewhere" class="shrink-0 text-[11px] text-muted">{{ t('composer.branch.elsewhere') }}</span>
             </ListboxItem>
             <ListboxItem v-if="creatable" :value="CREATE + wanted" :disabled="pending" :class="item">
               <GitBranchPlus class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
               <span class="min-w-0 flex-1 truncate">{{ t('composer.branch.create', { name: wanted }) }}</span>
             </ListboxItem>
           </ListboxContent>
-          <p v-if="blocked" class="border-t border-stroke px-3 py-2 text-xs text-warning" role="alert">{{ blockedText }}</p>
-          <p v-else-if="error" class="border-t border-stroke px-3 py-2 text-xs text-danger" role="alert">{{ error }}</p>
+          <p v-if="blocked" class="px-2 pt-1.5 pb-1 text-warning" role="alert">{{ blockedText }}</p>
+          <p v-else-if="error" class="px-2 pt-1.5 pb-1 text-danger" role="alert">{{ error }}</p>
         </ListboxRoot>
       </PopoverContent>
     </PopoverPortal>

@@ -1,15 +1,14 @@
 <script setup lang="ts">
-import { ArrowUp, Brain, Folder, GitBranch, GitBranchPlus, ShieldAlert, ShieldCheck, Square, X } from '@/components/ui/icons'
+import { ArrowUp, ShieldAlert, ShieldCheck, Square, X } from '@/components/ui/icons'
 import { type Component, computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import ChatBranchPicker from '@/components/chat/ChatBranchPicker.vue'
 import ChatContextMeter from '@/components/chat/ChatContextMeter.vue'
 import ChatMentionMenu from '@/components/chat/ChatMentionMenu.vue'
 import ChatModelPicker from '@/components/chat/ChatModelPicker.vue'
+import ChatPlaceBar from '@/components/chat/ChatPlaceBar.vue'
 import ChatPlusMenu from '@/components/chat/ChatPlusMenu.vue'
 import ChatPromptText from '@/components/chat/ChatPromptText.vue'
 import ChatSlashMenu from '@/components/chat/ChatSlashMenu.vue'
-import ProjectIcon from '@/components/project/ProjectIcon.vue'
 import UiFileIcon from '@/components/ui/UiFileIcon.vue'
 import UiImagePreview from '@/components/ui/UiImagePreview.vue'
 import UiMenu, { type UiMenuSection } from '@/components/ui/UiMenu.vue'
@@ -79,33 +78,6 @@ const input = useTemplateRef('input')
 // Après un choix de mode, de modèle ou d'effort, on reprend la saisie là où on l'avait laissée.
 const focusInput = () => input.value?.focus()
 
-const worktreeLabel = computed(() => {
-  const blocked = props.worktree?.blocked
-  return blocked ? t(`settings.projects.worktreeSupport.${blocked}`) : t('composer.worktree.menu')
-})
-const folderName = (path: string) => path.split(/[\\/]/).filter(Boolean).pop() ?? path
-const worktreeSections = computed<UiMenuSection[]>(() => {
-  const worktree = props.worktree
-  if (!worktree) return []
-  return [
-    {
-      id: 'worktree',
-      label: t('composer.worktree.menu'),
-      value: worktree.choice,
-      options: [
-        { value: 'project', label: t('composer.worktree.project'), hint: t('composer.worktree.projectHint'), icon: Folder },
-        { value: 'new', label: t('composer.worktree.new'), hint: t('composer.worktree.newHint'), icon: GitBranchPlus },
-        ...worktree.trees.map((tree) => ({
-          value: tree.path,
-          label: tree.branch ?? folderName(tree.path),
-          icon: GitBranch,
-        })),
-      ],
-    },
-  ]
-})
-const chosenTree = computed(() => props.worktree?.trees.find((tree) => tree.path === props.worktree?.choice) ?? null)
-
 const modeLooks = {
   bypass: { icon: ShieldAlert, iconClass: 'text-warning' },
   auto: { icon: ShieldCheck, iconClass: undefined },
@@ -124,34 +96,27 @@ const modeSections = computed<UiMenuSection[]>(() => [
   },
 ])
 
-const currentModel = computed(() => props.catalog?.models.find((model) => model.value === options.value.model) ?? null)
-// Effort à côté du modèle, chaque niveau avec sa description ; rien quand le modèle ne le règle pas.
-const effortSections = computed<UiMenuSection[]>(() => {
-  const efforts = currentModel.value?.efforts ?? []
-  if (!efforts.length) return []
-  return [
-    {
-      id: 'effort',
-      label: t('composer.effort.label'),
-      value: options.value.effort ?? '',
-      options: efforts.map((effort) => ({
-        value: effort,
-        label: effort === props.catalog?.defaultEffort ? `${t(`composer.effort.${effort}`)} · ${t('composer.default')}` : t(`composer.effort.${effort}`),
-        hint: t(`composer.effort.hints.${effort}`),
-      })),
-    },
-  ]
-})
 const chosenModel = computed({
   get: () => options.value.model,
   set: (value: string | null) => {
     options.value = { ...options.value, model: value }
   },
 })
+const chosenEffort = computed({
+  get: () => options.value.effort,
+  set: (value: Effort | null) => {
+    options.value = { ...options.value, effort: value }
+  },
+})
+const chosenFast = computed({
+  get: () => options.value.fast,
+  set: (value: boolean) => {
+    options.value = { ...options.value, fast: value }
+  },
+})
 
-function choose(section: string, value: string) {
-  if (section === 'mode') options.value = { ...options.value, mode: value as PermissionMode }
-  else if (section === 'effort') options.value = { ...options.value, effort: value as Effort }
+function chooseMode(_: string, value: string) {
+  options.value = { ...options.value, mode: value as PermissionMode }
 }
 
 // Position du curseur, null hors du champ : le menu des skills ne suit que la frappe en cours.
@@ -363,42 +328,15 @@ function onKeydown(event: KeyboardEvent) {
   <!-- Le menu des skills est hors du cadre flouté : un flou imbriqué ne verrait que le cadre derrière lui. -->
   <form class="relative" @submit.prevent="submit">
     <div
-      class="@container rounded-xl border border-stroke bg-selection/50 backdrop-blur-sm has-[textarea:focus]:border-stroke-focus"
+      class="@container rounded-2xl border border-stroke bg-selection/50 backdrop-blur-sm has-[textarea:focus]:border-stroke-focus"
       :class="{ 'opacity-60': disabled }"
     >
-      <div v-if="project" class="mx-3 mt-2.5 flex h-6 min-w-0 items-center gap-2 text-xs text-muted">
-        <p class="flex min-w-0 items-center gap-1.5" :title="project.path">
-          <ProjectIcon :project="project" class="size-3.5 shrink-0" />
-          <span class="sr-only">{{ t('composer.project') }}</span>
-          <span class="truncate">{{ project.name }}</span>
-        </p>
-        <template v-if="worktree">
-          <span v-if="worktree.started" class="ms-auto flex min-w-0 shrink-0">
-            <ChatBranchPicker :key="chatId" :chat-id="chatId" :project="project" :fallback="worktree.branch" :disabled="disabled || running" />
-          </span>
-          <span v-else class="ms-auto flex min-w-0 shrink-0">
-            <UiMenu
-              :label="worktreeLabel"
-              :sections="worktreeSections"
-              :disabled="!!worktree.blocked || disabled"
-              :focus-after="focusInput"
-              :look="worktree.choice === 'project' ? 'h-6 ps-1.5 pe-1 text-muted hover:bg-selection-hover hover:text-content aria-expanded:bg-selection-hover' : 'h-6 ps-1.5 pe-1 bg-signal/15 text-signal-text'"
-              @select="(_, value) => emit('worktree', value)"
-            >
-              <component :is="worktree.choice === 'new' ? GitBranchPlus : GitBranch" class="size-3.5 shrink-0" aria-hidden="true" />
-              <span class="truncate">
-                {{ worktree.choice === 'project' ? t('composer.worktree.label') : worktree.choice === 'new' ? t('composer.worktree.new') : (chosenTree?.branch ?? folderName(worktree.choice)) }}
-              </span>
-            </UiMenu>
-          </span>
-        </template>
-      </div>
       <ul v-if="attachments.length" class="flex flex-wrap gap-2 px-3 pt-3" :aria-label="t('composer.attachments')">
         <li v-for="(attachment, index) in attachments" :key="attachment.preview ?? attachment.path" class="group relative" :title="attachment.path">
           <UiImagePreview v-if="attachment.preview" :src="previewSrc(attachment.preview)" :alt="attachment.name" class="size-12 overflow-hidden border border-stroke">
             <img :src="previewSrc(attachment.preview)" :alt="attachment.name" class="size-full object-cover" />
           </UiImagePreview>
-          <div v-else class="flex h-12 max-w-48 items-center gap-2 rounded-lg border border-stroke bg-canvas/40 ps-2.5 pe-7 text-xs">
+          <div v-else class="flex h-12 max-w-48 items-center gap-2 rounded-lg bg-content/6 ps-2.5 pe-7 text-xs">
             <UiFileIcon :name="attachment.name" :folder="attachment.kind === 'folder'" class="size-4 shrink-0" />
             <span class="min-w-0 truncate">{{ attachment.name }}</span>
           </div>
@@ -421,9 +359,9 @@ function onKeydown(event: KeyboardEvent) {
           ref="highlight"
           aria-hidden="true"
           :style="indent"
-          class="pointer-events-none absolute inset-0 overflow-hidden px-3 py-3 text-sm leading-5.5 wrap-break-word whitespace-pre-wrap"
+          class="pointer-events-none absolute inset-0 overflow-hidden px-3.5 pt-3.5 pb-2 text-sm leading-5.5 wrap-break-word whitespace-pre-wrap"
         >
-          <ChatPromptText :text="prompt" fit />
+          <ChatPromptText :text="prompt" fit :typing="mention?.start" />
         </div>
         <textarea
           :id="id"
@@ -439,7 +377,7 @@ function onKeydown(event: KeyboardEvent) {
           writingsuggestions="false"
           :disabled="disabled"
           :style="indent"
-          class="prompt-field relative block max-h-60 min-h-20 w-full resize-none bg-transparent px-3 py-3 text-sm leading-5.5 select-text outline-none placeholder:truncate"
+          class="prompt-field relative block max-h-60 min-h-18 w-full resize-none bg-transparent px-3.5 pt-3.5 pb-2 text-sm leading-5.5 select-text outline-none placeholder:truncate"
           :placeholder="t('composer.placeholder')"
           @keydown="onKeydown"
           @input="syncCaret"
@@ -451,7 +389,7 @@ function onKeydown(event: KeyboardEvent) {
           @scroll="syncScroll"
         />
       </div>
-      <!-- Étroite (petite fenêtre, écran partagé) : l'effort et le nom du mode ne restent que pour les lecteurs d'écran. -->
+      <!-- Étroite (petite fenêtre, écran partagé) : le nom du mode ne reste que pour les lecteurs d'écran. -->
       <div class="flex items-center gap-1 px-2 pb-2">
         <ChatPlusMenu
           :disabled="disabled"
@@ -463,45 +401,42 @@ function onKeydown(event: KeyboardEvent) {
           @mention="startMention"
           @skill="startSkill"
         />
-        <ChatModelPicker v-model="chosenModel" :agent="agent" :catalog="catalog" :disabled="disabled" :focus-after="focusInput" />
-        <UiMenu
-          v-if="effortSections.length"
-          :label="t('composer.effort.label')"
-          :sections="effortSections"
+        <ChatModelPicker
+          v-model="chosenModel"
+          v-model:effort="chosenEffort"
+          v-model:fast="chosenFast"
+          :agent="agent"
+          :catalog="catalog"
           :disabled="disabled"
           :focus-after="focusInput"
-          @select="choose"
-        >
-          <Brain class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
-          <span class="@max-sm:sr-only">{{ options.effort ? t(`composer.effort.${options.effort}`) : '' }}</span>
-        </UiMenu>
-        <ChatContextMeter v-if="context" :usage="context" :disabled="disabled || running || !compactable" @compact="emit('compact')" />
+        />
         <UiMenu
           :label="t('composer.mode.label')"
           :sections="modeSections"
           :disabled="disabled"
           :focus-after="focusInput"
-          @select="choose"
+          @select="chooseMode"
         >
           <component :is="modeLook.icon" class="size-3.5 shrink-0" :class="modeLook.iconClass" aria-hidden="true" />
           <span class="@max-sm:sr-only">{{ t(`composer.mode.${options.mode}`) }}</span>
         </UiMenu>
         <span class="flex-1" />
+        <ChatContextMeter v-if="context" :usage="context" :disabled="disabled || running || !compactable" class="me-1" @compact="emit('compact')" />
         <!-- Pendant une réponse : le message attend la fin du tour ou la rejoint, selon Réglages › Général. -->
-        <UiTooltip v-if="running && canSend" :label="t(general.followUp === 'steer' ? 'composer.steer' : 'composer.queue')" :shortcut="shortcuts.label('send')">
+        <UiTooltip v-if="running && canSend" :label="t(general.followUp === 'steer' ? 'composer.steer' : 'composer.queue')" :shortcut="shortcuts.label('send')" side="top">
           <button
             type="submit"
             :disabled="disabled"
-            class="grid size-7 shrink-0 place-items-center rounded-md bg-selection text-content hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            class="me-1 grid size-7 shrink-0 place-items-center rounded-full bg-selection text-content hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             :aria-label="t(general.followUp === 'steer' ? 'composer.steer' : 'composer.queue')"
           >
             <ArrowUp class="size-4" aria-hidden="true" />
           </button>
         </UiTooltip>
-        <UiTooltip v-if="running" :label="t('composer.stop')">
+        <UiTooltip v-if="running" :label="t('composer.stop')" side="top">
           <button
             type="button"
-            class="grid size-7 shrink-0 place-items-center rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            class="grid size-7 shrink-0 place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             :class="approving ? 'bg-selection text-content hover:bg-selection-hover' : 'bg-accent text-canvas hover:opacity-90'"
             :aria-label="t('composer.stop')"
             @click="emit('stop')"
@@ -509,11 +444,11 @@ function onKeydown(event: KeyboardEvent) {
             <Square class="size-3 fill-current" aria-hidden="true" />
           </button>
         </UiTooltip>
-        <UiTooltip v-else :label="t('composer.send')" :shortcut="shortcuts.label('send')">
+        <UiTooltip v-else :label="t('composer.send')" :shortcut="shortcuts.label('send')" side="top">
           <button
             type="submit"
             :disabled="disabled || !canSend"
-            class="grid size-7 shrink-0 place-items-center rounded-md bg-accent text-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring enabled:hover:opacity-90 disabled:bg-accent/30 disabled:text-canvas/60"
+            class="grid size-7 shrink-0 place-items-center rounded-full bg-accent text-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring enabled:hover:opacity-90 disabled:bg-content/12 disabled:text-muted"
             :aria-label="t('composer.send')"
           >
             <ArrowUp class="size-4" aria-hidden="true" />
@@ -521,6 +456,16 @@ function onKeydown(event: KeyboardEvent) {
         </UiTooltip>
       </div>
     </div>
+    <ChatPlaceBar
+      v-if="project"
+      :chat-id="chatId"
+      :project="project"
+      :worktree="worktree"
+      :disabled="disabled"
+      :running="running"
+      :focus-after="focusInput"
+      @worktree="emit('worktree', $event)"
+    />
     <ChatSlashMenu ref="slashMenu" :id="`${id}-skills`" :query="slashQuery" @choose="chooseSkill" />
     <ChatMentionMenu v-if="project" ref="mentionMenu" :id="`${id}-files`" :query="mention?.query ?? null" :chat-id="chatId" :project="project.path" @choose="chooseFile" />
   </form>

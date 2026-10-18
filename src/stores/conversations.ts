@@ -30,8 +30,9 @@ import { useWorkspaceStore } from '@/stores/workspace'
 
 export type ChatItem =
   // steered : ajouté à une réponse en cours, l'agent l'a lu sans ouvrir de nouveau tour. agentId : identifiant que
-  // l'agent lui donne, pour revenir avant lui.
-  | { kind: 'user'; id: string; text: string; attachments?: Attachment[]; steered?: boolean; agentId?: string }
+  // l'agent lui donne, pour revenir avant lui. `at` (envoi, comme celui de la fin de tour) : absent des sessions
+  // enregistrées avant lui.
+  | { kind: 'user'; id: string; text: string; attachments?: Attachment[]; steered?: boolean; agentId?: string; at?: number }
   // Chat ouvert par une commande de Nuée : son message d'ouverture est rendu depuis cet élément, sans tour
   // d'agent. `skill` : le skill à modifier tel qu'il était à l'ouverture.
   | { kind: 'command'; id: string; command: ChatCommand; skill?: { name: string; description: string; automatic: boolean } }
@@ -53,7 +54,7 @@ export type ChatItem =
       image?: string
       task?: TaskState
     }
-  | { kind: 'end'; id: string; status: TurnStatus; error: string | null; durationMs: number | null }
+  | { kind: 'end'; id: string; status: TurnStatus; error: string | null; durationMs: number | null; at?: number }
   | { kind: 'error'; id: string; error: AppError }
 
 export type CommandItem = Extract<ChatItem, { kind: 'command' }>
@@ -308,7 +309,7 @@ function apply(conversation: Conversation, events: AgentEvent[]) {
         settleTools(items, 'done')
         // Un tour ouvert par l'agent ne compte qu'à partir de son premier mot : une durée si courte ne dit rien.
         const duration = elapsed(conversation)
-        items.push({ kind: 'end', id: crypto.randomUUID(), status: 'completed', error: null, durationMs: duration < 1000 ? null : duration })
+        items.push({ kind: 'end', id: crypto.randomUUID(), status: 'completed', error: null, durationMs: duration < 1000 ? null : duration, at: Date.now() })
         conversation.phase = 'finishing'
         signal = strongest(signal, 'done')
         break
@@ -317,11 +318,11 @@ function apply(conversation: Conversation, events: AgentEvent[]) {
         settleTools(items, event.status === 'completed' ? 'done' : 'failed')
         const { status, error } = event
         const shown = conversation.phase === 'finishing' && items.at(-1)?.kind === 'end'
-        if (shown && status !== 'completed') items[items.length - 1] = { kind: 'end', id: crypto.randomUUID(), status, error, durationMs: null }
+        if (shown && status !== 'completed') items[items.length - 1] = { kind: 'end', id: crypto.randomUUID(), status, error, durationMs: null, at: Date.now() }
         if (!shown) {
           const duration = elapsed(conversation)
           const durationMs = status === 'completed' && duration >= 1000 ? duration : null
-          items.push({ kind: 'end', id: crypto.randomUUID(), status, error, durationMs })
+          items.push({ kind: 'end', id: crypto.randomUUID(), status, error, durationMs, at: Date.now() })
         }
         if (status === 'failed' || status === 'unauthenticated') signal = strongest(signal, 'failed')
         else if (status === 'completed' && !shown) signal = strongest(signal, 'done')
@@ -548,7 +549,7 @@ export const useConversationsStore = defineStore('conversations', () => {
   function start(chatId: string, conversation: Conversation, message: Omit<Queued, 'id'>) {
     const { place, prompt, attachments } = message
     useWorkspaceStore().touch(chatId)
-    push(conversation, { kind: 'user', id: crypto.randomUUID(), text: prompt, attachments })
+    push(conversation, { kind: 'user', id: crypto.randomUUID(), text: prompt, attachments, at: Date.now() })
     save(chatId)
     dispatch(chatId, conversation, place, prompt, attachments)
   }
@@ -561,7 +562,7 @@ export const useConversationsStore = defineStore('conversations', () => {
       return
     }
     conversation.queue = conversation.queue.filter((item) => item.id !== message.id)
-    push(conversation, { kind: 'user', id: message.id, text: message.prompt, attachments: message.attachments, steered: true })
+    push(conversation, { kind: 'user', id: message.id, text: message.prompt, attachments: message.attachments, steered: true, at: Date.now() })
     save(chatId)
   }
 

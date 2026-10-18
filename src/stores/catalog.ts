@@ -49,7 +49,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   // Réglages réellement envoyés : un modèle absent du catalogue retombe sur celui par défaut,
-  // un effort que le modèle ne connaît pas sur l'effort par défaut.
+  // un effort que le modèle ne connaît pas sur l'effort par défaut, le mode rapide tombe s'il ne l'accepte pas.
   function resolve(agent: AgentKind, options: TurnOptions): TurnOptions {
     const catalog = catalogs[agent]
     if (!catalog) return options
@@ -58,13 +58,13 @@ export const useCatalogStore = defineStore('catalog', () => {
       models.find((item) => item.value === options.model) ??
       models.find((item) => item.value === catalog.defaultModel) ??
       models[0]
-    if (!model) return { ...options, model: null, effort: null }
+    if (!model) return { ...options, model: null, effort: null, fast: false }
     const { efforts } = model
     let effort = null
     if (options.effort && efforts.includes(options.effort)) effort = options.effort
     else if (efforts.includes(catalog.defaultEffort)) effort = catalog.defaultEffort
     else effort = efforts.at(-1) ?? null
-    return { mode: options.mode, model: model.value, effort }
+    return { mode: options.mode, model: model.value, effort, fast: !!options.fast && model.fast }
   }
 
   return { load, get, resolve, isFavorite, toggleFavorite }

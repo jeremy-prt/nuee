@@ -744,6 +744,10 @@ impl Driver for Claude {
 /// serveur : `deniedMcpServers` s'additionne d'une source à l'autre.
 fn nuee_settings(spec: &SessionSpec) -> Option<String> {
     let mut settings = serde_json::Map::new();
+    // Hors du terminal, la CLI ne sert le mode rapide qu'à qui le demande par `--settings` (essayé).
+    if spec.options.fast {
+        settings.insert("fastMode".into(), true.into());
+    }
     if !spec.hooks {
         settings.insert("disableAllHooks".into(), true.into());
     }
@@ -1008,22 +1012,31 @@ fn catalog_of(response: &Value) -> Option<Catalog> {
         .iter()
         .find(|row| row["value"] == "default")
         .map(|row| &row["resolvedModel"]);
-    let models: Vec<ModelInfo> = rows
+    let mut models: Vec<ModelInfo> = rows
         .iter()
         .filter(|row| row["value"] != "default" && row["disabled"] != true)
         .map(|row| ModelInfo {
             value: str_of(&row["value"]).to_owned(),
             label: str_of(&row["displayName"]).to_owned(),
-            description: str_of(&row["description"]).to_owned(),
             efforts: row["supportedEffortLevels"]
                 .as_array()
                 .into_iter()
                 .flatten()
                 .filter_map(|level| effort_of(level.as_str()?))
                 .collect(),
+            fast: row["supportsFastMode"] == true,
+            legacy: false,
         })
         .filter(|model| !model.value.is_empty())
         .collect();
+    // La CLI nomme les modèles du moment par leur famille (« opus ») et les plus anciens par leur identifiant
+    // complet (« claude-opus-4-8 »). Sans aucun nom de famille (Bedrock, Vertex), rien n'est rangé à part.
+    let full_id = |model: &ModelInfo| model.value.starts_with("claude-");
+    if models.iter().any(|model| !full_id(model)) {
+        for model in &mut models {
+            model.legacy = full_id(model);
+        }
+    }
     let default_model = default_target.and_then(|target| {
         rows.iter()
             .find(|row| row["value"] != "default" && &row["resolvedModel"] == target)
@@ -1476,6 +1489,7 @@ mod tests {
                 mode: PermissionMode::Auto,
                 model: Some("opus".into()),
                 effort: Some(Effort::Xhigh),
+                fast: false,
             },
             hooks: false,
             skills: Default::default(),
@@ -1506,7 +1520,7 @@ mod tests {
     fn catalog_hides_the_default_row_but_remembers_its_target() {
         let line = r#"{"type":"control_response","response":{"subtype":"success","request_id":"nuee-init","response":{"models":[
             {"value":"default","resolvedModel":"claude-opus-5-5","displayName":"Default (recommended)"},
-            {"value":"opus","resolvedModel":"claude-opus-5-5","displayName":"Opus 5.5","description":"Complexe","supportedEffortLevels":["low","high","xhigh"]},
+            {"value":"opus","resolvedModel":"claude-opus-5-5","displayName":"Opus 5.5","description":"Complexe","supportedEffortLevels":["low","high","xhigh"],"supportsFastMode":true},
             {"value":"claude-haiku-4-5","resolvedModel":"claude-haiku-4-5","displayName":"Haiku 4.5","description":"Rapide"}
         ]}}}"#;
         let catalog = probe(&[&line.replace('\n', "")])
@@ -1524,6 +1538,10 @@ mod tests {
             [Effort::Low, Effort::High, Effort::Xhigh]
         );
         assert!(catalog.models[1].efforts.is_empty());
+        assert!(catalog.models[0].fast);
+        assert!(!catalog.models[1].fast);
+        assert!(!catalog.models[0].legacy);
+        assert!(catalog.models[1].legacy);
     }
 
     #[test]
@@ -1774,6 +1792,7 @@ mod tests {
                 mode: PermissionMode::Bypass,
                 model: None,
                 effort: None,
+                fast: false,
             },
             hooks: false,
             skills: [
@@ -1806,6 +1825,17 @@ mod tests {
         };
         let args = Claude::new(Path::new("/projet")).args(&request);
         assert!(!args.iter().any(|arg| arg == "--settings"));
+
+        let request = SessionSpec {
+            options: super::super::TurnOptions {
+                fast: true,
+                ..request.options.clone()
+            },
+            ..request
+        };
+        let args = Claude::new(Path::new("/projet")).args(&request);
+        let position = args.iter().position(|arg| arg == "--settings").unwrap();
+        assert_eq!(args[position + 1], r#"{"fastMode":true}"#);
     }
 
     #[test]

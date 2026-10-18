@@ -75,7 +75,7 @@ function onCloseAutoFocus(event: Event) {
         <DropdownMenuTrigger
           :disabled="disabled"
           class="group flex min-w-0 items-center gap-1.5 rounded-md text-xs whitespace-nowrap focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-40"
-          :class="look ?? 'h-7 bg-selection ps-1.5 pe-2 text-content hover:bg-selection-hover aria-expanded:bg-selection-hover'"
+          :class="look ?? 'h-7 px-2 text-content/85 hover:bg-selection-hover hover:text-content aria-expanded:bg-selection-hover aria-expanded:text-content'"
           @pointerdown="openedBy(true)"
           @keydown="openedBy(false)"
         >
@@ -92,7 +92,7 @@ function onCloseAutoFocus(event: Event) {
             align="start"
             :side-offset="6"
             :collision-padding="8"
-            class="ui-pop z-50 max-h-(--reka-dropdown-menu-content-available-height) max-w-80 min-w-48 overflow-y-auto p-1 text-xs text-content select-none"
+            class="ui-pop z-50 max-h-(--reka-dropdown-menu-content-available-height) w-72 overflow-y-auto p-1 text-xs text-content select-none"
             @close-auto-focus="onCloseAutoFocus"
           >
             <template v-if="nested">
@@ -116,7 +116,7 @@ function onCloseAutoFocus(event: Event) {
               </DropdownMenuSub>
             </template>
             <template v-else>
-              <DropdownMenuLabel v-if="sections[0]?.label" :id="`${id}-label`" class="px-2 pt-1.5 pb-1 text-muted">
+              <DropdownMenuLabel v-if="sections[0]?.label" :id="`${id}-label`" class="px-2 pt-1.5 pb-1 text-[11px] text-muted">
                 {{ sections[0].label }}
               </DropdownMenuLabel>
               <UiMenuChoices

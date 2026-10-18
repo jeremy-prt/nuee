@@ -10,3 +10,10 @@ export function formatDuration(ms: number, locale: string, precise = false) {
   if (minutes < 60) return `${unit(minutes, 'minute')} ${unit(whole % 60, 'second')}`
   return `${unit(Math.floor(minutes / 60), 'hour')} ${unit(minutes % 60, 'minute')}`
 }
+
+// Heure d'un message : « 14:32 » le jour même, « 18 oct., 14:32 » avant. `long` : date complète, pour une infobulle.
+export function formatClock(at: number, locale: string, long = false) {
+  if (long) return new Intl.DateTimeFormat(locale, { dateStyle: 'full', timeStyle: 'short' }).format(at)
+  const sameDay = new Date(at).toDateString() === new Date().toDateString()
+  return new Intl.DateTimeFormat(locale, sameDay ? { timeStyle: 'short' } : { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(at)
+}

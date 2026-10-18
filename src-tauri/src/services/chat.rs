@@ -415,6 +415,7 @@ mod tests {
                 mode: PermissionMode::Auto,
                 model: Some("opus".into()),
                 effort: None,
+                fast: false,
             },
             items: serde_json::json!([{ "kind": "user", "id": "u1", "text": "salut" }]),
             context: Some(ContextUsage {

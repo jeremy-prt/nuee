@@ -68,7 +68,7 @@ function compact() {
     <span class="flex shrink-0">
       <PopoverRoot v-model:open="open">
         <PopoverTrigger
-          class="grid size-7 shrink-0 place-items-center rounded-md bg-selection hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring aria-expanded:bg-selection-hover"
+          class="grid size-7 shrink-0 place-items-center rounded-md hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring aria-expanded:bg-selection-hover"
           :aria-label="t('composer.context.label', { percent })"
         >
           <svg :width="SIZE" :height="SIZE" :viewBox="`0 0 ${SIZE} ${SIZE}`" :class="tone" aria-hidden="true">
@@ -90,7 +90,7 @@ function compact() {
           </svg>
         </PopoverTrigger>
         <PopoverPortal>
-          <PopoverContent side="top" align="start" :side-offset="6" :collision-padding="8" class="ui-pop z-50 w-80 p-3 text-xs text-content">
+          <PopoverContent side="top" align="end" :side-offset="6" :collision-padding="8" class="ui-pop z-50 w-80 p-3 pb-1.5 text-xs text-content">
             <p class="text-[13px] font-medium">{{ t('composer.context.title') }}</p>
             <p class="mt-2 flex items-baseline justify-between gap-2">
               <span class="text-[13px]">{{ t('composer.context.used', { percent }) }}</span>
@@ -112,7 +112,7 @@ function compact() {
                 <span class="w-12 text-end tabular-nums" :class="{ 'text-muted': row.kind === 'deferred' }">{{ row.share }}</span>
               </li>
             </ul>
-            <div class="mt-3 flex items-center gap-3 border-t border-stroke pt-3">
+            <div class="-mx-1.5 mt-3 flex items-center gap-3 rounded-lg bg-content/4 px-3 py-2">
               <p class="flex-1 text-muted">{{ t('composer.context.compactHint') }}</p>
               <UiButton size="sm" :disabled="disabled" @click="compact">{{ t('composer.context.compact') }}</UiButton>
             </div>

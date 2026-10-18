@@ -129,7 +129,7 @@ onMounted(scrollToEnd)
           {{ t('chat.earlier', { n: start }, start) }}
         </button>
       </li>
-      <li v-for="(row, offset) in rows" :key="row.kind === 'item' ? row.item.id : row.id" :class="{ 'group flex flex-col items-end gap-1': row.kind === 'item' && row.item.kind === 'user' }">
+      <li v-for="(row, offset) in rows" :key="row.kind === 'item' ? row.item.id : row.id" :class="{ 'group flex flex-col items-end gap-1': row.kind === 'item' && row.item.kind === 'user', 'group/end': row.kind === 'item' && row.item.kind === 'end' }">
         <ChatActivity
           v-if="row.kind === 'activity'"
           :items="row.items"

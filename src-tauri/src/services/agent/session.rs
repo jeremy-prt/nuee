@@ -690,6 +690,7 @@ mod tests {
                     mode: PermissionMode::Bypass,
                     model: None,
                     effort: None,
+                    fast: false,
                 },
                 hooks: true,
                 skills: Default::default(),

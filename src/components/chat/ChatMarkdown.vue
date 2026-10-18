@@ -9,7 +9,7 @@ import { parseSkillResult } from '@/utils/skillResult'
 // Markdown d'agent rendu en nœuds Vue, jamais en HTML brut : le HTML du texte reste du texte.
 // Les liens ne sont pas cliquables : un clic ferait naviguer la webview elle-même.
 
-const CODE_BLOCK = 'my-2 overflow-x-auto rounded-md bg-selection/60 p-3 font-mono text-xs leading-relaxed'
+const CODE_BLOCK = 'overflow-x-auto rounded-md bg-selection/60 p-3 font-mono text-xs leading-relaxed'
 
 function blocks(tokens: Token[]): VNodeChild[] {
   return tokens.map(block)
@@ -32,7 +32,7 @@ function block(token: Token): VNodeChild {
         // JSON encore incomplet pendant la réponse ; s'il reste illisible à la fin, le bloc brut s'affiche.
         if (props.streaming) return null
       }
-      return h('div', { class: 'group relative' }, [
+      return h('div', { class: 'group relative my-2' }, [
         h('pre', { class: CODE_BLOCK }, h('code', code.text)),
         h(
           'div',
@@ -136,5 +136,6 @@ const Rendered = () => blocks(tokens.value)
 </script>
 
 <template>
-  <div class="text-sm leading-relaxed break-words select-text"><Rendered /></div>
+  <!-- Sans marge en tête ni en fin, la ligne copier est à la même distance du texte que sous une bulle. -->
+  <div class="text-sm leading-relaxed break-words select-text [&_li>:first-child]:mt-0 [&_li>:last-child]:mb-0 [&>:first-child]:mt-0 [&>:last-child]:mb-0"><Rendered /></div>
 </template>
