@@ -338,6 +338,12 @@ html:has([data-edge='panel']:focus-visible) [data-title-edge='panel'] {
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .text-shimmer {
+    animation: none;
+  }
+}
+
 /* Animation de travail d'un agent (`ChatSpinner`) : le groupe tourne, les points s'écartent puis se resserrent. */
 .chat-spinner-turn {
   transform-origin: 8px 8px;

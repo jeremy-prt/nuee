@@ -178,6 +178,13 @@ export default {
     backToEnd: 'Back to the latest message',
     backgroundTasks: '{n} task in the background | {n} tasks in the background',
     showTasks: 'Show',
+    compact: {
+      running: 'Compacting the conversation…',
+      done: 'Conversation compacted',
+      stopped: 'Compaction stopped',
+      failed: 'Compaction failed',
+      tokens: '{before} → {after} tokens',
+    },
     rewind: {
       action: 'Go back to this message',
       title: 'Go back to this message?',

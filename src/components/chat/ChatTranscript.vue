@@ -63,6 +63,11 @@ const rows = computed(() => {
   return out
 })
 const liveRun = computed(() => props.running && rows.value.at(-1)?.kind === 'activity')
+// La ligne de compaction dit déjà que l'agent travaille.
+const compacting = computed(() => {
+  const last = props.items.at(-1)
+  return last?.kind === 'compact' && last.status === 'running'
+})
 const background = computed(() => tasksOf(props.items).filter(({ task }) => task.background && task.status === 'running').length)
 watch(
   () => props.items[0]?.id,
@@ -107,7 +112,8 @@ function scrollToEnd() {
 watch(
   () => props.items,
   (items) => {
-    if (items.at(-1)?.kind === 'user') stick = true
+    const last = items.at(-1)
+    if (last?.kind === 'user' || (last?.kind === 'compact' && !last.auto)) stick = true
     if (stick) scrollToEnd()
   },
   { flush: 'post' },
@@ -151,7 +157,7 @@ onMounted(scrollToEnd)
           @resend="emit('resend')"
         />
       </li>
-      <li v-if="running && clock && !liveRun">
+      <li v-if="running && clock && !liveRun && !compacting">
         <ChatActivity :items="[]" :agent="agent" :clock="clock" :background="background" :writing="items.at(-1)?.kind === 'text'" />
       </li>
       <li v-if="background && !running" class="flex items-center gap-2 text-sm text-muted">

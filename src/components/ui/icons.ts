@@ -7,6 +7,7 @@ import ArrowDown01Icon from '@hugeicons/core-free-icons/ArrowDown01Icon'
 import ArrowDown02Icon from '@hugeicons/core-free-icons/ArrowDown02Icon'
 import ArrowLeft02Icon from '@hugeicons/core-free-icons/ArrowLeft02Icon'
 import ArrowRight01Icon from '@hugeicons/core-free-icons/ArrowRight01Icon'
+import ArrowShrink02Icon from '@hugeicons/core-free-icons/ArrowShrink02Icon'
 import ArrowTurnBackwardIcon from '@hugeicons/core-free-icons/ArrowTurnBackwardIcon'
 import ArrowTurnForwardIcon from '@hugeicons/core-free-icons/ArrowTurnForwardIcon'
 import ArrowUp02Icon from '@hugeicons/core-free-icons/ArrowUp02Icon'
@@ -185,6 +186,7 @@ export const Layers = icon(LayerIcon)
 export const LayoutList = icon(LeftToRightListBulletIcon)
 export const LoaderCircle = icon(Loading03Icon)
 export const MessageSquarePlus = icon(CommentAdd01Icon)
+export const Minimize2 = icon(ArrowShrink02Icon)
 export const NotebookPen = icon(NoteEditIcon)
 export const PaintBucket = icon(PaintBucketIcon)
 export const Palette = icon(PaintBoardIcon)

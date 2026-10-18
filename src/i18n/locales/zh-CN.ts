@@ -180,6 +180,13 @@ export default {
     backToEnd: '回到最新消息',
     backgroundTasks: '{n} 个后台任务',
     showTasks: '显示',
+    compact: {
+      running: '正在压缩对话…',
+      done: '对话已压缩',
+      stopped: '压缩已中断',
+      failed: '压缩失败',
+      tokens: '{before} → {after} token',
+    },
     rewind: {
       action: '回到这条消息',
       title: '回到这条消息？',

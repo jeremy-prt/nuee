@@ -180,6 +180,13 @@ export default {
     backToEnd: 'Revenir au dernier message',
     backgroundTasks: '{n} tâche en arrière-plan | {n} tâches en arrière-plan',
     showTasks: 'Afficher',
+    compact: {
+      running: 'Compaction en cours…',
+      done: 'Conversation compactée',
+      stopped: 'Compaction interrompue',
+      failed: 'Échec de la compaction',
+      tokens: '{before} → {after} tokens',
+    },
     rewind: {
       action: 'Revenir à ce message',
       title: 'Revenir à ce message ?',

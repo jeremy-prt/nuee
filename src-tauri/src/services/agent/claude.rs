@@ -39,6 +39,8 @@ pub struct Claude {
     /// Messages dont le texte est arrivé en morceaux : leur copie complète ne doit pas le doubler.
     streamed: HashSet<String>,
     auth_failed: bool,
+    /// Compaction ratée : la CLI le redit ensuite dans un message à elle (« Compaction canceled. »).
+    compact_failed: bool,
 }
 
 impl Claude {
@@ -49,6 +51,7 @@ impl Claude {
             message_id: String::new(),
             streamed: HashSet::new(),
             auth_failed: false,
+            compact_failed: false,
         }
     }
 
@@ -94,6 +97,10 @@ impl Claude {
     }
 
     fn assistant(&mut self, line: &Value, events: &mut Vec<AgentEvent>) {
+        // Écho d'une compaction ratée par la commande locale : `CompactFailed` l'a déjà dit.
+        if std::mem::take(&mut self.compact_failed) && line["local_command_source"].is_string() {
+            return;
+        }
         // Message synthétique (pas connecté, quota...) : son texte est repris par le bilan.
         if let Some(error) = line["error"].as_str() {
             self.auth_failed = error == "authentication_failed";
@@ -254,6 +261,25 @@ impl Claude {
         });
         self.streamed.clear();
         self.auth_failed = false;
+        self.compact_failed = false;
+    }
+
+    /// `status` annonce le début d'une compaction, puis son issue. Un échec en plein tour ne l'arrête pas :
+    /// la CLI continue sans rien dire (essayé, `too_few_groups`).
+    fn compaction(&mut self, line: &Value) -> Option<AgentEvent> {
+        if line["status"] == "compacting" {
+            return Some(AgentEvent::Compacting);
+        }
+        if line["compact_result"] != "failed" {
+            return None;
+        }
+        self.compact_failed = true;
+        Some(AgentEvent::CompactFailed {
+            error: line["compact_error"]
+                .as_str()
+                .filter(|error| !error.is_empty())
+                .map(str::to_owned),
+        })
     }
 }
 
@@ -689,14 +715,26 @@ impl Driver for Claude {
                     events.push(AgentEvent::Session { id: id.to_owned() });
                 }
             }
+            Some("system") if line["subtype"] == "status" => events.extend(self.compaction(&line)),
+            Some("system") if line["subtype"] == "compact_boundary" => {
+                events.push(AgentEvent::Compacted {
+                    before: line["compact_metadata"]["pre_tokens"]
+                        .as_u64()
+                        .and_then(|tokens| u32::try_from(tokens).ok()),
+                });
+            }
             Some("system") => events.extend(self.task(&line)),
             Some("stream_event") => self.stream_event(&line["event"], &mut events),
             Some("assistant") => self.assistant(&line, &mut events),
             Some("user") if line["isReplay"] == true => {
-                if let Some(id) = line["uuid"].as_str() {
+                let text = text_of(&line["message"]["content"]);
+                // Compte rendu d'une commande locale (« Compacted » après `/compact`) : aucun message où revenir.
+                if let Some(id) = line["uuid"].as_str()
+                    && !text.starts_with("<local-command-stdout>")
+                {
                     events.push(AgentEvent::UserMessage {
                         id: id.to_owned(),
-                        text: text_of(&line["message"]["content"]),
+                        text,
                     });
                 }
             }
@@ -1450,6 +1488,69 @@ mod tests {
                     Some(3246)
                 ),
             ]
+        );
+    }
+
+    // Lignes de la CLI 2.1.296 : un `/compact`, un `/compact` arrêté, puis une compaction automatique ratée en plein tour.
+    #[test]
+    fn a_compaction_is_announced_measured_and_its_failure_said_once() {
+        let (_, events) = parse(&[
+            r#"{"type":"system","subtype":"status","status":"requesting","session_id":"s1"}"#,
+            r#"{"type":"system","subtype":"status","status":"compacting","session_id":"s1"}"#,
+            r#"{"type":"system","subtype":"status","status":null,"compact_result":"success","session_id":"s1"}"#,
+            r#"{"type":"system","subtype":"compact_boundary","session_id":"s1","compact_metadata":{"trigger":"manual","pre_tokens":25464,"post_tokens":4982,"cumulative_dropped_tokens":20482,"duration_ms":3644}}"#,
+            r#"{"type":"user","message":{"role":"user","content":"This session is being continued from a previous conversation."},"uuid":"u1","isReplay":false,"isSynthetic":true}"#,
+            r#"{"type":"user","message":{"role":"user","content":"<local-command-stdout>Compacted </local-command-stdout>"},"uuid":"u2","isReplay":true}"#,
+            r#"{"type":"result","subtype":"success","is_error":false,"result":"","local_command":"compact","duration_ms":3670}"#,
+            r#"{"type":"system","subtype":"status","status":"compacting","session_id":"s1"}"#,
+            r#"{"type":"system","subtype":"status","status":null,"compact_result":"failed","compact_error":"API Error: Request was aborted.","session_id":"s1"}"#,
+            r#"{"type":"assistant","message":{"id":"x1","model":"<synthetic>","content":[{"type":"text","text":"Compaction canceled."}]},"local_command_source":"<local-command-stdout>Compaction canceled.</local-command-stdout>"}"#,
+            r#"{"type":"result","subtype":"success","is_error":false,"result":"","local_command":"compact","duration_ms":525}"#,
+            r#"{"type":"system","subtype":"status","status":"compacting","compact_output_chars":0,"session_id":"s1"}"#,
+            r#"{"type":"system","subtype":"status","status":null,"compact_result":"failed","compact_error":"too_few_groups","session_id":"s1"}"#,
+            r#"{"type":"assistant","message":{"id":"m2","content":[{"type":"text","text":"Une pile"}]}}"#,
+        ]);
+        let end = |duration_ms| AgentEvent::TurnEnd {
+            status: TurnStatus::Completed,
+            error: None,
+            duration_ms: Some(duration_ms),
+        };
+        assert_eq!(
+            events,
+            vec![
+                AgentEvent::Compacting,
+                AgentEvent::Compacted {
+                    before: Some(25464)
+                },
+                end(3670),
+                AgentEvent::Compacting,
+                AgentEvent::CompactFailed {
+                    error: Some("API Error: Request was aborted.".into())
+                },
+                end(525),
+                AgentEvent::Compacting,
+                AgentEvent::CompactFailed {
+                    error: Some("too_few_groups".into())
+                },
+                AgentEvent::Text {
+                    id: "m2:0".into(),
+                    delta: "Une pile".into()
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn a_local_command_error_without_compaction_is_shown() {
+        let (_, events) = parse(&[
+            r#"{"type":"assistant","message":{"id":"x2","model":"<synthetic>","content":[{"type":"text","text":"Error: No messages to compact"}]},"local_command_source":"<local-command-stderr>Error: No messages to compact</local-command-stderr>"}"#,
+        ]);
+        assert_eq!(
+            events,
+            vec![AgentEvent::Text {
+                id: "x2:0".into(),
+                delta: "Error: No messages to compact".into()
+            }]
         );
     }
 

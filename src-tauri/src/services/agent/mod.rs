@@ -411,11 +411,21 @@ pub enum AgentEvent {
     ApprovalCancelled {
         id: String,
     },
-    /// Contexte relu après chaque tour, compaction comprise.
+    /// Contexte relu après chaque tour et chaque compaction.
     Context {
         used: u32,
         window: u32,
         categories: Vec<ContextCategory>,
+    },
+    /// L'agent résume la conversation pour libérer du contexte, à la demande ou de lui-même en plein tour.
+    Compacting,
+    /// Conversation résumée. `before` : tokens occupés juste avant ; la taille d'après revient en `Context`.
+    Compacted {
+        before: Option<u32>,
+    },
+    /// Le résumé n'a pas abouti, la conversation reste entière. `error` : la raison donnée par l'agent.
+    CompactFailed {
+        error: Option<String>,
     },
     /// Quotas relus pendant le tour : seules les valeurs présentes changent.
     Usage {
@@ -487,7 +497,7 @@ trait Driver: Send + Sync {
     fn task_output_request(&self, request_id: &str, task_id: &str) -> String;
     fn read_task_output(&self, response: &serde_json::Value) -> Option<String>;
     /// Requête qui relève le contexte ; `read_context` lit la réponse. Celle d'identifiant
-    /// `CONTEXT_EVENT`, envoyée après chaque tour, revient par `parse_line` en `Context`.
+    /// `CONTEXT_EVENT`, envoyée après chaque tour et chaque compaction, revient par `parse_line` en `Context`.
     fn context_request(&self, request_id: &str) -> Option<String>;
     fn read_context(&self, response: &serde_json::Value) -> Option<ContextUsage>;
     /// `Some` quand la ligne répond à une requête de Nuée : son identifiant et la réponse.

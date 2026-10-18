@@ -180,6 +180,13 @@ export default {
     backToEnd: '最新のメッセージへ移動',
     backgroundTasks: 'バックグラウンドのタスク {n} 件',
     showTasks: '表示',
+    compact: {
+      running: '会話を圧縮中…',
+      done: '会話を圧縮しました',
+      stopped: '圧縮を中断しました',
+      failed: '圧縮できませんでした',
+      tokens: '{before} → {after} トークン',
+    },
     rewind: {
       action: 'このメッセージに戻る',
       title: 'このメッセージに戻りますか？',

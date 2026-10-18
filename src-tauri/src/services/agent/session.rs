@@ -139,9 +139,12 @@ impl Session {
                         }
                     }
                     for event in driver.parse_line(&line) {
-                        let ended = matches!(event, AgentEvent::TurnEnd { .. });
+                        let resized = matches!(
+                            event,
+                            AgentEvent::TurnEnd { .. } | AgentEvent::Compacted { .. }
+                        );
                         deliver(&reader_slot, event);
-                        if ended
+                        if resized
                             && let Some((input, request)) = reader_input
                                 .upgrade()
                                 .zip(driver.context_request(CONTEXT_EVENT))

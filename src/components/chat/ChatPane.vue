@@ -111,9 +111,10 @@ const sent = () =>
 
 // Après une connexion refaite : le dernier message repart tel quel, pièces jointes comprises.
 function resend() {
-  const last = [...items.value].reverse().find((item) => item.kind === 'user')
-  if (last?.kind !== 'user') return
-  send(last.text, last.attachments ?? [])
+  const last = [...items.value].reverse().find((item) => item.kind === 'user' || (item.kind === 'compact' && !item.auto))
+  if (last?.kind === 'compact') send('/compact', [])
+  else if (last?.kind === 'user') send(last.text, last.attachments ?? [])
+  else return
   // Le bouton disparaît avec le tour qui démarre : le focus va au champ plutôt qu'à la page.
   composer.value?.focus()
 }

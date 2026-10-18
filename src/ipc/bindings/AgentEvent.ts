@@ -28,7 +28,7 @@ detail: string | null,
 /**
  * Explication donnée par l'agent, dans sa langue à lui.
  */
-description: string | null, } | { "type": "approvalCancelled", id: string, } | { "type": "context", used: number, window: number, categories: Array<ContextCategory>, } | { "type": "usage", session: Quota | null, weekly: Quota | null, 
+description: string | null, } | { "type": "approvalCancelled", id: string, } | { "type": "context", used: number, window: number, categories: Array<ContextCategory>, } | { "type": "compacting" } | { "type": "compacted", before: number | null, } | { "type": "compactFailed", error: string | null, } | { "type": "usage", session: Quota | null, weekly: Quota | null, 
 /**
  * Quota du modèle à part ; l'agent ne le nomme pas ici, la sonde l'a déjà fait.
  */

@@ -28,6 +28,7 @@ import { useProjectsStore } from '@/stores/projects'
 import { useSkillsStore } from '@/stores/skills'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { sessionDiff } from '@/utils/activity'
+import { isCompaction } from '@/utils/prompt'
 
 export type ChatItem =
   // steered : ajouté à une réponse en cours, l'agent l'a lu sans ouvrir de nouveau tour. agentId : identifiant que
@@ -57,8 +58,13 @@ export type ChatItem =
     }
   | { kind: 'end'; id: string; status: TurnStatus; error: string | null; durationMs: number | null; at?: number }
   | { kind: 'error'; id: string; error: AppError }
+  // Conversation résumée pour libérer du contexte : demandée par `/compact` (à la place de sa bulle, elle clôt le
+  // tour) ou lancée par l'agent en plein tour (`auto`). before/after : tokens occupés, absents si l'agent ne les a
+  // pas donnés.
+  | { kind: 'compact'; id: string; status: 'running' | 'done' | 'stopped' | 'failed'; auto?: boolean; before?: number; after?: number; error?: string; at: number }
 
 export type CommandItem = Extract<ChatItem, { kind: 'command' }>
+export type CompactItem = Extract<ChatItem, { kind: 'compact' }>
 export type ToolItem = Extract<ChatItem, { kind: 'tool' }>
 
 // Tâche lancée par un outil (sous-agent, commande en arrière-plan), suivie sur l'élément de cet outil.
@@ -182,6 +188,21 @@ function lastIndexOfTask(items: ChatItem[], id: string, toolId: string | null) {
   return lastIndex(items, (item) => item.kind === 'tool' && (item.task?.id === id || (!!toolId && item.id === toolId)))
 }
 
+function lastIndexOfCompacting(items: readonly ChatItem[]) {
+  return lastIndex(items, (item) => item.kind === 'compact' && item.status === 'running')
+}
+
+// Fin de tour : un résumé encore en cours finit avec lui. Arrêté par l'utilisateur, l'agent l'a d'abord dit raté.
+function settleCompaction(items: ChatItem[], status: TurnStatus) {
+  const index = lastIndex(items, (item) => item.kind === 'compact')
+  const compact = items[index]
+  if (compact?.kind !== 'compact') return
+  const last = index === items.length - 1
+  if (status === 'stopped' && (compact.status === 'running' || (compact.status === 'failed' && last))) {
+    items[index] = { ...compact, status: 'stopped', error: undefined }
+  } else if (compact.status === 'running') items[index] = { ...compact, status: 'failed' }
+}
+
 // L'agent repart après sa réponse (un hook lui a demandé de continuer) : la fin affichée était prématurée.
 function resume(conversation: Conversation, items: ChatItem[]) {
   if (conversation.phase !== 'finishing') return
@@ -282,9 +303,37 @@ function apply(conversation: Conversation, events: AgentEvent[]) {
       case 'approvalCancelled':
         setApprovals(conversation, conversation.approvals.filter((approval) => approval.id !== event.id))
         break
-      case 'context':
+      case 'context': {
         conversation.context = { used: event.used, window: event.window, categories: event.categories }
+        // Premier relevé après le résumé, demandé dès sa fin : il donne la taille d'après. Une fois une fin de tour
+        // passée, le relevé porte sur la suite de la conversation.
+        const index = lastIndex(items, (item) => item.kind === 'compact')
+        const compact = items[index]
+        if (compact?.kind === 'compact' && compact.status === 'done' && compact.after === undefined && !items.slice(index + 1).some((item) => item.kind === 'end')) {
+          items[index] = { ...compact, after: event.used }
+        }
         break
+      }
+      case 'compacting':
+        if (lastIndexOfCompacting(items) < 0) items.push({ kind: 'compact', id: crypto.randomUUID(), status: 'running', auto: true, at: Date.now() })
+        break
+      case 'compacted': {
+        const index = lastIndexOfCompacting(items)
+        const compact = items[index]
+        const before = event.before ?? undefined
+        if (compact?.kind === 'compact') items[index] = { ...compact, status: 'done', before }
+        else items.push({ kind: 'compact', id: crypto.randomUUID(), status: 'done', auto: true, before, at: Date.now() })
+        break
+      }
+      // Un résumé automatique raté ne change rien au tour, que l'agent poursuit : il ne laisse pas de trace.
+      case 'compactFailed': {
+        const index = lastIndexOfCompacting(items)
+        const compact = items[index]
+        if (compact?.kind !== 'compact') break
+        if (compact.auto) items.splice(index, 1)
+        else items[index] = { ...compact, status: 'failed', ...(event.error && { error: event.error }) }
+        break
+      }
       case 'limited':
         conversation.limited = { resetsAt: event.resetsAt }
         break
@@ -318,9 +367,12 @@ function apply(conversation: Conversation, events: AgentEvent[]) {
       case 'turnEnd': {
         settleTools(items, event.status === 'completed' ? 'done' : 'failed')
         const { status, error } = event
+        settleCompaction(items, status)
+        // Un tour qui n'a fait que résumer se clôt sur la ligne de compaction : pas de fin « Terminé » vide dessous.
+        const compacted = items.at(-1)?.kind === 'compact' && (status === 'completed' || status === 'stopped')
         const shown = conversation.phase === 'finishing' && items.at(-1)?.kind === 'end'
         if (shown && status !== 'completed') items[items.length - 1] = { kind: 'end', id: crypto.randomUUID(), status, error, durationMs: null, at: Date.now() }
-        if (!shown) {
+        if (!shown && !compacted) {
           const duration = elapsed(conversation)
           const durationMs = status === 'completed' && duration >= 1000 ? duration : null
           items.push({ kind: 'end', id: crypto.randomUUID(), status, error, durationMs, at: Date.now() })
@@ -351,10 +403,10 @@ function interruptedText(items: readonly ChatItem[]) {
 
 // Un tour coupé par la fermeture de l'app n'a jamais reçu sa fin : on la pose au chargement.
 function settleInterrupted(saved: ChatItem[]) {
-  const items = [...saved]
+  const items = saved.map((item) => (item.kind === 'compact' && item.status === 'running' ? { ...item, status: 'stopped' as const } : item))
   settleTasks(items)
   const last = items.at(-1)
-  if (!last || last.kind === 'end' || last.kind === 'error' || last.kind === 'command') return items
+  if (!last || last.kind === 'end' || last.kind === 'error' || last.kind === 'command' || last.kind === 'compact') return items
   settleTools(items, 'failed')
   items.push({ kind: 'end', id: crypto.randomUUID(), status: 'stopped', error: null, durationMs: null })
   return items
@@ -531,10 +583,12 @@ export const useConversationsStore = defineStore('conversations', () => {
 
   async function dispatch(chatId: string, conversation: Conversation, place: Place, prompt: string, attachments: Attachment[]) {
     conversation.lastPlace = place
+    // `/compact` part seul : un texte ajouté devant, rappel ou consignes, le ferait lire comme un message.
+    const compaction = conversation.items.at(-1)?.kind === 'compact'
     // Calculé avant que le nouveau message ne s'ajoute : il porte sur le tour précédent.
-    const recap = interruptedText(conversation.items.slice(0, lastIndex(conversation.items, (item) => item.kind === 'user')))
+    const recap = compaction ? null : interruptedText(conversation.items.slice(0, lastIndex(conversation.items, (item) => item.kind === 'user')))
     // Les consignes partent tant qu'aucun tour n'a abouti : la session les garde ensuite, `--resume` compris.
-    const opening = conversation.sessionId ? undefined : conversation.items.find((item) => item.kind === 'command')
+    const opening = conversation.sessionId || compaction ? undefined : conversation.items.find((item) => item.kind === 'command')
     const command = opening?.kind === 'command' ? opening.command : null
     conversation.phase = 'answering'
     conversation.startedAt = performance.now()
@@ -555,7 +609,12 @@ export const useConversationsStore = defineStore('conversations', () => {
   function start(chatId: string, conversation: Conversation, message: Omit<Queued, 'id'>) {
     const { place, prompt, attachments } = message
     useWorkspaceStore().touch(chatId)
-    push(conversation, { kind: 'user', id: crypto.randomUUID(), text: prompt, attachments, at: Date.now() })
+    // Avant le premier message, il n'y a rien à résumer : `/compact` reste une bulle, à laquelle l'agent répond.
+    if (isCompaction(prompt, attachments) && conversation.items.some((item) => item.kind === 'user')) {
+      push(conversation, { kind: 'compact', id: crypto.randomUUID(), status: 'running', at: Date.now() })
+    } else {
+      push(conversation, { kind: 'user', id: crypto.randomUUID(), text: prompt, attachments, at: Date.now() })
+    }
     save(chatId)
     dispatch(chatId, conversation, place, prompt, attachments)
   }
@@ -581,7 +640,7 @@ export const useConversationsStore = defineStore('conversations', () => {
       return
     }
     conversation.limited = null
-    if (last?.kind === 'end' && last.status === 'stopped') return
+    if ((last?.kind === 'end' || last?.kind === 'compact') && last.status === 'stopped') return
     const [next, ...rest] = conversation.queue
     if (!next) return
     conversation.queue = rest
@@ -600,7 +659,8 @@ export const useConversationsStore = defineStore('conversations', () => {
       return start(chatId, conversation, message)
     }
     conversation.queue = [...conversation.queue, message]
-    if (conversation.phase === 'answering' && useGeneralStore().followUp === 'steer') steer(chatId, conversation, message)
+    // `/compact` résume la conversation entière : il attend la fin du tour au lieu de rejoindre la réponse.
+    if (conversation.phase === 'answering' && useGeneralStore().followUp === 'steer' && !isCompaction(prompt, attachments)) steer(chatId, conversation, message)
   }
 
   // Message de la file envoyé tout de suite : ajouté à la réponse en cours, ou envoyé si l'agent attend.

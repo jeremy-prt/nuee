@@ -4,6 +4,7 @@ import { computed, nextTick, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AgentLogin from '@/components/agent/AgentLogin.vue'
 import ChatCommandRow from '@/components/chat/ChatCommandRow.vue'
+import ChatCompact from '@/components/chat/ChatCompact.vue'
 import ChatCopyButton from '@/components/chat/ChatCopyButton.vue'
 import ChatMarkdown from '@/components/chat/ChatMarkdown.vue'
 import ChatPromptText from '@/components/chat/ChatPromptText.vue'
@@ -88,6 +89,7 @@ watch(signedIn, async (now) => {
   </template>
   <ChatMarkdown v-else-if="item.kind === 'text'" :text="item.text" :streaming="streaming" />
   <ChatTool v-else-if="item.kind === 'tool'" class="-mx-2 text-sm" :item="item" />
+  <ChatCompact v-else-if="item.kind === 'compact'" :item="item" :agent="agent" />
   <template v-else-if="item.kind === 'end'">
     <!-- Comme sous une bulle : au survol, à la même distance, l'heure d'abord (alignée sur le texte de l'agent). -->
     <div

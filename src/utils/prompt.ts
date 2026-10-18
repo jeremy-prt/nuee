@@ -1,3 +1,5 @@
+import type { Attachment } from '@/ipc/bindings/Attachment'
+
 // Mention : `path` sans « @ » ni guillemets, `name` son dernier élément, qui choisit l'icône.
 // `query` : mention en cours de frappe, qui ne devient une pastille qu'une fois le fichier choisi.
 export type PromptPart = { text: string; kind: 'skill' | 'query' | null } | { text: string; kind: 'file' | 'folder'; path: string; name: string }
@@ -25,4 +27,9 @@ export function promptParts(text: string, skills: ReadonlySet<string>, typing?: 
   }
   if (cursor < text.length) parts.push({ text: text.slice(cursor), kind: null })
   return parts
+}
+
+// `/compact`, avec ou sans consignes. Avec des pièces jointes, il reste une bulle pour qu'elles restent visibles.
+export function isCompaction(prompt: string, attachments: readonly Attachment[]) {
+  return !attachments.length && /^\/compact(\s|$)/.test(prompt.trim())
 }
