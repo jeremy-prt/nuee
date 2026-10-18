@@ -293,9 +293,9 @@ export default {
     worktree: {
       menu: 'Dónde trabaja el agente',
       project: 'Carpeta del proyecto',
-      projectHint: 'Los cambios llegan directamente a la carpeta del proyecto.',
+      projectHint: 'Cambios en la carpeta del proyecto',
       new: 'Copia aislada',
-      newHint: 'Un worktree de git en su propia rama. La carpeta del proyecto queda intacta.',
+      newHint: 'Un worktree de git en su propia rama',
       existing: 'Worktrees existentes',
       locked: 'El lugar se elige antes del primer mensaje.',
     },
@@ -312,9 +312,9 @@ export default {
     mode: {
       label: 'Modo de permisos',
       bypass: 'Bypass',
-      bypassHint: 'Sin solicitudes de permiso. El agente lee, escribe y ejecuta comandos por su cuenta.',
+      bypassHint: 'Sin solicitudes de permiso',
       auto: 'Auto',
-      autoHint: 'El agente decide qué es arriesgado y se abstiene de hacerlo.',
+      autoHint: 'Evita por sí solo lo arriesgado',
     },
     plus: {
       label: 'Añadir al mensaje',

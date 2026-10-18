@@ -12,6 +12,7 @@ import {
 } from 'reka-ui'
 import { type Component, computed, useId } from 'vue'
 import UiMenuChoices from '@/components/ui/UiMenuChoices.vue'
+import { menuPanel, menuTitle } from '@/components/ui/menuRow'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 
 export interface UiMenuOption {
@@ -92,7 +93,7 @@ function onCloseAutoFocus(event: Event) {
             align="start"
             :side-offset="6"
             :collision-padding="8"
-            class="ui-pop z-50 max-h-(--reka-dropdown-menu-content-available-height) w-72 overflow-y-auto p-1 text-xs text-content select-none"
+            :class="[menuPanel, 'max-h-(--reka-dropdown-menu-content-available-height) w-64']"
             @close-auto-focus="onCloseAutoFocus"
           >
             <template v-if="nested">
@@ -108,7 +109,7 @@ function onCloseAutoFocus(event: Event) {
                   <DropdownMenuSubContent
                     :side-offset="6"
                     :collision-padding="8"
-                    class="ui-pop z-50 max-h-(--reka-dropdown-menu-content-available-height) max-w-80 min-w-44 overflow-y-auto p-1 text-xs text-content select-none"
+                    :class="[menuPanel, 'max-h-(--reka-dropdown-menu-content-available-height) max-w-80 min-w-44']"
                   >
                     <UiMenuChoices :section="section" @select="emit('select', section.id, $event)" />
                   </DropdownMenuSubContent>
@@ -116,7 +117,7 @@ function onCloseAutoFocus(event: Event) {
               </DropdownMenuSub>
             </template>
             <template v-else>
-              <DropdownMenuLabel v-if="sections[0]?.label" :id="`${id}-label`" class="px-2 pt-1.5 pb-1 text-[11px] text-muted">
+              <DropdownMenuLabel v-if="sections[0]?.label" :id="`${id}-label`" :class="menuTitle">
                 {{ sections[0].label }}
               </DropdownMenuLabel>
               <UiMenuChoices

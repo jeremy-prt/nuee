@@ -8,7 +8,7 @@ import ProjectIcon from '@/components/project/ProjectIcon.vue'
 import type { UiMenuSection } from '@/components/ui/UiMenu.vue'
 import UiMenuChoices from '@/components/ui/UiMenuChoices.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
-import { menuTitle } from '@/components/ui/menuRow'
+import { menuPanel, menuTitle } from '@/components/ui/menuRow'
 import type { Worktree } from '@/ipc/bindings/Worktree'
 import type { WorktreeSupport } from '@/ipc/bindings/WorktreeSupport'
 import type { Project } from '@/stores/projects'
@@ -116,7 +116,7 @@ const trigger =
                 align="start"
                 :side-offset="6"
                 :collision-padding="8"
-                class="ui-pop z-50 max-h-(--reka-dropdown-menu-content-available-height) w-72 overflow-y-auto p-1 text-xs text-content select-none"
+                :class="[menuPanel, 'max-h-(--reka-dropdown-menu-content-available-height) w-64']"
                 @close-auto-focus="onCloseAutoFocus"
               >
                 <DropdownMenuLabel :class="menuTitle">{{ t('composer.worktree.menu') }}</DropdownMenuLabel>
@@ -124,7 +124,7 @@ const trigger =
                   <DropdownMenuLabel v-if="index > 0" :class="[menuTitle, 'mt-1']">{{ section.label }}</DropdownMenuLabel>
                   <UiMenuChoices :section="section" @select="choose" />
                 </template>
-                <p v-if="worktree.started" :class="[menuTitle, 'mt-1 pb-1.5']">{{ t('composer.worktree.locked') }}</p>
+                <p v-if="worktree.started" class="px-2 pt-1.5 pb-1 text-[11px] leading-4 text-muted">{{ t('composer.worktree.locked') }}</p>
               </DropdownMenuContent>
             </DropdownMenuPortal>
           </DropdownMenuRoot>

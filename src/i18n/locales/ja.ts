@@ -293,9 +293,9 @@ export default {
     worktree: {
       menu: 'エージェントの作業場所',
       project: 'プロジェクトフォルダー',
-      projectHint: '変更はプロジェクトフォルダーに直接反映されます。',
+      projectHint: '変更はプロジェクトフォルダーに反映',
       new: '分離したコピー',
-      newHint: '専用ブランチ上の git worktree。プロジェクトフォルダーはそのまま残ります。',
+      newHint: '専用ブランチの git worktree',
       existing: '既存の worktree',
       locked: '作業場所は最初のメッセージの前に選びます。',
     },
@@ -312,9 +312,9 @@ export default {
     mode: {
       label: '権限モード',
       bypass: 'Bypass',
-      bypassHint: '権限の確認はありません。エージェントが自分で読み書きし、コマンドを実行します。',
+      bypassHint: '権限の確認なし',
       auto: 'Auto',
-      autoHint: 'エージェントが危険な操作を自分で判断し、控えます。',
+      autoHint: '危険な操作は自動で避けます',
     },
     plus: {
       label: 'メッセージに追加',

@@ -1,8 +1,9 @@
-// Lignes des menus à choix du chat (mode, endroit, modèle, branche, « + ») : un seul style. Le choix se voit à son
-// fond, sans coche ; l'aide est un frère de la première ligne, donc alignée à gauche sous l'icône.
+// Lignes de tous les menus (choix du chat, clic droit, « … ») : un seul style, celui de monocode. Icône à gauche,
+// titre et aide dans la même colonne ; un choix se voit à son fond, sans coche. `py-2` avec une aide, `py-1.5` sans.
 export const menuRow =
-  'flex shrink-0 cursor-pointer flex-col gap-0.5 rounded-md px-2 py-1.5 text-content/75 outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-40 data-[highlighted]:bg-selection-hover data-[highlighted]:text-content data-[state=checked]:bg-selection data-[state=checked]:text-content'
-export const menuRowLine = 'flex min-w-0 items-center gap-2'
-export const menuHint = 'text-[11px] leading-4 text-muted'
-export const menuTitle = 'px-2 pt-1.5 pb-1 text-[11px] text-muted'
-export const menuKbd = 'grid h-5 min-w-5 shrink-0 place-items-center rounded bg-content/8 px-1 font-sans text-xs leading-none text-muted'
+  'flex shrink-0 cursor-pointer items-start gap-2.5 rounded-lg px-2 text-content outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-40 data-[highlighted]:bg-selection-hover data-[state=checked]:bg-selection'
+export const menuPanel = 'ui-pop z-50 overflow-y-auto p-1.5 text-xs text-content select-none'
+export const menuIcon = 'mt-0.5 size-4 shrink-0'
+export const menuLabel = 'block truncate text-[13px] leading-5'
+export const menuHint = 'block truncate text-[11px] leading-4 text-muted'
+export const menuTitle = 'px-2 pt-1 pb-1.5 text-[10px] font-medium tracking-wide text-muted uppercase'

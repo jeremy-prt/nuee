@@ -291,9 +291,9 @@ export default {
     worktree: {
       menu: 'Where the agent works',
       project: 'Project folder',
-      projectHint: 'Changes land straight in the project folder.',
+      projectHint: 'Changes land in the project folder',
       new: 'Isolated copy',
-      newHint: 'A git worktree on its own branch. The project folder stays untouched.',
+      newHint: 'A git worktree on its own branch',
       existing: 'Existing worktrees',
       locked: 'The place is chosen before the first message.',
     },
@@ -310,9 +310,9 @@ export default {
     mode: {
       label: 'Permission mode',
       bypass: 'Bypass',
-      bypassHint: 'No permission requests. The agent reads, writes and runs commands on its own.',
+      bypassHint: 'No permission prompts',
       auto: 'Auto',
-      autoHint: 'The agent decides what is risky and holds back on it.',
+      autoHint: 'Skips risky actions on its own',
     },
     plus: {
       label: 'Add to message',

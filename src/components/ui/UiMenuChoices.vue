@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { DropdownMenuRadioGroup, DropdownMenuRadioItem } from 'reka-ui'
 import type { UiMenuSection } from '@/components/ui/UiMenu.vue'
-import { menuHint, menuRow, menuRowLine } from '@/components/ui/menuRow'
+import { menuHint, menuIcon, menuLabel, menuRow } from '@/components/ui/menuRow'
 
 // Les choix d'un groupe d'UiMenu, posés dans le menu ou dans un sous-menu.
 defineProps<{ section: UiMenuSection; labelledby?: string }>()
@@ -20,13 +20,13 @@ const emit = defineEmits<{ select: [value: string] }>()
       :key="option.value"
       :value="option.value"
       :disabled="option.disabled"
-      :class="menuRow"
+      :class="[menuRow, option.hint ? 'py-2' : 'py-1.5']"
     >
-      <span :class="menuRowLine">
-        <component :is="option.icon" v-if="option.icon" class="size-3.5 shrink-0" :class="option.iconClass" aria-hidden="true" />
-        <span class="min-w-0 truncate">{{ option.label }}</span>
+      <component :is="option.icon" v-if="option.icon" :class="[menuIcon, option.iconClass]" aria-hidden="true" />
+      <span class="min-w-0 flex-1">
+        <span :class="menuLabel">{{ option.label }}</span>
+        <span v-if="option.hint" :class="menuHint">{{ option.hint }}</span>
       </span>
-      <span v-if="option.hint" :class="menuHint">{{ option.hint }}</span>
     </DropdownMenuRadioItem>
   </DropdownMenuRadioGroup>
 </template>

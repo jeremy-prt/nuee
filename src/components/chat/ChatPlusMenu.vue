@@ -4,7 +4,7 @@ import { DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuP
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
-import { menuHint, menuKbd, menuRow, menuRowLine, menuTitle } from '@/components/ui/menuRow'
+import { menuHint, menuIcon, menuLabel, menuPanel, menuRow, menuTitle } from '@/components/ui/menuRow'
 import { isMac } from '@/utils/shortcuts'
 
 // Bouton « + » du champ de saisie. `mention` : seulement dans un projet, le menu « @ » cherche dans son dossier.
@@ -14,14 +14,13 @@ const emit = defineEmits<{ attach: []; capture: []; mention: []; skill: [] }>()
 
 const { t } = useI18n()
 
-// Chaque icône prend la couleur de ce qu'elle insère (bleu des mentions, jaune des skills). `key` : le caractère
-// qui ouvre le même menu depuis le champ.
+// Chaque icône prend la couleur de ce qu'elle insère : bleu des mentions, jaune des skills.
 const entries = computed(() =>
   [
-    { id: 'attach', icon: Paperclip, tint: 'rotate-45 text-info', key: null, run: () => emit('attach') },
-    isMac && { id: 'capture', icon: SquareDashed, tint: 'text-orange', key: null, run: () => emit('capture') },
-    props.mention && { id: 'mention', icon: AtSign, tint: 'text-mention', key: '@', run: () => emit('mention') },
-    { id: 'skill', icon: Sparkles, tint: 'text-skill', key: '/', run: () => emit('skill') },
+    { id: 'attach', icon: Paperclip, tint: 'rotate-45 text-info', run: () => emit('attach') },
+    isMac && { id: 'capture', icon: SquareDashed, tint: 'text-orange', run: () => emit('capture') },
+    props.mention && { id: 'mention', icon: AtSign, tint: 'text-mention', run: () => emit('mention') },
+    { id: 'skill', icon: Sparkles, tint: 'text-skill', run: () => emit('skill') },
   ].filter((entry) => !!entry),
 )
 
@@ -51,7 +50,7 @@ function onCloseAutoFocus(event: Event) {
             align="start"
             :side-offset="6"
             :collision-padding="8"
-            class="ui-pop z-50 flex w-64 flex-col gap-0.5 p-1 text-xs text-content select-none"
+            :class="[menuPanel, 'flex w-64 flex-col gap-0.5']"
             @close-auto-focus="onCloseAutoFocus"
           >
             <DropdownMenuLabel :class="menuTitle">{{ t('composer.plus.label') }}</DropdownMenuLabel>
@@ -59,15 +58,14 @@ function onCloseAutoFocus(event: Event) {
               v-for="entry in entries"
               :key="entry.id"
               :text-value="t(`composer.plus.${entry.id}`)"
-              :class="menuRow"
+              :class="[menuRow, 'py-2']"
               @select="entry.run"
             >
-              <span :class="menuRowLine">
-                <component :is="entry.icon" class="size-3.5 shrink-0" :class="entry.tint" aria-hidden="true" />
-                <span class="min-w-0 flex-1 truncate">{{ t(`composer.plus.${entry.id}`) }}</span>
-                <kbd v-if="entry.key" :class="menuKbd">{{ entry.key }}</kbd>
+              <component :is="entry.icon" :class="[menuIcon, entry.tint]" aria-hidden="true" />
+              <span class="min-w-0 flex-1">
+                <span :class="menuLabel">{{ t(`composer.plus.${entry.id}`) }}</span>
+                <span :class="menuHint">{{ t(`composer.plus.hints.${entry.id}`) }}</span>
               </span>
-              <span :class="menuHint">{{ t(`composer.plus.hints.${entry.id}`) }}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenuPortal>

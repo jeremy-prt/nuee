@@ -2,6 +2,7 @@
 import { Ellipsis } from '@/components/ui/icons'
 import { DropdownMenuContent, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuTrigger } from 'reka-ui'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
+import { menuPanel } from '@/components/ui/menuRow'
 
 // Bouton « … » d'une ligne : même menu que son clic droit, et seul accès au clavier.
 // `keepFocus` : l'action choisie place elle-même le focus (champ de renommage), le menu ne le rend pas au bouton.
@@ -35,7 +36,7 @@ function onCloseAutoFocus(event: Event) {
             align="start"
             :side-offset="4"
             :collision-padding="8"
-            class="ui-pop z-50 max-h-(--reka-dropdown-menu-content-available-height) max-w-72 min-w-52 overflow-y-auto p-1 text-xs text-content select-none"
+            :class="[menuPanel, 'max-h-(--reka-dropdown-menu-content-available-height) max-w-72 min-w-52']"
             @close-auto-focus="onCloseAutoFocus"
           >
             <slot />

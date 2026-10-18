@@ -293,9 +293,9 @@ export default {
     worktree: {
       menu: '智能体的工作位置',
       project: '项目文件夹',
-      projectHint: '改动直接写入项目文件夹。',
+      projectHint: '改动写入项目文件夹',
       new: '隔离副本',
-      newHint: '在独立分支上的 git worktree，项目文件夹保持不变。',
+      newHint: '独立分支上的 git worktree',
       existing: '已有的 worktree',
       locked: '工作位置需在发送第一条消息前选择。',
     },
@@ -312,9 +312,9 @@ export default {
     mode: {
       label: '权限模式',
       bypass: 'Bypass',
-      bypassHint: '不请求任何权限。智能体自行读写文件并运行命令。',
+      bypassHint: '不请求权限',
       auto: 'Auto',
-      autoHint: '智能体自行判断哪些操作有风险并避免执行。',
+      autoHint: '自动避开有风险的操作',
     },
     plus: {
       label: '添加到消息',

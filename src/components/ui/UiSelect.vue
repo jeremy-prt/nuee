@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { Check, ChevronDown } from '@/components/ui/icons'
+import { ChevronDown } from '@/components/ui/icons'
 import {
   SelectContent,
   SelectItem,
-  SelectItemIndicator,
   SelectItemText,
   SelectPortal,
   SelectRoot,
@@ -11,6 +10,7 @@ import {
   SelectValue,
   SelectViewport,
 } from 'reka-ui'
+import { menuLabel, menuPanel, menuRow } from '@/components/ui/menuRow'
 
 export interface UiSelectOption {
   value: string
@@ -58,7 +58,7 @@ function onCloseAutoFocus(event: Event) {
         position="popper"
         :side="side"
         :side-offset="6"
-        class="ui-pop z-50 max-h-(--reka-select-content-available-height) min-w-(--reka-select-trigger-width) overflow-y-auto p-1 text-xs text-content select-none"
+        :class="[menuPanel, 'max-h-(--reka-select-content-available-height) min-w-(--reka-select-trigger-width)']"
         @close-auto-focus="onCloseAutoFocus"
       >
         <SelectViewport>
@@ -66,14 +66,12 @@ function onCloseAutoFocus(event: Event) {
             v-for="option in options"
             :key="option.value"
             :value="option.value"
-            class="flex cursor-pointer items-start gap-2 rounded-md py-1.5 ps-1.5 pe-2.5 text-content/75 outline-none data-[highlighted]:bg-selection data-[highlighted]:text-content data-[state=checked]:text-content"
+            :class="[menuRow, option.hint ? 'py-2' : 'py-1.5']"
           >
-            <span class="grid size-3.5 shrink-0 place-items-center pt-px">
-              <SelectItemIndicator><Check class="size-3" aria-hidden="true" /></SelectItemIndicator>
-            </span>
             <span class="min-w-0 flex-1">
-              <SelectItemText>{{ option.label }}</SelectItemText>
-              <span v-if="option.hint" class="mt-0.5 block text-muted">{{ option.hint }}</span>
+              <SelectItemText :class="menuLabel">{{ option.label }}</SelectItemText>
+              <!-- Aide des réglages parfois longue : elle passe à la ligne au lieu d'être coupée. -->
+              <span v-if="option.hint" class="block text-[11px] leading-4 text-muted">{{ option.hint }}</span>
             </span>
           </SelectItem>
         </SelectViewport>
