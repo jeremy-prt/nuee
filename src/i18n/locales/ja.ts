@@ -296,7 +296,13 @@ export default {
     },
     model: {
       label: 'モデル',
-      menu: '{agent} のモデルと思考量',
+      menu: '{agent} のモデル',
+      search: 'モデルを検索',
+      none: 'モデルが見つかりません',
+      favorites: 'お気に入り',
+      others: 'その他のモデル',
+      favorite: '{model} をお気に入りに追加',
+      unfavorite: '{model} をお気に入りから削除',
     },
     effort: {
       label: '思考量',
@@ -305,6 +311,13 @@ export default {
       high: '高',
       xhigh: '最高',
       max: '最大',
+      hints: {
+        low: '思考を抑えた素早い回答。',
+        medium: '速さと思考のバランス。',
+        high: '行動の前により深く考える。',
+        xhigh: '難しいタスク向けの深い思考。',
+        max: '可能な限り深く考える。遅く、コストも高い。',
+      },
     },
     context: {
       label: 'コンテキスト使用率 {percent}',

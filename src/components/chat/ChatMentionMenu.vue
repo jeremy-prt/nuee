@@ -9,9 +9,8 @@ import { normalize } from '@/utils/search'
 
 const LIMIT = 50
 
-// `query` : ce qui suit le « @ » sous le curseur, null hors d'une mention. `roots` : dossiers essayés dans
-// l'ordre (worktree de la session, puis le projet : le worktree n'existe qu'après le premier message).
-const props = defineProps<{ id: string; query: string | null; roots: string[] }>()
+// `query` : ce qui suit le « @ » sous le curseur, null hors d'une mention. Rust choisit le dossier de la session.
+const props = defineProps<{ id: string; query: string | null; chatId: string; project: string }>()
 const emit = defineEmits<{ choose: [path: string] }>()
 
 const { t } = useI18n()
@@ -33,21 +32,17 @@ function entry(path: string): Entry {
 
 async function load() {
   loaded.value = false
-  for (const root of props.roots) {
-    try {
-      const files = await projectFiles(root, general.mentionIgnored)
-      const folders = new Set<string>()
-      for (const file of files) {
-        for (let cut = file.indexOf('/'); cut !== -1; cut = file.indexOf('/', cut + 1)) folders.add(file.slice(0, cut + 1))
-      }
-      entries.value = [...folders, ...files].map(entry)
-      loaded.value = true
-      return
-    } catch {
-      // Dossier effacé ou worktree pas encore créé : on passe au suivant.
+  try {
+    const files = await projectFiles(props.chatId, props.project, general.mentionIgnored)
+    const folders = new Set<string>()
+    for (const file of files) {
+      for (let cut = file.indexOf('/'); cut !== -1; cut = file.indexOf('/', cut + 1)) folders.add(file.slice(0, cut + 1))
     }
+    entries.value = [...folders, ...files].map(entry)
+  } catch {
+    // Dossier du projet effacé ou déplacé : rien à proposer.
+    entries.value = []
   }
-  entries.value = []
   loaded.value = true
 }
 

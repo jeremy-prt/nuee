@@ -296,7 +296,13 @@ export default {
     },
     model: {
       label: 'Modelo',
-      menu: 'Modelo e esforço do {agent}',
+      menu: 'Modelo do {agent}',
+      search: 'Buscar um modelo',
+      none: 'Nenhum modelo encontrado',
+      favorites: 'Favoritos',
+      others: 'Outros modelos',
+      favorite: 'Adicionar {model} aos favoritos',
+      unfavorite: 'Remover {model} dos favoritos',
     },
     effort: {
       label: 'Esforço',
@@ -305,6 +311,13 @@ export default {
       high: 'Alto',
       xhigh: 'Muito alto',
       max: 'Máx.',
+      hints: {
+        low: 'Respostas rápidas, com pouca reflexão.',
+        medium: 'Equilíbrio entre velocidade e reflexão.',
+        high: 'Mais reflexão antes de agir.',
+        xhigh: 'Reflexão profunda para tarefas difíceis.',
+        max: 'O máximo de reflexão possível, mais lento e mais caro.',
+      },
     },
     context: {
       label: '{percent} do contexto usado',

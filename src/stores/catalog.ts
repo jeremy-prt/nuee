@@ -1,14 +1,35 @@
 import { defineStore } from 'pinia'
-import { reactive } from 'vue'
+import { reactive, watch } from 'vue'
 import { agentCatalog } from '@/ipc/agent'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { Catalog } from '@/ipc/bindings/Catalog'
 import type { TurnOptions } from '@/ipc/bindings/TurnOptions'
 
+const FAVORITES_KEY = 'nuee.models.favorites.v1'
+
+function loadFavorites() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(FAVORITES_KEY) ?? '[]')
+    return Array.isArray(saved) ? saved.filter((key) => typeof key === 'string') : []
+  } catch {
+    return []
+  }
+}
+
 // Modèles et efforts que propose chaque agent installé.
 export const useCatalogStore = defineStore('catalog', () => {
   const catalogs = reactive<Partial<Record<AgentKind, Catalog>>>({})
   const requested = new Set<AgentKind>()
+  // Modèles mis en tête du sélecteur, par agent (`claude:opus`).
+  const favorites = reactive(new Set<string>(loadFavorites()))
+  watch(favorites, () => localStorage.setItem(FAVORITES_KEY, JSON.stringify([...favorites])))
+
+  const favoriteKey = (agent: AgentKind, model: string) => `${agent}:${model}`
+  const isFavorite = (agent: AgentKind, model: string) => favorites.has(favoriteKey(agent, model))
+  function toggleFavorite(agent: AgentKind, model: string) {
+    const key = favoriteKey(agent, model)
+    if (!favorites.delete(key)) favorites.add(key)
+  }
 
   function load(agent: AgentKind) {
     if (requested.has(agent)) return
@@ -46,5 +67,5 @@ export const useCatalogStore = defineStore('catalog', () => {
     return { mode: options.mode, model: model.value, effort }
   }
 
-  return { load, get, resolve }
+  return { load, get, resolve, isFavorite, toggleFavorite }
 })

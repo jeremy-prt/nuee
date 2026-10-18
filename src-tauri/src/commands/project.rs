@@ -3,7 +3,9 @@ use std::path::PathBuf;
 use tauri::State;
 
 use crate::error::AppError;
+use crate::services::chat::ChatService;
 use crate::services::project::{ProjectIcons, ProjectService};
+use crate::services::worktree::WorktreeService;
 
 #[tauri::command]
 pub async fn project_icon(
@@ -32,10 +34,25 @@ pub async fn project_icon_reset(
     projects.reset_icon(&id)
 }
 
-/// Fichiers proposés par le menu « @ » du champ de saisie, relatifs à `path`. `ignored` : avec ceux que git ignore.
+/// Fichiers proposés par le menu « @ » du champ de saisie, relatifs au dossier de la session : son worktree s'il
+/// existe déjà, sinon le projet `path`. `ignored` : avec ceux que git ignore.
 #[tauri::command]
-pub async fn project_files(path: String, ignored: bool) -> Result<Vec<String>, AppError> {
-    crate::services::project::files(&PathBuf::from(path), ignored).await
+pub async fn project_files(
+    chat_id: String,
+    path: String,
+    ignored: bool,
+    chats: State<'_, ChatService>,
+    worktrees: State<'_, WorktreeService>,
+) -> Result<Vec<String>, AppError> {
+    let project = PathBuf::from(&path);
+    let dir = match chats.worktree_path(&chat_id)? {
+        Some(tree) => worktrees
+            .enter(&PathBuf::from(tree), &project)
+            .await
+            .unwrap_or_else(|_| project.clone()),
+        None => project,
+    };
+    crate::services::project::files(&dir, ignored).await
 }
 
 #[tauri::command]

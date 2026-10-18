@@ -296,7 +296,13 @@ export default {
     },
     model: {
       label: '模型',
-      menu: '{agent} 的模型和推理强度',
+      menu: '{agent} 模型',
+      search: '搜索模型',
+      none: '未找到模型',
+      favorites: '收藏',
+      others: '其他模型',
+      favorite: '将 {model} 加入收藏',
+      unfavorite: '从收藏中移除 {model}',
     },
     effort: {
       label: '推理强度',
@@ -305,6 +311,13 @@ export default {
       high: '高',
       xhigh: '很高',
       max: '最高',
+      hints: {
+        low: '快速回答，思考较少。',
+        medium: '速度与思考的平衡。',
+        high: '行动前更多思考。',
+        xhigh: '为困难任务深入思考。',
+        max: '尽可能多地思考，更慢也更贵。',
+      },
     },
     context: {
       label: '已使用 {percent} 上下文',

@@ -294,7 +294,13 @@ export default {
     },
     model: {
       label: 'Model',
-      menu: '{agent} model and effort',
+      menu: '{agent} model',
+      search: 'Search models',
+      none: 'No model found',
+      favorites: 'Favorites',
+      others: 'Other models',
+      favorite: 'Add {model} to favorites',
+      unfavorite: 'Remove {model} from favorites',
     },
     effort: {
       label: 'Effort',
@@ -303,6 +309,13 @@ export default {
       high: 'High',
       xhigh: 'Very high',
       max: 'Max',
+      hints: {
+        low: 'Quick answers with little thinking.',
+        medium: 'A balance of speed and thinking.',
+        high: 'More thinking before acting.',
+        xhigh: 'Deep thinking for hard tasks.',
+        max: 'As much thinking as possible, slower and costlier.',
+      },
     },
     context: {
       label: '{percent} of context used',

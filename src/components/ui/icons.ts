@@ -87,6 +87,7 @@ import SidebarRight01Icon from '@hugeicons/core-free-icons/SidebarRight01Icon'
 import SparklesIcon from '@hugeicons/core-free-icons/SparklesIcon'
 import SqlIcon from '@hugeicons/core-free-icons/SqlIcon'
 import SquareIcon from '@hugeicons/core-free-icons/SquareIcon'
+import StarIcon from '@hugeicons/core-free-icons/StarIcon'
 import Tick02Icon from '@hugeicons/core-free-icons/Tick02Icon'
 import Typescript01Icon from '@hugeicons/core-free-icons/Typescript01Icon'
 import UnavailableIcon from '@hugeicons/core-free-icons/UnavailableIcon'
@@ -200,6 +201,7 @@ export const Sparkles = icon(SparklesIcon)
 export const Square = icon(SquareIcon)
 export const SquarePen = icon(PencilEdit01Icon)
 export const SquareTerminal = icon(ComputerTerminal01Icon)
+export const Star = icon(StarIcon)
 export const Trash2 = icon(Delete02Icon)
 export const Undo = icon(ArrowTurnBackwardIcon)
 export const Volume2 = icon(VolumeHighIcon)

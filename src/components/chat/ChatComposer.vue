@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { ArrowUp, File, Folder, GitBranch, GitBranchPlus, Plus, ShieldAlert, ShieldCheck, Square, X } from '@/components/ui/icons'
+import { ArrowUp, Brain, File, Folder, GitBranch, GitBranchPlus, Plus, ShieldAlert, ShieldCheck, Square, X } from '@/components/ui/icons'
 import { type Component, computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatBranchPicker from '@/components/chat/ChatBranchPicker.vue'
 import ChatContextMeter from '@/components/chat/ChatContextMeter.vue'
 import ChatMentionMenu from '@/components/chat/ChatMentionMenu.vue'
+import ChatModelPicker from '@/components/chat/ChatModelPicker.vue'
 import ChatPromptText from '@/components/chat/ChatPromptText.vue'
 import ChatSlashMenu from '@/components/chat/ChatSlashMenu.vue'
 import ProjectIcon from '@/components/project/ProjectIcon.vue'
-import SettingsAgentLogo from '@/components/settings/SettingsAgentLogo.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiMenu, { type UiMenuSection } from '@/components/ui/UiMenu.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
@@ -28,15 +28,12 @@ import { useGeneralStore } from '@/stores/general'
 import type { Project } from '@/stores/projects'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { useSkillsStore } from '@/stores/skills'
-import { agents } from '@/utils/agents'
 
 const props = defineProps<{
   chatId: string
   agent: AgentKind
   // null : chat sans projet.
   project: Project | null
-  // Dossiers où chercher les fichiers du menu « @ », le plus précis d'abord ; vide sans projet.
-  roots: string[]
   // Worktree du chat : choisi avant le premier message, affiché ensuite. `choice` : 'project', 'new' ou le chemin
   // d'un worktree de `trees` ; `blocked` : pourquoi il est impossible.
   worktree: {
@@ -74,8 +71,6 @@ const id = useId()
 const input = useTemplateRef('input')
 // Après un choix de mode, de modèle ou d'effort, on reprend la saisie là où on l'avait laissée.
 const focusInput = () => input.value?.focus()
-
-const agentName = computed(() => agents[props.agent].name)
 
 const worktreeLabel = computed(() => {
   const blocked = props.worktree?.blocked
@@ -123,39 +118,32 @@ const modeSections = computed<UiMenuSection[]>(() => [
 ])
 
 const currentModel = computed(() => props.catalog?.models.find((model) => model.value === options.value.model) ?? null)
-const modelSections = computed<UiMenuSection[]>(() => {
-  const catalog = props.catalog
-  if (!catalog?.models.length) return []
-  const sections: UiMenuSection[] = [
-    {
-      id: 'model',
-      label: t('composer.model.label'),
-      value: options.value.model ?? '',
-      options: catalog.models.map((model) => ({
-        value: model.value,
-        label: model.label,
-        hint: model.value === catalog.defaultModel ? t('composer.default') : undefined,
-      })),
-    },
-  ]
+// Effort à côté du modèle, chaque niveau avec sa description ; rien quand le modèle ne le règle pas.
+const effortSections = computed<UiMenuSection[]>(() => {
   const efforts = currentModel.value?.efforts ?? []
-  if (efforts.length)
-    sections.push({
+  if (!efforts.length) return []
+  return [
+    {
       id: 'effort',
       label: t('composer.effort.label'),
       value: options.value.effort ?? '',
       options: efforts.map((effort) => ({
         value: effort,
-        label: t(`composer.effort.${effort}`),
-        hint: effort === catalog.defaultEffort ? t('composer.default') : undefined,
+        label: effort === props.catalog?.defaultEffort ? `${t(`composer.effort.${effort}`)} · ${t('composer.default')}` : t(`composer.effort.${effort}`),
+        hint: t(`composer.effort.hints.${effort}`),
       })),
-    })
-  return sections
+    },
+  ]
+})
+const chosenModel = computed({
+  get: () => options.value.model,
+  set: (value: string | null) => {
+    options.value = { ...options.value, model: value }
+  },
 })
 
 function choose(section: string, value: string) {
   if (section === 'mode') options.value = { ...options.value, mode: value as PermissionMode }
-  else if (section === 'model') options.value = { ...options.value, model: value }
   else if (section === 'effort') options.value = { ...options.value, effort: value as Effort }
 }
 
@@ -172,7 +160,7 @@ const slashQuery = computed(() => {
 // Mention sous le curseur : du « @ » (en début de mot) jusqu'au curseur. La forme entre guillemets ne s'y prête pas.
 const mentionMenu = useTemplateRef('mentionMenu')
 const mention = computed(() => {
-  if (caret.value === null || !props.roots.length) return null
+  if (caret.value === null || !props.project) return null
   const start = prompt.value.slice(0, caret.value).search(/(?<=^|\s)@[^\s"]*$/)
   if (start === -1) return null
   const end = start + /^\S*/.exec(prompt.value.slice(start))![0].length
@@ -399,16 +387,17 @@ function onKeydown(event: KeyboardEvent) {
         <UiIconButton class="bg-selection" :label="t('composer.attach')" :disabled="disabled" :loading="saving > 0" @click="pick">
           <Plus class="size-4" aria-hidden="true" />
         </UiIconButton>
+        <ChatModelPicker v-model="chosenModel" :agent="agent" :catalog="catalog" :disabled="disabled" :focus-after="focusInput" />
         <UiMenu
-          :label="t('composer.model.menu', { agent: agentName })"
-          :sections="modelSections"
-          :disabled="disabled || !modelSections.length"
+          v-if="effortSections.length"
+          :label="t('composer.effort.label')"
+          :sections="effortSections"
+          :disabled="disabled"
           :focus-after="focusInput"
           @select="choose"
         >
-          <SettingsAgentLogo :id="agent" small class="-mx-0.5" />
-          <span class="min-w-0 truncate">{{ currentModel?.label ?? agentName }}</span>
-          <span v-if="options.effort" class="text-muted @max-sm:sr-only">{{ t(`composer.effort.${options.effort}`) }}</span>
+          <Brain class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
+          <span class="@max-sm:sr-only">{{ options.effort ? t(`composer.effort.${options.effort}`) : '' }}</span>
         </UiMenu>
         <ChatContextMeter v-if="context" :usage="context" :disabled="disabled || running || !compactable" @compact="emit('compact')" />
         <UiMenu
@@ -457,6 +446,6 @@ function onKeydown(event: KeyboardEvent) {
       </div>
     </div>
     <ChatSlashMenu ref="slashMenu" :id="`${id}-skills`" :query="slashQuery" @choose="chooseSkill" />
-    <ChatMentionMenu ref="mentionMenu" :id="`${id}-files`" :query="mention?.query ?? null" :roots="roots" @choose="chooseFile" />
+    <ChatMentionMenu v-if="project" ref="mentionMenu" :id="`${id}-files`" :query="mention?.query ?? null" :chat-id="chatId" :project="project.path" @choose="chooseFile" />
   </form>
 </template>

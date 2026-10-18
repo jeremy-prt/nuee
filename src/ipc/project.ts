@@ -15,10 +15,10 @@ export function projectIconReset(id: string) {
   return invoke<void>('project_icon_reset', { id })
 }
 
-// Chemins relatifs à `path`, séparés par « / » : ceux que git suit ou ne cache pas (`ignored` : avec ceux qu'il
-// ignore, hors dépendances et builds), sinon un parcours borné.
-export function projectFiles(path: string, ignored: boolean) {
-  return invoke<string[]>('project_files', { path, ignored })
+// Chemins relatifs au dossier de la session (son worktree, sinon le projet `path`), séparés par « / » : ceux que
+// git suit ou ne cache pas (`ignored` : avec ceux qu'il ignore, hors dépendances et builds), sinon un parcours borné.
+export function projectFiles(chatId: string, path: string, ignored: boolean) {
+  return invoke<string[]>('project_files', { chatId, path, ignored })
 }
 
 export function projectReveal(path: string) {
