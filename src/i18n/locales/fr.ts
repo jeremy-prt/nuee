@@ -870,6 +870,8 @@ export default {
         rename: 'Renommer la session en cours',
         send: 'Envoyer le message',
         newline: 'Aller à la ligne',
+        recall: 'Remonter les messages envoyés, depuis un champ vide',
+        recallNext: 'Redescendre vers les messages récents, puis au champ d\'origine',
         approve: 'Autoriser une fois la demande de l\'agent',
         deny: 'Refuser la demande de l\'agent',
         favoriteModel: 'Ajouter ou retirer des favoris le modèle surligné',

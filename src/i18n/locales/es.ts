@@ -870,6 +870,8 @@ export default {
         rename: 'Renombrar la sesión actual',
         send: 'Enviar el mensaje',
         newline: 'Nueva línea',
+        recall: 'Recuperar los mensajes enviados, desde un campo vacío',
+        recallNext: 'Volver a los mensajes recientes y luego al campo original',
         approve: 'Permitir una vez la solicitud del agente',
         deny: 'Rechazar la solicitud del agente',
         favoriteModel: 'Añadir o quitar de favoritos el modelo resaltado',

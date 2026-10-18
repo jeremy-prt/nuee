@@ -870,6 +870,8 @@ export default {
         rename: '重命名当前会话',
         send: '发送消息',
         newline: '换行',
+        recall: '从空输入框向上调出已发送的消息',
+        recallNext: '向下回到较新的消息，最后回到原来的输入',
         approve: '允许智能体的这次请求',
         deny: '拒绝智能体的请求',
         favoriteModel: '将高亮的模型加入或移出收藏',

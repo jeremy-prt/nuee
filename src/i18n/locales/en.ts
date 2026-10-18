@@ -868,6 +868,8 @@ export default {
         rename: 'Rename the current session',
         send: 'Send the message',
         newline: 'New line',
+        recall: 'Bring back earlier sent messages, from an empty field',
+        recallNext: 'Go back down to newer messages, then to the original field',
         approve: 'Allow the agent\'s request once',
         deny: 'Deny the agent\'s request',
         favoriteModel: 'Add or remove the highlighted model from favorites',

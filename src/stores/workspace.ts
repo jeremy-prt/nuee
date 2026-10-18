@@ -4,6 +4,7 @@ import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { Attachment } from '@/ipc/bindings/Attachment'
 import { chatList, chatRename, chatSetArchived, chatSetPinned, chatSetWorktree, chatTitle } from '@/ipc/chat'
 import { i18nGlobal } from '@/i18n'
+import { useDraftsStore } from '@/stores/drafts'
 import { useConversationsStore } from '@/stores/conversations'
 import { useGeneralStore } from '@/stores/general'
 import { useNavigationStore } from '@/stores/navigation'
@@ -76,6 +77,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     .then((chats) => {
       const known = new Set(chats.map((chat) => chat.id))
       tabs.value = [...chats.map((chat) => ({ ...chat, kind: 'chat' as const })), ...tabs.value.filter((tab) => !known.has(tab.id))]
+      useDraftsStore().prune(new Set(tabs.value.map((tab) => tab.id)))
       for (const [key, saved] of Object.entries(loadLayouts())) {
         if (layouts[key] || !Array.isArray(saved.tabs) || !Array.isArray(saved.panes)) continue
         const open = saved.tabs.filter((id) => known.has(id))
@@ -231,6 +233,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const layout = layouts[tab.projectId ?? '']
     if (layout) closeTab(id, layout)
     tabs.value = tabs.value.filter((item) => item.id !== id)
+    useDraftsStore().set(id, '', [])
     return conversations.remove(id)
   }
 

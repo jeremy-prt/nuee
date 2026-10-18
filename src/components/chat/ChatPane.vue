@@ -105,6 +105,10 @@ function send(prompt: string, attachments: Attachment[]) {
   conversations.send(props.tab.id, place.value, prompt, attachments)
 }
 
+// Lu à la frappe d'une flèche seulement : une liste calculée serait refaite à chaque image d'une réponse en cours.
+const sent = () =>
+  items.value.flatMap((item) => (item.kind === 'user' && item.text ? [{ text: item.text, attachments: item.attachments ?? [] }] : []))
+
 // Après une connexion refaite : le dernier message repart tel quel, pièces jointes comprises.
 function resend() {
   const last = [...items.value].reverse().find((item) => item.kind === 'user')
@@ -208,6 +212,7 @@ onMounted(() => {
         :catalog="catalog.get(agent)"
         :context="conversation?.context ?? null"
         :compactable="items.some((item) => item.kind === 'user')"
+        :sent="sent"
         :disabled="!loaded"
         :running="answering"
         :approving="!!approval"

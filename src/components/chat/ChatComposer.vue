@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowUp, Brain, File, Folder, GitBranch, GitBranchPlus, ShieldAlert, ShieldCheck, Square, X } from '@/components/ui/icons'
+import { ArrowUp, Brain, Folder, GitBranch, GitBranchPlus, ShieldAlert, ShieldCheck, Square, X } from '@/components/ui/icons'
 import { type Component, computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatBranchPicker from '@/components/chat/ChatBranchPicker.vue'
@@ -10,6 +10,8 @@ import ChatPlusMenu from '@/components/chat/ChatPlusMenu.vue'
 import ChatPromptText from '@/components/chat/ChatPromptText.vue'
 import ChatSlashMenu from '@/components/chat/ChatSlashMenu.vue'
 import ProjectIcon from '@/components/project/ProjectIcon.vue'
+import UiFileIcon from '@/components/ui/UiFileIcon.vue'
+import UiImagePreview from '@/components/ui/UiImagePreview.vue'
 import UiMenu, { type UiMenuSection } from '@/components/ui/UiMenu.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { attachmentCapture, attachmentImport, attachmentSave, previewSrc } from '@/ipc/attachment'
@@ -24,6 +26,7 @@ import type { TurnOptions } from '@/ipc/bindings/TurnOptions'
 import type { Worktree } from '@/ipc/bindings/Worktree'
 import type { WorktreeSupport } from '@/ipc/bindings/WorktreeSupport'
 import { pickFiles } from '@/ipc/dialog'
+import { useDraftsStore } from '@/stores/drafts'
 import { useGeneralStore } from '@/stores/general'
 import type { Project } from '@/stores/projects'
 import { useShortcutsStore } from '@/stores/shortcuts'
@@ -49,6 +52,8 @@ const props = defineProps<{
   context: ContextUsage | null
   // Rien à compacter avant le premier échange.
   compactable: boolean
+  // Messages envoyés dans la session, du plus ancien au plus récent, que ↑ et ↓ parcourent.
+  sent?: () => { text: string; attachments: Attachment[] }[]
   disabled: boolean
   running: boolean
   // Une demande d'autorisation attend : son bouton Autoriser est l'action principale, Arrêter passe au second plan.
@@ -62,8 +67,10 @@ const { t } = useI18n()
 const shortcuts = useShortcutsStore()
 const general = useGeneralStore()
 const skills = useSkillsStore()
-const prompt = ref('')
-const attachments = ref<Attachment[]>([])
+const drafts = useDraftsStore()
+const prompt = ref(drafts.get(props.chatId)?.text ?? '')
+const attachments = ref<Attachment[]>(drafts.get(props.chatId)?.attachments ?? [])
+watch([prompt, attachments], () => drafts.set(props.chatId, prompt.value, attachments.value))
 // Fichiers en cours d'écriture sur disque : envoyer avant les perdrait.
 const saving = ref(0)
 const attachError = ref<string | null>(null)
@@ -152,6 +159,8 @@ const caret = ref<number | null>(null)
 const syncCaret = () => (caret.value = input.value?.selectionStart ?? null)
 const slashMenu = useTemplateRef('slashMenu')
 const slashQuery = computed(() => {
+  // Un message rappelé se parcourt aux flèches : le menu les prendrait.
+  if (recalled.value) return null
   const word = /^\/\S*/.exec(prompt.value)?.[0]
   if (!word || caret.value === null || caret.value > word.length) return null
   return word.slice(1)
@@ -160,7 +169,7 @@ const slashQuery = computed(() => {
 // Mention sous le curseur : du « @ » (en début de mot) jusqu'au curseur. La forme entre guillemets ne s'y prête pas.
 const mentionMenu = useTemplateRef('mentionMenu')
 const mention = computed(() => {
-  if (caret.value === null || !props.project) return null
+  if (caret.value === null || !props.project || recalled.value) return null
   const start = prompt.value.slice(0, caret.value).search(/(?<=^|\s)@[^\s"]*$/)
   if (start === -1) return null
   const end = start + /^\S*/.exec(prompt.value.slice(start))![0].length
@@ -291,9 +300,10 @@ function onPaste(event: ClipboardEvent) {
   attachWith(() => Promise.all(files.map((file) => attachmentSave(props.chatId, file))))
 }
 
-function remove(index: number) {
+function remove(index: number, event: MouseEvent) {
   attachments.value = attachments.value.filter((_, i) => i !== index)
-  input.value?.focus()
+  // Validée au clavier, la croix disparaît avec sa pièce jointe : le focus va au champ.
+  if (event.detail === 0) input.value?.focus()
 }
 
 // Message repris après un retour en arrière : il remplace la saisie en cours.
@@ -305,9 +315,45 @@ function fill(text: string, files: Attachment[]) {
 
 defineExpose({ attach, fill, focus: focusInput })
 
+// Historique comme dans un terminal : ↑ depuis un champ vide remonte les messages envoyés, ↓ redescend jusqu'au
+// champ d'origine. Le texte ou les pièces jointes modifiés, les flèches redeviennent celles du texte ; dans un
+// texte de plusieurs lignes, elles ne naviguent que depuis la première ou la dernière.
+const recalled = ref<{ index: number; text: string; attachments: Attachment[] } | null>(null)
+watch([prompt, attachments], ([text, files]) => {
+  if (recalled.value && (text !== recalled.value.text || files !== recalled.value.attachments)) recalled.value = null
+})
+
+function browse(event: KeyboardEvent) {
+  const up = shortcuts.matches(event, 'recall')
+  if (!up && !shortcuts.matches(event, 'recallNext')) return false
+  const sent = props.sent?.() ?? []
+  const at = input.value?.selectionStart ?? 0
+  const current = recalled.value
+  if (!current) {
+    if (!up || prompt.value || attachments.value.length || saving.value || !sent.length) return false
+  } else if (up ? prompt.value.slice(0, at).includes('\n') : prompt.value.slice(at).includes('\n')) {
+    return false
+  }
+  const next = current ? current.index + (up ? -1 : 1) : sent.length - 1
+  if (next < 0) return false
+  event.preventDefault()
+  const message = sent[next]
+  if (!message) {
+    recalled.value = null
+    fill('', [])
+    return true
+  }
+  fill(message.text, message.attachments)
+  recalled.value = { index: next, text: message.text, attachments: attachments.value }
+  placeCaret(up ? 0 : message.text.length)
+  return true
+}
+
 // Maj+Entrée va à la ligne (natif). Pendant une saisie IME, Entrée valide le mot.
 function onKeydown(event: KeyboardEvent) {
-  if (event.isComposing || slashMenu.value?.keydown(event) || mentionMenu.value?.keydown(event) || !shortcuts.matches(event, 'send')) return
+  if (event.isComposing || slashMenu.value?.keydown(event) || mentionMenu.value?.keydown(event)) return
+  if (browse(event)) return
+  if (!shortcuts.matches(event, 'send')) return
   event.preventDefault()
   submit()
 }
@@ -348,29 +394,20 @@ function onKeydown(event: KeyboardEvent) {
         </template>
       </div>
       <ul v-if="attachments.length" class="flex flex-wrap gap-2 px-3 pt-3" :aria-label="t('composer.attachments')">
-        <li
-          v-for="(attachment, index) in attachments"
-          :key="attachment.preview ?? attachment.path"
-          class="relative flex h-14 max-w-56 items-center gap-2 rounded-lg border border-stroke bg-canvas/40"
-          :class="attachment.preview ? 'w-14' : 'ps-2 pe-7'"
-          :title="attachment.path"
-        >
-          <img
-            v-if="attachment.preview"
-            :src="previewSrc(attachment.preview)"
-            :alt="attachment.name"
-            class="size-full rounded-lg object-cover"
-          />
-          <template v-else>
-            <component :is="attachment.kind === 'folder' ? Folder : File" class="size-4 shrink-0 text-muted" aria-hidden="true" />
-            <span class="min-w-0 truncate text-xs">{{ attachment.name }}</span>
-          </template>
+        <li v-for="(attachment, index) in attachments" :key="attachment.preview ?? attachment.path" class="group relative" :title="attachment.path">
+          <UiImagePreview v-if="attachment.preview" :src="previewSrc(attachment.preview)" :alt="attachment.name" class="size-12 overflow-hidden border border-stroke">
+            <img :src="previewSrc(attachment.preview)" :alt="attachment.name" class="size-full object-cover" />
+          </UiImagePreview>
+          <div v-else class="flex h-12 max-w-48 items-center gap-2 rounded-lg border border-stroke bg-canvas/40 ps-2.5 pe-7 text-xs">
+            <UiFileIcon :name="attachment.name" :folder="attachment.kind === 'folder'" class="size-4 shrink-0" />
+            <span class="min-w-0 truncate">{{ attachment.name }}</span>
+          </div>
           <UiTooltip :label="t('composer.removeAttachment', { name: attachment.name })">
             <button
               type="button"
-              class="absolute -end-1.5 -top-1.5 grid size-5 place-items-center rounded-full border border-stroke bg-overlay text-muted hover:text-content focus-visible:outline-2 focus-visible:outline-ring"
+              class="absolute end-1 top-1 grid size-5 place-items-center rounded-full bg-canvas/85 text-content opacity-0 duration-(--hover-duration) group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-canvas focus-visible:outline-2 focus-visible:outline-ring"
               :aria-label="t('composer.removeAttachment', { name: attachment.name })"
-              @click="remove(index)"
+              @click="remove(index, $event)"
             >
               <X class="size-3" aria-hidden="true" />
             </button>

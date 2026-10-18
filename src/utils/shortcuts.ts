@@ -39,6 +39,9 @@ export const defaultShortcuts = {
   send: { group: 'message', key: 'Enter', mod: 'any', when: 'composer' },
   // Comportement natif du champ, laissé libre par `send` : listé pour qu'on le trouve.
   newline: { group: 'message', key: 'Enter', mod: false, shift: true, when: 'composer', fixed: true },
+  // Champ vide ou texte rappelé intact seulement : ailleurs, les flèches gardent leur rôle dans le texte.
+  recall: { group: 'message', key: 'ArrowUp', mod: false, when: 'composer' },
+  recallNext: { group: 'message', key: 'ArrowDown', mod: false, when: 'composer' },
   approve: { group: 'message', key: 'Enter', when: 'approval' },
   deny: { group: 'message', key: 'Escape', mod: false, when: 'approval' },
   favoriteModel: { group: 'message', key: 'f', when: 'modelPicker' },
