@@ -21,7 +21,8 @@ const dock = isMacosApp()
 
 // Relue au retour dans l'app : on vient peut-être de l'autoriser dans les réglages de macOS.
 const permission = ref<NotificationPermission | null>(null)
-const needed = computed(() => general.systemNotifications || (dock && general.dockBadge))
+const needed = computed(() => general.notifications && (general.systemNotifications || (dock && general.dockBadge)))
+const off = computed(() => !general.notifications)
 let stopFocus: (() => void) | null = null
 let unmounted = false
 
@@ -53,37 +54,52 @@ onUnmounted(() => {
       <UiButton size="sm" @click="notificationOpenSettings()">{{ t('settings.general.notifications.openSettings') }}</UiButton>
     </SettingsRow>
     <SettingsRow
-      v-else-if="needed && permission === 'unavailable'"
-      :label="t('settings.general.notifications.devOnly')"
-      :hint="t('settings.general.notifications.devOnlyHint')"
-    />
+      v-slot="{ hintId }"
+      data-setting="notifications"
+      :label="t('settings.general.notifications.enabled')"
+      :hint="t('settings.general.notifications.enabledHint')"
+    >
+      <UiSwitch v-model="general.notifications" :label="t('settings.general.notifications.enabled')" :aria-describedby="hintId" />
+    </SettingsRow>
     <SettingsRow
       v-slot="{ hintId }"
       data-setting="systemNotifications"
+      :disabled="off"
       :label="t('settings.general.notifications.system')"
       :hint="t('settings.general.notifications.systemHint')"
     >
-      <UiSwitch v-model="general.systemNotifications" :label="t('settings.general.notifications.system')" :aria-describedby="hintId" />
+      <UiSwitch v-model="general.systemNotifications" :disabled="off" :label="t('settings.general.notifications.system')" :aria-describedby="hintId" />
     </SettingsRow>
-    <SettingsRow v-slot="{ hintId }" data-setting="appNotifications" :label="t('settings.general.notifications.app')" :hint="t('settings.general.notifications.appHint')">
-      <UiSwitch v-model="general.appNotifications" :label="t('settings.general.notifications.app')" :aria-describedby="hintId" />
+    <SettingsRow v-slot="{ hintId }" data-setting="appNotifications" :disabled="off" :label="t('settings.general.notifications.app')" :hint="t('settings.general.notifications.appHint')">
+      <UiSwitch v-model="general.appNotifications" :disabled="off" :label="t('settings.general.notifications.app')" :aria-describedby="hintId" />
     </SettingsRow>
-    <SettingsRow v-slot="{ hintId }" data-setting="sounds" :label="t('settings.general.notifications.sounds')" :hint="t('settings.general.notifications.soundsHint')">
+    <SettingsRow v-slot="{ hintId }" data-setting="sounds" :disabled="off" :label="t('settings.general.notifications.sounds')" :hint="t('settings.general.notifications.soundsHint')">
       <div class="flex items-center gap-3">
-        <UiIconButton :label="t('settings.general.notifications.preview')" @click="playCue('done')">
+        <UiIconButton :label="t('settings.general.notifications.preview')" :disabled="off" @click="playCue('done')">
           <Volume2 class="size-4" aria-hidden="true" />
         </UiIconButton>
-        <UiSwitch v-model="general.sounds" :label="t('settings.general.notifications.sounds')" :aria-describedby="hintId" />
+        <UiSwitch v-model="general.sounds" :disabled="off" :label="t('settings.general.notifications.sounds')" :aria-describedby="hintId" />
       </div>
     </SettingsRow>
     <SettingsRow
       v-if="dock"
       v-slot="{ hintId }"
+      data-setting="bounce"
+      :disabled="off"
+      :label="t('settings.general.notifications.bounce')"
+      :hint="t('settings.general.notifications.bounceHint')"
+    >
+      <UiSwitch v-model="general.dockBounce" :disabled="off" :label="t('settings.general.notifications.bounce')" :aria-describedby="hintId" />
+    </SettingsRow>
+    <SettingsRow
+      v-if="dock"
+      v-slot="{ hintId }"
       data-setting="badge"
+      :disabled="off"
       :label="t('settings.general.notifications.badge')"
       :hint="t('settings.general.notifications.badgeHint')"
     >
-      <UiSwitch v-model="general.dockBadge" :label="t('settings.general.notifications.badge')" :aria-describedby="hintId" />
+      <UiSwitch v-model="general.dockBadge" :disabled="off" :label="t('settings.general.notifications.badge')" :aria-describedby="hintId" />
     </SettingsRow>
   </SettingsGroup>
 </template>

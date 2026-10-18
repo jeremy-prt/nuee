@@ -31,6 +31,12 @@ export function formatSince(at: number, now: number, locale: string) {
   return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', year: sameYear ? undefined : 'numeric' }).format(at)
 }
 
+// Heure à venir (fin d'une sourdine) : « 15:30 » le jour même, « mardi 08:00 » ensuite.
+export function formatUntil(at: number, now: number, locale: string) {
+  const sameDay = new Date(at).toDateString() === new Date(now).toDateString()
+  return new Intl.DateTimeFormat(locale, sameDay ? { timeStyle: 'short' } : { weekday: 'long', hour: '2-digit', minute: '2-digit' }).format(at)
+}
+
 // Heure d'un message : « 14:32 » le jour même, « 18 oct., 14:32 » avant. `long` : date complète, pour une infobulle.
 export function formatClock(at: number, locale: string, long = false) {
   if (long) return new Intl.DateTimeFormat(locale, { dateStyle: 'full', timeStyle: 'short' }).format(at)

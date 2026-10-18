@@ -3,7 +3,7 @@ import { computed, reactive, ref, watch, watchEffect } from 'vue'
 import { i18nGlobal } from '@/i18n'
 import { notificationBadge, notificationSend, notificationWithdraw, onNotificationClicked } from '@/ipc/notification'
 import { isMacosApp, isTauriApp } from '@/ipc/system'
-import { onWindowFocus } from '@/ipc/window'
+import { onWindowFocus, windowRequestAttention } from '@/ipc/window'
 import { useGeneralStore } from '@/stores/general'
 import { useNavigationStore } from '@/stores/navigation'
 import { useProjectsStore } from '@/stores/projects'
@@ -52,7 +52,7 @@ export const useAttentionStore = defineStore('attention', () => {
 
   if (isMacosApp()) {
     watch(
-      () => (general.dockBadge ? unseenCount.value : 0),
+      () => (general.notifications && general.dockBadge ? unseenCount.value : 0),
       (count) => {
         notificationBadge(count).catch(() => {})
       },
@@ -73,11 +73,14 @@ export const useAttentionStore = defineStore('attention', () => {
 
   function signal(chatId: string, kind: Signal) {
     const tab = workspace.tabs.find((item) => item.id === chatId)
-    // Projet en sourdine : ni son ni message, le chat reste seulement marqué non lu.
-    const muted = !!tab && projects.isMuted(tab.projectId)
-    // Au premier plan, le message dans la fenêtre suffit (choix de Jérémy).
-    if (general.sounds && !focused.value && !muted) playCue(kind === 'done' ? 'done' : 'attention')
-    if (shown.value.includes(chatId)) return
+    // Notifications coupées ou projet en sourdine : ni son ni message, le chat reste seulement marqué non lu.
+    const muted = !general.notifications || (!!tab && projects.isMuted(tab.projectId))
+    const visible = shown.value.includes(chatId)
+    // Au premier plan, le message dans la fenêtre suffit (choix de Jérémy) ; s'il est coupé, le son le remplace.
+    const heard = !focused.value || (!general.appNotifications && !visible)
+    if (general.sounds && heard && !muted) playCue(kind === 'done' ? 'done' : 'attention')
+    if (general.dockBounce && !focused.value && !muted && isMacosApp()) windowRequestAttention().catch(() => {})
+    if (visible) return
     unseen.set(chatId, kind)
     if (!tab || muted) return
     const { t } = i18nGlobal()

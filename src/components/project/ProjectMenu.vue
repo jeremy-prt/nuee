@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Archive, Bell, FolderInput, FolderOpen, ImageUp, Pencil, Pin, PinOff, Plus, SlidersHorizontal, Trash2 } from '@/components/ui/icons'
+import { Archive, Bell, BellOff, FolderInput, FolderOpen, ImageUp, Pencil, Pin, PinOff, Plus, SlidersHorizontal, Trash2 } from '@/components/ui/icons'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ProjectBackgroundMenu from '@/components/project/ProjectBackgroundMenu.vue'
@@ -11,14 +11,15 @@ import UiMenuSub from '@/components/ui/UiMenuSub.vue'
 import { useNewChat } from '@/composables/useNewChat'
 import { useProjectActions } from '@/composables/useProjectActions'
 import { isMacosApp } from '@/ipc/system'
-import { type IconMode, type MuteKind, type Project, useProjectsStore } from '@/stores/projects'
+import { type IconMode, type MuteKind, muteEnd, type Project, useProjectsStore } from '@/stores/projects'
 import { useWorkspaceStore } from '@/stores/workspace'
+import { formatUntil } from '@/utils/duration'
 
 // Contenu du menu d'un projet, posé dans son clic droit et dans son bouton « … ».
 const props = defineProps<{ project: Project }>()
 const emit = defineEmits<{ rename: [] }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const projects = useProjectsStore()
 const workspace = useWorkspaceStore()
 const actions = useProjectActions()
@@ -41,9 +42,15 @@ const iconModes = computed(() =>
 )
 const iconMode = computed(() => (props.project.icon === 'auto' && noIcon.value ? 'mascot' : props.project.icon))
 
-const muteValue = computed(() => (projects.isMuted(props.project.id) ? (props.project.muted?.kind ?? 'on') : 'on'))
+const muted = computed(() => projects.isMuted(props.project.id))
+const muteValue = computed(() => (muted.value ? (props.project.muted?.kind ?? 'on') : 'on'))
+// Sous chaque durée, l'heure de reprise : celle en cours pour le choix actif, sinon celle qu'il donnerait maintenant.
 const muteOptions = computed(() =>
-  (['on', 'hour', 'tomorrow', 'always'] as const).map((value) => ({ value, label: t(`settings.projects.mute.${value}`) })),
+  (['on', 'hour', 'tomorrow', 'always'] as const).map((value) => {
+    const until = value === 'on' ? null : value === muteValue.value ? props.project.muted!.until : muteEnd(value, projects.now)
+    const hint = until === null ? undefined : t('settings.projects.muteUntil', { time: formatUntil(until, projects.now, locale.value) })
+    return { value, label: t(`settings.projects.mute.${value}`), hint }
+  }),
 )
 
 const activeChats = computed(() => workspace.tabsFor(props.project.id).some((tab) => tab.started && !tab.archived))
@@ -117,7 +124,7 @@ function pickMute(value: string) {
     :icon="FolderOpen"
     @select="actions.reveal(project)"
   />
-  <UiMenuSub :label="t('settings.projects.notifications')" :icon="Bell">
+  <UiMenuSub :label="t('settings.projects.notifications')" :icon="muted ? BellOff : Bell">
     <UiMenuChoices :section="{ id: 'mute', value: muteValue, options: muteOptions }" @select="pickMute" />
   </UiMenuSub>
   <UiMenuItem :label="t('menu.projectSettings')" :icon="SlidersHorizontal" @select="actions.openSettings(project)" />

@@ -8,7 +8,7 @@ App desktop Tauri 2 + Vue pour piloter des agents de code, open source (MIT). In
 - `pnpm type-check` : vérif TS + Vue
 - `cargo check|clippy|test --manifest-path src-tauri/Cargo.toml` : côté Rust. `cargo test` régénère aussi les types TS de `src/ipc/bindings/` (commités, le CI ne les régénère pas) : le relancer après tout changement de struct qui traverse l'IPC
 - Avant de pousser : `pnpm build` (vue-tsc ne voit pas les erreurs de syntaxe dans les templates, le build si), puis `cargo fmt` et `cargo clippy --all-targets -- -D warnings` dans `src-tauri/` : le workflow Checks échoue au moindre warning
-- Notifications, pastille du Dock et lancement au démarrage ne marchent pas sous `tauri dev` (binaire hors .app) : les tester dans `pnpm tauri build --debug --bundles app` (`src-tauri/target/debug/bundle/macos/Nuee.app`)
+- Notifications, pastille du Dock et lancement au démarrage ne marchent pas sous `tauri dev` (binaire hors .app) : les tester dans `pnpm tauri build --debug --bundles app` (`src-tauri/target/debug/bundle/macos/Nuee.app`). `Ressources/test/ui.sh` ne pilote que la fenêtre de `tauri dev` : celle de l'app empaquetée appartient à `Nuee`, pas `nuee`
 - Lancée depuis une session Claude Code, `pnpm tauri dev` hérite de ses variables `CLAUDE_*` et `ANTHROPIC_*`, que les agents de Nuée reprennent : les retirer (`env -u ...`) pour tester comme depuis le Finder
 - Réglages › Skills et MCP écrit dans la config de Claude Code (`settings.json`, `skills/`) : tester les écritures avec `CLAUDE_CONFIG_DIR=<dossier leurre>`, jamais sur la vraie (la CLI n'y est pas connectée, les tours de chat échouent)
 - Simuler un outil absent : `NUEE_HIDE_BINARIES=gh,claude pnpm tauri dev` (debug seulement)

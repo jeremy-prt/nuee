@@ -20,9 +20,12 @@ export type AutoArchiveDays = (typeof autoArchiveChoices)[number]
 export type FollowUp = 'queue' | 'steer'
 
 interface GeneralState {
+  // Coupe tout ce qui prévient, sans toucher au choix des options en dessous.
+  notifications: boolean
   systemNotifications: boolean
   appNotifications: boolean
   sounds: boolean
+  dockBounce: boolean
   dockBadge: boolean
   keepAwake: boolean
   confirmDelete: boolean
@@ -39,9 +42,11 @@ const STORAGE_KEY = 'nuee.general.v1'
 
 function defaults(): GeneralState {
   return {
+    notifications: true,
     systemNotifications: true,
     appNotifications: true,
     sounds: true,
+    dockBounce: true,
     dockBadge: true,
     keepAwake: true,
     confirmDelete: true,

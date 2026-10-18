@@ -21,6 +21,14 @@ export interface Mute {
 }
 const MUTE_KINDS: MuteKind[] = ['hour', 'tomorrow', 'always']
 
+// Fin de la coupure : dans une heure, ou demain à 8 h.
+export function muteEnd(kind: MuteKind, at = Date.now()): number | null {
+  const day = new Date(at)
+  if (kind === 'hour') return at + 3_600_000
+  if (kind === 'tomorrow') return new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1, 8).getTime()
+  return null
+}
+
 // auto : l'icône trouvée dans le dossier, sinon la mascotte. image : celle importée dans les réglages.
 export type IconMode = 'auto' | 'mascot' | 'image'
 const ICON_MODES: IconMode[] = ['auto', 'mascot', 'image']
@@ -302,14 +310,8 @@ export const useProjectsStore = defineStore('projects', () => {
     }
   }
 
-  // Fin de la coupure : dans une heure, ou demain à 8 h.
   function mute(project: Project, kind: MuteKind | null) {
-    if (!kind) return (project.muted = null)
-    const now = new Date()
-    let until: number | null = null
-    if (kind === 'hour') until = now.getTime() + 3_600_000
-    if (kind === 'tomorrow') until = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 8).getTime()
-    project.muted = { kind, until }
+    project.muted = kind ? { kind, until: muteEnd(kind) } : null
   }
 
   function isMuted(projectId: string | null, at = now.value) {

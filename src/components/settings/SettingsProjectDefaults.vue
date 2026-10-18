@@ -12,6 +12,7 @@ import type { Effort } from '@/ipc/bindings/Effort'
 import { useCatalogStore } from '@/stores/catalog'
 import { type MuteKind, useProjectsStore } from '@/stores/projects'
 import { agents } from '@/utils/agents'
+import { formatUntil } from '@/utils/duration'
 
 // Réglages d'un projet qu'on change souvent : sur la page Projets et en tête de la sous-page du projet.
 const props = defineProps<{ id: string }>()
@@ -87,9 +88,7 @@ const muteHint = computed(() => {
   const until = muted.value?.until
   if (!muted.value) return t('settings.projects.muteHints.on')
   if (until === null || until === undefined) return t('settings.projects.muteHints.always')
-  const sameDay = new Date(until).toDateString() === new Date(projects.now).toDateString()
-  const time = new Intl.DateTimeFormat(locale.value, sameDay ? { timeStyle: 'short' } : { weekday: 'long', hour: '2-digit', minute: '2-digit' }).format(until)
-  return t('settings.projects.muteHints.until', { time })
+  return t('settings.projects.muteHints.until', { time: formatUntil(until, projects.now, locale.value) })
 })
 </script>
 

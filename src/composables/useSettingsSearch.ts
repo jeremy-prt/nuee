@@ -55,6 +55,13 @@ const entries: SettingEntry[] = [
   },
   { id: 'confirmDelete', section: 'general', label: 'settings.general.system.confirmDelete', keywords: ['confirmDelete'] },
   {
+    id: 'notifications',
+    section: 'general',
+    label: 'settings.general.notifications.enabled',
+    hint: 'settings.general.notifications.enabledHint',
+    keywords: ['notifications', 'sounds'],
+  },
+  {
     id: 'systemNotifications',
     section: 'general',
     label: 'settings.general.notifications.system',
@@ -69,6 +76,14 @@ const entries: SettingEntry[] = [
     hint: 'settings.general.notifications.soundsHint',
     terms: ['settings.general.notifications.preview'],
     keywords: ['sounds'],
+  },
+  {
+    id: 'bounce',
+    section: 'general',
+    label: 'settings.general.notifications.bounce',
+    hint: 'settings.general.notifications.bounceHint',
+    keywords: ['notifications'],
+    needs: 'macos',
   },
   {
     id: 'badge',
