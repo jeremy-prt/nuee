@@ -301,6 +301,7 @@ export default {
       others: 'Other models',
       favorite: 'Add {model} to favorites',
       unfavorite: 'Remove {model} from favorites',
+      favoriteShortcut: '{shortcut} adds or removes the highlighted model from favorites',
     },
     effort: {
       label: 'Effort',
@@ -845,6 +846,7 @@ export default {
         newline: 'New line',
         approve: 'Allow the agent\'s request once',
         deny: 'Deny the agent\'s request',
+        favoriteModel: 'Add or remove the highlighted model from favorites',
         toggleRail: 'Expand or collapse the sidebar',
         togglePanel: 'Show or hide the side panel',
         toggleBottomDock: 'Show or hide the bottom panel',

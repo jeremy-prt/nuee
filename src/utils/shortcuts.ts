@@ -20,7 +20,7 @@ export interface Shortcut extends Combo {
   // Rubrique de Réglages > Raccourcis clavier ; les rubriques s'affichent dans l'ordre de cette liste.
   group: keyof Labels['groups']
   // Écouté seulement là, sinon sur toute la fenêtre : deux contextes différents peuvent partager une touche.
-  when?: 'composer' | 'approval' | 'settings'
+  when?: 'composer' | 'approval' | 'settings' | 'modelPicker'
   fixed?: boolean
 }
 
@@ -41,6 +41,7 @@ export const defaultShortcuts = {
   newline: { group: 'message', key: 'Enter', mod: false, shift: true, when: 'composer', fixed: true },
   approve: { group: 'message', key: 'Enter', when: 'approval' },
   deny: { group: 'message', key: 'Escape', mod: false, when: 'approval' },
+  favoriteModel: { group: 'message', key: 'f', when: 'modelPicker' },
   toggleRail: { group: 'interface', key: 'b' },
   togglePanel: { group: 'interface', key: 'b', shift: true },
   toggleBottomDock: { group: 'interface', key: 'j' },

@@ -303,6 +303,7 @@ export default {
       others: 'その他のモデル',
       favorite: '{model} をお気に入りに追加',
       unfavorite: '{model} をお気に入りから削除',
+      favoriteShortcut: '{shortcut} でハイライト中のモデルをお気に入りに追加・削除',
     },
     effort: {
       label: '思考量',
@@ -847,6 +848,7 @@ export default {
         newline: '改行',
         approve: 'エージェントの要求を今回だけ許可',
         deny: 'エージェントの要求を拒否',
+        favoriteModel: 'ハイライト中のモデルをお気に入りに追加・削除',
         toggleRail: 'サイドバーを展開・折りたたむ',
         togglePanel: 'サイドパネルの表示を切り替え',
         toggleBottomDock: '下パネルの表示を切り替え',

@@ -303,6 +303,7 @@ export default {
       others: 'Outros modelos',
       favorite: 'Adicionar {model} aos favoritos',
       unfavorite: 'Remover {model} dos favoritos',
+      favoriteShortcut: '{shortcut} adiciona ou remove dos favoritos o modelo destacado',
     },
     effort: {
       label: 'Esforço',
@@ -847,6 +848,7 @@ export default {
         newline: 'Nova linha',
         approve: 'Permitir uma vez o pedido do agente',
         deny: 'Recusar o pedido do agente',
+        favoriteModel: 'Adicionar ou remover dos favoritos o modelo destacado',
         toggleRail: 'Expandir ou recolher a barra lateral',
         togglePanel: 'Mostrar ou ocultar o painel lateral',
         toggleBottomDock: 'Mostrar ou ocultar o painel inferior',

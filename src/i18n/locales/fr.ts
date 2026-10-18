@@ -303,6 +303,7 @@ export default {
       others: 'Autres modèles',
       favorite: 'Ajouter {model} aux favoris',
       unfavorite: 'Retirer {model} des favoris',
+      favoriteShortcut: '{shortcut} ajoute ou retire des favoris le modèle surligné',
     },
     effort: {
       label: 'Effort',
@@ -847,6 +848,7 @@ export default {
         newline: 'Aller à la ligne',
         approve: 'Autoriser une fois la demande de l\'agent',
         deny: 'Refuser la demande de l\'agent',
+        favoriteModel: 'Ajouter ou retirer des favoris le modèle surligné',
         toggleRail: 'Déplier ou replier la barre latérale',
         togglePanel: 'Afficher ou masquer le panneau latéral',
         toggleBottomDock: 'Afficher ou masquer le panneau du bas',

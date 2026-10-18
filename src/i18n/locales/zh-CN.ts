@@ -303,6 +303,7 @@ export default {
       others: '其他模型',
       favorite: '将 {model} 加入收藏',
       unfavorite: '从收藏中移除 {model}',
+      favoriteShortcut: '{shortcut} 将高亮的模型加入或移出收藏',
     },
     effort: {
       label: '推理强度',
@@ -847,6 +848,7 @@ export default {
         newline: '换行',
         approve: '允许智能体的这次请求',
         deny: '拒绝智能体的请求',
+        favoriteModel: '将高亮的模型加入或移出收藏',
         toggleRail: '展开或收起侧边栏',
         togglePanel: '显示或隐藏侧面板',
         toggleBottomDock: '显示或隐藏底部面板',

@@ -9,6 +9,7 @@ import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { Catalog } from '@/ipc/bindings/Catalog'
 import type { ModelInfo } from '@/ipc/bindings/ModelInfo'
 import { useCatalogStore } from '@/stores/catalog'
+import { useShortcutsStore } from '@/stores/shortcuts'
 import { agents } from '@/utils/agents'
 import { matchScore, normalize, searchField } from '@/utils/search'
 
@@ -19,6 +20,7 @@ const model = defineModel<string | null>({ required: true })
 
 const { t } = useI18n()
 const store = useCatalogStore()
+const shortcuts = useShortcutsStore()
 const open = ref(false)
 const query = ref('')
 
@@ -26,9 +28,20 @@ const agentName = computed(() => agents[props.agent].name)
 const models = computed(() => props.catalog?.models ?? [])
 const current = computed(() => models.value.find((item) => item.value === model.value) ?? null)
 
+// Ligne surlignée (souris ou flèches) : le raccourci des favoris porte sur elle.
+const highlighted = ref<string | null>(null)
+
 watch(open, (value) => {
-  if (!value) query.value = ''
+  if (value) return
+  query.value = ''
+  highlighted.value = null
 })
+
+function onKeydown(event: KeyboardEvent) {
+  if (!highlighted.value || !shortcuts.matches(event, 'favoriteModel')) return
+  event.preventDefault()
+  store.toggleFavorite(props.agent, highlighted.value)
+}
 
 // Sans recherche : favoris puis les autres, dans l'ordre de l'agent. Avec : début du nom d'abord, puis tolérance.
 const groups = computed(() => {
@@ -91,7 +104,14 @@ const item =
             class="ui-pop z-50 w-80 text-xs text-content select-none"
             @close-auto-focus="onCloseAutoFocus"
           >
-            <ListboxRoot :model-value="model ?? ''" highlight-on-hover :aria-label="t('composer.model.label')" @update:model-value="choose">
+            <ListboxRoot
+              :model-value="model ?? ''"
+              highlight-on-hover
+              :aria-label="t('composer.model.label')"
+              @update:model-value="choose"
+              @highlight="(item) => (highlighted = typeof item?.value === 'string' ? item.value : null)"
+              @keydown="onKeydown"
+            >
               <div class="flex h-9 items-center gap-2 border-b border-stroke px-3">
                 <Search class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
                 <ListboxFilter
@@ -136,6 +156,9 @@ const item =
                   </ListboxItem>
                 </ListboxGroup>
               </ListboxContent>
+              <p v-if="!empty" class="border-t border-stroke px-3 py-1.5 text-[11px] text-muted">
+                {{ t('composer.model.favoriteShortcut', { shortcut: shortcuts.label('favoriteModel') }) }}
+              </p>
             </ListboxRoot>
           </PopoverContent>
         </PopoverPortal>
