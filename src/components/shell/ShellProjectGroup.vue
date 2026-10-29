@@ -57,7 +57,7 @@ function onKeydown(event: KeyboardEvent) {
 <template>
   <div>
     <UiContextMenu :disabled="renaming" @update:open="menuOpen = $event">
-      <div class="group relative" :data-group-id="group.id">
+      <div class="group/row group relative" :data-group-id="group.id">
         <UiRenameInput v-if="renaming" :value="group.name" :label="t('groups.nameLabel')" wide @commit="stopRename" @cancel="stopRename()">
           <component :is="group.collapsed ? Folder : FolderOpen" class="size-4 shrink-0 text-muted" aria-hidden="true" />
         </UiRenameInput>
@@ -68,8 +68,8 @@ function onKeydown(event: KeyboardEvent) {
             class="flex h-8 w-full items-center gap-2.5 rounded-md ps-2 pe-8 text-sm whitespace-nowrap text-muted hover:text-content focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
             :class="
               group.background
-                ? menuOpen ? 'bg-(--row-hover) text-content' : 'bg-(--row-rest) hover:bg-(--row-hover)'
-                : menuOpen ? 'bg-selection-hover text-content' : 'hover:bg-selection-hover'
+                ? menuOpen ? 'bg-(--row-hover) text-content' : 'bg-(--row-rest) group-hover/row:bg-(--row-hover)'
+                : menuOpen ? 'bg-selection-hover text-content' : 'group-hover/row:bg-selection-hover'
             "
             :style="group.background ? rowTint(group.background) : undefined"
             :aria-expanded="!group.collapsed"

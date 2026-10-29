@@ -92,7 +92,7 @@ const blockedText = computed(() => {
 })
 
 const item =
-  'flex h-7 shrink-0 cursor-pointer items-center gap-2 rounded-md px-2 text-content/75 outline-none data-[highlighted]:bg-selection-hover data-[highlighted]:text-content data-[disabled]:cursor-default data-[disabled]:opacity-40'
+  'flex h-7 shrink-0 cursor-pointer items-center gap-2 rounded-md px-2 text-content/75 outline-none data-[highlighted]:not-data-[current]:bg-selection-hover data-[highlighted]:text-content data-[current]:bg-selection data-[current]:text-content data-[disabled]:cursor-default data-[disabled]:opacity-40'
 </script>
 
 <template>
@@ -134,7 +134,8 @@ const item =
               :key="branch.name"
               :value="branch.name"
               :disabled="branch.elsewhere || pending"
-              :class="[item, { 'bg-selection text-content': branch.name === list?.current }]"
+              :class="item"
+              :data-current="branch.name === list?.current || undefined"
             >
               <span class="min-w-0 flex-1 truncate">{{ branch.name }}</span>
               <span v-if="branch.name === list?.current" class="shrink-0 text-[11px] text-muted">{{ t('composer.branch.current') }}</span>

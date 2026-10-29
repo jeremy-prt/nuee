@@ -83,7 +83,6 @@ const { over } = useFileDrop(zone, (paths) => use(paths[0]!), true)
           <SettingsCustomizeButton
             show
             data-customize="background"
-            over
             class="top-1.5 end-1.5"
             :label="t('settings.background.customize')"
             @click="navigation.showSettingsDetail('background')"

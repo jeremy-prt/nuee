@@ -81,7 +81,7 @@ const open = ref(false)
       <button
         v-if="background && running"
         type="button"
-        class="shrink-0 rounded px-1.5 py-0.5 text-content hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring"
+        class="shrink-0 rounded-md px-1.5 py-0.5 text-content hover:bg-selection-inner focus-visible:outline-2 focus-visible:outline-ring"
         @click="layout.showView('tasks')"
       >
         {{ t('chat.tool.live') }}

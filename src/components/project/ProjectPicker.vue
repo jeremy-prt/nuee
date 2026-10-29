@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { Check, ChevronDown, Search } from '@/components/ui/icons'
+import { ChevronDown, NoProject, Search } from '@/components/ui/icons'
 import { ListboxContent, ListboxFilter, ListboxItem, ListboxRoot, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from 'reka-ui'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import ChatIcon from '@/components/chat/ChatIcon.vue'
 import ProjectIcon from '@/components/project/ProjectIcon.vue'
 import { useProjectsStore } from '@/stores/projects'
 import { normalize } from '@/utils/search'
@@ -36,17 +35,17 @@ function choose(value: unknown) {
 }
 
 const item =
-  'flex h-8 cursor-pointer items-center gap-2 rounded-md px-2 text-content/80 outline-none data-[highlighted]:bg-selection data-[highlighted]:text-content data-[state=checked]:text-content'
+  'flex h-8 cursor-pointer items-center gap-2 rounded-md px-2 text-content/80 outline-none data-[highlighted]:not-data-[state=checked]:bg-selection-hover data-[highlighted]:text-content data-[state=checked]:bg-selection data-[state=checked]:text-content'
 </script>
 
 <template>
   <PopoverRoot v-model:open="open">
     <PopoverTrigger
-      class="group inline-flex max-w-full min-w-0 items-center gap-2 rounded-md ps-2 pe-1.5 font-semibold hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring data-[state=open]:bg-selection"
+      class="group inline-flex max-w-full min-w-0 items-center gap-2 rounded-md ps-2 pe-1.5 font-semibold hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring data-[state=open]:bg-selection-hover"
       :class="large ? 'h-9 text-xl' : 'h-8 text-[15px]'"
     >
       <ProjectIcon v-if="current" :project="current" class="shrink-0 rounded-sm" :class="large ? 'size-6' : 'size-4.5'" />
-      <ChatIcon v-else many class="size-4 shrink-0 text-muted" />
+      <NoProject v-else class="size-4 shrink-0 text-muted" aria-hidden="true" />
       <span class="sr-only">{{ label }}</span>
       <span class="truncate">{{ current?.name ?? noneLabel }}</span>
       <ChevronDown
@@ -78,17 +77,14 @@ const item =
               class="min-w-0 flex-1 bg-transparent outline-none select-text placeholder:text-muted"
             />
           </div>
-          <ListboxContent class="max-h-80 overflow-y-auto p-1">
+          <ListboxContent class="flex max-h-80 flex-col gap-0.5 overflow-y-auto p-1">
             <ListboxItem v-if="showNone" value="" :class="item">
-              <span class="grid size-3.5 shrink-0 place-items-center"><Check v-if="!model" class="size-3.5" aria-hidden="true" /></span>
-              <ChatIcon many class="size-4 shrink-0 text-muted" />
+              <NoProject class="size-4 shrink-0 text-muted" aria-hidden="true" />
               <span class="min-w-0 flex-1 truncate font-medium">{{ noneLabel }}</span>
               <span v-if="counts" class="shrink-0 text-xs text-muted tabular-nums">{{ counts[''] ?? 0 }}</span>
             </ListboxItem>
-            <div v-if="showNone && shown.length" class="mx-2 my-1 border-t border-stroke" role="separator" />
             <p v-if="!shown.length && !showNone" class="px-2 py-1.5 text-muted">{{ t('projectPicker.none') }}</p>
             <ListboxItem v-for="project in shown" :key="project.id" :value="project.id" :class="item">
-              <span class="grid size-3.5 shrink-0 place-items-center"><Check v-if="project.id === model" class="size-3.5" aria-hidden="true" /></span>
               <ProjectIcon :project="project" class="size-4 shrink-0 rounded-sm" />
               <span class="min-w-0 flex-1 truncate font-medium">{{ project.name }}</span>
               <span v-if="counts" class="shrink-0 text-xs text-muted tabular-nums">{{ counts[project.id] ?? 0 }}</span>

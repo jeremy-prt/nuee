@@ -36,7 +36,7 @@ function onCloseAutoFocus(event: Event) {
       <DropdownMenuRoot>
         <DropdownMenuTrigger
           :disabled="disabled || loading"
-          class="grid size-7 shrink-0 place-items-center rounded-md text-content/85 hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none aria-expanded:bg-selection-hover aria-expanded:text-content"
+          class="grid size-7 shrink-0 place-items-center rounded-md text-content/85 hover:bg-selection-inner hover:text-content focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none aria-expanded:bg-selection-inner aria-expanded:text-content"
           :class="{ 'disabled:opacity-40': !loading }"
           :aria-label="t('composer.plus.label')"
           :aria-busy="loading || undefined"
@@ -50,7 +50,7 @@ function onCloseAutoFocus(event: Event) {
             align="start"
             :side-offset="6"
             :collision-padding="8"
-            :class="[menuPanel, 'flex w-64 flex-col gap-0.5']"
+            :class="[menuPanel, 'w-64']"
             @close-auto-focus="onCloseAutoFocus"
           >
             <DropdownMenuLabel :class="menuTitle">{{ t('composer.plus.label') }}</DropdownMenuLabel>

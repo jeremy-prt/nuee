@@ -343,7 +343,7 @@ function onKeydown(event: KeyboardEvent) {
           <UiTooltip :label="t('composer.removeAttachment', { name: attachment.name })">
             <button
               type="button"
-              class="absolute end-1 top-1 grid size-5 place-items-center rounded-full bg-canvas/85 text-content opacity-0 duration-(--hover-duration) group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-canvas focus-visible:outline-2 focus-visible:outline-ring"
+              class="absolute end-1 top-1 grid size-5 place-items-center rounded-full bg-canvas/70 text-content opacity-0 transition-opacity duration-(--hover-duration) motion-reduce:transition-none group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-canvas focus-visible:outline-2 focus-visible:outline-ring"
               :aria-label="t('composer.removeAttachment', { name: attachment.name })"
               @click="remove(index, $event)"
             >
@@ -427,7 +427,7 @@ function onKeydown(event: KeyboardEvent) {
           <button
             type="submit"
             :disabled="disabled"
-            class="me-1 grid size-7 shrink-0 place-items-center rounded-full bg-selection text-content hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            class="me-1 grid size-7 shrink-0 place-items-center rounded-full bg-selection text-content hover:bg-content/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             :aria-label="t(general.followUp === 'steer' ? 'composer.steer' : 'composer.queue')"
           >
             <ArrowUp class="size-4" aria-hidden="true" />
@@ -437,7 +437,7 @@ function onKeydown(event: KeyboardEvent) {
           <button
             type="button"
             class="grid size-7 shrink-0 place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            :class="approving ? 'bg-selection text-content hover:bg-selection-hover' : 'bg-accent text-canvas hover:opacity-90'"
+            :class="approving ? 'bg-selection text-content hover:bg-content/20' : 'bg-accent text-canvas hover:opacity-90'"
             :aria-label="t('composer.stop')"
             @click="emit('stop')"
           >

@@ -34,8 +34,8 @@ const tintVars = computed(() => (props.tint ? rowTint(props.tint) : undefined))
       :class="[
         active || held ? 'text-content' : 'text-muted hover:text-content',
         tint
-          ? active ? 'bg-(--row-active)' : held ? 'bg-(--row-hover)' : 'bg-(--row-rest) hover:bg-(--row-hover)'
-          : active ? 'bg-selection' : held ? 'bg-selection-hover' : 'hover:bg-selection-hover',
+          ? active ? 'bg-(--row-active)' : held ? 'bg-(--row-hover)' : 'bg-(--row-rest) hover:bg-(--row-hover) group-hover/row:bg-(--row-hover)'
+          : active ? 'bg-selection' : held ? 'bg-selection-hover' : 'hover:bg-selection-hover group-hover/row:bg-selection-hover',
         'px-2',
       ]"
       :style="tintVars"

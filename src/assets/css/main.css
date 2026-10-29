@@ -6,9 +6,13 @@
   --color-content: hsl(240 0% 92%);
   --color-muted: color-mix(in srgb, var(--color-content) 55%, transparent);
   --color-stroke: color-mix(in srgb, var(--color-content) 8%, transparent);
-  --color-selection: color-mix(in srgb, var(--color-content) 10%, transparent);
-  /* Survol plus léger que la sélection, comme monocode (choix de Jérémy). */
-  --color-selection-hover: color-mix(in srgb, var(--color-content) 7%, transparent);
+  /* Survol bien plus léger que la sélection (choix de Jérémy) : à 7 et 10 %, on les confondait. Partout : survol en
+     selection-hover, actif ou coché en selection (gardé au survol), 2 px entre deux lignes. */
+  --color-selection: color-mix(in srgb, var(--color-content) 14%, transparent);
+  --color-selection-hover: color-mix(in srgb, var(--color-content) 6%, transparent);
+  /* Survol d'un bouton posé sur une ligne ou un onglet, surligné ou non : sans lui, il se perdait sur l'actif
+     (14 → 19 %). Comme monocode, qui met ces boutons à 10 % partout. */
+  --color-selection-inner: color-mix(in srgb, var(--color-content) 10%, transparent);
   /* Focus et éléments choisis : le signal adouci, juste assez pour garder 3:1 sur les fonds de la fenêtre. */
   --color-ring: color-mix(in srgb, var(--color-signal) 90%, transparent);
   /* Bordure d'un champ de saisie qui a le focus : le trait s'éclaircit à peine, comme dans monocode. */
@@ -111,7 +115,7 @@ html.is-macos:not([data-window='opaque']) #app {
 
 /* Dosages posés par stores/appearance.ts selon les réglages du style en vigueur. Opaque garde le voile plein. */
 html {
-  --color-veil: color-mix(in srgb, var(--color-accent) var(--veil-tint, 0%), hsl(240 0% var(--veil-lightness, 9%)));
+  --color-veil: color-mix(in srgb, var(--color-accent) var(--veil-tint, 0%), hsl(240 0% var(--veil-lightness, 10%)));
   --color-chrome: var(--color-veil);
   --color-surface: var(--color-veil);
   --color-frame: color-mix(in srgb, var(--color-content) 3%, var(--color-chrome));
@@ -120,8 +124,9 @@ html {
 
 /* Thème sur toute l'interface : les fonds d'éléments actifs ou survolés prennent l'accent. */
 html[data-theme-scope='full'] {
-  --color-selection: color-mix(in srgb, var(--color-accent) var(--selection-tint, 18%), transparent);
-  --color-selection-hover: color-mix(in srgb, var(--color-accent) var(--selection-hover-tint, 9%), transparent);
+  --color-selection: color-mix(in srgb, var(--color-accent) var(--selection-tint, 20%), transparent);
+  --color-selection-hover: color-mix(in srgb, var(--color-accent) var(--selection-hover-tint, 8%), transparent);
+  --color-selection-inner: color-mix(in srgb, var(--color-accent) var(--selection-inner-tint, 16%), transparent);
 }
 
 html.is-macos:not([data-window='opaque']) {

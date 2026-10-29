@@ -16,6 +16,7 @@ import Attachment02Icon from '@hugeicons/core-free-icons/Attachment02Icon'
 import BotIcon from '@hugeicons/core-free-icons/BotIcon'
 import BrainIcon from '@hugeicons/core-free-icons/BrainIcon'
 import Cancel01Icon from '@hugeicons/core-free-icons/Cancel01Icon'
+import Chatting01Icon from '@hugeicons/core-free-icons/Chatting01Icon'
 import CheckmarkCircle02Icon from '@hugeicons/core-free-icons/CheckmarkCircle02Icon'
 import CircleDotIcon from '@hugeicons/core-free-icons/CircleDotIcon'
 import Clock01Icon from '@hugeicons/core-free-icons/Clock01Icon'
@@ -202,6 +203,8 @@ export const Plug = icon(Plug01Icon)
 export const Plus = icon(Add01Icon)
 export const RefreshCw = icon(Refresh01Icon)
 export const RotateCcw = icon(UndoIcon)
+// « Sessions libres » (choix de Jérémy).
+export const NoProject = icon(Chatting01Icon)
 export const Search = icon(Search01Icon)
 export const SendHorizontal = icon(SentIcon)
 export const Settings = icon(Settings01Icon)

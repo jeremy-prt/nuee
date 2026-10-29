@@ -106,14 +106,15 @@ watch(
 
 <template>
   <UiContextMenu :disabled="renaming" @update:open="menuOpen = $event">
-    <div class="group relative">
+    <!-- group/row : la carte garde son survol quand le pointeur passe sur ses boutons, posés par-dessus. -->
+    <div class="group/row group relative">
       <!-- En renommage, la carte devient un simple cadre : le champ prend la place du titre, rien d'autre ne bouge. -->
       <component
         :is="renaming ? 'div' : 'button'"
         ref="row"
         :type="renaming ? undefined : 'button'"
         class="flex w-full flex-col gap-1 rounded-md p-2 text-start focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
-        :class="renaming || active ? 'bg-selection' : menuOpen ? 'bg-selection-hover' : 'hover:bg-selection-hover'"
+        :class="renaming || active ? 'bg-selection' : menuOpen ? 'bg-selection-hover' : 'group-hover/row:bg-selection-hover'"
         :aria-current="active && !renaming ? 'true' : undefined"
         :aria-keyshortcuts="renaming ? undefined : shortcuts.aria('rename')"
         v-on="renaming ? {} : { click: select, dblclick: () => startRename(), keydown: onKeydown }"
@@ -158,7 +159,7 @@ watch(
         <UiTooltip :label="t('chats.archive')">
           <button
             type="button"
-            class="grid size-6 place-items-center rounded text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-ring"
+            class="grid size-6 place-items-center rounded-md text-muted hover:bg-selection-inner hover:text-content focus-visible:outline-2 focus-visible:outline-ring"
             :aria-label="t('chats.archive')"
             @click="actions.archiveChat(tab)"
           >

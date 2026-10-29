@@ -24,7 +24,7 @@ function onCloseAutoFocus(event: Event) {
     <span class="flex">
       <DropdownMenuRoot :modal="false" @update:open="emit('update:open', $event)">
         <DropdownMenuTrigger
-          class="grid size-6 place-items-center rounded text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-ring aria-expanded:bg-selection-hover aria-expanded:text-content"
+          class="grid size-6 place-items-center rounded-md text-muted hover:bg-selection-inner hover:text-content focus-visible:outline-2 focus-visible:outline-ring aria-expanded:bg-selection-inner aria-expanded:text-content"
           :aria-label="label"
           @pointerdown="openedBy(true)"
           @keydown="openedBy(false)"

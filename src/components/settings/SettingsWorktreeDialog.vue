@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Check } from '@/components/ui/icons'
 import { DialogContent, DialogDescription, DialogOverlay, DialogPortal, DialogRoot, DialogTitle, RadioGroupItem, RadioGroupRoot } from 'reka-ui'
 import { computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -142,7 +141,7 @@ const field =
             <RadioGroupRoot
               v-model="chosen"
               :aria-label="t('settings.projects.worktrees.dialog.branch')"
-              class="mt-2 max-h-48 overflow-y-auto rounded-md border border-stroke p-1"
+              class="mt-2 flex max-h-48 flex-col gap-0.5 overflow-y-auto rounded-md border border-stroke p-1"
             >
               <p v-if="!shown.length" class="px-2 py-1.5 text-xs text-muted">{{ t('settings.projects.worktrees.dialog.none') }}</p>
               <RadioGroupItem
@@ -150,11 +149,8 @@ const field =
                 :key="item.branch"
                 :value="item.branch"
                 :disabled="item.taken"
-                class="flex w-full items-center gap-2 rounded px-2 py-1.5 text-start text-xs outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring enabled:cursor-pointer enabled:hover:bg-selection-hover disabled:cursor-not-allowed disabled:opacity-50 aria-checked:bg-signal/15"
+                class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-start text-xs outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring enabled:cursor-pointer enabled:hover:not-aria-checked:bg-selection-hover disabled:cursor-not-allowed disabled:opacity-50 aria-checked:bg-selection"
               >
-                <span class="grid size-3.5 shrink-0 place-items-center">
-                  <Check v-if="chosen === item.branch" class="size-3" aria-hidden="true" />
-                </span>
                 <span class="min-w-0 flex-1 truncate font-mono">{{ item.branch }}</span>
                 <span v-if="item.taken" class="shrink-0 text-muted">{{ t('settings.projects.worktrees.dialog.taken') }}</span>
               </RadioGroupItem>

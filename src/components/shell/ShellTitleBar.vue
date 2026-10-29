@@ -139,7 +139,7 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
           role="tablist"
           data-tab-strip
           :aria-label="t('workspace.tabs')"
-          class="flex h-full min-w-0 flex-1 items-center gap-1 overflow-x-auto"
+          class="flex h-full min-w-0 flex-1 items-center gap-0.5 overflow-x-auto"
           data-tauri-drag-region
         >
           <div
@@ -172,7 +172,7 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
               <button
                 type="button"
                 tabindex="-1"
-                class="grid size-5 shrink-0 place-items-center rounded group-hover:opacity-100 hover:bg-selection-hover"
+                class="grid size-5 shrink-0 place-items-center rounded-md text-muted transition-opacity duration-(--hover-duration) group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-selection-inner hover:text-content motion-reduce:transition-none"
                 :class="tab.id === workspace.activeTabId ? 'opacity-100' : 'opacity-0'"
                 :aria-label="t('workspace.closeTab')"
                 @click.stop="workspace.closeTab(tab.id)"

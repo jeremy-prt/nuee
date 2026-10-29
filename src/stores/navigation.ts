@@ -109,8 +109,10 @@ export const useNavigationStore = defineStore('navigation', () => {
     await document.startViewTransition(update).updateCallbackDone
   }
 
-  // Arriver sur une vue à liste rouvre toujours le panneau latéral, même s'il avait été fermé ailleurs.
+  // Arriver sur une vue à liste rouvre toujours le panneau latéral, même s'il avait été fermé ailleurs. Changer de
+  // vue referme la liste des projets : ses réglages rapides mènent aux Réglages, où le sélecteur n'est plus monté.
   function go(target: View) {
+    switcherOpen.value = false
     const update = () => {
       if (target === 'settings' && view.value !== 'settings') beforeSettings.value = view.value
       view.value = target

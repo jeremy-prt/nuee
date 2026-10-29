@@ -76,13 +76,13 @@ function onKeydown(event: KeyboardEvent) {
         :side-offset="6"
         class="ui-pop z-50 max-h-80 w-80 overflow-y-auto p-1 text-xs text-content select-none"
       >
-        <ComboboxViewport>
+        <ComboboxViewport class="flex flex-col gap-0.5">
           <p v-if="!results.length" class="px-2 py-1.5 text-muted">{{ t('settings.search.empty') }}</p>
           <ComboboxItem
             v-for="result in results"
             :key="result.key"
             :value="result.key"
-            class="flex cursor-pointer items-baseline gap-3 rounded-md px-2 py-1.5 text-content/75 outline-none data-[highlighted]:bg-selection data-[highlighted]:text-content"
+            class="flex cursor-pointer items-baseline gap-3 rounded-md px-2 py-1.5 text-content/75 outline-none data-[highlighted]:bg-selection-hover data-[highlighted]:text-content"
             @select="choose(result, $event)"
           >
             <span class="min-w-0 flex-1 truncate">{{ result.label }}</span>

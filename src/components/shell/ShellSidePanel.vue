@@ -23,7 +23,7 @@ const title = computed(() => {
 
 <template>
   <aside id="shell-panel" class="flex shrink-0 flex-col bg-frame" :aria-label="title">
-    <div class="flex h-10 shrink-0 items-center gap-1 px-2">
+    <div class="flex h-10 shrink-0 items-center gap-1 ps-2 pe-0.5">
       <p class="min-w-0 flex-1 truncate px-2 text-sm font-medium">{{ title }}</p>
       <UiIconButton
         v-if="navigation.view === 'chats'"
@@ -35,7 +35,8 @@ const title = computed(() => {
       </UiIconButton>
     </div>
 
-    <div class="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
+    <!-- Collé à la carte du centre et à sa marge de 6 px : 2 px à droite suffisent pour 8 px de chaque côté. -->
+    <div class="min-h-0 flex-1 overflow-y-auto ps-2 pe-0.5 pb-2">
       <ShellChatList v-if="navigation.view === 'chats'" />
       <p v-else class="px-2 text-sm text-muted">{{ t(`empty.${navigation.view}`) }}</p>
     </div>

@@ -172,14 +172,15 @@ function onFilterKeydown(event: KeyboardEvent) {
                     class="flex items-center opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 motion-reduce:transition-none"
                     :class="{ 'opacity-100': store.previewed?.id === skill.id }"
                   >
-                    <UiIconButton :label="t('settings.skills.preview')" :data-skill-preview="skill.id" @click="store.preview(skill)">
+                    <UiIconButton inner :label="t('settings.skills.preview')" :data-skill-preview="skill.id" @click="store.preview(skill)">
                       <Eye class="size-3.5" aria-hidden="true" />
                     </UiIconButton>
-                    <UiIconButton :label="t(revealLabel)" @click="store.reveal(skill)">
+                    <UiIconButton inner :label="t(revealLabel)" @click="store.reveal(skill)">
                       <FolderOpen class="size-3.5" aria-hidden="true" />
                     </UiIconButton>
                   </div>
                   <UiIconButton
+                    inner
                     :label="t('settings.skills.configure', { name: skill.name })"
                     :data-customize="`skill:${skill.id}`"
                     @click="navigation.showSettingsDetail(`skill:${skill.id}`)"

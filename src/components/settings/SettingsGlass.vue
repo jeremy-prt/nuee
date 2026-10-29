@@ -26,6 +26,7 @@ function label(setting: GlassSetting) {
 function hint(setting: GlassSetting) {
   if (setting === 'opacity' && props.windowStyle === 'mixed') return t('settings.glass.opacity.barsHint')
   if (setting === 'centerOpacity') return t('settings.glass.centerOpacity.hint')
+  if (setting === 'blur') return t('settings.glass.blur.hint')
   return undefined
 }
 

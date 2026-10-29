@@ -6,6 +6,7 @@ import {
   Gauge,
   GitPullRequest,
   House,
+  NoProject,
   NotebookPen,
   Plus,
   RefreshCw,
@@ -14,7 +15,6 @@ import {
 } from '@/components/ui/icons'
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import ChatIcon from '@/components/chat/ChatIcon.vue'
 import SettingsNav from '@/components/settings/SettingsNav.vue'
 import ShellChatList from '@/components/shell/ShellChatList.vue'
 import ShellProjectGroup from '@/components/shell/ShellProjectGroup.vue'
@@ -44,6 +44,8 @@ const appearance = useAppearanceStore()
 
 // « Projets en menu » : un projet à la fois, choisi en haut, ses sessions dessous. Repliée, la barre disparaît.
 const menu = computed(() => appearance.layout === 'menu')
+// Collée à la carte du centre, la barre a déjà 6 px de marge à droite (App.vue) : elle n'en ajoute que 2 de son côté.
+const edge = computed(() => (menu.value || !(navigation.hasPanel && layout.panel.open) ? 'pe-0.5' : 'pe-2'))
 // Glissé seulement à un vrai changement de projet : au lancement, une fenêtre en arrière-plan figerait
 // l'animation sur sa première image, la liste resterait invisible.
 const sliding = ref(false)
@@ -91,6 +93,8 @@ const pages = [
   { view: 'search', icon: Search, shortcut: 'search' },
 ] as const
 
+const menuPages = pages.filter((page) => page.view !== 'search')
+
 // Mises à jour n'est pas une vue : le bouton mène à Réglages > Général.
 const footer = [
   { id: 'settings', icon: Settings, shortcut: 'settings', open: () => navigation.go('settings') },
@@ -110,21 +114,32 @@ function footerLabel(id: (typeof footer)[number]['id']) {
     :style="{ width: `${layout.rail.expanded ? layout.rail.width : RAIL_COLLAPSED_WIDTH}px` }"
   >
     <template v-if="menu && navigation.view !== 'settings'">
-      <div class="shrink-0 px-2 pt-1 pb-2"><ShellProjectSwitcher /></div>
-      <nav class="flex shrink-0 flex-col gap-0.5 px-2" :aria-label="t('rail.label')">
+      <!-- La recherche passe en icône à droite du projet, comme la loupe de monocode. -->
+      <div class="flex shrink-0 items-center gap-1 ps-2 pe-0.5 pt-1 pb-2">
+        <!-- Le sélecteur s'ajuste à son nom, comme monocode : un fond pleine largeur avec la flèche collée au nom faisait bancal. -->
+        <div class="flex min-w-0 flex-1 *:min-w-0"><ShellProjectSwitcher /></div>
+        <UiIconButton
+          :label="t('rail.search')"
+          :shortcut="shortcuts.label('search')"
+          :active="navigation.view === 'search'"
+          @click="navigation.go('search')"
+        >
+          <Search class="size-4" aria-hidden="true" />
+        </UiIconButton>
+      </div>
+      <nav class="flex shrink-0 flex-col gap-0.5 ps-2 pe-0.5" :aria-label="t('rail.label')">
         <ShellRailItem
-          v-for="item in pages"
+          v-for="item in menuPages"
           :key="item.view"
           :icon="item.icon"
           :label="t(`rail.${item.view}`)"
-          :shortcut="'shortcut' in item ? shortcuts.label(item.shortcut) : undefined"
           expanded
           :active="navigation.view === item.view"
           @click="navigation.go(item.view)"
         />
       </nav>
       <section class="mt-3 flex min-h-0 flex-1 flex-col" aria-labelledby="sidebar-sessions">
-        <div class="flex h-8 shrink-0 items-center ps-4 pe-2">
+        <div class="flex h-8 shrink-0 items-center ps-4 pe-0.5">
           <h2 id="sidebar-sessions" class="min-w-0 flex-1 truncate text-xs font-medium text-muted">{{ t('chats.recent') }}</h2>
           <UiIconButton :label="t('chats.newChat')" :shortcut="shortcuts.label('newChat')" @click="newChat()">
             <Plus class="size-4" aria-hidden="true" />
@@ -132,7 +147,7 @@ function footerLabel(id: (typeof footer)[number]['id']) {
         </div>
         <div
           :key="navigation.projectId ?? ''"
-          class="min-h-0 flex-1 overflow-y-auto px-2 pb-2"
+          class="min-h-0 flex-1 overflow-y-auto ps-2 pe-0.5 pb-2"
           :class="{ 'project-slide': sliding }"
           :data-step="navigation.projectStep"
         >
@@ -142,7 +157,8 @@ function footerLabel(id: (typeof footer)[number]['id']) {
     </template>
     <nav
       v-else
-      class="flex min-h-0 flex-1 flex-col gap-0.5 overflow-x-hidden overflow-y-auto p-2"
+      class="flex min-h-0 flex-1 flex-col gap-0.5 overflow-x-hidden overflow-y-auto py-2 ps-2"
+      :class="edge"
       :aria-label="navigation.view === 'settings' ? t('settings.nav') : t('rail.label')"
     >
       <SettingsNav v-if="navigation.view === 'settings'" :focus-current="byKeyboard" />
@@ -165,7 +181,7 @@ function footerLabel(id: (typeof footer)[number]['id']) {
           :active="navigation.view === 'chats' && navigation.projectId === null"
           @click="navigation.openChats(null)"
         >
-          <template #icon><ChatIcon many class="size-4 shrink-0" /></template>
+          <template #icon><NoProject class="size-4 shrink-0" aria-hidden="true" /></template>
         </ShellRailItem>
 
         <template v-if="projects.pinned.length">
@@ -233,7 +249,7 @@ function footerLabel(id: (typeof footer)[number]['id']) {
       </template>
     </nav>
 
-    <div v-if="navigation.view === 'settings'" class="shrink-0 p-2">
+    <div v-if="navigation.view === 'settings'" class="shrink-0 py-2 ps-2" :class="edge">
       <ShellRailItem
         :icon="ArrowLeft"
         :label="t('settings.back')"
@@ -242,7 +258,11 @@ function footerLabel(id: (typeof footer)[number]['id']) {
       />
     </div>
     <!-- Dépliée : une ligne (Réglages et Quota à gauche, Mises à jour à droite). Repliée : une colonne de 48 px. -->
-    <div v-else class="flex shrink-0 gap-0.5 p-2" :class="layout.rail.expanded ? 'flex-row' : 'flex-col'">
+    <div
+      v-else
+      class="flex shrink-0 gap-0.5 py-2 ps-2"
+      :class="[layout.rail.expanded ? 'flex-row' : 'flex-col', edge]"
+    >
       <template v-for="(item, index) in footer" :key="item.id">
         <span v-if="layout.rail.expanded && index === footer.length - 1" class="flex-1" />
         <UiTooltip

@@ -157,7 +157,7 @@ const entries: SettingEntry[] = [
       detail: style,
       label: setting === 'opacity' && style === 'mixed' ? 'settings.glass.opacity.bars' : `settings.glass.${setting}.label`,
       terms: options(`settings.glass.${setting}`, glassOptions[setting]),
-      keywords: [setting === 'blur' ? 'blur' : 'transparency'],
+      keywords: setting === 'blur' ? ['blur', 'desktop'] : ['transparency'],
       needs: 'macos' as const,
     })),
   ),

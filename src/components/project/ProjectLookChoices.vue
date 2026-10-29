@@ -33,7 +33,7 @@ function keepOpen(event: Event) {
       :value="item"
       :text-value="t(`settings.projects.mascots.${item}`)"
       :aria-label="t(`settings.projects.mascots.${item}`)"
-      class="grid size-7 cursor-pointer place-items-center rounded-md outline-none data-[highlighted]:bg-selection data-[state=checked]:bg-signal/15"
+      class="grid size-7 cursor-pointer place-items-center rounded-md outline-none data-[highlighted]:not-data-[state=checked]:bg-selection-hover data-[state=checked]:bg-selection"
       @select="keepOpen"
     >
       <ProjectMascot :mascot="item" :color="color" class="size-5" />
@@ -53,7 +53,7 @@ function keepOpen(event: Event) {
       :value="item"
       :text-value="t(`settings.projects.colors.${item}`)"
       :aria-label="t(`settings.projects.colors.${item}`)"
-      class="grid size-6 cursor-pointer place-items-center rounded-md outline-none data-[highlighted]:bg-selection"
+      class="grid size-6 cursor-pointer place-items-center rounded-md outline-none data-[highlighted]:bg-selection-hover"
       @select="keepOpen"
     >
       <span class="grid size-4 place-items-center rounded-full" :style="{ background: colorVar(item) }">

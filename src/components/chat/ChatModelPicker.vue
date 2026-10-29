@@ -153,7 +153,7 @@ const row =
       <PopoverRoot v-model:open="open">
         <PopoverTrigger
           :disabled="disabled || !models.length"
-          class="group flex h-7 min-w-0 items-center gap-1.5 rounded-md px-2 text-xs whitespace-nowrap text-content/85 hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-40 data-[state=open]:bg-selection-hover data-[state=open]:text-content"
+          class="group flex h-7 min-w-0 items-center gap-1.5 rounded-md px-2 text-xs whitespace-nowrap text-content/85 hover:bg-selection-inner hover:text-content focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-40 data-[state=open]:bg-selection-inner data-[state=open]:text-content"
         >
           <span class="sr-only">{{ t('composer.model.menu') }}</span>
           <SettingsAgentLogo :id="agent" small class="-ms-0.5" />
@@ -253,7 +253,7 @@ const row =
                       <button
                         type="button"
                         tabindex="-1"
-                        class="ms-auto grid size-5.5 shrink-0 place-items-center rounded-md"
+                        class="ms-auto grid size-6 shrink-0 place-items-center rounded-md hover:bg-selection-inner"
                         :class="
                           isFavorite(entry.item.value)
                             ? 'text-warning'

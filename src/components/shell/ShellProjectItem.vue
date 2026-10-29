@@ -61,7 +61,7 @@ function onDoubleClick() {
 
 <template>
   <UiContextMenu :disabled="renaming" @update:open="menuOpen = $event">
-    <div class="group relative">
+    <div class="group/row group relative">
       <UiRenameInput
         v-if="renaming"
         :value="project.name"

@@ -24,13 +24,13 @@ export function glassSettings(style: WindowStyle): GlassSetting[] {
 }
 
 // Part de fond gardée dans le cadre (barres, liste des chats, terminal, panneau de droite) et au centre.
-// Moyenne est calée sur monocode à ~67 % de voile : on voit le bureau, le texte reste lisible. Le centre
-// de Mixte reste au-dessus du cadre, sinon Mixte deviendrait un second Transparent.
-const BARS_OPACITY: Record<Glass['opacity'], number> = { low: 45, medium: 66, high: 82 }
-const CENTER_OPACITY: Record<Glass['centerOpacity'], number> = { low: 76, medium: 82, high: 92 }
+// Moyenne laisse voir environ un quart du bureau (monocode Focused : un cinquième) : à 66 %, un fond d'écran
+// sombre assombrissait toute l'app (choix de Jérémy). Le centre de Mixte reste au-dessus du cadre, sinon Mixte
+// deviendrait un second Transparent.
+const BARS_OPACITY: Record<Glass['opacity'], number> = { low: 45, medium: 76, high: 86 }
+const CENTER_OPACITY: Record<Glass['centerOpacity'], number> = { low: 80, medium: 88, high: 94 }
 const BLUR: Record<Glass['blur'], number> = { none: 0, low: 24, medium: 48, high: 72 }
-// Luminosité du voile, en % (celle du fond opaque est de 9 %).
-const LIGHTNESS: Record<Glass['lightness'], number> = { dark: 5, medium: 9, light: 14 }
+const LIGHTNESS: Record<Glass['lightness'], number> = { dark: 5, medium: 10, light: 14 }
 
 // Le thème colore l'accent seul, ou toute l'interface : le voile du fond et les éléments actifs ou survolés.
 export const themeScopes = ['accent', 'full'] as const
@@ -38,9 +38,9 @@ export type ThemeScope = (typeof themeScopes)[number]
 export const themeIntensities = ['light', 'strong'] as const
 export type ThemeIntensity = (typeof themeIntensities)[number]
 // Part de l'accent dans le voile du fond et dans les fonds d'éléments actifs (survol un cran en dessous).
-const THEME_TINT: Record<ThemeIntensity, { veil: number; selection: number; hover: number }> = {
-  light: { veil: 8, selection: 18, hover: 9 },
-  strong: { veil: 16, selection: 26, hover: 13 },
+const THEME_TINT: Record<ThemeIntensity, { veil: number; selection: number; hover: number; inner: number }> = {
+  light: { veil: 8, selection: 20, hover: 8, inner: 16 },
+  strong: { veil: 16, selection: 30, hover: 12, inner: 24 },
 }
 
 export function veilTint(scope: ThemeScope, intensity: ThemeIntensity) {
@@ -213,6 +213,7 @@ export const useAppearanceStore = defineStore('appearance', () => {
     root.style.setProperty('--color-on-signal', themeOnSignal(theme.value))
     root.style.setProperty('--selection-tint', `${THEME_TINT[themeIntensity.value].selection}%`)
     root.style.setProperty('--selection-hover-tint', `${THEME_TINT[themeIntensity.value].hover}%`)
+    root.style.setProperty('--selection-inner-tint', `${THEME_TINT[themeIntensity.value].inner}%`)
     const values = glassValues(effectiveStyle.value, active.value, veilTint(themeScope.value, themeIntensity.value))
     root.style.setProperty('--chrome-alpha', `${values.chrome}%`)
     root.style.setProperty('--surface-alpha', `${values.surface}%`)

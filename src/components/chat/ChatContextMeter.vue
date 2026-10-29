@@ -68,7 +68,7 @@ function compact() {
     <span class="flex shrink-0">
       <PopoverRoot v-model:open="open">
         <PopoverTrigger
-          class="grid size-7 shrink-0 place-items-center rounded-md hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring aria-expanded:bg-selection-hover"
+          class="grid size-7 shrink-0 place-items-center rounded-md hover:bg-selection-inner focus-visible:outline-2 focus-visible:outline-ring aria-expanded:bg-selection-inner"
           :aria-label="t('composer.context.label', { percent })"
         >
           <svg :width="SIZE" :height="SIZE" :viewBox="`0 0 ${SIZE} ${SIZE}`" :class="tone" aria-hidden="true">

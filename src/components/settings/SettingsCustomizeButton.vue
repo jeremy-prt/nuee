@@ -2,11 +2,11 @@
 import { SlidersHorizontal } from '@/components/ui/icons'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 
-// Posé en absolu sur la carte du choix en cours : il n'apparaît que sur celle-ci. Gris et flou sur une carte unie ;
-// `over`, sur un aperçu d'image, aux couleurs du bouton principal du thème : en gris, il s'y perdait.
+// Posé en absolu sur la carte du choix en cours : il n'apparaît que sur celle-ci. Aux couleurs du bouton principal
+// du thème, partout : en gris, il se perdait sur les aperçus d'image (choix de Jérémy).
 // La position (class) va au cadre animé ; data-customize reste sur le bouton, que SettingsView refocalise.
 defineOptions({ inheritAttrs: false })
-defineProps<{ show: boolean; label: string; over?: boolean }>()
+defineProps<{ show: boolean; label: string }>()
 defineEmits<{ click: [] }>()
 </script>
 
@@ -22,12 +22,7 @@ defineEmits<{ click: [] }>()
         <button
           v-bind="{ ...$attrs, class: undefined }"
           type="button"
-          class="grid cursor-pointer place-items-center focus-visible:outline-2 focus-visible:outline-ring"
-          :class="
-            over
-              ? 'size-7 rounded-md bg-accent text-canvas shadow-md hover:bg-accent/85'
-              : 'size-7 rounded-md bg-canvas/30 text-muted backdrop-blur-sm hover:bg-selection-hover hover:text-content'
-          "
+          class="grid size-7 cursor-pointer place-items-center rounded-md bg-accent text-canvas shadow-md hover:bg-accent/85 focus-visible:outline-2 focus-visible:outline-ring"
           :aria-label="label"
           @click="$emit('click')"
         >

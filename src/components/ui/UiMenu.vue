@@ -76,7 +76,7 @@ function onCloseAutoFocus(event: Event) {
         <DropdownMenuTrigger
           :disabled="disabled"
           class="group flex min-w-0 items-center gap-1.5 rounded-md text-xs whitespace-nowrap focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-40"
-          :class="look ?? 'h-7 px-2 text-content/85 hover:bg-selection-hover hover:text-content aria-expanded:bg-selection-hover aria-expanded:text-content'"
+          :class="look ?? 'h-7 px-2 text-content/85 hover:bg-selection-inner hover:text-content aria-expanded:bg-selection-inner aria-expanded:text-content'"
           @pointerdown="openedBy(true)"
           @keydown="openedBy(false)"
         >
@@ -99,7 +99,7 @@ function onCloseAutoFocus(event: Event) {
             <template v-if="nested">
               <DropdownMenuSub v-for="section in sections" :key="section.id">
                 <DropdownMenuSubTrigger
-                  class="flex cursor-pointer items-center gap-2 rounded-md py-1.5 ps-2 pe-1.5 text-content outline-none data-[highlighted]:bg-selection data-[state=open]:bg-selection"
+                  class="flex cursor-pointer items-center gap-2 rounded-md py-1.5 ps-2 pe-1.5 text-content outline-none data-[highlighted]:bg-selection-hover data-[state=open]:bg-selection-hover"
                 >
                   <span class="flex-1">{{ section.label }}</span>
                   <span class="text-muted">{{ current(section) }}</span>
