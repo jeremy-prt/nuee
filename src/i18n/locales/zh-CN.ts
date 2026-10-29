@@ -1020,15 +1020,16 @@ export default {
         medium: '中',
         high: '强',
       },
-      darken: {
-        label: '调暗图片',
-        hint: '一层下方更深的暗色渐变，让内容更突出。',
+      blur: {
+        label: '图片底部模糊',
+        hint: '对话下方的图片底部会变得模糊并变暗。',
+        low: '轻',
+        medium: '中',
+        high: '强',
       },
       effect: {
         label: '效果',
         none: '无',
-        blur: '模糊',
-        fade: '渐隐',
         dither: '抖动',
         ascii: 'ASCII',
         halftone: '网点',

@@ -78,18 +78,21 @@ const { over } = useFileDrop(zone, (paths) => use(paths[0]!), true)
       :class="over ? 'border-ring bg-signal/10' : appearance.background.path ? 'border-stroke' : 'border-dashed border-stroke'"
     >
       <div v-if="appearance.background.path" class="flex flex-wrap items-center gap-4">
-        <SettingsBackgroundThumb :path="appearance.background.path" class="w-48" />
+        <div class="relative w-48">
+          <SettingsBackgroundThumb :path="appearance.background.path" />
+          <SettingsCustomizeButton
+            show
+            data-customize="background"
+            over
+            class="inset-0"
+            :label="t('settings.background.customize')"
+            @click="navigation.showSettingsDetail('background')"
+          />
+        </div>
         <div class="flex flex-wrap gap-2">
           <UiButton size="sm" :loading="importing" :disabled="removing" @click="choose()">{{ t('settings.background.change') }}</UiButton>
           <UiButton size="sm" variant="danger" :loading="removing" :disabled="importing" @click="remove()">{{ t('settings.background.remove') }}</UiButton>
         </div>
-        <SettingsCustomizeButton
-          show
-          data-customize="background"
-          class="top-3 end-3"
-          :label="t('settings.background.customize')"
-          @click="navigation.showSettingsDetail('background')"
-        />
       </div>
       <div v-else class="flex flex-col items-center gap-3 py-6 text-center">
         <ImagePlus class="size-6 text-muted" aria-hidden="true" />

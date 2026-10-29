@@ -5,8 +5,9 @@ import UiTooltip from '@/components/ui/UiTooltip.vue'
 // Posé en absolu sur la carte du choix en cours : il n'apparaît que sur celle-ci. Fond léger et flou pour
 // rester lisible par-dessus la vignette, sans ressortir plus que les autres boutons d'icône.
 // La position (class) va au cadre animé ; data-customize reste sur le bouton, que SettingsView refocalise.
+// `over` : sur un aperçu, plus gros et au centre de la zone donnée par class (dans un coin, il passait inaperçu).
 defineOptions({ inheritAttrs: false })
-defineProps<{ show: boolean; label: string }>()
+defineProps<{ show: boolean; label: string; over?: boolean }>()
 defineEmits<{ click: [] }>()
 </script>
 
@@ -17,16 +18,21 @@ defineEmits<{ click: [] }>()
     leave-active-class="transition duration-150 ease-in motion-reduce:transition-none"
     leave-to-class="scale-75 opacity-0"
   >
-    <div v-if="show" class="absolute" :class="$attrs.class">
+    <div v-if="show" class="absolute" :class="[$attrs.class, { 'pointer-events-none grid place-items-center': over }]">
       <UiTooltip :label="label">
         <button
           v-bind="{ ...$attrs, class: undefined }"
           type="button"
-          class="grid size-7 cursor-pointer place-items-center rounded-md bg-canvas/30 text-muted backdrop-blur-sm hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-ring"
+          class="grid cursor-pointer place-items-center focus-visible:outline-2 focus-visible:outline-ring"
+          :class="
+            over
+              ? 'pointer-events-auto size-9 rounded-lg border border-content/15 bg-canvas/60 text-content shadow-lg backdrop-blur-md hover:bg-canvas/80'
+              : 'size-7 rounded-md bg-canvas/30 text-muted backdrop-blur-sm hover:bg-selection-hover hover:text-content'
+          "
           :aria-label="label"
           @click="$emit('click')"
         >
-          <SlidersHorizontal class="size-3.5" aria-hidden="true" />
+          <SlidersHorizontal :class="over ? 'size-4' : 'size-3.5'" aria-hidden="true" />
         </button>
       </UiTooltip>
     </div>

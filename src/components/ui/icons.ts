@@ -80,7 +80,6 @@ import PinOffIcon from '@hugeicons/core-free-icons/PinOffIcon'
 import Plug01Icon from '@hugeicons/core-free-icons/Plug01Icon'
 import PythonIcon from '@hugeicons/core-free-icons/PythonIcon'
 import Refresh01Icon from '@hugeicons/core-free-icons/Refresh01Icon'
-import RotateLeft01Icon from '@hugeicons/core-free-icons/RotateLeft01Icon'
 import Search01Icon from '@hugeicons/core-free-icons/Search01Icon'
 import SecurityCheckIcon from '@hugeicons/core-free-icons/SecurityCheckIcon'
 import SentIcon from '@hugeicons/core-free-icons/SentIcon'
@@ -97,6 +96,7 @@ import StarIcon from '@hugeicons/core-free-icons/StarIcon'
 import Tick02Icon from '@hugeicons/core-free-icons/Tick02Icon'
 import Typescript01Icon from '@hugeicons/core-free-icons/Typescript01Icon'
 import UnavailableIcon from '@hugeicons/core-free-icons/UnavailableIcon'
+import UndoIcon from '@hugeicons/core-free-icons/UndoIcon'
 import ViewIcon from '@hugeicons/core-free-icons/ViewIcon'
 import VolumeHighIcon from '@hugeicons/core-free-icons/VolumeHighIcon'
 import Wrench01Icon from '@hugeicons/core-free-icons/Wrench01Icon'
@@ -201,7 +201,7 @@ export const PinOff = icon(PinOffIcon)
 export const Plug = icon(Plug01Icon)
 export const Plus = icon(Add01Icon)
 export const RefreshCw = icon(Refresh01Icon)
-export const RotateCcw = icon(RotateLeft01Icon)
+export const RotateCcw = icon(UndoIcon)
 export const Search = icon(Search01Icon)
 export const SendHorizontal = icon(SentIcon)
 export const Settings = icon(Settings01Icon)

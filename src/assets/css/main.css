@@ -207,6 +207,26 @@ html:has([data-edge='rail']:focus-visible) [data-title-edge='rail'] {
   }
 }
 
+/* Bas de l'image de fond (ShellBackgroundImage), comme monocode : deux flous qui s'installent progressivement et un
+   voile sombre, pour que la conversation et la zone de saisie se lisent bien dessus. */
+.background-blur-soft {
+  mask-image: linear-gradient(to bottom, transparent 18%, #000 60%);
+}
+
+.background-blur-strong {
+  mask-image: linear-gradient(to bottom, transparent 28%, #000 76%);
+}
+
+.background-veil {
+  background-image: linear-gradient(
+    to bottom,
+    transparent 16%,
+    color-mix(in srgb, var(--color-canvas) 26%, transparent) 38%,
+    color-mix(in srgb, var(--color-canvas) 55%, transparent) 55%,
+    color-mix(in srgb, var(--color-canvas) 78%, transparent) 75%
+  );
+}
+
 /* « Projets en menu » : au changement de projet, les sessions arrivent du côté du projet choisi (comme monocode). */
 @keyframes project-slide {
   from {

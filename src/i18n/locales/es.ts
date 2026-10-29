@@ -1020,15 +1020,16 @@ export default {
         medium: 'Media',
         high: 'Fuerte',
       },
-      darken: {
-        label: 'Oscurecer la imagen',
-        hint: 'Un degradado oscuro, más marcado abajo, hace resaltar mejor el contenido.',
+      blur: {
+        label: 'Desenfoque inferior',
+        hint: 'La parte inferior de la imagen se desenfoca y oscurece bajo la conversación.',
+        low: 'Ligero',
+        medium: 'Medio',
+        high: 'Fuerte',
       },
       effect: {
         label: 'Efecto',
         none: 'Ninguno',
-        blur: 'Desenfoque',
-        fade: 'Degradado',
         dither: 'Tramado',
         ascii: 'ASCII',
         halftone: 'Puntos',

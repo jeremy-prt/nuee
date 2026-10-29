@@ -1020,15 +1020,16 @@ export default {
         medium: '中',
         high: '強',
       },
-      darken: {
-        label: '画像を暗くする',
-        hint: '下ほど濃い暗いグラデーションで、内容が見やすくなります。',
+      blur: {
+        label: '画像下部のぼかし',
+        hint: '会話の下で、画像の下部がぼけて暗くなります。',
+        low: '弱',
+        medium: '中',
+        high: '強',
       },
       effect: {
         label: 'エフェクト',
         none: 'なし',
-        blur: 'ぼかし',
-        fade: 'グラデーション',
         dither: 'ディザ',
         ascii: 'ASCII',
         halftone: '網点',

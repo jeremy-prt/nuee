@@ -58,7 +58,8 @@ function preview(style: WindowStyle): GlassValues {
         <SettingsCustomizeButton
           :show="appearance.effectiveStyle === style"
           :data-customize="style"
-          class="top-3.5 end-3.5"
+          over
+          class="inset-x-2 top-2 aspect-2/1"
           :label="t('settings.appearance.customize', { style: t(`settings.appearance.styles.${style}`) })"
           @click="customize(style)"
         />

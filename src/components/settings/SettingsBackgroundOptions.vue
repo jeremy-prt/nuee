@@ -7,7 +7,6 @@ import SettingsRow from '@/components/settings/SettingsRow.vue'
 import ShellBackgroundImage from '@/components/shell/ShellBackgroundImage.vue'
 import UiChoiceCard from '@/components/ui/UiChoiceCard.vue'
 import UiSegmented from '@/components/ui/UiSegmented.vue'
-import UiSwitch from '@/components/ui/UiSwitch.vue'
 import { useResetToast } from '@/composables/useResetToast'
 import { backgroundEffects, backgroundOptions, INTENSITY_LEVEL, useAppearanceStore } from '@/stores/appearance'
 
@@ -15,7 +14,7 @@ const { t } = useI18n()
 const resetToast = useResetToast()
 const appearance = useAppearanceStore()
 
-const rows = ['where', 'visibility', 'intensity'] as const
+const rows = ['where', 'visibility', 'intensity', 'blur'] as const
 
 function options(setting: (typeof rows)[number]) {
   return backgroundOptions[setting].map((value) => ({ value, label: t(`settings.background.${setting}.${value}`) }))
@@ -33,7 +32,7 @@ function options(setting: (typeof rows)[number]) {
       v-slot="{ hintId }"
       :data-setting="`background-${setting}`"
       :label="t(`settings.background.${setting}.label`)"
-      :hint="setting === 'intensity' ? t('settings.background.intensity.hint') : undefined"
+      :hint="setting === 'intensity' || setting === 'blur' ? t(`settings.background.${setting}.hint`) : undefined"
       :disabled="setting === 'intensity' && appearance.background.effect === 'none'"
     >
       <UiSegmented
@@ -44,15 +43,12 @@ function options(setting: (typeof rows)[number]) {
         :aria-describedby="hintId"
       />
     </SettingsRow>
-    <SettingsRow v-slot="{ hintId }" data-setting="background-darken" :label="t('settings.background.darken.label')" :hint="t('settings.background.darken.hint')">
-      <UiSwitch v-model="appearance.background.darken" :label="t('settings.background.darken.label')" :aria-describedby="hintId" />
-    </SettingsRow>
   </SettingsGroup>
 
   <template v-if="appearance.background.path">
     <section class="pt-8" role="radiogroup" aria-labelledby="background-effect-title">
       <h3 id="background-effect-title" class="pb-2.5 text-sm font-semibold">{{ t('settings.background.effect.label') }}</h3>
-      <div data-setting="background-effect" class="grid grid-cols-4 gap-2">
+      <div data-setting="background-effect" class="grid grid-cols-3 gap-2">
         <UiChoiceCard
           v-for="effect in backgroundEffects"
           :key="effect"

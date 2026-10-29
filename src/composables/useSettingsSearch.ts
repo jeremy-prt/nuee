@@ -173,20 +173,11 @@ const entries: SettingEntry[] = [
     section: 'appearance' as const,
     detail: 'background' as const,
     label: `settings.background.${row}.label`,
-    hint: row === 'intensity' ? 'settings.background.intensity.hint' : undefined,
+    hint: row === 'intensity' || row === 'blur' ? `settings.background.${row}.hint` : undefined,
     terms: options(`settings.background.${row}`, values),
     keywords: ['background'],
     needs: 'image' as const,
   })),
-  {
-    id: 'background-darken',
-    section: 'appearance',
-    detail: 'background',
-    label: 'settings.background.darken.label',
-    hint: 'settings.background.darken.hint',
-    keywords: ['background', 'dark', 'overlay'],
-    needs: 'image',
-  },
   { id: 'agents', section: 'agents', label: 'settings.agents.title', keywords: ['agents'] },
   ...Object.keys(agents).flatMap((kind) => [
     {

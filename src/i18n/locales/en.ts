@@ -1018,15 +1018,16 @@ export default {
         medium: 'Medium',
         high: 'Strong',
       },
-      darken: {
-        label: 'Darken the image',
-        hint: 'A dark gradient, stronger at the bottom, makes the content stand out.',
+      blur: {
+        label: 'Bottom blur',
+        hint: 'The bottom of the image blurs and darkens under the conversation.',
+        low: 'Light',
+        medium: 'Medium',
+        high: 'Strong',
       },
       effect: {
         label: 'Effect',
         none: 'None',
-        blur: 'Blur',
-        fade: 'Fade',
         dither: 'Dither',
         ascii: 'ASCII',
         halftone: 'Halftone',

@@ -1020,15 +1020,16 @@ export default {
         medium: 'Média',
         high: 'Forte',
       },
-      darken: {
-        label: 'Escurecer a imagem',
-        hint: 'Um degradê escuro, mais forte embaixo, destaca melhor o conteúdo.',
+      blur: {
+        label: 'Desfoque inferior',
+        hint: 'A parte de baixo da imagem fica desfocada e mais escura sob a conversa.',
+        low: 'Leve',
+        medium: 'Médio',
+        high: 'Forte',
       },
       effect: {
         label: 'Efeito',
         none: 'Nenhum',
-        blur: 'Desfoque',
-        fade: 'Degradê',
         dither: 'Pontilhado',
         ascii: 'ASCII',
         halftone: 'Retícula',

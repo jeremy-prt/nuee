@@ -1020,15 +1020,16 @@ export default {
         medium: 'Moyenne',
         high: 'Forte',
       },
-      darken: {
-        label: 'Assombrir l\'image',
-        hint: 'Un dégradé sombre, plus marqué en bas, fait mieux ressortir le contenu.',
+      blur: {
+        label: 'Flou du bas de l\'image',
+        hint: 'Le bas de l\'image se floute et s\'assombrit sous la conversation.',
+        low: 'Léger',
+        medium: 'Moyen',
+        high: 'Fort',
       },
       effect: {
         label: 'Effet',
         none: 'Aucun',
-        blur: 'Flou',
-        fade: 'Dégradé',
         dither: 'Tramé',
         ascii: 'ASCII',
         halftone: 'Points',

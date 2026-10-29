@@ -65,12 +65,13 @@ function blurRadius(glass: Glass) {
 }
 
 // Image de fond de la zone centrale : effets décrits dans utils/backgroundEffects.ts.
-export const backgroundEffects = ['none', 'blur', 'fade', 'dither', 'ascii', 'halftone', 'scanlines', 'pixelate'] as const
+export const backgroundEffects = ['none', 'dither', 'ascii', 'halftone', 'scanlines', 'pixelate'] as const
 export type BackgroundEffect = (typeof backgroundEffects)[number]
 export const backgroundOptions = {
   where: ['chats', 'everywhere'],
   visibility: ['low', 'medium', 'high'],
   intensity: ['low', 'medium', 'high'],
+  blur: ['low', 'medium', 'high'],
   effect: backgroundEffects,
 } as const
 export const INTENSITY_LEVEL = { low: 0, medium: 1, high: 2 } as const
@@ -81,14 +82,14 @@ export interface Background {
   where: (typeof backgroundOptions)['where'][number]
   visibility: (typeof backgroundOptions)['visibility'][number]
   intensity: (typeof backgroundOptions)['intensity'][number]
-  // Dégradé sombre posé sur l'image, comme monocode : le contenu ressort mieux.
-  darken: boolean
+  // Flou du bas de l'image, sous la conversation et la zone de saisie (voir ShellBackgroundImage).
+  blur: (typeof backgroundOptions)['blur'][number]
 }
 // Discrète = l'opacité par défaut de monocode, dont Jérémy aime le rendu.
 export const BACKGROUND_OPACITY: Record<Background['visibility'], number> = { low: 24, medium: 36, high: 52 }
 
 function defaultBackground(path: string | null): Background {
-  return { path, effect: 'scanlines', where: 'everywhere', visibility: 'low', intensity: 'low', darken: false }
+  return { path, effect: 'scanlines', where: 'everywhere', visibility: 'low', intensity: 'low', blur: 'medium' }
 }
 
 export const zoomLevels = [80, 90, 100, 110, 125, 150] as const
@@ -155,7 +156,6 @@ function load(): AppearanceState {
     if (appLayouts.includes(saved.layout)) state.layout = saved.layout
     const background = saved.background ?? {}
     if (typeof background.path === 'string') state.background.path = background.path
-    if (typeof background.darken === 'boolean') state.background.darken = background.darken
     for (const setting of Object.keys(backgroundOptions) as BackgroundSetting[]) {
       if ((backgroundOptions[setting] as readonly string[]).includes(background[setting])) {
         ;(state.background as unknown as Record<BackgroundSetting, string>)[setting] = background[setting]

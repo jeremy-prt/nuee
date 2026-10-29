@@ -1,5 +1,5 @@
-// Effets de l'image de fond. Flou et Dégradé sont du CSS ; les autres se calculent pixel par pixel
-// (dans un worker, voir backgroundEffects.worker.ts). Fond sombre uniquement : sans encre, c'est noir.
+// Effets de l'image de fond, calculés pixel par pixel (dans un worker, voir backgroundEffects.worker.ts).
+// Fond sombre uniquement : sans encre, c'est noir.
 
 export type EffectLevel = 0 | 1 | 2
 
@@ -152,13 +152,3 @@ function pixelate({ width, height, data }: Pixels, level: EffectLevel) {
 
 export const pixelEffects = { dither, ascii, halftone, scanlines, pixelate }
 export type PixelEffect = keyof typeof pixelEffects
-
-// Flou et Dégradé, en CSS. `scale` ramène le flou à la taille d'une vignette (1 = taille réelle).
-export function cssEffect(effect: string, level: EffectLevel, scale = 1) {
-  if (effect === 'blur') return { filter: `blur(${[6, 14, 28][level]! * scale}px)`, transform: 'scale(1.1)' }
-  if (effect === 'fade') {
-    const end = [95, 75, 55][level]!
-    return { maskImage: `linear-gradient(to bottom, #000 ${end - 60}%, transparent ${end}%)` }
-  }
-  return {}
-}
