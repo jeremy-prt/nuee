@@ -1,19 +1,18 @@
 <script setup lang="ts">
-import { Columns2, LayoutList, PanelBottom, PanelRight, X } from '@/components/ui/icons'
+import { CircleAlert, CircleCheck, Columns2, LayoutList, PanelBottom, PanelRight, ShieldQuestion, X } from '@/components/ui/icons'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import ChatIcon from '@/components/chat/ChatIcon.vue'
 import ChatSpinner from '@/components/chat/ChatSpinner.vue'
 import SettingsSearch from '@/components/settings/SettingsSearch.vue'
 import ShellRailToggle from '@/components/shell/ShellRailToggle.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { useLayoutDrag } from '@/composables/useLayoutDrag'
+import { sessionStatusColor, useSessionStatus } from '@/composables/useSessionStatus'
 import { useTabTitle } from '@/composables/useTabTitle'
 import { isMacosApp } from '@/ipc/system'
 import { useAppearanceStore } from '@/stores/appearance'
 import { useAttentionStore } from '@/stores/attention'
-import { useConversationsStore } from '@/stores/conversations'
 import { useDragStore } from '@/stores/drag'
 import { RAIL_COLLAPSED_WIDTH, useLayoutStore } from '@/stores/layout'
 import { parentDetail, settingsDetailTitle, useNavigationStore } from '@/stores/navigation'
@@ -26,11 +25,13 @@ const layout = useLayoutStore()
 const navigation = useNavigationStore()
 const appearance = useAppearanceStore()
 const attention = useAttentionStore()
-const conversations = useConversationsStore()
 const workspace = useWorkspaceStore()
 const drag = useDragStore()
 const { startTabDrag } = useLayoutDrag()
 const { tabTitle } = useTabTitle()
+const sessionStatus = useSessionStatus()
+const statuses = computed(() => Object.fromEntries(workspace.contextTabs.map((tab) => [tab.id, sessionStatus(tab.id)])))
+const statusIcons = { approval: ShieldQuestion, done: CircleCheck, failed: CircleAlert }
 
 // Le bouton de la barre latérale reste juste après les boutons de fenêtre macOS (fin à 76 pt, `trafficLightPosition`),
 // ouverte ou repliée, comme monocode (choix de Jérémy). Ces boutons ne suivent pas le zoom : leur place, en points,
@@ -149,7 +150,7 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
             tabindex="0"
             :data-tab-id="tab.id"
             :aria-selected="tab.id === workspace.activeTabId"
-            class="group flex h-7 max-w-52 shrink-0 items-center gap-1.5 rounded-md ps-2 pe-1 text-xs focus-visible:outline-2 focus-visible:outline-ring"
+            class="group relative flex h-7 max-w-52 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs focus-visible:outline-2 focus-visible:outline-ring"
             :class="[
               tab.id === workspace.activeTabId
                 ? 'bg-selection text-content'
@@ -162,18 +163,29 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
             @keydown.space.prevent="workspace.show(tab.id)"
             @auxclick.middle="workspace.closeTab(tab.id)"
           >
-            <ChatSpinner v-if="conversations.working(tab.id)" :agent="tab.agent" class="size-3.5 text-xs" />
-            <ChatIcon v-else class="size-3.5 shrink-0" />
-            <span class="truncate">{{ tabTitle(tab) }}</span>
-            <span v-if="attention.isUnseen(tab.id)" class="size-1.5 shrink-0 rounded-full bg-signal">
+            <!-- L'icône dit l'état de la session (comme Warp ou Zed), rien quand il n'y a rien à signaler : le titre gagne
+                 la place. Mêmes icônes et couleurs que les cartes de la liste. -->
+            <template v-if="statuses[tab.id]">
+              <ChatSpinner v-if="statuses[tab.id] === 'working'" :agent="tab.agent" class="size-3.5 text-xs" />
+              <component
+                :is="statusIcons[statuses[tab.id] as keyof typeof statusIcons]"
+                v-else
+                class="size-3.5 shrink-0"
+                :class="sessionStatusColor[statuses[tab.id]!]"
+                aria-hidden="true"
+              />
+              <span class="sr-only">{{ t(`chats.status.${statuses[tab.id]}`) }}</span>
+            </template>
+            <span v-else-if="attention.isUnseen(tab.id)" class="size-1.5 shrink-0 rounded-full bg-signal">
               <span class="sr-only">{{ t('attention.unseen') }}</span>
             </span>
+            <!-- Comme les sessions : la croix n'occupe pas de place, elle se pose au survol sur la fin du titre, qui s'estompe. -->
+            <span class="truncate group-focus-within:fade-under-one group-hover:fade-under-one">{{ tabTitle(tab) }}</span>
             <UiTooltip :label="t('workspace.closeTab')" :shortcut="shortcuts.label('closeTab')">
               <button
                 type="button"
                 tabindex="-1"
-                class="grid size-5 shrink-0 place-items-center rounded-md text-muted transition-opacity duration-(--hover-duration) group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-selection-inner hover:text-content motion-reduce:transition-none"
-                :class="tab.id === workspace.activeTabId ? 'opacity-100' : 'opacity-0'"
+                class="absolute end-1 top-1/2 grid size-5 -translate-y-1/2 place-items-center rounded-md text-muted opacity-0 transition-opacity duration-(--hover-duration) group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-selection-inner hover:text-content motion-reduce:transition-none"
                 :aria-label="t('workspace.closeTab')"
                 @click.stop="workspace.closeTab(tab.id)"
               >

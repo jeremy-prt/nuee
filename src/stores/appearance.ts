@@ -24,10 +24,10 @@ export function glassSettings(style: WindowStyle): GlassSetting[] {
 }
 
 // Part de fond gardée dans le cadre (barres, liste des chats, terminal, panneau de droite) et au centre.
-// Moyenne laisse voir environ un quart du bureau (monocode Focused : un cinquième) : à 66 %, un fond d'écran
+// Moyenne laisse voir un peu plus d'un quart du bureau (monocode Focused : un cinquième) : à 66 %, un fond d'écran
 // sombre assombrissait toute l'app (choix de Jérémy). Le centre de Mixte reste au-dessus du cadre, sinon Mixte
 // deviendrait un second Transparent.
-const BARS_OPACITY: Record<Glass['opacity'], number> = { low: 45, medium: 76, high: 86 }
+const BARS_OPACITY: Record<Glass['opacity'], number> = { low: 45, medium: 72, high: 82 }
 const CENTER_OPACITY: Record<Glass['centerOpacity'], number> = { low: 80, medium: 88, high: 94 }
 const BLUR: Record<Glass['blur'], number> = { none: 0, low: 24, medium: 48, high: 72 }
 const LIGHTNESS: Record<Glass['lightness'], number> = { dark: 5, medium: 10, light: 14 }

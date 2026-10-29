@@ -32,6 +32,8 @@
   --color-warning: hsl(40 90% 60%);
   --color-info: hsl(210 85% 65%);
   --color-orange: hsl(16 70% 58%);
+  /* Effort Max dans le choix du modèle : la couleur d'Iris, pour qu'on le remarque sans qu'il alarme. */
+  --color-violet: hsl(262 80% 72%);
   /* Skill et `@fichier` dans le champ de saisie (couleurs de monocode). */
   --color-skill: hsl(48 78% 59%);
   --color-mention: hsl(199 89% 60%);

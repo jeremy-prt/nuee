@@ -11,11 +11,10 @@ import UiMoreMenu from '@/components/ui/UiMoreMenu.vue'
 import UiRenameField from '@/components/ui/UiRenameField.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { useProjectActions } from '@/composables/useProjectActions'
+import { sessionStatusColor, useSessionStatus } from '@/composables/useSessionStatus'
 import { useTabTitle } from '@/composables/useTabTitle'
-import { useAttentionStore } from '@/stores/attention'
 import { useCatalogStore } from '@/stores/catalog'
 import { useClockStore } from '@/stores/clock'
-import { useConversationsStore } from '@/stores/conversations'
 import { useNavigationStore } from '@/stores/navigation'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { type Tab, useWorkspaceStore } from '@/stores/workspace'
@@ -26,10 +25,8 @@ import { formatSince } from '@/utils/duration'
 const props = defineProps<{ tab: Tab }>()
 
 const { t, locale } = useI18n()
-const attention = useAttentionStore()
 const catalog = useCatalogStore()
 const clock = useClockStore()
-const conversations = useConversationsStore()
 const navigation = useNavigationStore()
 const shortcuts = useShortcutsStore()
 const workspace = useWorkspaceStore()
@@ -48,14 +45,9 @@ let returnFocus: HTMLElement | null = null
 
 const active = computed(() => props.tab.id === workspace.activeTabId)
 
-// Du plus pressant au moins pressant. Sans état, la carte donne l'heure de la dernière activité.
-const status = computed(() => {
-  if (conversations.find(props.tab.id)?.approvals.length) return 'approval'
-  if (conversations.working(props.tab.id)) return 'working'
-  const signal = attention.unseenSignal(props.tab.id)
-  return signal === 'done' || signal === 'failed' ? signal : null
-})
-const statusColor = { approval: 'text-warning', working: 'text-signal-text', done: 'text-success', failed: 'text-danger' }
+// Sans état, la carte donne l'heure de la dernière activité.
+const sessionStatus = useSessionStatus()
+const status = computed(() => sessionStatus(props.tab.id))
 
 const since = computed(() => formatSince(props.tab.updatedAt, clock.now, locale.value))
 const branch = computed(() => worktrees.branchOf(props.tab))
@@ -122,7 +114,7 @@ watch(
         <span class="flex h-4 items-center gap-1.5 text-[11px] text-muted">
           <SettingsAgentLogo :id="tab.agent" small class="-my-0.5 -ms-0.5 -me-0.5" />
           <span class="min-w-0 flex-1 truncate">{{ model ?? agents[tab.agent].name }}</span>
-          <span v-if="status" class="flex shrink-0 items-center gap-1" :class="statusColor[status]">
+          <span v-if="status" class="flex shrink-0 items-center gap-1" :class="sessionStatusColor[status]">
             <ChatSpinner v-if="status === 'working'" :agent="tab.agent" inherit class="text-xs" />
             <ShieldQuestion v-else-if="status === 'approval'" class="size-3" aria-hidden="true" />
             <CircleCheck v-else-if="status === 'done'" class="size-3" aria-hidden="true" />
