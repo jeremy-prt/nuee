@@ -52,6 +52,9 @@ useAttentionStore()
 useAgentsStore()
 
 const inChats = computed(() => navigation.view === 'chats')
+// « Projets en menu » : pas de panneau latéral, les sessions sont dans la barre latérale ; le centre est une carte.
+const menu = computed(() => appearance.layout === 'menu')
+const panelShown = computed(() => !menu.value && navigation.hasPanel && layout.panel.open)
 const showBottomDock = computed(() => layout.bottom.open && layout.viewsIn('bottom').length > 0)
 const showRightDock = computed(() => layout.right.open && layout.viewsIn('right').length > 0)
 const skills = useSkillsStore()
@@ -66,12 +69,21 @@ function inChatsOnly(action: () => void) {
 }
 
 function togglePanel() {
-  if (navigation.hasPanel) layout.togglePanel()
+  if (navigation.hasPanel && !menu.value) layout.togglePanel()
 }
 
-// La ligne de la session doit être visible pour s'éditer : le panneau latéral s'ouvre au besoin.
+// La liste des projets est en haut de la barre latérale : elle s'ouvre au besoin.
+function openSwitcher() {
+  if (!menu.value) return
+  layout.rail.expanded = true
+  if (navigation.view === 'settings') navigation.closeSettings()
+  navigation.switcherOpen = true
+}
+
+// La ligne de la session doit être visible pour s'éditer : le panneau ou la barre latérale s'ouvre au besoin.
 function renameActive() {
-  layout.panel.open = true
+  if (menu.value) layout.rail.expanded = true
+  else layout.panel.open = true
   workspace.requestRename()
 }
 
@@ -79,6 +91,9 @@ const actions: [ShortcutId, () => void][] = [
   ['toggleRail', layout.toggleRail],
   ['newChat', () => newChat()],
   ['search', () => navigation.go('search')],
+  ['switchProject', openSwitcher],
+  ['previousProject', () => navigation.stepProject(-1)],
+  ['nextProject', () => navigation.stepProject(1)],
   ['togglePanel', togglePanel],
   ['toggleRightDock', inChatsOnly(() => layout.toggleDock('right'))],
   ['toggleBottomDock', inChatsOnly(() => layout.toggleDock('bottom'))],
@@ -133,79 +148,104 @@ onUnmounted(() => {
     <div class="flex h-full flex-col">
       <ShellTitleBar />
       <div class="flex min-h-0 flex-1">
-        <ShellRail />
-        <ShellResizeHandle
-          v-if="layout.rail.expanded"
-          v-model="layout.rail.width"
-          data-edge="rail"
-          v-bind="SIZES.rail"
-          orientation="vertical"
-          :label="t('rail.resize')"
-        />
-        <div v-else class="separator w-px shrink-0" />
+        <template v-if="menu">
+          <template v-if="layout.rail.expanded">
+            <ShellRail />
+            <ShellResizeHandle
+              v-model="layout.rail.width"
+              v-bind="SIZES.rail"
+              orientation="vertical"
+              ghost
+              :label="t('rail.resize')"
+            />
+          </template>
+        </template>
+        <!-- La colonne qui touche la carte finit par une marge de 6 px sans trait, comme en « Projets en menu ». -->
+        <template v-else>
+          <ShellRail />
+          <ShellResizeHandle
+            v-if="layout.rail.expanded"
+            v-model="layout.rail.width"
+            :data-edge="panelShown ? 'rail' : undefined"
+            v-bind="SIZES.rail"
+            orientation="vertical"
+            :ghost="!panelShown"
+            :label="t('rail.resize')"
+          />
+          <div v-else class="shrink-0" :class="panelShown ? 'separator w-px' : 'w-1.5 bg-frame'" />
+        </template>
 
-        <template v-if="navigation.hasPanel && layout.panel.open">
+        <template v-if="panelShown">
           <ShellSidePanel :style="{ width: `${layout.panel.width}px` }" />
           <ShellResizeHandle
             v-model="layout.panel.width"
-            data-edge="panel"
             v-bind="SIZES.panel"
             orientation="vertical"
+            ghost
             :label="t('chats.resize')"
           />
         </template>
 
-        <div
-          v-if="navigation.view === 'chats'"
-          id="workspace-area"
-          class="flex min-w-0 flex-1"
-        >
-          <div id="workspace-column" class="flex min-w-0 flex-1 flex-col">
-            <!-- Seul le chat prend le fond de la zone centrale : terminal et panneau de droite font partie du cadre. -->
-            <main class="relative isolate min-h-0 flex-1 bg-surface">
+        <!-- Centre en carte : son ombre pleine peint le cadre autour d'elle, que l'enveloppe coupe.
+             Un fond sous la carte s'ajouterait au sien et changerait sa transparence. Le trait est un calque posé
+             sur le contenu : une vraie bordure n'aurait rien dessous et laisserait voir le bureau, trop clair. -->
+        <div class="flex min-w-0 flex-1 overflow-hidden pe-1.5 pb-1.5" :class="{ 'ps-1.5': menu && !layout.rail.expanded }">
+          <div
+            class="relative flex min-w-0 flex-1 overflow-hidden rounded-[10px] shadow-[0_0_0_100vmax_var(--color-frame)] after:pointer-events-none after:absolute after:inset-0 after:z-20 after:rounded-[10px] after:border after:border-content/10"
+          >
+            <div
+              v-if="navigation.view === 'chats'"
+              id="workspace-area"
+              class="flex min-w-0 flex-1"
+            >
+              <div id="workspace-column" class="flex min-w-0 flex-1 flex-col">
+                <!-- Seul le chat prend le fond de la zone centrale : terminal et panneau de droite font partie du cadre. -->
+                <main class="relative isolate min-h-0 flex-1 bg-surface">
+                  <ShellBackground />
+                  <WorkspaceView />
+                </main>
+                <template v-if="showBottomDock">
+                  <ShellResizeHandle
+                    v-model="layout.bottom.size"
+                    v-bind="SIZES.bottom"
+                    orientation="horizontal"
+                    invert
+                    :label="t('dock.resize')"
+                  />
+                  <ShellDock position="bottom" :style="{ height: `${layout.bottom.size}px` }" />
+                </template>
+              </div>
+              <template v-if="showRightDock">
+                <ShellResizeHandle
+                  v-model="layout.right.size"
+                  v-bind="SIZES.right"
+                  orientation="vertical"
+                  invert
+                  :label="t('dock.resize')"
+                />
+                <ShellDock position="right" :style="{ width: `${layout.right.size}px` }" />
+              </template>
+            </div>
+
+            <main v-else id="view-area" class="relative isolate min-w-0 flex-1 bg-surface">
               <ShellBackground />
-              <WorkspaceView />
+              <HomeView v-if="navigation.view === 'home'" />
+              <SearchView v-else-if="navigation.view === 'search'" />
+              <SettingsView v-else-if="navigation.view === 'settings'" />
+              <PlaceholderView v-else :view="navigation.view" />
             </main>
-            <template v-if="showBottomDock">
+            <template v-if="previewedSkill">
               <ShellResizeHandle
-                v-model="layout.bottom.size"
-                v-bind="SIZES.bottom"
-                orientation="horizontal"
+                v-model="layout.right.size"
+                v-bind="SIZES.right"
+                orientation="vertical"
                 invert
                 :label="t('dock.resize')"
               />
-              <ShellDock position="bottom" :style="{ height: `${layout.bottom.size}px` }" />
+              <SettingsSkillPanel :skill="previewedSkill" :style="{ width: `${layout.right.size}px` }" />
             </template>
           </div>
-          <template v-if="showRightDock">
-            <ShellResizeHandle
-              v-model="layout.right.size"
-              v-bind="SIZES.right"
-              orientation="vertical"
-              invert
-              :label="t('dock.resize')"
-            />
-            <ShellDock position="right" :style="{ width: `${layout.right.size}px` }" />
-          </template>
         </div>
-
-        <main v-else id="view-area" class="relative isolate min-w-0 flex-1 bg-surface">
-          <ShellBackground />
-          <HomeView v-if="navigation.view === 'home'" />
-          <SearchView v-else-if="navigation.view === 'search'" />
-          <SettingsView v-else-if="navigation.view === 'settings'" />
-          <PlaceholderView v-else :view="navigation.view" />
-        </main>
-        <template v-if="previewedSkill">
-          <ShellResizeHandle
-            v-model="layout.right.size"
-            v-bind="SIZES.right"
-            orientation="vertical"
-            invert
-            :label="t('dock.resize')"
-          />
-          <SettingsSkillPanel :skill="previewedSkill" :style="{ width: `${layout.right.size}px` }" />
-        </template>
       </div>
     </div>
 

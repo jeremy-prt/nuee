@@ -32,44 +32,49 @@ const drag = useDragStore()
 const { startTabDrag } = useLayoutDrag()
 const { tabTitle } = useTabTitle()
 
-// Boutons de fenêtre macOS (fin à 70 pt) plus une marge ; un bouton de la barre fait 28 px plus 8 px de marge.
-// Ces boutons ne suivent pas le zoom de l'interface : leur place, en points, se convertit en px CSS.
-const lights = computed(() => (isMacosApp() ? 84 / appearance.zoomFactor : 0))
+// Le bouton de la barre latérale reste juste après les boutons de fenêtre macOS (fin à 76 pt, `trafficLightPosition`),
+// ouverte ou repliée, comme monocode (choix de Jérémy). Ces boutons ne suivent pas le zoom : leur place, en points,
+// se convertit en px CSS.
+const lights = computed(() => (isMacosApp() ? 88 / appearance.zoomFactor : 8))
+// Le bouton fait 28 px, plus 8 px de marge.
 const TOGGLE = 36
 
+const menu = computed(() => appearance.layout === 'menu')
 const railWidth = computed(() => (layout.rail.expanded ? layout.rail.width : RAIL_COLLAPSED_WIDTH))
-const panelOpen = computed(() => navigation.hasPanel && layout.panel.open)
+const panelOpen = computed(() => !menu.value && navigation.hasPanel && layout.panel.open)
 
-// Dépliée, la barre latérale a son bouton ici, au-dessus de son bord droit, et sa bordure monte.
-// Repliée, elle est plus étroite que les boutons macOS : son bouton passe dans la colonne d'icônes.
-// Chaque séparateur fait 1 px : la zone inclut celui de la barre latérale, l'espace celui du panneau.
-const leftZone = computed(() => Math.max(railWidth.value + 1, lights.value))
-const railBorderUp = computed(() => leftZone.value === railWidth.value + 1)
-const centerStart = computed(() => railWidth.value + 1 + (panelOpen.value ? layout.panel.width + 1 : 0))
-const spacer = computed(() => Math.max(0, centerStart.value - leftZone.value))
+// La zone de gauche couvre la barre latérale (sa bordure monte si elle est plus large que les boutons), au moins
+// jusqu'au bouton. La colonne qui touche la carte finit par une marge de 6 px, les autres par un trait de 1 px.
+const railEdge = computed(() => (panelOpen.value ? 1 : 6))
+const leftZone = computed(() => {
+  const column = menu.value ? (layout.rail.expanded ? layout.rail.width + 6 : 0) : railWidth.value + railEdge.value
+  return Math.max(column, lights.value + TOGGLE)
+})
+const railBorderUp = computed(() => !menu.value && panelOpen.value && leftZone.value === railWidth.value + 1)
+const centerStart = computed(() => railWidth.value + railEdge.value + (panelOpen.value ? layout.panel.width + 6 : 0))
+const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - leftZone.value)))
 </script>
 
 <template>
   <!-- Jamais moins de 40 pt de haut : les boutons macOS, fixes, doivent y tenir quel que soit le zoom. -->
   <header
-    class="flex shrink-0 items-center border-b border-stroke bg-chrome"
+    class="flex shrink-0 items-center bg-frame"
     :style="{ height: 'max(2.5rem, calc(2.5rem / var(--ui-zoom, 1)))' }"
     data-tauri-drag-region
   >
     <div
-      class="flex shrink-0 items-center justify-end self-stretch pe-2"
+      class="flex shrink-0 items-center self-stretch"
       :class="{ 'border-e border-stroke': railBorderUp }"
       data-title-edge="rail"
-      :style="{ width: `${leftZone}px` }"
+      :style="{ width: `${leftZone}px`, paddingInlineStart: `${lights}px` }"
       data-tauri-drag-region
     >
-      <ShellRailToggle v-if="layout.rail.expanded" />
+      <ShellRailToggle />
     </div>
     <!-- Au-dessus du panneau latéral : son bouton de fermeture, calé sur son bord droit. -->
     <div
+      v-if="!menu"
       class="flex shrink-0 items-center justify-end self-stretch pe-2"
-      :class="{ 'border-e border-stroke': panelOpen && spacer > 0 }"
-      data-title-edge="panel"
       :style="{ width: `${spacer}px` }"
       data-tauri-drag-region
     >
@@ -87,7 +92,7 @@ const spacer = computed(() => Math.max(0, centerStart.value - leftZone.value))
 
     <div class="flex h-full min-w-0 flex-1 items-center gap-1 ps-2 pe-2" data-tauri-drag-region>
       <UiIconButton
-        v-if="navigation.hasPanel && !layout.panel.open"
+        v-if="!menu && navigation.hasPanel && !layout.panel.open"
         :label="t('chats.toggle')"
         :shortcut="shortcuts.label('togglePanel')"
         aria-controls="shell-panel"

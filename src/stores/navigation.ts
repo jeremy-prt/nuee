@@ -120,9 +120,31 @@ export const useNavigationStore = defineStore('navigation', () => {
     else update()
   }
 
+  // Liste de ShellProjectSwitcher ouverte : aussi par raccourci, d'où sa place ici.
+  const switcherOpen = ref(false)
+  // Sens du dernier changement de projet (1 : vers le suivant), repris par l'animation de la barre latérale.
+  const projectStep = ref<1 | -1>(1)
+
+  // Chat (sans projet) puis les projets, dans l'ordre de la barre latérale.
+  function contexts() {
+    return [null, ...useProjectsStore().ordered.map((project) => project.id)]
+  }
+
   function openChats(id: string | null) {
+    const order = contexts()
+    const from = order.indexOf(projectId.value)
+    const to = order.indexOf(id)
+    if (from !== to) projectStep.value = to > from ? 1 : -1
     projectId.value = id
     go('chats')
+  }
+
+  // Boucle aux extrémités, en gardant le sens de l'animation.
+  function stepProject(step: 1 | -1) {
+    const order = contexts()
+    const next = order[(order.indexOf(projectId.value) + step + order.length) % order.length] ?? null
+    openChats(next)
+    projectStep.value = step
   }
 
   // Ouvre les réglages directement sur une section (le bouton Mises à jour mène à Général), ou sur une sous-page.
@@ -174,8 +196,11 @@ export const useNavigationStore = defineStore('navigation', () => {
     settingsDetail,
     settingsProjectId,
     hasPanel,
+    projectStep,
+    switcherOpen,
     go,
     openChats,
+    stepProject,
     openSettings,
     showSettingsSection,
     showSettingsDetail,

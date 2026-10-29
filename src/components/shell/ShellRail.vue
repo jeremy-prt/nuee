@@ -8,20 +8,24 @@ import {
   House,
   NotebookPen,
   Plus,
-  PanelLeftOpen,
   RefreshCw,
   Search,
   Settings,
 } from '@/components/ui/icons'
-import { nextTick, ref, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatIcon from '@/components/chat/ChatIcon.vue'
 import SettingsNav from '@/components/settings/SettingsNav.vue'
+import ShellChatList from '@/components/shell/ShellChatList.vue'
 import ShellProjectGroup from '@/components/shell/ShellProjectGroup.vue'
 import ShellProjectItem from '@/components/shell/ShellProjectItem.vue'
+import ShellProjectSwitcher from '@/components/shell/ShellProjectSwitcher.vue'
 import ShellRailItem from '@/components/shell/ShellRailItem.vue'
+import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { useAddProject } from '@/composables/useAddProject'
+import { useNewChat } from '@/composables/useNewChat'
+import { useAppearanceStore } from '@/stores/appearance'
 import { RAIL_COLLAPSED_WIDTH, useLayoutStore } from '@/stores/layout'
 import { useNavigationStore } from '@/stores/navigation'
 import { useProjectsStore } from '@/stores/projects'
@@ -35,6 +39,18 @@ const navigation = useNavigationStore()
 const projects = useProjectsStore()
 const updates = useUpdatesStore()
 const pickProject = useAddProject()
+const newChat = useNewChat()
+const appearance = useAppearanceStore()
+
+// « Projets en menu » : un projet à la fois, choisi en haut, ses sessions dessous. Repliée, la barre disparaît.
+const menu = computed(() => appearance.layout === 'menu')
+// Glissé seulement à un vrai changement de projet : au lancement, une fenêtre en arrière-plan figerait
+// l'animation sur sa première image, la liste resterait invisible.
+const sliding = ref(false)
+watch(
+  () => navigation.projectId,
+  () => (sliding.value = true),
+)
 
 const footerButtons = useTemplateRef<HTMLButtonElement[]>('footerButtons')
 
@@ -90,23 +106,45 @@ function footerLabel(id: (typeof footer)[number]['id']) {
 <template>
   <aside
     id="shell-rail"
-    class="flex shrink-0 flex-col overflow-hidden bg-chrome"
+    class="flex shrink-0 flex-col overflow-hidden bg-frame"
     :style="{ width: `${layout.rail.expanded ? layout.rail.width : RAIL_COLLAPSED_WIDTH}px` }"
   >
+    <template v-if="menu && navigation.view !== 'settings'">
+      <div class="shrink-0 px-2 pt-1 pb-2"><ShellProjectSwitcher /></div>
+      <nav class="flex shrink-0 flex-col gap-0.5 px-2" :aria-label="t('rail.label')">
+        <ShellRailItem
+          v-for="item in pages"
+          :key="item.view"
+          :icon="item.icon"
+          :label="t(`rail.${item.view}`)"
+          :shortcut="'shortcut' in item ? shortcuts.label(item.shortcut) : undefined"
+          expanded
+          :active="navigation.view === item.view"
+          @click="navigation.go(item.view)"
+        />
+      </nav>
+      <section class="mt-3 flex min-h-0 flex-1 flex-col" aria-labelledby="sidebar-sessions">
+        <div class="flex h-8 shrink-0 items-center ps-4 pe-2">
+          <h2 id="sidebar-sessions" class="min-w-0 flex-1 truncate text-xs font-medium text-muted">{{ t('chats.recent') }}</h2>
+          <UiIconButton :label="t('chats.newChat')" :shortcut="shortcuts.label('newChat')" @click="newChat()">
+            <Plus class="size-4" aria-hidden="true" />
+          </UiIconButton>
+        </div>
+        <div
+          :key="navigation.projectId ?? ''"
+          class="min-h-0 flex-1 overflow-y-auto px-2 pb-2"
+          :class="{ 'project-slide': sliding }"
+          :data-step="navigation.projectStep"
+        >
+          <ShellChatList titled />
+        </div>
+      </section>
+    </template>
     <nav
+      v-else
       class="flex min-h-0 flex-1 flex-col gap-0.5 overflow-x-hidden overflow-y-auto p-2"
       :aria-label="navigation.view === 'settings' ? t('settings.nav') : t('rail.label')"
     >
-      <ShellRailItem
-        v-if="!layout.rail.expanded"
-        :icon="PanelLeftOpen"
-        :label="t('rail.toggle')"
-        :shortcut="shortcuts.label('toggleRail')"
-        :expanded="false"
-        aria-controls="shell-rail"
-        :aria-expanded="false"
-        @click="layout.toggleRail()"
-      />
       <SettingsNav v-if="navigation.view === 'settings'" :focus-current="byKeyboard" />
       <template v-else>
         <ShellRailItem

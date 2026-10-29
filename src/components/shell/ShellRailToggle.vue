@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { PanelLeftClose } from '@/components/ui/icons'
+import { PanelLeftClose, PanelLeftOpen } from '@/components/ui/icons'
 import { useI18n } from 'vue-i18n'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import { useLayoutStore } from '@/stores/layout'
@@ -18,6 +18,7 @@ const layout = useLayoutStore()
     :aria-expanded="layout.rail.expanded"
     @click="layout.toggleRail()"
   >
-    <PanelLeftClose class="size-4" aria-hidden="true" />
+    <PanelLeftClose v-if="layout.rail.expanded" class="size-4" aria-hidden="true" />
+    <PanelLeftOpen v-else class="size-4" aria-hidden="true" />
   </UiIconButton>
 </template>

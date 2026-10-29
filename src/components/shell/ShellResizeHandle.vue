@@ -8,6 +8,8 @@ const props = defineProps<{
   label: string
   // Panneau placé après la poignée (droite ou bas) : il grandit quand on tire vers le début.
   invert?: boolean
+  // Marge de 6 px entre la barre latérale et la carte de « Projets en menu » : poignée sans trait visible.
+  ghost?: boolean
 }>()
 
 const KEYBOARD_STEP = 16
@@ -50,8 +52,13 @@ function onKeydown(event: KeyboardEvent) {
     :aria-valuenow="size"
     :aria-valuemin="min"
     :aria-valuemax="max"
-    class="separator relative z-10 shrink-0 outline-none hover:bg-edge-hover hover:bg-none hover:shadow-[0_0_0_1px_var(--color-edge-hover)] active:bg-edge-hover active:bg-none active:shadow-[0_0_0_1px_var(--color-edge-hover)] focus-visible:bg-ring focus-visible:bg-none focus-visible:shadow-[0_0_0_1px_var(--color-ring)]"
-    :class="orientation === 'vertical' ? 'w-px' : 'h-px'"
+    class="relative z-10 shrink-0 outline-none"
+    :class="[
+      ghost
+        ? 'w-1.5 bg-frame focus-visible:bg-ring'
+        : 'separator hover:bg-edge-hover hover:bg-none hover:shadow-[0_0_0_1px_var(--color-edge-hover)] active:bg-edge-hover active:bg-none active:shadow-[0_0_0_1px_var(--color-edge-hover)] focus-visible:bg-ring focus-visible:bg-none focus-visible:shadow-[0_0_0_1px_var(--color-ring)]',
+      { 'w-px': !ghost && orientation === 'vertical', 'h-px': !ghost && orientation === 'horizontal' },
+    ]"
     @pointerdown="onPointerDown"
     @keydown="onKeydown"
     @dblclick="size = defaultSize"

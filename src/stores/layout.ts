@@ -23,7 +23,8 @@ const STORAGE_KEY = 'nuee.layout.v5'
 export const RAIL_COLLAPSED_WIDTH = 48
 
 export const SIZES = {
-  rail: { min: 180, max: 320, defaultSize: 200 },
+  // Même largeur dans les deux dispositions : en « Projets en menu », la barre porte aussi les sessions.
+  rail: { min: 180, max: 420, defaultSize: 240 },
   panel: { min: 200, max: 420, defaultSize: 240 },
   right: { min: 280, max: 800, defaultSize: 420 },
   bottom: { min: 160, max: 600, defaultSize: 260 },

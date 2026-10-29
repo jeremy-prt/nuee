@@ -137,6 +137,13 @@ const entries: SettingEntry[] = [
     keywords: ['theme'],
   },
   {
+    id: 'layout',
+    section: 'appearance',
+    label: 'settings.appearance.layout.title',
+    terms: options('settings.appearance.layout', ['columns', 'menu', 'columnsHint', 'menuHint']),
+    keywords: ['layout', 'sidebar'],
+  },
+  {
     id: 'windowStyle',
     section: 'appearance',
     label: 'settings.appearance.window',

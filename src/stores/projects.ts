@@ -137,6 +137,8 @@ export const useProjectsStore = defineStore('projects', () => {
   }
   const pinned = computed(() => projects.value.filter((project) => project.pinned && !project.group))
   const ungrouped = computed(() => projects.value.filter((project) => !project.pinned && !project.group))
+  // Ordre de la barre latérale dépliée : épinglés, groupes, puis le reste.
+  const ordered = computed(() => [...pinned.value, ...groups.value.flatMap((group) => projectsIn(group.id)), ...ungrouped.value])
   // Groupe qui vient d'être créé : son en-tête passe aussitôt en renommage.
   const editingGroupId = ref<string | null>(null)
   // Absente : pas encore lue.
@@ -336,6 +338,7 @@ export const useProjectsStore = defineStore('projects', () => {
     groups,
     pinned,
     ungrouped,
+    ordered,
     editingGroupId,
     projectsIn,
     createGroup,

@@ -13,6 +13,7 @@ import SettingsGithub from '@/components/settings/SettingsGithub.vue'
 import SettingsIntegrations from '@/components/settings/SettingsIntegrations.vue'
 import SettingsGlass from '@/components/settings/SettingsGlass.vue'
 import SettingsInterface from '@/components/settings/SettingsInterface.vue'
+import SettingsLayout from '@/components/settings/SettingsLayout.vue'
 import SettingsResetButton from '@/components/settings/SettingsResetButton.vue'
 import SettingsMcpServer from '@/components/settings/SettingsMcpServer.vue'
 import ProjectPicker from '@/components/project/ProjectPicker.vue'
@@ -218,6 +219,7 @@ onUnmounted(() => {
         </template>
         <template v-else-if="navigation.settingsSection === 'appearance'">
           <SettingsThemes />
+          <SettingsLayout />
           <SettingsAppearance />
           <SettingsBackground />
           <SettingsInterface />

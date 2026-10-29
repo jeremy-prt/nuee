@@ -34,6 +34,8 @@
   /* Fonds des barres et panneaux (chrome) et de la zone centrale (surface) : voir le style de fenêtre plus bas. */
   --color-chrome: var(--color-canvas);
   --color-surface: var(--color-canvas);
+  /* Cadre autour de la carte en « Projets en menu » : un cran au-dessus du chrome, la carte se détache. */
+  --color-frame: var(--color-canvas);
   /* Menus, infobulles, confirmations et messages : plein en Opaque, translucide sinon (voir plus bas). */
   --color-popover: var(--color-overlay);
 }
@@ -112,6 +114,7 @@ html {
   --color-veil: color-mix(in srgb, var(--color-accent) var(--veil-tint, 0%), hsl(240 0% var(--veil-lightness, 9%)));
   --color-chrome: var(--color-veil);
   --color-surface: var(--color-veil);
+  --color-frame: color-mix(in srgb, var(--color-content) 3%, var(--color-chrome));
   --color-popover: color-mix(in srgb, var(--color-accent) var(--veil-tint, 0%), var(--color-overlay));
 }
 
@@ -141,16 +144,14 @@ html.is-macos:not([data-window='opaque']) {
 
 /* Le bord d'une colonne continue dans la barre de titre : ce segment s'allume avec la poignée, et descend
    d'un pixel pour passer sur la bordure basse de la barre, sinon la ligne allumée est coupée à la jonction. */
-html:has([data-edge='rail']:is(:hover, :active, :focus-visible)) [data-title-edge='rail'],
-html:has([data-edge='panel']:is(:hover, :active, :focus-visible)) [data-title-edge='panel'] {
+html:has([data-edge='rail']:is(:hover, :active, :focus-visible)) [data-title-edge='rail'] {
   --edge: var(--color-edge-hover);
   margin-bottom: -1px;
   border-color: var(--edge);
   /* Même épaisseur que la poignée (3 px, centrés sur le trait). */
   box-shadow: inset -1px 0 0 0 var(--edge), 1px 0 0 0 var(--edge);
 }
-html:has([data-edge='rail']:focus-visible) [data-title-edge='rail'],
-html:has([data-edge='panel']:focus-visible) [data-title-edge='panel'] {
+html:has([data-edge='rail']:focus-visible) [data-title-edge='rail'] {
   --edge: var(--color-ring);
 }
 
@@ -202,6 +203,28 @@ html:has([data-edge='panel']:focus-visible) [data-title-edge='panel'] {
 
 @media (prefers-reduced-motion: reduce) {
   .ui-pop[data-state] {
+    animation: none;
+  }
+}
+
+/* « Projets en menu » : au changement de projet, les sessions arrivent du côté du projet choisi (comme monocode). */
+@keyframes project-slide {
+  from {
+    opacity: 0;
+    translate: var(--slide-from, 16px) 0;
+  }
+}
+
+.project-slide {
+  animation: project-slide 240ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.project-slide[data-step='-1'] {
+  --slide-from: -16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .project-slide {
     animation: none;
   }
 }

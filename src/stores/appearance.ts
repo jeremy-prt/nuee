@@ -105,6 +105,10 @@ const CHAT_WIDTH: Record<ChatWidth, string> = {
   full: '100%',
 }
 
+// Projets dans la colonne de gauche, ou dans un menu en haut à gauche avec l'espace de travail en carte.
+export const appLayouts = ['columns', 'menu'] as const
+export type AppLayout = (typeof appLayouts)[number]
+
 const STORAGE_KEY = 'nuee.appearance.v8'
 
 function defaultGlass(): Glass {
@@ -120,6 +124,7 @@ interface AppearanceState {
   background: Background
   zoom: ZoomLevel
   chatWidth: ChatWidth
+  layout: AppLayout
 }
 
 function defaults(): AppearanceState {
@@ -132,6 +137,7 @@ function defaults(): AppearanceState {
     background: defaultBackground(null),
     zoom: 100,
     chatWidth: 'normal',
+    layout: 'menu',
   }
 }
 
@@ -146,6 +152,7 @@ function load(): AppearanceState {
     if (windowStyles.includes(saved.windowStyle)) state.windowStyle = saved.windowStyle
     if (zoomLevels.includes(saved.zoom)) state.zoom = saved.zoom
     if (chatWidths.includes(saved.chatWidth)) state.chatWidth = saved.chatWidth
+    if (appLayouts.includes(saved.layout)) state.layout = saved.layout
     const background = saved.background ?? {}
     if (typeof background.path === 'string') state.background.path = background.path
     if (typeof background.darken === 'boolean') state.background.darken = background.darken
@@ -178,6 +185,7 @@ export const useAppearanceStore = defineStore('appearance', () => {
   const background = reactive(state.background)
   const zoom = ref<ZoomLevel>(state.zoom)
   const chatWidth = ref<ChatWidth>(state.chatWidth)
+  const layout = ref<AppLayout>(state.layout)
 
   watchEffect(() => document.documentElement.style.setProperty('--chat-width', CHAT_WIDTH[chatWidth.value]))
   // Facteur réellement appliqué : hors de l'app (navigateur), la webview n'est pas zoomée.
@@ -221,7 +229,7 @@ export const useAppearanceStore = defineStore('appearance', () => {
   )
 
   watch(
-    [theme, themeScope, themeIntensity, windowStyle, glass, background, zoom, chatWidth],
+    [theme, themeScope, themeIntensity, windowStyle, glass, background, zoom, chatWidth, layout],
     () => {
       const saved = {
         theme: theme.value,
@@ -232,6 +240,7 @@ export const useAppearanceStore = defineStore('appearance', () => {
         background,
         zoom: zoom.value,
         chatWidth: chatWidth.value,
+        layout: layout.value,
       }
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(saved))
@@ -282,6 +291,7 @@ export const useAppearanceStore = defineStore('appearance', () => {
     Object.assign(background, initial.background)
     zoom.value = initial.zoom
     chatWidth.value = initial.chatWidth
+    layout.value = initial.layout
   }
 
   return {
@@ -295,6 +305,7 @@ export const useAppearanceStore = defineStore('appearance', () => {
     zoom,
     zoomFactor,
     chatWidth,
+    layout,
     stepZoom,
     resetZoom,
     resetGlass,
