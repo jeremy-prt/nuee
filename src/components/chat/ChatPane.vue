@@ -21,7 +21,18 @@ import { worktreeBranch } from '@/utils/projects'
 
 const props = defineProps<{ tab: Tab }>()
 
-const { t } = useI18n()
+const { t, tm } = useI18n()
+// Accueil tiré de l'id de la session : les mêmes phrases à chaque retour sur elle, d'autres d'une session à
+// l'autre. Le sous-titre prend une autre part du nombre, sinon titre et sous-titre iraient toujours par paire.
+const seed = computed(() => {
+  let hash = 0
+  for (const char of props.tab.id) hash = (hash * 31 + char.charCodeAt(0)) >>> 0
+  return hash
+})
+function pick(key: string, shift = 0) {
+  const count = (tm(key) as unknown[]).length
+  return `${key}.${(seed.value >>> shift) % count}`
+}
 const projects = useProjectsStore()
 const conversations = useConversationsStore()
 const catalog = useCatalogStore()
@@ -166,14 +177,10 @@ onMounted(() => {
       @resend="resend"
     />
     <div v-else-if="loaded" class="flex flex-1 flex-col items-center justify-end px-6 pb-8 text-center">
-      <p class="text-3xl font-semibold tracking-tight">Nuée</p>
-      <p class="mt-2 text-sm text-muted">
-        {{
-          project
-            ? t('chat.ready', { agent: agents[agent].name, project: project.name })
-            : t('chat.readyNoProject', { agent: agents[agent].name })
-        }}
+      <p class="max-w-2xl text-3xl font-semibold tracking-tight text-balance break-words">
+        {{ project ? t(pick('chat.projectTitles'), { project: project.name }) : t(pick('chat.freeTitles')) }}
       </p>
+      <p class="mt-2 text-sm text-muted">{{ t(pick(project ? 'chat.projectHints' : 'chat.freeHints', 5)) }}</p>
     </div>
     <div v-else class="flex-1" />
     <!-- La demande s'affiche au-dessus du champ sans le démonter : un brouillon en cours reste. -->

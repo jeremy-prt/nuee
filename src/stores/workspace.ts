@@ -50,6 +50,7 @@ const MAX_PANES = 2
 const SEED_LENGTH = 50
 const DAY = 86_400_000
 const PURGE_EVERY = 3_600_000
+const RESUME_WITHIN = 3_600_000
 
 // Titre affiché tout de suite, le temps que l'agent en propose un meilleur.
 function titleSeed(prompt: string, attachments: Attachment[]) {
@@ -92,6 +93,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     .then(() => {
       tidy()
       setInterval(tidy, PURGE_EVERY)
+      ready.value = true
     })
     .catch((error) => console.error('historique', error))
     .finally(() => {
@@ -109,6 +111,20 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     })
 
   const contextKey = computed(() => navigation.projectId ?? '')
+
+  // Une session vierge quittée sans brouillon est fermée au départ, pour ne pas retomber dessus au retour. Rien
+  // avant le chargement de l'historique : `land` ouvrirait une session neuve au lieu de la dernière.
+  const ready = ref(false)
+  watch([ready, () => navigation.view, () => navigation.projectId], ([isReady], [, , from]) => {
+    if (!isReady) return
+    const switched = from !== navigation.projectId
+    const left = switched ? layouts[from ?? ''] : null
+    if (left) {
+      for (const id of left.panes) seenAt[id] = Date.now()
+      for (const id of [...left.tabs]) if (isBlank(id)) closeTab(id, left)
+    }
+    land(switched)
+  })
 
   function layoutOf(key: string) {
     layouts[key] ??= { tabs: [], panes: [], focused: 0 }
@@ -166,6 +182,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   function show(id: string) {
+    seenAt[id] = Date.now()
     const layout = current()
     if (!layout.tabs.includes(id)) layout.tabs.push(id)
     const index = layout.panes.indexOf(id)
@@ -186,8 +203,39 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return tab
   }
 
+  function isBlank(id: string) {
+    return tabs.value.some((tab) => tab.id === id && !tab.started) && !useDraftsStore().get(id)
+  }
+
+  // Arrivée sur un contexte (changement de projet, première fois depuis le lancement) : sa session si elle a servi
+  // il y a moins d'une heure ou travaille encore, sinon une nouvelle, comme les apps de chat. Une session ouverte
+  // juste avant (clic dans l'historique, notification) compte comme vue à l'instant et reste.
+  const seenAt: Record<string, number> = {}
+  const visited = new Set<string>()
+
+  function land(switched: boolean) {
+    if (navigation.view !== 'chats') return
+    const arriving = switched || !visited.has(contextKey.value)
+    visited.add(contextKey.value)
+    const layout = current()
+    const shown = layout.panes[layout.focused]
+    if (shown && (!arriving || isRecent(shown))) return
+    const latest = contextChats.value.reduce<Tab | null>((best, tab) => (!best || tab.updatedAt > best.updatedAt ? tab : best), null)
+    if (!shown && latest && isRecent(latest.id)) return show(latest.id)
+    const blank = layout.tabs.find((id) => tabs.value.some((tab) => tab.id === id && !tab.started))
+    if (blank) show(blank)
+    else openChat()
+  }
+
+  function isRecent(id: string) {
+    const tab = tabs.value.find((item) => item.id === id)
+    if (!tab?.started || conversations.working(id) || conversations.find(id)?.approvals.length) return true
+    return Date.now() - Math.max(tab.updatedAt, seenAt[id] ?? 0) < RESUME_WITHIN
+  }
+
   // Dans le second pane, ouvert au besoin ; avec deux panes, la session remplace celle qui n'a pas le focus.
   function openBeside(id: string) {
+    seenAt[id] = Date.now()
     const layout = current()
     const index = layout.panes.indexOf(id)
     if (index !== -1 && layout.panes.length > 1) return void (layout.focused = index)
