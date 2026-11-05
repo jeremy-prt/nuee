@@ -144,7 +144,37 @@ pub enum ToolKind {
     Search,
     Web,
     Agent,
+    /// Questions posées à l'utilisateur, avec des choix.
+    Question,
     Other,
+}
+
+/// Question posée par l'agent, à choix proposés ; `multiple` : plusieurs choix possibles.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct Question {
+    /// Étiquette courte (« Couleur »), absente chez certains agents.
+    pub header: Option<String>,
+    pub prompt: String,
+    pub multiple: bool,
+    pub options: Vec<QuestionOption>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct QuestionOption {
+    pub label: String,
+    pub description: Option<String>,
+}
+
+/// Réponse à une demande `Approval` : autorisation, ou réponses aux questions (une par question, vide si passée).
+pub enum Reply {
+    Allow,
+    Deny,
+    Answers(Vec<String>),
+    Skip,
 }
 
 /// Paramètres d'un outil en entier, là où `summary` n'en garde qu'une ligne.
@@ -403,6 +433,8 @@ pub enum AgentEvent {
         detail: Option<String>,
         /// Explication donnée par l'agent, dans sa langue à lui.
         description: Option<String>,
+        /// Questions à choix : la demande attend des réponses plutôt qu'un accord.
+        questions: Option<Vec<Question>>,
         /// Paramètres de l'outil, renvoyés tels quels avec l'accord : ils restent côté Rust.
         #[serde(skip)]
         #[ts(skip)]
@@ -512,7 +544,7 @@ trait Driver: Send + Sync {
         rewind: &mut Rewind,
     ) -> Result<(), String>;
     /// Réponse à une demande `Approval`.
-    fn approval_message(&self, id: &str, input: &serde_json::Value, allow: bool) -> String;
+    fn approval_message(&self, id: &str, input: &serde_json::Value, reply: &Reply) -> String;
     /// Traduit une ligne de sortie ; renvoie `TurnEnd` quand l'agent clôt le tour.
     fn parse_line(&mut self, line: &str) -> Vec<AgentEvent>;
 }
@@ -761,9 +793,9 @@ impl AgentService {
         }
     }
 
-    pub fn approve(&self, chat_id: &str, request_id: &str, allow: bool) {
+    pub fn approve(&self, chat_id: &str, request_id: &str, reply: Reply) {
         if let Some(session) = lock(&self.sessions).get(chat_id) {
-            session.answer(request_id, allow);
+            session.answer(request_id, &reply);
         }
     }
 
@@ -1007,7 +1039,7 @@ impl AgentService {
         Ok((key, cwd))
     }
 
-    fn scratch_dir(&self, chat_id: &str) -> Result<PathBuf, AppError> {
+    pub fn scratch_dir(&self, chat_id: &str) -> Result<PathBuf, AppError> {
         // L'id devient un nom de dossier : rien qui permette d'en sortir.
         if !valid_session_id(chat_id) {
             return Err(AppError::InvalidInput(
@@ -1146,7 +1178,7 @@ fn last_line(output: &[u8]) -> Option<String> {
         .map(str::to_owned)
 }
 
-fn valid_dir(path: &str) -> Result<PathBuf, AppError> {
+pub(crate) fn valid_dir(path: &str) -> Result<PathBuf, AppError> {
     let dir = std::fs::canonicalize(path)
         .map_err(|_| AppError::InvalidInput(format!("dossier introuvable : {path}")))?;
     if !dir.is_dir() {

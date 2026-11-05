@@ -30,6 +30,10 @@ archived: boolean,
  */
 archivedAt: number | null, 
 /**
+ * Création du chat, en millisecondes : tri et groupes de la liste par date de création.
+ */
+createdAt: number, 
+/**
  * Dernier enregistrement de la conversation, en millisecondes : point de départ de l'archivage automatique.
  */
 updatedAt: number, 

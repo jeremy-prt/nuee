@@ -3,6 +3,7 @@ import { Plus } from '@/components/ui/icons'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ShellChatList from '@/components/shell/ShellChatList.vue'
+import ShellChatSort from '@/components/shell/ShellChatSort.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import { useNewChat } from '@/composables/useNewChat'
 import { useNavigationStore } from '@/stores/navigation'
@@ -25,6 +26,7 @@ const title = computed(() => {
   <aside id="shell-panel" class="flex shrink-0 flex-col bg-frame" :aria-label="title">
     <div class="flex h-10 shrink-0 items-center gap-1 ps-2 pe-0.5">
       <p class="min-w-0 flex-1 truncate px-2 text-sm font-medium">{{ title }}</p>
+      <ShellChatSort v-if="navigation.view === 'chats'" />
       <UiIconButton
         v-if="navigation.view === 'chats'"
         :label="t('chats.newChat')"

@@ -1,5 +1,4 @@
 import { type DragSource, type PreviewRect, useDragStore } from '@/stores/drag'
-import { type DockView, useLayoutStore } from '@/stores/layout'
 import { useProjectsStore } from '@/stores/projects'
 import { useWorkspaceStore } from '@/stores/workspace'
 
@@ -7,8 +6,6 @@ import { useWorkspaceStore } from '@/stores/workspace'
 const THRESHOLD = 4
 // Part d'un pane qui déclenche un dépôt sur le côté plutôt qu'au centre.
 const EDGE = 0.3
-// Taille des zones de dépôt des panneaux : à droite de toute la zone, en bas de la colonne centrale.
-const DOCK_ZONE = { right: 0.3, bottom: 0.35 }
 
 function rect(r: DOMRect, part: Partial<PreviewRect> = {}): PreviewRect {
   return { left: r.left, top: r.top, width: r.width, height: r.height, ...part }
@@ -16,7 +13,6 @@ function rect(r: DOMRect, part: Partial<PreviewRect> = {}): PreviewRect {
 
 export function useLayoutDrag() {
   const drag = useDragStore()
-  const layout = useLayoutStore()
   const workspace = useWorkspaceStore()
   const projects = useProjectsStore()
 
@@ -95,24 +91,6 @@ export function useLayoutDrag() {
     }
   }
 
-  function dockTarget(view: DockView, x: number, y: number) {
-    drag.target = null
-    drag.preview = null
-    const area = document.getElementById('workspace-area')?.getBoundingClientRect()
-    const column = document.getElementById('workspace-column')?.getBoundingClientRect()
-    if (!area || !column) return
-
-    const toRight = x > area.right - area.width * DOCK_ZONE.right && y > area.top
-    const toBottom = !toRight && x >= column.left && y > column.bottom - column.height * DOCK_ZONE.bottom
-    const position = toRight ? 'right' : toBottom ? 'bottom' : null
-    if (!position || layout.views[view] === position) return
-
-    drag.target = { kind: 'dock', position }
-    drag.preview = toRight
-      ? rect(area, { left: area.right - area.width * DOCK_ZONE.right, width: area.width * DOCK_ZONE.right })
-      : rect(column, { top: column.bottom - column.height * DOCK_ZONE.bottom, height: column.height * DOCK_ZONE.bottom })
-  }
-
   function startTabDrag(event: PointerEvent, id: string) {
     track(
       event,
@@ -129,17 +107,6 @@ export function useLayoutDrag() {
       },
       () => {
         if (drag.target?.kind === 'pane') workspace.dropTab(id, drag.target.index, drag.target.side)
-      },
-    )
-  }
-
-  function startViewDrag(event: PointerEvent, view: DockView) {
-    track(
-      event,
-      { kind: 'view', view },
-      (x, y) => dockTarget(view, x, y),
-      () => {
-        if (drag.target?.kind === 'dock') layout.moveView(view, drag.target.position)
       },
     )
   }
@@ -189,5 +156,5 @@ export function useLayoutDrag() {
     )
   }
 
-  return { startTabDrag, startViewDrag, startProjectDrag }
+  return { startTabDrag, startProjectDrag }
 }

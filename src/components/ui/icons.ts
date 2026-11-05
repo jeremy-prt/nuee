@@ -3,6 +3,7 @@ import { HugeiconsIcon } from '@hugeicons/vue'
 import Add01Icon from '@hugeicons/core-free-icons/Add01Icon'
 import AlertCircleIcon from '@hugeicons/core-free-icons/AlertCircleIcon'
 import Archive02Icon from '@hugeicons/core-free-icons/Archive02Icon'
+import ArrangeByLettersAZIcon from '@hugeicons/core-free-icons/ArrangeByLettersAZIcon'
 import ArrowDown01Icon from '@hugeicons/core-free-icons/ArrowDown01Icon'
 import ArrowDown02Icon from '@hugeicons/core-free-icons/ArrowDown02Icon'
 import ArrowLeft02Icon from '@hugeicons/core-free-icons/ArrowLeft02Icon'
@@ -15,6 +16,8 @@ import AtSignIcon from '@hugeicons/core-free-icons/AtSignIcon'
 import Attachment02Icon from '@hugeicons/core-free-icons/Attachment02Icon'
 import BotIcon from '@hugeicons/core-free-icons/BotIcon'
 import BrainIcon from '@hugeicons/core-free-icons/BrainIcon'
+import BubbleChatQuestionIcon from '@hugeicons/core-free-icons/BubbleChatQuestionIcon'
+import CalendarAdd01Icon from '@hugeicons/core-free-icons/CalendarAdd01Icon'
 import Cancel01Icon from '@hugeicons/core-free-icons/Cancel01Icon'
 import Chatting01Icon from '@hugeicons/core-free-icons/Chatting01Icon'
 import CheckmarkCircle02Icon from '@hugeicons/core-free-icons/CheckmarkCircle02Icon'
@@ -120,6 +123,7 @@ const SidebarOpenIcon = SidebarLeft01Icon.map(([tag, attrs]) =>
 ) as Glyph
 
 export const Archive = icon(Archive02Icon)
+export const ArrangeAZ = icon(ArrangeByLettersAZIcon)
 export const ArrowDown = icon(ArrowDown02Icon)
 export const ArrowLeft = icon(ArrowLeft02Icon)
 export const ArrowUp = icon(ArrowUp02Icon)
@@ -129,6 +133,7 @@ export const Bell = icon(Notification01Icon)
 export const BellOff = icon(NotificationOff01Icon)
 export const Bot = icon(BotIcon)
 export const Brain = icon(BrainIcon)
+export const CalendarAdd = icon(CalendarAdd01Icon)
 export const Check = icon(Tick02Icon)
 export const ChevronDown = icon(ArrowDown01Icon)
 export const ChevronRight = icon(ArrowRight01Icon)
@@ -186,8 +191,11 @@ export const Keyboard = icon(KeyboardIcon)
 export const Layers = icon(LayerIcon)
 export const LayoutList = icon(LeftToRightListBulletIcon)
 export const LoaderCircle = icon(Loading03Icon)
+export const MessageQuestion = icon(BubbleChatQuestionIcon)
 export const MessageSquarePlus = icon(CommentAdd01Icon)
 export const Minimize2 = icon(ArrowShrink02Icon)
+// « Sessions libres » (choix de Jérémy).
+export const NoProject = icon(Chatting01Icon)
 export const NotebookPen = icon(NoteEditIcon)
 export const PaintBucket = icon(PaintBucketIcon)
 export const Palette = icon(PaintBoardIcon)
@@ -203,8 +211,6 @@ export const Plug = icon(Plug01Icon)
 export const Plus = icon(Add01Icon)
 export const RefreshCw = icon(Refresh01Icon)
 export const RotateCcw = icon(UndoIcon)
-// « Sessions libres » (choix de Jérémy).
-export const NoProject = icon(Chatting01Icon)
 export const Search = icon(Search01Icon)
 export const SendHorizontal = icon(SentIcon)
 export const Settings = icon(Settings01Icon)

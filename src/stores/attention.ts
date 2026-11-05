@@ -12,8 +12,9 @@ import { type Tab, useWorkspaceStore } from '@/stores/workspace'
 import { agents } from '@/utils/agents'
 import { playCue } from '@/utils/sounds'
 
-// done : réponse complète. failed : arrêt sur une erreur. approval : l'agent attend une autorisation.
-export type Signal = 'done' | 'failed' | 'approval'
+// done : réponse complète. failed : arrêt sur une erreur. approval : l'agent attend une autorisation. question : il
+// attend des réponses.
+export type Signal = 'done' | 'failed' | 'approval' | 'question'
 
 // Prévient quand un agent a fini ou attend dans un chat qu'on ne regarde pas : message dans la fenêtre, son et
 // notification du système si l'app est en arrière-plan, et pastille du Dock tant que le chat n'est pas vu.
@@ -91,7 +92,7 @@ export const useAttentionStore = defineStore('attention', () => {
     }
     // Aussi quand la fenêtre est en arrière-plan : reka suspend sa disparition jusqu'au retour dans l'app.
     if (general.appNotifications) {
-      toasts.push({ kind: ({ done: 'success', failed: 'error', approval: 'info' } as const)[kind], title, body, topic: chatId, action: { label: t('attention.open'), run: () => open(tab) } })
+      toasts.push({ kind: ({ done: 'success', failed: 'error', approval: 'info', question: 'info' } as const)[kind], title, body, topic: chatId, action: { label: t('attention.open'), run: () => open(tab) } })
     }
   }
 

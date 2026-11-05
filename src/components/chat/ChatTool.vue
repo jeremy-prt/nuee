@@ -26,7 +26,7 @@ const verb = computed(() => (props.item.summary ? fileVerb(props.item) : null))
 const title = computed(() => {
   const { detail, summary, name } = props.item
   if (detail?.description && props.item.tool !== 'search') return { text: detail.description, mono: false }
-  return summary ? { text: summary, mono: true } : { text: toolName(name), mono: false }
+  return summary ? { text: summary, mono: props.item.tool !== 'question' } : { text: toolName(name), mono: false }
 })
 // Une sortie de modification (« fichier mis à jour ») n'apprend rien quand le diff est là ; celle d'un sous-agent
 // est son rapport, déjà dans le bilan de sa tâche.

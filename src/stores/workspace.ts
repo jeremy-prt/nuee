@@ -9,6 +9,7 @@ import { useConversationsStore } from '@/stores/conversations'
 import { useGeneralStore } from '@/stores/general'
 import { useNavigationStore } from '@/stores/navigation'
 import { useProjectsStore } from '@/stores/projects'
+import { useTerminalsStore } from '@/stores/terminals'
 import { useToastsStore } from '@/stores/toasts'
 
 export interface Tab {
@@ -28,6 +29,7 @@ export interface Tab {
   // Masqué de l'historique, retrouvé dans Réglages › Archives.
   archived: boolean
   archivedAt: number | null
+  createdAt: number
   // Dernier message ou fin de tour (ms) : affiché dans la liste, point de départ de l'archivage automatique.
   updatedAt: number
   // En haut de la liste du contexte ; l'archivage automatique le laisse.
@@ -173,7 +175,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const projectId = navigation.projectId
     const agent = projects.chatAgent(projectId)
     const worktree = worktreePath === undefined ? !!projects.byId(projectId)?.worktree : worktreePath !== null
-    const summary = { id: crypto.randomUUID(), projectId, number: nextChatNumber(projectId), agent, title, started: false, worktree, worktreePath: worktreePath ?? null, archived: false, archivedAt: null, updatedAt: Date.now(), pinned: false, model: null, added: 0, removed: 0 }
+    const summary = { id: crypto.randomUUID(), projectId, number: nextChatNumber(projectId), agent, title, started: false, worktree, worktreePath: worktreePath ?? null, archived: false, archivedAt: null, createdAt: Date.now(), updatedAt: Date.now(), pinned: false, model: null, added: 0, removed: 0 }
     const tab: Tab = { ...summary, kind: 'chat' }
     tabs.value.push(tab)
     conversations.create(summary)
@@ -262,6 +264,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const index = layout.tabs.indexOf(id)
     if (index === -1) return
     layout.tabs.splice(index, 1)
+    if (!Object.values(layouts).some((other) => other.tabs.includes(id))) useTerminalsStore().closeChat(id)
     // Fermé sans message, il ne serait plus visible nulle part : on ne le garde pas.
     if (tabs.value.some((tab) => tab.id === id && !tab.started)) deleteChat(id)
     else if (!Object.values(layouts).some((other) => other.tabs.includes(id))) conversations.release(id)

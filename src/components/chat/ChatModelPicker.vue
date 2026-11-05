@@ -6,6 +6,7 @@ import { useI18n } from 'vue-i18n'
 import SettingsAgentLogo from '@/components/settings/SettingsAgentLogo.vue'
 import UiSwitch from '@/components/ui/UiSwitch.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
+import { menuTitle } from '@/components/ui/menuRow'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { Catalog } from '@/ipc/bindings/Catalog'
 import type { Effort } from '@/ipc/bindings/Effort'
@@ -307,8 +308,7 @@ const flyout = 'ui-pop z-50 text-xs text-content select-none'
                         {{ view === 'favorites' && !query ? t('composer.model.noFavorites') : t('composer.model.none') }}
                       </p>
                       <template v-for="(group, index) in groups" :key="index">
-                        <!-- Même titre que « Sessions » dans la barre latérale : pas de capitales espacées (choix de Jérémy). -->
-                        <p v-if="group.title && group.items.length" class="mt-2 px-2 pt-1 pb-1 text-xs font-medium text-muted" role="presentation">{{ group.title }}</p>
+                        <p v-if="group.title && group.items.length" :class="[menuTitle, 'mt-1']" role="presentation">{{ group.title }}</p>
                         <ListboxItem v-for="item in group.items" :key="item.value" :value="item.value" :class="row" @mousedown.prevent>
                           <span class="min-w-0 truncate">{{ item.label }}</span>
                           <span v-if="item.value === catalog?.defaultModel" class="shrink-0 text-[11px] text-muted">{{ t('composer.default') }}</span>

@@ -5,8 +5,8 @@ use tauri::ipc::Channel;
 
 use crate::error::AppError;
 use crate::services::agent::{
-    AgentEvent, AgentKind, AgentService, AgentStatus, Catalog, ChatCommand, ContextUsage, Rewind,
-    SessionSpec,
+    AgentEvent, AgentKind, AgentService, AgentStatus, Catalog, ChatCommand, ContextUsage, Reply,
+    Rewind, SessionSpec,
 };
 use crate::services::attachment::Attachment;
 use crate::services::chat::ChatService;
@@ -207,5 +207,18 @@ pub fn agent_approve(
     allow: bool,
     agents: State<'_, AgentService>,
 ) {
-    agents.approve(&chat_id, &request_id, allow);
+    let reply = if allow { Reply::Allow } else { Reply::Deny };
+    agents.approve(&chat_id, &request_id, reply);
+}
+
+/// Réponses aux questions de l'agent, une par question (vide si passée) ; `None` : toutes passées.
+#[tauri::command]
+pub fn agent_answer(
+    chat_id: String,
+    request_id: String,
+    answers: Option<Vec<String>>,
+    agents: State<'_, AgentService>,
+) {
+    let reply = answers.map_or(Reply::Skip, Reply::Answers);
+    agents.approve(&chat_id, &request_id, reply);
 }

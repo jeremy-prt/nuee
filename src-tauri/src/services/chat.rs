@@ -38,6 +38,10 @@ pub struct ChatSummary {
     #[serde(default)]
     #[ts(type = "number | null")]
     pub archived_at: Option<i64>,
+    /// Création du chat, en millisecondes : tri et groupes de la liste par date de création.
+    #[serde(default)]
+    #[ts(type = "number")]
+    pub created_at: i64,
     /// Dernier enregistrement de la conversation, en millisecondes : point de départ de l'archivage automatique.
     #[serde(default)]
     #[ts(type = "number")]
@@ -138,7 +142,7 @@ impl ChatService {
         let db = self.lock();
         let mut query = db.prepare(
             "SELECT id, project_id, number, agent, title, started, worktree, worktree_path, archived, archived_at, updated_at, pinned,
-                    iif(json_valid(options), json_extract(options, '$.model'), NULL), added, removed
+                    iif(json_valid(options), json_extract(options, '$.model'), NULL), added, removed, created_at
              FROM chats ORDER BY created_at",
         )?;
         let rows = query.query_map([], |row| {
@@ -162,6 +166,7 @@ impl ChatService {
                 model: row.get(12)?,
                 added: row.get(13)?,
                 removed: row.get(14)?,
+                created_at: row.get(15)?,
             }))
         })?;
         let chats = rows.collect::<Result<Vec<_>, _>>()?;
@@ -410,6 +415,7 @@ mod tests {
             worktree_path: None,
             archived: false,
             archived_at: None,
+            created_at: 0,
             updated_at: 0,
             pinned: false,
             model: None,
@@ -464,6 +470,7 @@ mod tests {
             worktree_path: Some("/tmp/arbre".into()),
             archived: true,
             archived_at,
+            created_at: listed.created_at,
             updated_at: listed.updated_at,
             pinned: true,
             model: Some("opus".into()),

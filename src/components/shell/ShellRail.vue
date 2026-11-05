@@ -17,6 +17,7 @@ import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsNav from '@/components/settings/SettingsNav.vue'
 import ShellChatList from '@/components/shell/ShellChatList.vue'
+import ShellChatSort from '@/components/shell/ShellChatSort.vue'
 import ShellProjectGroup from '@/components/shell/ShellProjectGroup.vue'
 import ShellProjectItem from '@/components/shell/ShellProjectItem.vue'
 import ShellProjectSwitcher from '@/components/shell/ShellProjectSwitcher.vue'
@@ -55,6 +56,7 @@ watch(
 )
 
 const footerButtons = useTemplateRef<HTMLButtonElement[]>('footerButtons')
+const chatList = useTemplateRef<InstanceType<typeof ShellChatList>>('chatList')
 
 // Le focus ne suit que si on a validé au clavier le bouton qui disparaît (Réglages, Retour) :
 // un clic, Échap ou un raccourci le laissent où il est. `detail` vaut 0 pour un clic venu du clavier.
@@ -140,7 +142,8 @@ function footerLabel(id: (typeof footer)[number]['id']) {
       </nav>
       <section class="mt-3 flex min-h-0 flex-1 flex-col" aria-labelledby="sidebar-sessions">
         <div class="flex h-8 shrink-0 items-center ps-4 pe-0.5">
-          <h2 id="sidebar-sessions" class="min-w-0 flex-1 truncate text-xs font-medium text-muted">{{ t('chats.recent') }}</h2>
+          <h2 id="sidebar-sessions" class="min-w-0 flex-1 truncate text-xs font-medium text-muted">{{ chatList?.heading ?? t('chats.recent') }}</h2>
+          <ShellChatSort />
           <UiIconButton :label="t('chats.newChat')" :shortcut="shortcuts.label('newChat')" @click="newChat()">
             <Plus class="size-4" aria-hidden="true" />
           </UiIconButton>
@@ -151,7 +154,7 @@ function footerLabel(id: (typeof footer)[number]['id']) {
           :class="{ 'project-slide': sliding }"
           :data-step="navigation.projectStep"
         >
-          <ShellChatList titled />
+          <ShellChatList ref="chatList" titled />
         </div>
       </section>
     </template>

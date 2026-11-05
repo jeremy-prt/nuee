@@ -6,6 +6,7 @@ mod services;
 mod utils;
 mod window;
 
+use tauri::webview::PageLoadEvent;
 use tauri::{Manager, RunEvent, WindowEvent};
 
 use crate::services::agent::AgentService;
@@ -16,6 +17,7 @@ use crate::services::chat::ChatService;
 use crate::services::github::GithubService;
 use crate::services::power::PowerService;
 use crate::services::project::ProjectService;
+use crate::services::terminal::TerminalService;
 use crate::services::worktree::WorktreeService;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -45,6 +47,12 @@ pub fn run() {
                 commands::app::request_quit(window.app_handle());
             }
         })
+        // Page rechargée : ses terminaux n'ont plus d'onglet pour les montrer ni les fermer.
+        .on_page_load(|webview, payload| {
+            if payload.event() == PageLoadEvent::Started {
+                webview.state::<TerminalService>().close_all();
+            }
+        })
         .setup(|app| {
             if let Some(main) = app.get_webview_window("main") {
                 // Flou « Moyen » dès l'ouverture : le réglage choisi n'arrive qu'une fois la page chargée.
@@ -67,6 +75,7 @@ pub fn run() {
             app.manage(WorktreeService::new(data.join("worktrees")));
             app.manage(PowerService::default());
             app.manage(GithubService::default());
+            app.manage(TerminalService::default());
             app.manage(AutostartService::new(&app.package_info().name));
             // Le login shell met parfois une seconde à répondre : autant que ce ne soit pas au premier message.
             std::thread::spawn(utils::shell_env::search_path);
@@ -83,6 +92,7 @@ pub fn run() {
             commands::agent::agent_task_output,
             commands::agent::agent_rewind,
             commands::agent::agent_approve,
+            commands::agent::agent_answer,
             commands::agent::agent_catalog,
             commands::agent::agent_probe,
             commands::agent::agent_update,
@@ -137,6 +147,12 @@ pub fn run() {
             commands::skills::skills_set_mode,
             commands::skills::skills_trash,
             commands::skills::skills_reveal,
+            commands::terminal::terminal_open,
+            commands::terminal::terminal_write,
+            commands::terminal::terminal_resize,
+            commands::terminal::terminal_busy,
+            commands::terminal::terminal_close,
+            commands::terminal::terminal_close_chat,
             commands::window::window_set_blur,
             commands::worktree::worktree_support,
             commands::worktree::worktree_list,
@@ -155,6 +171,7 @@ pub fn run() {
                 app.state::<AgentService>().stop_all();
                 app.state::<AgentService>().cancel_login();
                 app.state::<GithubService>().cancel_login();
+                app.state::<TerminalService>().close_all();
             }
             _ => {}
         });

@@ -9,6 +9,7 @@ import ChatCopyButton from '@/components/chat/ChatCopyButton.vue'
 import ChatMarkdown from '@/components/chat/ChatMarkdown.vue'
 import ChatPromptText from '@/components/chat/ChatPromptText.vue'
 import ChatSkillForm from '@/components/chat/ChatSkillForm.vue'
+import ChatQuestionRecord from '@/components/chat/ChatQuestionRecord.vue'
 import ChatTool from '@/components/chat/ChatTool.vue'
 import ChatTurnDetails from '@/components/chat/ChatTurnDetails.vue'
 import UiButton from '@/components/ui/UiButton.vue'
@@ -88,6 +89,7 @@ watch(signedIn, async (now) => {
     </div>
   </template>
   <ChatMarkdown v-else-if="item.kind === 'text'" :text="item.text" :streaming="streaming" />
+  <ChatQuestionRecord v-else-if="item.kind === 'tool' && item.answers" :answers="item.answers" />
   <ChatTool v-else-if="item.kind === 'tool'" class="-mx-2 text-sm" :item="item" />
   <ChatCompact v-else-if="item.kind === 'compact'" :item="item" :agent="agent" />
   <template v-else-if="item.kind === 'end'">

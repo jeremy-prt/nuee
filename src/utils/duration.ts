@@ -31,6 +31,19 @@ export function formatSince(at: number, now: number, locale: string) {
   return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', year: sameYear ? undefined : 'numeric' }).format(at)
 }
 
+export type DateGroup = 'today' | 'yesterday' | 'week' | 'month' | 'older'
+
+// Intertitres de la liste des sessions, comptés depuis minuit (heure locale) comme monocode.
+export function dateGroup(at: number, now: number): DateGroup {
+  const midnight = new Date(now).setHours(0, 0, 0, 0)
+  const days = (count: number) => midnight - count * 86_400_000
+  if (at >= midnight) return 'today'
+  if (at >= days(1)) return 'yesterday'
+  if (at >= days(6)) return 'week'
+  if (at >= days(29)) return 'month'
+  return 'older'
+}
+
 // Heure à venir (fin d'une sourdine) : « 15:30 » le jour même, « mardi 08:00 » ensuite.
 export function formatUntil(at: number, now: number, locale: string) {
   const sameDay = new Date(at).toDateString() === new Date(now).toDateString()

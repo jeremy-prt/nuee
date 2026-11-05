@@ -1,21 +1,27 @@
 import { defineStore } from 'pinia'
 import { reactive, toRefs, watch } from 'vue'
 
-export type DockPosition = 'right' | 'bottom'
-export type DockView = 'terminal' | 'changes' | 'files' | 'tasks'
+export type DockView = 'tasks' | 'terminal' | 'changes' | 'browser' | 'files'
 
+// Ordre des icônes de la barre de titre.
+export const DOCK_VIEWS: DockView[] = ['tasks', 'terminal', 'changes', 'browser', 'files']
+
+export type SessionSort = 'activity' | 'created' | 'name'
+
+// Panneau de droite, comme l'app Claude : un ou deux volets empilés, celui du haut en premier.
 interface Dock {
   open: boolean
   size: number
-  active: DockView | null
+  panes: DockView[]
+  // Hauteur du volet du haut quand il y en a deux.
+  split: number
 }
 
 interface LayoutState {
   rail: { expanded: boolean; width: number }
   panel: { open: boolean; width: number }
   right: Dock
-  bottom: Dock
-  views: Record<DockView, DockPosition>
+  sessionSort: SessionSort
 }
 
 const STORAGE_KEY = 'nuee.layout.v5'
@@ -27,16 +33,15 @@ export const SIZES = {
   rail: { min: 180, max: 420, defaultSize: 240 },
   panel: { min: 200, max: 420, defaultSize: 240 },
   right: { min: 280, max: 800, defaultSize: 420 },
-  bottom: { min: 160, max: 600, defaultSize: 260 },
+  split: { min: 120, max: 1200, defaultSize: 320 },
 }
 
 function defaults(): LayoutState {
   return {
     rail: { expanded: true, width: SIZES.rail.defaultSize },
     panel: { open: true, width: SIZES.panel.defaultSize },
-    right: { open: false, size: SIZES.right.defaultSize, active: 'changes' },
-    bottom: { open: false, size: SIZES.bottom.defaultSize, active: 'terminal' },
-    views: { terminal: 'bottom', changes: 'right', files: 'right', tasks: 'right' },
+    right: { open: false, size: SIZES.right.defaultSize, panes: ['changes'], split: SIZES.split.defaultSize },
+    sessionSort: 'activity',
   }
 }
 
@@ -44,8 +49,12 @@ function load(): LayoutState {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
     const state: LayoutState = saved ? { ...defaults(), ...JSON.parse(saved) } : defaults()
-    // Une vue ajoutée depuis l'enregistrement prend sa place par défaut.
-    state.views = { ...defaults().views, ...state.views }
+    // Disposition d'avant les volets empilés (volet du bas, onglets) : on garde la largeur.
+    if (!Array.isArray(state.right.panes)) state.right = { ...defaults().right, size: state.right.size }
+    state.right.panes = state.right.panes.filter((view) => DOCK_VIEWS.includes(view))
+    const legacy = state as LayoutState & { bottom?: unknown; views?: unknown }
+    delete legacy.bottom
+    delete legacy.views
     // Une largeur enregistrée avant un changement de minimum reste dans les bornes actuelles.
     state.rail.width = Math.min(SIZES.rail.max, Math.max(SIZES.rail.min, state.rail.width))
     return state
@@ -69,10 +78,6 @@ export const useLayoutStore = defineStore('layout', () => {
     { deep: true },
   )
 
-  function viewsIn(position: DockPosition) {
-    return (Object.keys(state.views) as DockView[]).filter((view) => state.views[view] === position)
-  }
-
   function toggleRail() {
     state.rail.expanded = !state.rail.expanded
   }
@@ -81,33 +86,39 @@ export const useLayoutStore = defineStore('layout', () => {
     state.panel.open = !state.panel.open
   }
 
-  function toggleDock(position: DockPosition) {
-    const dock = state[position]
-    if (!viewsIn(position).length) return
-    dock.open = !dock.open
+  function isShown(view: DockView) {
+    return state.right.open && state.right.panes.includes(view)
   }
 
-  function moveView(view: DockView, to: DockPosition) {
-    const from = state.views[view]
-    if (from === to) return
-    state.views[view] = to
-    state[to].active = view
-    state[to].open = true
-
-    const remaining = viewsIn(from)
-    if (state[from].active === view) state[from].active = remaining[0] ?? null
-    if (!remaining.length) state[from].open = false
+  function toggleRight() {
+    if (!state.right.panes.length) state.right.panes = ['changes']
+    state.right.open = !state.right.open
   }
 
+  // Ouvre le volet sous celui déjà affiché ; avec deux volets, il remplace celui du bas.
   function showView(view: DockView) {
-    const position = state.views[view]
-    state[position].active = view
-    state[position].open = true
+    const dock = state.right
+    if (!dock.open) dock.panes = []
+    dock.open = true
+    if (dock.panes.includes(view)) return
+    if (dock.panes.length < 2) dock.panes.push(view)
+    else dock.panes[1] = view
+  }
+
+  function hideView(view: DockView) {
+    const dock = state.right
+    dock.panes = dock.panes.filter((item) => item !== view)
+    if (!dock.panes.length) dock.open = false
+  }
+
+  function toggleView(view: DockView) {
+    if (isShown(view)) hideView(view)
+    else showView(view)
   }
 
   function reset() {
     Object.assign(state, defaults())
   }
 
-  return { ...toRefs(state), viewsIn, toggleRail, togglePanel, toggleDock, moveView, showView, reset }
+  return { ...toRefs(state), toggleRail, togglePanel, isShown, toggleRight, showView, hideView, toggleView, reset }
 })

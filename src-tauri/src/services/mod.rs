@@ -9,4 +9,5 @@ pub mod notification;
 pub mod power;
 pub mod project;
 pub mod skills;
+pub mod terminal;
 pub mod worktree;

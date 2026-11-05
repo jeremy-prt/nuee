@@ -58,6 +58,11 @@ export function agentApprove(chatId: string, requestId: string, allow: boolean) 
   return invoke<void>('agent_approve', { chatId, requestId, allow })
 }
 
+// Une réponse par question, vide si passée ; null : toutes passées.
+export function agentAnswer(chatId: string, requestId: string, answers: string[] | null) {
+  return invoke<void>('agent_answer', { chatId, requestId, answers })
+}
+
 // Modèles de l'agent installé ; Rust le lit une fois par lancement de l'app.
 export function agentCatalog(agent: AgentKind) {
   return invoke<Catalog>('agent_catalog', { agent })

@@ -1,11 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { DockPosition, DockView } from '@/stores/layout'
 
-export type DragSource = { kind: 'tab'; id: string } | { kind: 'view'; view: DockView } | { kind: 'project'; id: string }
+export type DragSource = { kind: 'tab'; id: string } | { kind: 'project'; id: string }
 
 export type DropTarget =
-  | { kind: 'dock'; position: DockPosition }
   | { kind: 'pane'; index: number; side: 'left' | 'right' | 'center' }
   | { kind: 'project'; group: string | null; pinned: boolean; before: string | null }
 

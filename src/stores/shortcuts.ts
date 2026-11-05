@@ -28,7 +28,7 @@ function load(): Overrides {
       const value = saved[id]
       if (value === null) overrides[id] = null
       else if (typeof value?.key === 'string') {
-        overrides[id] = { key: value.key, mod: !!value.mod, alt: !!value.alt, shift: !!value.shift }
+        overrides[id] = { key: value.key, mod: !!value.mod, ctrl: !!value.ctrl, alt: !!value.alt, shift: !!value.shift }
       }
     }
   } catch {
@@ -79,7 +79,7 @@ export const useShortcutsStore = defineStore('shortcuts', () => {
   // Deux raccourcis se gênent s'ils écoutent au même endroit, ou si l'un écoute toute la fenêtre.
   function check(id: ShortcutId, combo: Combo): ComboProblem | null {
     const base: Shortcut = defaultShortcuts[id]
-    if (combo.mod !== true && (combo.key.length === 1 || (base.mod ?? true) === true)) return { kind: 'needsMod' }
+    if (combo.mod !== true && !combo.ctrl && (combo.key.length === 1 || (base.mod ?? true) === true)) return { kind: 'needsMod' }
     if (isReserved(combo)) return { kind: 'reserved' }
     const by = shortcutIds.find((other) => {
       const shortcut = get(other)

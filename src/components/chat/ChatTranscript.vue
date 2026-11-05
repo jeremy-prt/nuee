@@ -18,7 +18,7 @@ const props = defineProps<{
   items: readonly ChatItem[]
   running: boolean
   agent: AgentKind
-  clock: { since: number; pausedMs: number; pausedAt: number | null } | null
+  clock: { since: number; pausedMs: number; pausedAt: number | null; asking: boolean } | null
 }>()
 
 const emit = defineEmits<{ rewind: [itemId: string]; resend: [] }>()
@@ -35,7 +35,7 @@ const limit = ref(PAGE)
 const start = computed(() => Math.max(0, props.items.length - limit.value))
 const shown = computed(() => props.items.slice(start.value))
 
-// Outils et réflexions qui se suivent forment une ligne d'activité. Une fois le tour passé, la réflexion ne s'affiche
+// Outils et réflexions qui se suivent forment une ligne d'activité ; les questions de l'agent restent à part. Une fois le tour passé, la réflexion ne s'affiche
 // plus (comme dans l'app Claude) et un outil seul reste une ligne simple. Pendant un tour, la dernière suite reste une
 // ligne d'activité, même seule : c'est elle qui dit ce que fait l'agent.
 // `index` : position absolue du premier élément de la ligne.
@@ -51,7 +51,7 @@ const rows = computed(() => {
     run = []
   }
   shown.value.forEach((item, offset) => {
-    if (item.kind === 'tool' || item.kind === 'thinking') run.push(item)
+    if ((item.kind === 'tool' && item.tool !== 'question') || item.kind === 'thinking') run.push(item)
     else {
       close(start.value + offset)
       out.push({ kind: 'item', item, index: start.value + offset })

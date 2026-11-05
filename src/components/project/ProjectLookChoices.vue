@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Check } from '@/components/ui/icons'
 import { DropdownMenuItemIndicator, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem } from 'reka-ui'
+import { menuTitle } from '@/components/ui/menuRow'
 import { useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ProjectMascot from '@/components/project/ProjectMascot.vue'
@@ -20,7 +21,7 @@ function keepOpen(event: Event) {
 </script>
 
 <template>
-  <DropdownMenuLabel :id="`${id}-mascot`" class="px-2 pt-1.5 pb-1 text-muted">{{ t('settings.projects.mascot') }}</DropdownMenuLabel>
+  <DropdownMenuLabel :id="`${id}-mascot`" :class="menuTitle">{{ t('settings.projects.mascot') }}</DropdownMenuLabel>
   <DropdownMenuRadioGroup
     :model-value="mascot"
     :aria-labelledby="`${id}-mascot`"
@@ -40,7 +41,7 @@ function keepOpen(event: Event) {
     </DropdownMenuRadioItem>
   </DropdownMenuRadioGroup>
 
-  <DropdownMenuLabel :id="`${id}-color`" class="px-2 pt-2 pb-1 text-muted">{{ t('settings.projects.color') }}</DropdownMenuLabel>
+  <DropdownMenuLabel :id="`${id}-color`" :class="[menuTitle, 'mt-1']">{{ t('settings.projects.color') }}</DropdownMenuLabel>
   <DropdownMenuRadioGroup
     :model-value="color"
     :aria-labelledby="`${id}-color`"

@@ -277,14 +277,14 @@ impl Session {
         lock(&self.slot).current = None;
     }
 
-    pub fn answer(&self, request_id: &str, allow: bool) {
+    pub fn answer(&self, request_id: &str, reply: &super::Reply) {
         let Some(input) = lock(&self.slot).approvals.remove(request_id) else {
             return;
         };
         let driver = self.key.agent.driver(&self.key.cwd);
         let _ = self
             .input
-            .send(driver.approval_message(request_id, &input, allow));
+            .send(driver.approval_message(request_id, &input, reply));
     }
 
     /// L'agent clôt normalement son tour aussitôt ; s'il ne le fait pas, SIGINT, SIGTERM puis SIGKILL.
@@ -598,7 +598,12 @@ mod tests {
         fn interrupt_message(&self) -> String {
             String::new()
         }
-        fn approval_message(&self, _: &str, _: &serde_json::Value, _: bool) -> String {
+        fn approval_message(
+            &self,
+            _: &str,
+            _: &serde_json::Value,
+            _: &crate::services::agent::Reply,
+        ) -> String {
             String::new()
         }
         fn parse_line(&mut self, _: &str) -> Vec<AgentEvent> {

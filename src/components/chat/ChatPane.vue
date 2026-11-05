@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import ChatApproval from '@/components/chat/ChatApproval.vue'
 import ChatComposer from '@/components/chat/ChatComposer.vue'
 import ChatLimit from '@/components/chat/ChatLimit.vue'
+import ChatQuestion from '@/components/chat/ChatQuestion.vue'
 import ChatQueue from '@/components/chat/ChatQueue.vue'
 import ChatTranscript from '@/components/chat/ChatTranscript.vue'
 import { useFileDrop } from '@/composables/useFileDrop'
@@ -68,7 +69,9 @@ const cwd = computed(() => project.value?.path ?? null)
 const approval = computed(() => conversation.value?.approvals[0] ?? null)
 const clock = computed(() => {
   const current = conversation.value
-  return current?.startedAt ? { since: current.startedAt, pausedMs: current.pausedMs, pausedAt: current.pausedAt } : null
+  return current?.startedAt
+    ? { since: current.startedAt, pausedMs: current.pausedMs, pausedAt: current.pausedAt, asking: !!current.approvals[0]?.questions }
+    : null
 })
 
 // Le worktree se choisit jusqu'au premier message. D'ici là, un dossier hors git (ou git absent) le coupe.
@@ -185,8 +188,15 @@ onMounted(() => {
     <div v-else class="flex-1" />
     <!-- La demande s'affiche au-dessus du champ sans le démonter : un brouillon en cours reste. -->
     <div class="flex flex-col items-center gap-2 px-6" :class="items.length ? 'pb-4' : 'flex-1 justify-start pb-16'">
+      <ChatQuestion
+        v-if="approval?.questions"
+        :key="approval.id"
+        class="w-full max-w-(--chat-width)"
+        :questions="approval.questions"
+        @answer="conversations.answer(tab.id, approval.id, $event)"
+      />
       <ChatApproval
-        v-if="approval"
+        v-else-if="approval"
         :key="approval.id"
         class="w-full max-w-(--chat-width)"
         :approval="approval"

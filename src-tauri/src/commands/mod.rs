@@ -12,5 +12,6 @@ pub mod power;
 pub mod project;
 pub mod skills;
 pub mod system;
+pub mod terminal;
 pub mod window;
 pub mod worktree;

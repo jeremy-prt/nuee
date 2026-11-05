@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, shallowReactive } from 'vue'
-import { agentApprove, agentRewind, agentSend, agentSteer, agentStop, agentStopTask, agentWarm, isAppError } from '@/ipc/agent'
+import { agentAnswer, agentApprove, agentRewind, agentSend, agentSteer, agentStop, agentStopTask, agentWarm, isAppError } from '@/ipc/agent'
 import type { AgentEvent } from '@/ipc/bindings/AgentEvent'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { AppError } from '@/ipc/bindings/AppError'
@@ -55,6 +55,8 @@ export type ChatItem =
       // Image rendue par l'outil, copiée avec les pièces jointes du chat (seul dossier que la webview affiche).
       image?: string
       task?: TaskState
+      // Questions de l'agent et réponses données dans Nuée (null : passée), posées une fois la carte validée.
+      answers?: { prompt: string; answer: string | null }[]
     }
   | { kind: 'end'; id: string; status: TurnStatus; error: string | null; durationMs: number | null; at?: number }
   | { kind: 'error'; id: string; error: AppError }
@@ -211,7 +213,7 @@ function resume(conversation: Conversation, items: ChatItem[]) {
 }
 
 // Ce qui mérite de prévenir l'utilisateur, du plus au moins important quand une frame en apporte plusieurs.
-const SIGNALS: readonly Signal[] = ['approval', 'failed', 'done']
+const SIGNALS: readonly Signal[] = ['approval', 'question', 'failed', 'done']
 
 function strongest(current: Signal | null, next: Signal) {
   return current && SIGNALS.indexOf(current) < SIGNALS.indexOf(next) ? current : next
@@ -297,7 +299,7 @@ function apply(conversation: Conversation, events: AgentEvent[]) {
       case 'approval': {
         const { type: _, ...approval } = event
         setApprovals(conversation, [...conversation.approvals, approval])
-        signal = strongest(signal, 'approval')
+        signal = strongest(signal, approval.questions ? 'question' : 'approval')
         break
       }
       case 'approvalCancelled':
@@ -734,6 +736,22 @@ export const useConversationsStore = defineStore('conversations', () => {
     agentApprove(chatId, requestId, allow).catch(() => {})
   }
 
+  // `answers` : une réponse par question, null pour une question passée ; null : toutes passées.
+  function answer(chatId: string, requestId: string, answers: (string | null)[] | null) {
+    const conversation = conversations.get(chatId)
+    const questions = conversation?.approvals.find((approval) => approval.id === requestId)?.questions
+    if (!conversation || !questions) return
+    setApprovals(conversation, conversation.approvals.filter((approval) => approval.id !== requestId))
+    const items = [...conversation.items]
+    const index = lastIndex(items, (item) => item.kind === 'tool' && item.tool === 'question' && !item.answers)
+    const tool = items[index]
+    if (tool?.kind === 'tool') {
+      items[index] = { ...tool, answers: questions.map((question, i) => ({ prompt: question.prompt, answer: answers?.[i] ?? null })) }
+      conversation.items = items
+    }
+    agentAnswer(chatId, requestId, answers && answers.map((text) => text ?? '')).catch(() => {})
+  }
+
   // Revient avant un message : l'agent oublie la suite et remet les fichiers dans leur état d'alors. Rend le texte du
   // message, à reprendre dans le champ de saisie, et ce que l'agent a pu faire des fichiers.
   async function rewind(chatId: string, place: Place, itemId: string) {
@@ -782,5 +800,5 @@ export const useConversationsStore = defineStore('conversations', () => {
     conversations.delete(chatId)
   }
 
-  return { busy, find, working, itemsOf, create, open, release, setOptions, send, sendNow, unqueue, scheduleResume, cancelResume, begin, warm, approve, stop, stopTask, rewind, remove }
+  return { busy, find, working, itemsOf, create, open, release, setOptions, send, sendNow, unqueue, scheduleResume, cancelResume, begin, warm, approve, answer, stop, stopTask, rewind, remove }
 })

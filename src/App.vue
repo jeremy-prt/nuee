@@ -24,6 +24,7 @@ import { SIZES, useLayoutStore } from '@/stores/layout'
 import { useNavigationStore } from '@/stores/navigation'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { useSkillsStore } from '@/stores/skills'
+import { useTerminalsStore } from '@/stores/terminals'
 import { useUpdatesStore } from '@/stores/updates'
 import { useWorkspaceStore } from '@/stores/workspace'
 import type { ShortcutId } from '@/utils/shortcuts'
@@ -41,6 +42,7 @@ const workspace = useWorkspaceStore()
 const drag = useDragStore()
 const newChat = useNewChat()
 const shortcuts = useShortcutsStore()
+const terminals = useTerminalsStore()
 // Pose le style de fenêtre sur <html> dès le démarrage, pas seulement à l'ouverture des réglages.
 const appearance = useAppearanceStore()
 // Langue choisie et mise en veille : appliquées avant le premier rendu.
@@ -55,8 +57,7 @@ const inChats = computed(() => navigation.view === 'chats')
 // « Projets en menu » : pas de panneau latéral, les sessions sont dans la barre latérale ; le centre est une carte.
 const menu = computed(() => appearance.layout === 'menu')
 const panelShown = computed(() => !menu.value && navigation.hasPanel && layout.panel.open)
-const showBottomDock = computed(() => layout.bottom.open && layout.viewsIn('bottom').length > 0)
-const showRightDock = computed(() => layout.right.open && layout.viewsIn('right').length > 0)
+const showRightDock = computed(() => layout.right.open && layout.right.panes.length > 0)
 const skills = useSkillsStore()
 // Hors des chats, le panneau de droite ne sert qu'à l'aperçu d'un skill dans les réglages.
 const previewedSkill = computed(() => (navigation.view === 'settings' ? skills.previewed : null))
@@ -66,6 +67,12 @@ function inChatsOnly(action: () => void) {
   return () => {
     if (inChats.value) action()
   }
+}
+
+// Ouvre le volet du terminal et y met le focus, ou le referme s'il est déjà affiché.
+function toggleTerminal() {
+  layout.toggleView('terminal')
+  if (layout.isShown('terminal')) terminals.requestFocus()
 }
 
 function togglePanel() {
@@ -95,8 +102,8 @@ const actions: [ShortcutId, () => void][] = [
   ['previousProject', () => navigation.stepProject(-1)],
   ['nextProject', () => navigation.stepProject(1)],
   ['togglePanel', togglePanel],
-  ['toggleRightDock', inChatsOnly(() => layout.toggleDock('right'))],
-  ['toggleBottomDock', inChatsOnly(() => layout.toggleDock('bottom'))],
+  ['toggleRightDock', inChatsOnly(layout.toggleRight)],
+  ['toggleTerminal', inChatsOnly(toggleTerminal)],
   ['closeTab', inChatsOnly(workspace.closeActiveTab)],
   ['split', inChatsOnly(workspace.split)],
   ['rename', inChatsOnly(renameActive)],
@@ -195,25 +202,14 @@ onUnmounted(() => {
           >
             <div
               v-if="navigation.view === 'chats'"
-              id="workspace-area"
               class="flex min-w-0 flex-1"
             >
-              <div id="workspace-column" class="flex min-w-0 flex-1 flex-col">
+              <div class="flex min-w-0 flex-1 flex-col">
                 <!-- Seul le chat prend le fond de la zone centrale : terminal et panneau de droite font partie du cadre. -->
                 <main class="relative isolate min-h-0 flex-1 bg-surface">
                   <ShellBackground />
                   <WorkspaceView />
                 </main>
-                <template v-if="showBottomDock">
-                  <ShellResizeHandle
-                    v-model="layout.bottom.size"
-                    v-bind="SIZES.bottom"
-                    orientation="horizontal"
-                    invert
-                    :label="t('dock.resize')"
-                  />
-                  <ShellDock position="bottom" :style="{ height: `${layout.bottom.size}px` }" />
-                </template>
               </div>
               <template v-if="showRightDock">
                 <ShellResizeHandle
@@ -223,7 +219,25 @@ onUnmounted(() => {
                   invert
                   :label="t('dock.resize')"
                 />
-                <ShellDock position="right" :style="{ width: `${layout.right.size}px` }" />
+                <!-- Un ou deux volets empilés ; celui du haut cède de la place si la fenêtre est trop basse. -->
+                <div class="flex min-h-0 flex-col bg-chrome" :style="{ width: `${layout.right.size}px` }" :aria-label="t('dock.right')" role="region">
+                  <ShellDock
+                    :key="layout.right.panes[0]"
+                    :view="layout.right.panes[0]!"
+                    class="min-h-30"
+                    :class="layout.right.panes.length > 1 ? 'shrink' : 'flex-1'"
+                    :style="layout.right.panes.length > 1 ? { flexBasis: `${layout.right.split}px` } : undefined"
+                  />
+                  <template v-if="layout.right.panes[1]">
+                    <ShellResizeHandle
+                      v-model="layout.right.split"
+                      v-bind="SIZES.split"
+                      orientation="horizontal"
+                      :label="t('dock.resize')"
+                    />
+                    <ShellDock :key="layout.right.panes[1]" :view="layout.right.panes[1]" class="min-h-30 flex-1" />
+                  </template>
+                </div>
               </template>
             </div>
 

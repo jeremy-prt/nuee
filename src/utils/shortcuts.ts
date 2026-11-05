@@ -7,6 +7,8 @@ export interface Combo {
   // ⌘ sur Mac, Ctrl ailleurs : exigé par défaut, `false` l'interdit, 'any' l'accepte sans l'afficher.
   mod?: boolean | 'any'
   alt?: boolean
+  // ⌃ sur Mac, distinct de ⌘ ; ailleurs, c'est déjà la touche de `mod`.
+  ctrl?: boolean
   // 'any' : symboles qui demandent ⇧ sur certaines dispositions (+ et 0 en AZERTY).
   shift?: boolean | 'any'
   // Autres caractères ou touches physiques qui déclenchent le même raccourci.
@@ -50,8 +52,9 @@ export const defaultShortcuts = {
   favoriteModel: { group: 'message', key: 'f', when: 'modelPicker' },
   toggleRail: { group: 'interface', key: 'b' },
   togglePanel: { group: 'interface', key: 'b', shift: true },
-  toggleBottomDock: { group: 'interface', key: 'j' },
   toggleRightDock: { group: 'interface', key: 'b', alt: true },
+  // ⌃` comme l'app Claude et VS Code. En AZERTY Mac, ` est une touche morte (`Dead`), et `Backquote` la touche @.
+  toggleTerminal: { group: 'interface', key: '`', mod: false, ctrl: true, also: ['Dead'], codes: ['Backquote'] },
   zoomIn: { group: 'interface', key: '=', shift: 'any', also: ['+'], codes: ['NumpadAdd'], label: '+' },
   zoomOut: { group: 'interface', key: '-', shift: 'any', codes: ['NumpadSubtract'], label: '−' },
   zoomReset: { group: 'interface', key: '0', shift: 'any', codes: ['Digit0', 'Numpad0'] },
@@ -92,6 +95,11 @@ function pressedKey(event: KeyboardEvent) {
   return event.code.replace(/^Key/, '').toLowerCase()
 }
 
+// Hors Mac, ⌃ est la touche de `mod`.
+function wantsMod(combo: Combo) {
+  return !isMac && combo.ctrl ? true : (combo.mod ?? true)
+}
+
 export function matchesShortcut(event: KeyboardEvent, combo: Combo) {
   const mod = isMac ? event.metaKey : event.ctrlKey
   const key =
@@ -100,7 +108,8 @@ export function matchesShortcut(event: KeyboardEvent, combo: Combo) {
     !!combo.also?.includes(event.key) ||
     !!combo.codes?.includes(event.code)
   return (
-    (combo.mod === 'any' || mod === (combo.mod ?? true)) &&
+    (combo.mod === 'any' || mod === wantsMod(combo)) &&
+    (!combo.ctrl || event.ctrlKey) &&
     event.altKey === !!combo.alt &&
     (combo.shift === 'any' || event.shiftKey === !!combo.shift) &&
     key
@@ -114,6 +123,7 @@ export function comboFromEvent(event: KeyboardEvent): Combo | null {
   return {
     key: letter ? pressedKey(event) : event.key,
     mod: isMac ? event.metaKey : event.ctrlKey,
+    ctrl: isMac && event.ctrlKey,
     alt: event.altKey,
     shift: event.shiftKey,
   }
@@ -128,7 +138,8 @@ export function overlaps(a: Combo, b: Combo) {
   const keys = [b.key, ...(b.also ?? [])]
   return (
     [a.key, ...(a.also ?? [])].some((key) => keys.includes(key)) &&
-    either(a.mod ?? true, b.mod ?? true) &&
+    either(wantsMod(a), wantsMod(b)) &&
+    (!isMac || !!a.ctrl === !!b.ctrl) &&
     either(a.shift ?? false, b.shift ?? false) &&
     !!a.alt === !!b.alt
   )
@@ -140,10 +151,10 @@ export function isReserved(combo: Combo) {
 
 export function shortcutKeys(combo: Combo) {
   const key = combo.label ?? KEY_NAMES[combo.key] ?? (combo.key.length === 1 ? combo.key.toUpperCase() : combo.key)
-  const mod = (combo.mod ?? true) === true
+  const mod = wantsMod(combo) === true
   const shift = combo.shift === true
   const keys = isMac
-    ? [combo.alt && '⌥', shift && '⇧', mod && '⌘', key]
+    ? [combo.ctrl && '⌃', combo.alt && '⌥', shift && '⇧', mod && '⌘', key]
     : [mod && 'Ctrl', shift && 'Shift', combo.alt && 'Alt', key]
   return keys.filter((part): part is string => !!part)
 }
@@ -155,6 +166,6 @@ export function shortcutLabel(combo: Combo) {
 // Format de aria-keyshortcuts : noms de touches de KeyboardEvent.key, joints par « + ».
 export function shortcutAria(combo: Combo) {
   const key = combo.key === ' ' ? 'Space' : combo.key.length === 1 ? combo.key.toUpperCase() : combo.key
-  const mod = (combo.mod ?? true) === true && (isMac ? 'Meta' : 'Control')
-  return [mod, combo.alt && 'Alt', combo.shift === true && 'Shift', key].filter(Boolean).join('+')
+  const mod = wantsMod(combo) === true && (isMac ? 'Meta' : 'Control')
+  return [isMac && combo.ctrl && 'Control', mod, combo.alt && 'Alt', combo.shift === true && 'Shift', key].filter(Boolean).join('+')
 }

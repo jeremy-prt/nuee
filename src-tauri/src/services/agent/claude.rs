@@ -6,8 +6,8 @@ use serde_json::Value;
 use super::{
     Account, AgentEvent, Attached, CONTEXT_EVENT, Catalog, ContextCategory, ContextKind,
     ContextUsage, Driver, Effort, FileChange, McpAuth, McpServer, McpStatus, ModelInfo, ModelQuota,
-    PermissionMode, Probe, Quota, Rewind, SessionSpec, TaskKind, TaskStatus, ToolDetail, ToolImage,
-    ToolKind, TurnStatus, Usage,
+    PermissionMode, Probe, Question, QuestionOption, Quota, Reply, Rewind, SessionSpec, TaskKind,
+    TaskStatus, ToolDetail, ToolImage, ToolKind, TurnStatus, Usage,
 };
 
 const OUTPUT_LIMIT: usize = 4000;
@@ -232,6 +232,7 @@ impl Claude {
                 .as_str()
                 .filter(|text| !text.is_empty())
                 .map(str::to_owned),
+            questions: (tool == "AskUserQuestion").then(|| questions_of(&input)),
             input,
         }
     }
@@ -560,11 +561,27 @@ impl Driver for Claude {
         .to_string()
     }
 
-    fn approval_message(&self, id: &str, input: &Value, allow: bool) -> String {
-        let response = if allow {
-            serde_json::json!({ "behavior": "allow", "updatedInput": input })
-        } else {
-            serde_json::json!({ "behavior": "deny", "message": "The user denied this action in Nuée." })
+    fn approval_message(&self, id: &str, input: &Value, reply: &Reply) -> String {
+        let response = match reply {
+            Reply::Allow => serde_json::json!({ "behavior": "allow", "updatedInput": input }),
+            Reply::Deny => {
+                serde_json::json!({ "behavior": "deny", "message": "The user denied this action in Nuée." })
+            }
+            // La CLI attend les réponses dans les paramètres de l'outil, sous le texte de chaque question.
+            Reply::Answers(answers) => {
+                let answered = questions_of(input)
+                    .into_iter()
+                    .zip(answers)
+                    .filter(|(_, answer)| !answer.is_empty())
+                    .map(|(question, answer)| (question.prompt, Value::from(answer.as_str())))
+                    .collect::<serde_json::Map<_, _>>();
+                let mut input = input.clone();
+                input["answers"] = answered.into();
+                serde_json::json!({ "behavior": "allow", "updatedInput": input })
+            }
+            Reply::Skip => {
+                serde_json::json!({ "behavior": "deny", "message": "The user skipped the questions." })
+            }
         };
         serde_json::json!({
             "type": "control_response",
@@ -739,6 +756,10 @@ impl Driver for Claude {
                 }
             }
             Some("user") => self.tool_results(&line, &mut events),
+            // Au `--resume`, la CLI peut rejouer la notification d'une ancienne tâche de fond et y répondre
+            // par un résultat vide avant le vrai tour : le prendre pour la fin perdrait la réponse.
+            Some("result")
+                if line["origin"]["kind"] == "task-notification" && line["num_turns"] == 0 => {}
             Some("result") => self.result(&line, &mut events),
             Some("rate_limit_event") => {
                 let info = &line["rate_limit_info"];
@@ -898,6 +919,39 @@ fn is_tool(block: &Value) -> bool {
 }
 
 /// Famille d'outil (pour l'icône) et le paramètre qui le résume le mieux.
+fn questions_of(input: &Value) -> Vec<Question> {
+    let text = |value: &Value| {
+        value
+            .as_str()
+            .map(str::trim)
+            .filter(|text| !text.is_empty())
+            .map(str::to_owned)
+    };
+    input["questions"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|question| {
+            Some(Question {
+                header: text(&question["header"]),
+                prompt: text(&question["question"])?,
+                multiple: question["multiSelect"].as_bool().unwrap_or(false),
+                options: question["options"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(|option| {
+                        Some(QuestionOption {
+                            label: text(&option["label"])?,
+                            description: text(&option["description"]),
+                        })
+                    })
+                    .collect(),
+            })
+        })
+        .collect()
+}
+
 fn describe(name: &str, input: &Value, cwd: &Path) -> (ToolKind, Option<String>) {
     let field = |key: &str| input[key].as_str().filter(|text| !text.is_empty());
     let path = |key: &str| {
@@ -921,6 +975,13 @@ fn describe(name: &str, input: &Value, cwd: &Path) -> (ToolKind, Option<String>)
         "WebFetch" => (ToolKind::Web, field("url").map(str::to_owned)),
         "WebSearch" => (ToolKind::Web, field("query").map(str::to_owned)),
         "Task" | "Agent" => (ToolKind::Agent, field("description").map(str::to_owned)),
+        "AskUserQuestion" => (
+            ToolKind::Question,
+            questions_of(input)
+                .into_iter()
+                .next()
+                .map(|question| question.prompt),
+        ),
         _ => (ToolKind::Other, None),
     }
 }
@@ -1275,6 +1336,18 @@ mod tests {
                 },
             ]
         );
+    }
+
+    #[test]
+    fn replayed_task_notification_result_does_not_end_the_turn() {
+        let (_, events) = parse(&[
+            r#"{"type":"result","subtype":"success","is_error":false,"num_turns":0,"result":"","origin":{"kind":"task-notification"}}"#,
+        ]);
+        assert!(events.is_empty());
+        let (_, events) = parse(&[
+            r#"{"type":"result","subtype":"success","is_error":false,"num_turns":1,"result":"Fini.","origin":{"kind":"task-notification"}}"#,
+        ]);
+        assert!(matches!(events.as_slice(), [AgentEvent::TurnEnd { .. }]));
     }
 
     #[test]
@@ -1667,12 +1740,53 @@ mod tests {
             ("r1", Some("rm -rf /tmp/x"), Some("Delete x"))
         );
         let answer: Value =
-            serde_json::from_str(&claude.approval_message(id, input, true)).expect("json");
+            serde_json::from_str(&claude.approval_message(id, input, &Reply::Allow)).expect("json");
         assert_eq!(answer["response"]["request_id"], "r1");
         assert_eq!(
             answer["response"]["response"]["updatedInput"]["command"],
             "rm -rf /tmp/x"
         );
+    }
+
+    #[test]
+    fn a_question_becomes_an_approval_whose_answers_go_under_each_question() {
+        let (claude, events) = parse(&[
+            r#"{"type":"control_request","request_id":"q1","request":{"subtype":"can_use_tool","tool_name":"AskUserQuestion","input":{"questions":[{"question":"Couleur ?","header":"Couleur","multiSelect":false,"options":[{"label":"Rouge","description":"Chaud"},{"label":"Bleu"}]},{"question":"Fruits ?","header":"Fruits","multiSelect":true,"options":[{"label":"Pomme"},{"label":"Kiwi"}]},{"question":"Ville ?","options":[]}]}}}"#,
+        ]);
+        let [
+            AgentEvent::Approval {
+                id,
+                questions: Some(questions),
+                input,
+                ..
+            },
+        ] = events.as_slice()
+        else {
+            panic!("une question attendue : {events:?}");
+        };
+        assert_eq!(questions.len(), 3);
+        assert_eq!(questions[0].header.as_deref(), Some("Couleur"));
+        assert_eq!(
+            questions[0].options[0].description.as_deref(),
+            Some("Chaud")
+        );
+        assert!(questions[1].multiple);
+        let reply = Reply::Answers(vec!["Rouge".into(), "Pomme, Kiwi".into(), String::new()]);
+        let answer: Value =
+            serde_json::from_str(&claude.approval_message(id, input, &reply)).expect("json");
+        let response = &answer["response"]["response"];
+        assert_eq!(response["behavior"], "allow");
+        assert_eq!(
+            response["updatedInput"]["answers"],
+            serde_json::json!({ "Couleur ?": "Rouge", "Fruits ?": "Pomme, Kiwi" })
+        );
+        assert_eq!(
+            response["updatedInput"]["questions"][0]["question"],
+            "Couleur ?"
+        );
+        let skipped: Value =
+            serde_json::from_str(&claude.approval_message(id, input, &Reply::Skip)).expect("json");
+        assert_eq!(skipped["response"]["response"]["behavior"], "deny");
     }
 
     #[test]

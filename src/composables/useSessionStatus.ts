@@ -1,10 +1,11 @@
 import { useAttentionStore } from '@/stores/attention'
 import { useConversationsStore } from '@/stores/conversations'
 
-export type SessionStatus = 'approval' | 'working' | 'done' | 'failed'
+export type SessionStatus = 'approval' | 'question' | 'working' | 'done' | 'failed'
 
 export const sessionStatusColor: Record<SessionStatus, string> = {
   approval: 'text-warning',
+  question: 'text-warning',
   working: 'text-signal-text',
   done: 'text-success',
   failed: 'text-danger',
@@ -16,7 +17,8 @@ export function useSessionStatus() {
   const attention = useAttentionStore()
 
   return function sessionStatus(chatId: string): SessionStatus | null {
-    if (conversations.find(chatId)?.approvals.length) return 'approval'
+    const pending = conversations.find(chatId)?.approvals[0]
+    if (pending) return pending.questions ? 'question' : 'approval'
     if (conversations.working(chatId)) return 'working'
     const signal = attention.unseenSignal(chatId)
     return signal === 'done' || signal === 'failed' ? signal : null

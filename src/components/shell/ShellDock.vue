@@ -1,66 +1,52 @@
 <script setup lang="ts">
-import { FileText, GitCompare, Layers, SquareTerminal, X } from '@/components/ui/icons'
-import { TabsContent, TabsList, TabsRoot, TabsTrigger } from 'reka-ui'
+import { Plus, X } from '@/components/ui/icons'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatTasks from '@/components/chat/ChatTasks.vue'
+import TerminalPanel from '@/components/terminal/TerminalPanel.vue'
+import TerminalTabs from '@/components/terminal/TerminalTabs.vue'
+import { dockIcons } from '@/components/shell/dockIcons'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
-import { useLayoutDrag } from '@/composables/useLayoutDrag'
-import { useDragStore } from '@/stores/drag'
-import { type DockPosition, type DockView, useLayoutStore } from '@/stores/layout'
+import { useTerminalChat } from '@/composables/useTerminalChat'
+import { type DockView, useLayoutStore } from '@/stores/layout'
+import { useTerminalsStore } from '@/stores/terminals'
 
-const props = defineProps<{ position: DockPosition }>()
+// Un volet du panneau de droite : son titre (les onglets des shells pour le terminal), puis son contenu.
+const props = defineProps<{ view: DockView }>()
 
 const { t } = useI18n()
 const layout = useLayoutStore()
-const drag = useDragStore()
-const { startViewDrag } = useLayoutDrag()
+const terminals = useTerminalsStore()
+const { chat, place } = useTerminalChat()
 
-const icons = { terminal: SquareTerminal, changes: GitCompare, files: FileText, tasks: Layers }
+const shells = computed(() => (chat.value ? terminals.tabsOf(chat.value.id).length : 0))
 
-const views = computed(() => layout.viewsIn(props.position))
-const active = computed({
-  get: () => layout[props.position].active ?? views.value[0] ?? 'terminal',
-  set: (view) => {
-    layout[props.position].active = view
-  },
-})
+function newTerminal() {
+  if (chat.value && place.value) terminals.create(chat.value.id, place.value)
+}
 </script>
 
 <template>
-  <section class="flex min-h-0 min-w-0 flex-col bg-chrome" :aria-label="t(`dock.${position}`)">
-    <TabsRoot
-      :model-value="active"
-      class="flex min-h-0 flex-1 flex-col"
-      @update:model-value="active = $event as DockView"
-    >
-      <div class="flex h-9 shrink-0 items-center gap-1 border-b border-stroke px-2">
-        <TabsList class="flex min-w-0 items-center gap-0.5">
-          <TabsTrigger
-            v-for="view in views"
-            :key="view"
-            :value="view"
-            class="flex h-7 items-center gap-1.5 rounded-md px-2 text-xs text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-ring data-[state=active]:bg-selection data-[state=active]:text-content"
-            :class="{ 'opacity-50': drag.source?.kind === 'view' && drag.source.view === view }"
-            @pointerdown="startViewDrag($event, view)"
-          >
-            <component :is="icons[view]" class="size-3.5" aria-hidden="true" />
-            {{ t(`dock.${view}.title`) }}
-          </TabsTrigger>
-        </TabsList>
-        <span class="flex-1" />
-        <UiIconButton :label="t('dock.close')" @click="layout.toggleDock(position)">
-          <X class="size-4" aria-hidden="true" />
-        </UiIconButton>
-      </div>
-
-      <TabsContent v-for="view in views" :key="view" :value="view" class="flex min-h-0 flex-1 flex-col outline-none">
-        <ChatTasks v-if="view === 'tasks'" />
-        <div v-else class="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
-          <component :is="icons[view]" class="size-6 text-muted" aria-hidden="true" />
-          <p class="text-sm text-muted">{{ t(`dock.${view}.empty`) }}</p>
-        </div>
-      </TabsContent>
-    </TabsRoot>
+  <section class="flex min-h-0 min-w-0 flex-col" :aria-label="t(`dock.${view}.title`)">
+    <div class="flex h-9 shrink-0 items-center gap-0.5 border-b border-stroke ps-3 pe-2">
+      <TerminalTabs v-if="view === 'terminal' && shells > 1" class="-ms-1" />
+      <h2 v-else class="flex min-w-0 items-center gap-1.5 text-xs text-content">
+        <component :is="dockIcons[view]" class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
+        <span class="truncate">{{ t(`dock.${view}.title`) }}</span>
+      </h2>
+      <UiIconButton v-if="view === 'terminal' && chat" :label="t('dock.terminal.new')" @click="newTerminal">
+        <Plus class="size-4" aria-hidden="true" />
+      </UiIconButton>
+      <span class="flex-1" />
+      <UiIconButton :label="t('dock.close')" @click="layout.hideView(props.view)">
+        <X class="size-4" aria-hidden="true" />
+      </UiIconButton>
+    </div>
+    <ChatTasks v-if="view === 'tasks'" />
+    <TerminalPanel v-else-if="view === 'terminal'" />
+    <div v-else class="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
+      <component :is="dockIcons[view]" class="size-6 text-muted" aria-hidden="true" />
+      <p class="text-sm text-muted">{{ t(`dock.${view}.empty`) }}</p>
+    </div>
   </section>
 </template>

@@ -18,7 +18,7 @@ import { formatDuration } from '@/utils/duration'
 const props = defineProps<{
   items: readonly ActivityItem[]
   agent: AgentKind
-  clock?: { since: number; pausedMs: number; pausedAt: number | null } | null
+  clock?: { since: number; pausedMs: number; pausedAt: number | null; asking?: boolean } | null
   background?: number
   writing?: boolean
 }>()
@@ -65,7 +65,7 @@ const step = computed(() => {
 // Ce que dit la ligne vivante : l'attente d'une autorisation, la réflexion en cours, la dernière étape outillée (gardée
 // jusqu'à la suivante), sinon que l'agent travaille.
 const label = computed(() => {
-  if (props.clock?.pausedAt != null) return { text: t('chat.waitingApproval'), name: null, shimmer: false }
+  if (props.clock?.pausedAt != null) return { text: t(props.clock.asking ? 'chat.waitingAnswer' : 'chat.waitingApproval'), name: null, shimmer: false }
   if (props.items.at(-1)?.kind === 'thinking') return { text: t('chat.activity.thinking'), name: null, shimmer: true }
   if (step.value && !props.writing) return { ...step.value, shimmer: true }
   return { text: t('chat.working', { agent: agents[props.agent].name }), name: null, shimmer: true }

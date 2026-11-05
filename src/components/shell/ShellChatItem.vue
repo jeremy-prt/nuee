@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Archive, CircleAlert, CircleCheck, GitBranch, ShieldQuestion } from '@/components/ui/icons'
+import { Archive, CircleAlert, CircleCheck, GitBranch, MessageQuestion, ShieldQuestion } from '@/components/ui/icons'
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatDiffStat from '@/components/chat/ChatDiffStat.vue'
@@ -117,6 +117,7 @@ watch(
           <span v-if="status" class="flex shrink-0 items-center gap-1" :class="sessionStatusColor[status]">
             <ChatSpinner v-if="status === 'working'" :agent="tab.agent" inherit class="text-xs" />
             <ShieldQuestion v-else-if="status === 'approval'" class="size-3" aria-hidden="true" />
+            <MessageQuestion v-else-if="status === 'question'" class="size-3" aria-hidden="true" />
             <CircleCheck v-else-if="status === 'done'" class="size-3" aria-hidden="true" />
             <CircleAlert v-else class="size-3" aria-hidden="true" />
             {{ t(`chats.status.${status}`) }}

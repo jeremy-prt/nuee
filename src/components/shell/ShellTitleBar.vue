@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { CircleAlert, CircleCheck, Columns2, LayoutList, PanelBottom, PanelRight, ShieldQuestion, X } from '@/components/ui/icons'
+import { CircleAlert, CircleCheck, LayoutList, MessageQuestion, ShieldQuestion, X } from '@/components/ui/icons'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatSpinner from '@/components/chat/ChatSpinner.vue'
 import SettingsSearch from '@/components/settings/SettingsSearch.vue'
+import { dockIcons } from '@/components/shell/dockIcons'
 import ShellRailToggle from '@/components/shell/ShellRailToggle.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
@@ -14,7 +15,7 @@ import { isMacosApp } from '@/ipc/system'
 import { useAppearanceStore } from '@/stores/appearance'
 import { useAttentionStore } from '@/stores/attention'
 import { useDragStore } from '@/stores/drag'
-import { RAIL_COLLAPSED_WIDTH, useLayoutStore } from '@/stores/layout'
+import { DOCK_VIEWS, RAIL_COLLAPSED_WIDTH, useLayoutStore } from '@/stores/layout'
 import { parentDetail, settingsDetailTitle, useNavigationStore } from '@/stores/navigation'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { useWorkspaceStore } from '@/stores/workspace'
@@ -31,7 +32,7 @@ const { startTabDrag } = useLayoutDrag()
 const { tabTitle } = useTabTitle()
 const sessionStatus = useSessionStatus()
 const statuses = computed(() => Object.fromEntries(workspace.contextTabs.map((tab) => [tab.id, sessionStatus(tab.id)])))
-const statusIcons = { approval: ShieldQuestion, done: CircleCheck, failed: CircleAlert }
+const statusIcons = { approval: ShieldQuestion, question: MessageQuestion, done: CircleCheck, failed: CircleAlert }
 
 // Le bouton de la barre latérale reste juste après les boutons de fenêtre macOS (fin à 76 pt, `trafficLightPosition`),
 // ouverte ou repliée, comme monocode (choix de Jérémy). Ces boutons ne suivent pas le zoom : leur place, en points,
@@ -196,33 +197,17 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
 
         </div>
 
+        <!-- Un bouton par volet du panneau de droite, comme l'app Claude. -->
         <UiIconButton
-          :label="t('workspace.split')"
-          :shortcut="shortcuts.label('split')"
-          :disabled="workspace.panes.length !== 1"
-          @click="workspace.split()"
+          v-for="view in DOCK_VIEWS"
+          :key="view"
+          :label="t(`dock.${view}.title`)"
+          :shortcut="view === 'terminal' ? shortcuts.label('toggleTerminal') : undefined"
+          :active="layout.isShown(view)"
+          :aria-pressed="layout.isShown(view)"
+          @click="layout.toggleView(view)"
         >
-          <Columns2 class="size-4" aria-hidden="true" />
-        </UiIconButton>
-        <UiIconButton
-          v-if="layout.viewsIn('bottom').length"
-          :label="t('dock.toggleBottom')"
-          :shortcut="shortcuts.label('toggleBottomDock')"
-          :active="layout.bottom.open"
-          :aria-expanded="layout.bottom.open"
-          @click="layout.toggleDock('bottom')"
-        >
-          <PanelBottom class="size-4" aria-hidden="true" />
-        </UiIconButton>
-        <UiIconButton
-          v-if="layout.viewsIn('right').length"
-          :label="t('dock.toggleRight')"
-          :shortcut="shortcuts.label('toggleRightDock')"
-          :active="layout.right.open"
-          :aria-expanded="layout.right.open"
-          @click="layout.toggleDock('right')"
-        >
-          <PanelRight class="size-4" aria-hidden="true" />
+          <component :is="dockIcons[view]" class="size-4" aria-hidden="true" />
         </UiIconButton>
       </template>
     </div>
