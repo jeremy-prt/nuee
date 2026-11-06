@@ -150,11 +150,11 @@ const empty = `${row} text-muted`
           <NoProject class="size-4 shrink-0 text-muted" aria-hidden="true" />
           <span class="truncate">{{ machine || t('composer.hosts.local') }}</span>
         </p>
-        <!-- Comme l'app Claude : la ligne reste du texte, seule l'icône à droite ouvre le dossier (son chemin en infobulle). -->
+        <!-- Comme l'app Claude : la ligne reste du texte, seule l'icône à droite ouvre le dossier. -->
         <div v-if="folder" :class="row">
           <ProjectIcon v-if="project" :project="project" class="size-4 shrink-0 rounded-sm" />
           <span class="min-w-0 flex-1 truncate">{{ project?.name }}</span>
-          <UiIconButton :label="`${t('settings.projects.reveal')} · ${folder}`" class="-me-1.5" @click="reveal">
+          <UiIconButton :label="t('settings.projects.reveal')" class="-me-1.5" @click="reveal">
             <FolderOpen class="size-3.5" aria-hidden="true" />
           </UiIconButton>
         </div>
