@@ -10,6 +10,7 @@ pub mod mcp;
 pub mod notification;
 pub mod power;
 pub mod project;
+pub mod server;
 pub mod skills;
 pub mod system;
 pub mod terminal;

@@ -194,7 +194,7 @@ const ANSI = [
 ] as const
 
 // Le reste comme Brume, en jetons de main.css ramenés en rgba : xterm ne lit ni color-mix ni var().
-function theme(): ITheme {
+export function theme(): ITheme {
   const probe = document.createElement('span')
   document.body.append(probe)
   const canvas = document.createElement('canvas').getContext('2d', { willReadFrequently: true })

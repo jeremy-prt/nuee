@@ -66,6 +66,7 @@ import LeftToRightListBulletIcon from '@hugeicons/core-free-icons/LeftToRightLis
 import LicenseIcon from '@hugeicons/core-free-icons/LicenseIcon'
 import LinkSquare02Icon from '@hugeicons/core-free-icons/LinkSquare02Icon'
 import Loading03Icon from '@hugeicons/core-free-icons/Loading03Icon'
+import LogsIcon from '@hugeicons/core-free-icons/LogsIcon'
 import MoreHorizontalIcon from '@hugeicons/core-free-icons/MoreHorizontalIcon'
 import NoteEditIcon from '@hugeicons/core-free-icons/NoteEditIcon'
 import Notification01Icon from '@hugeicons/core-free-icons/Notification01Icon'
@@ -79,6 +80,7 @@ import PencilEdit02Icon from '@hugeicons/core-free-icons/PencilEdit02Icon'
 import PhpIcon from '@hugeicons/core-free-icons/PhpIcon'
 import PinIcon from '@hugeicons/core-free-icons/PinIcon'
 import PinOffIcon from '@hugeicons/core-free-icons/PinOffIcon'
+import PlayIcon from '@hugeicons/core-free-icons/PlayIcon'
 import Plug01Icon from '@hugeicons/core-free-icons/Plug01Icon'
 import PythonIcon from '@hugeicons/core-free-icons/PythonIcon'
 import Refresh01Icon from '@hugeicons/core-free-icons/Refresh01Icon'
@@ -97,6 +99,7 @@ import SqlIcon from '@hugeicons/core-free-icons/SqlIcon'
 import SquareDashedIcon from '@hugeicons/core-free-icons/SquareDashedIcon'
 import SquareIcon from '@hugeicons/core-free-icons/SquareIcon'
 import StarIcon from '@hugeicons/core-free-icons/StarIcon'
+import StopIcon from '@hugeicons/core-free-icons/StopIcon'
 import Tick02Icon from '@hugeicons/core-free-icons/Tick02Icon'
 import Typescript01Icon from '@hugeicons/core-free-icons/Typescript01Icon'
 import UnavailableIcon from '@hugeicons/core-free-icons/UnavailableIcon'
@@ -201,6 +204,7 @@ export const Layers = icon(LayerIcon)
 export const LayoutDashboard = icon(DashboardSquare02Icon)
 export const LayoutList = icon(LeftToRightListBulletIcon)
 export const LoaderCircle = icon(Loading03Icon)
+export const Logs = icon(LogsIcon)
 export const MessageQuestion = icon(BubbleChatQuestionIcon)
 export const MessageSquarePlus = icon(CommentAdd01Icon)
 export const Minimize2 = icon(ArrowShrink02Icon)
@@ -217,6 +221,7 @@ export const Paperclip = icon(Attachment02Icon)
 export const Pencil = icon(PencilEdit02Icon)
 export const Pin = icon(PinIcon)
 export const PinOff = icon(PinOffIcon)
+export const Play = icon(PlayIcon)
 export const Plug = icon(Plug01Icon)
 export const Plus = icon(Add01Icon)
 export const RefreshCw = icon(Refresh01Icon)
@@ -236,6 +241,7 @@ export const SquareDashed = icon(SquareDashedIcon)
 export const SquarePen = icon(PencilEdit01Icon)
 export const SquareTerminal = icon(ComputerTerminal01Icon)
 export const Star = icon(StarIcon)
+export const Stop = icon(StopIcon)
 export const Trash2 = icon(Delete02Icon)
 export const Undo = icon(ArrowTurnBackwardIcon)
 export const Volume2 = icon(VolumeHighIcon)

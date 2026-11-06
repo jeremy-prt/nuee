@@ -17,6 +17,7 @@ use crate::services::chat::ChatService;
 use crate::services::github::GithubService;
 use crate::services::power::PowerService;
 use crate::services::project::ProjectService;
+use crate::services::server::ServerService;
 use crate::services::terminal::TerminalService;
 use crate::services::worktree::WorktreeService;
 
@@ -76,6 +77,7 @@ pub fn run() {
             app.manage(PowerService::default());
             app.manage(GithubService::default());
             app.manage(TerminalService::default());
+            app.manage(ServerService::default());
             app.manage(AutostartService::new(&app.package_info().name));
             // Le login shell met parfois une seconde à répondre : autant que ce ne soit pas au premier message.
             std::thread::spawn(utils::shell_env::search_path);
@@ -143,6 +145,11 @@ pub fn run() {
             commands::project::project_icon_reset,
             commands::project::project_files,
             commands::project::project_reveal,
+            commands::server::server_list,
+            commands::server::server_start,
+            commands::server::server_stop,
+            commands::server::server_stop_all,
+            commands::server::server_watch,
             commands::skills::skills_list,
             commands::skills::skills_read,
             commands::skills::skills_write,
@@ -177,6 +184,7 @@ pub fn run() {
                 app.state::<AgentService>().cancel_login();
                 app.state::<GithubService>().cancel_login();
                 app.state::<TerminalService>().close_all();
+                app.state::<ServerService>().shutdown();
             }
             _ => {}
         });

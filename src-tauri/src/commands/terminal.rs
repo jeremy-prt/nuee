@@ -28,7 +28,7 @@ pub async fn terminal_open(
     terminals.open(&chat_id, &dir, (cols, rows), on_event)
 }
 
-async fn work_dir(
+pub(crate) async fn work_dir(
     chat_id: &str,
     cwd: Option<String>,
     worktree: bool,

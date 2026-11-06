@@ -5,12 +5,16 @@ import { useI18n } from 'vue-i18n'
 import ChatChangesPanel from '@/components/chat/ChatChangesPanel.vue'
 import ChatSessionPanel from '@/components/chat/ChatSessionPanel.vue'
 import ChatTasks from '@/components/chat/ChatTasks.vue'
+import ServerCards from '@/components/server/ServerCards.vue'
+import ServerLogs from '@/components/server/ServerLogs.vue'
+import ServerMenu from '@/components/server/ServerMenu.vue'
 import TerminalPanel from '@/components/terminal/TerminalPanel.vue'
 import TerminalTabs from '@/components/terminal/TerminalTabs.vue'
 import { dockIcons } from '@/components/shell/dockIcons'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import { useTerminalChat } from '@/composables/useTerminalChat'
 import { type DockView, useLayoutStore } from '@/stores/layout'
+import { useServersStore } from '@/stores/servers'
 import { useTerminalsStore } from '@/stores/terminals'
 
 // Un volet du panneau de droite : son titre (les onglets des shells pour le terminal), puis son contenu.
@@ -19,7 +23,17 @@ const props = defineProps<{ view: DockView }>()
 const { t } = useI18n()
 const layout = useLayoutStore()
 const terminals = useTerminalsStore()
+const servers = useServersStore()
 const { chat, place } = useTerminalChat()
+
+// Les logs ouverts ne restent affichés que pour les sessions du même dossier.
+const logs = computed(() => {
+  const viewing = servers.viewing
+  const list = chat.value ? servers.listOf(chat.value.id) : null
+  return viewing && list?.root === viewing.root ? viewing : null
+})
+
+const cards = computed(() => !!chat.value && !!servers.listOf(chat.value.id)?.servers.some((server) => !server.external))
 
 const shells = computed(() => (chat.value ? terminals.tabsOf(chat.value.id).length : 0))
 
@@ -40,6 +54,7 @@ function newTerminal() {
         <Plus class="size-4" aria-hidden="true" />
       </UiIconButton>
       <span class="flex-1" />
+      <ServerMenu v-if="view === 'browser'" />
       <!-- Seul, le volet se ferme avec le bouton du panneau : la croix ne sert qu'à retirer l'un de deux volets empilés. -->
       <UiIconButton v-if="layout.right.panes.length > 1" :label="t('dock.close')" @click="layout.hideView(props.view)">
         <X class="size-4" aria-hidden="true" />
@@ -49,6 +64,8 @@ function newTerminal() {
     <ChatTasks v-else-if="view === 'tasks'" />
     <ChatChangesPanel v-else-if="view === 'changes'" />
     <TerminalPanel v-else-if="view === 'terminal'" />
+    <ServerLogs v-else-if="view === 'browser' && logs" :root="logs.root" :name="logs.name" />
+    <ServerCards v-else-if="view === 'browser' && cards" />
     <div v-else class="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
       <component :is="dockIcons[view]" class="size-6 text-muted" aria-hidden="true" />
       <p class="text-sm text-muted">{{ t(`dock.${view}.empty`) }}</p>
