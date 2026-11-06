@@ -1,16 +1,19 @@
 <script setup lang="ts">
-import { ChevronRight, Folder, FolderTree, GitBranch, NoProject } from '@/components/ui/icons'
-import { computed, ref } from 'vue'
+import { ChevronRight, Coffee, Folder, FolderTree, GitBranch, NoProject, RemoteControl } from '@/components/ui/icons'
+import { computed, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatDiffStat from '@/components/chat/ChatDiffStat.vue'
 import ChatSpinner from '@/components/chat/ChatSpinner.vue'
 import ProjectIcon from '@/components/project/ProjectIcon.vue'
+import UiSwitch from '@/components/ui/UiSwitch.vue'
+import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { useMachineName } from '@/composables/useMachineName'
 import { useProgressiveList } from '@/composables/useProgressiveList'
 import { useTerminalChat } from '@/composables/useTerminalChat'
 import { isAppError } from '@/ipc/agent'
 import { projectReveal } from '@/ipc/project'
 import { useConversationsStore } from '@/stores/conversations'
+import { useGeneralStore } from '@/stores/general'
 import { useLayoutStore } from '@/stores/layout'
 import { useProjectsStore } from '@/stores/projects'
 import { useToastsStore } from '@/stores/toasts'
@@ -29,6 +32,27 @@ const conversations = useConversationsStore()
 const toasts = useToastsStore()
 const machine = useMachineName()
 const layout = useLayoutStore()
+const general = useGeneralStore()
+
+// Sections repliées, mémorisées en local : simple confort, rien de grave si la lecture échoue.
+const COLLAPSED_KEY = 'nuee.sessionPanel.v1'
+const sections = ['environment', 'context', 'tasks', 'results', 'changes'] as const
+type Section = (typeof sections)[number]
+const collapsed = reactive<Record<Section, boolean>>(Object.fromEntries(sections.map((name) => [name, false])) as Record<Section, boolean>)
+try {
+  const saved: unknown = JSON.parse(localStorage.getItem(COLLAPSED_KEY) ?? '{}')
+  if (saved && typeof saved === 'object')
+    for (const name of sections) collapsed[name] = (saved as Record<string, unknown>)[name] === true
+} catch {
+  // Valeurs par défaut : tout déplié.
+}
+watch(collapsed, (value) => {
+  try {
+    localStorage.setItem(COLLAPSED_KEY, JSON.stringify(value))
+  } catch {
+    // Stockage indisponible : l'état reste valable jusqu'à la fermeture.
+  }
+})
 
 const project = computed(() => projects.byId(chat.value?.projectId ?? null))
 const branch = computed(() => (chat.value ? worktrees.branchOf(chat.value) : null))
@@ -88,43 +112,67 @@ async function reveal() {
 
 const row = 'flex h-8 w-full min-w-0 items-center gap-2.5 rounded-lg px-2 text-start text-[13px]'
 const action = `${row} hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring`
-const title = 'flex h-7 items-center px-2 text-xs font-medium text-muted'
+const title = 'flex h-7 w-full items-center gap-1 rounded-lg px-2 text-start text-xs font-medium text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-ring'
 const empty = `${row} text-muted`
 </script>
 
 <template>
   <div v-if="chat?.started" class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-2">
     <section class="flex flex-col gap-0.5">
-      <h3 :class="title">{{ t('dock.session.environment') }}</h3>
-      <p :class="row">
-        <NoProject class="size-4 shrink-0 text-muted" aria-hidden="true" />
-        <span class="truncate">{{ machine || t('composer.hosts.local') }}</span>
-      </p>
-      <button v-if="folder" type="button" :class="action" :title="t('settings.projects.reveal')" @click="reveal">
-        <ProjectIcon v-if="project" :project="project" class="size-4 shrink-0 rounded-sm" />
-        <span class="shrink-0">{{ project?.name }}</span>
-        <span class="min-w-0 truncate text-muted">· {{ chat.worktree ? t('composer.worktree.short') : t('composer.worktree.project') }}</span>
-      </button>
-      <p v-else :class="row">
-        <ProjectIcon v-if="project" :project="project" class="size-4 shrink-0 rounded-sm" />
-        <component :is="chat.worktree ? FolderTree : Folder" v-else class="size-4 shrink-0 text-muted" aria-hidden="true" />
-        <span class="shrink-0">{{ project?.name ?? t('rail.chats') }}</span>
-        <span class="min-w-0 truncate text-muted">{{ project ? `· ${t('composer.worktree.short')}` : t('dock.session.scratch') }}</span>
-      </p>
-      <p v-if="branch" :class="row">
-        <GitBranch class="size-4 shrink-0 text-muted" aria-hidden="true" />
-        <span class="sr-only">{{ t('composer.branch.label') }}</span>
-        <span class="truncate">{{ branch }}</span>
-      </p>
-      <p v-else :class="empty">
-        <GitBranch class="size-4 shrink-0" aria-hidden="true" />
-        {{ t('dock.session.noBranch') }}
-      </p>
+      <h3>
+        <button type="button" :class="title" :aria-expanded="!collapsed.environment" @click="collapsed.environment = !collapsed.environment">
+          {{ t('dock.session.environment') }}<ChevronRight class="size-3" :class="{ 'rotate-90': !collapsed.environment }" aria-hidden="true" />
+        </button>
+      </h3>
+      <template v-if="!collapsed.environment">
+        <p :class="row">
+          <NoProject class="size-4 shrink-0 text-muted" aria-hidden="true" />
+          <span class="truncate">{{ machine || t('composer.hosts.local') }}</span>
+        </p>
+        <UiTooltip v-if="folder" :label="folder" side="bottom">
+          <button type="button" :class="action" :aria-label="`${t('settings.projects.reveal')} · ${folder}`" @click="reveal">
+            <ProjectIcon v-if="project" :project="project" class="size-4 shrink-0 rounded-sm" />
+            <span class="shrink-0">{{ project?.name }}</span>
+            <span class="min-w-0 truncate text-muted">· {{ chat.worktree ? t('composer.worktree.short') : t('composer.worktree.project') }}</span>
+          </button>
+        </UiTooltip>
+        <p v-else :class="row">
+          <ProjectIcon v-if="project" :project="project" class="size-4 shrink-0 rounded-sm" />
+          <component :is="chat.worktree ? FolderTree : Folder" v-else class="size-4 shrink-0 text-muted" aria-hidden="true" />
+          <span class="shrink-0">{{ project?.name ?? t('rail.chats') }}</span>
+          <span class="min-w-0 truncate text-muted">{{ project ? `· ${t('composer.worktree.short')}` : t('dock.session.scratch') }}</span>
+        </p>
+        <p v-if="branch" :class="row">
+          <GitBranch class="size-4 shrink-0 text-muted" aria-hidden="true" />
+          <span class="sr-only">{{ t('composer.branch.label') }}</span>
+          <span class="truncate">{{ branch }}</span>
+        </p>
+        <p v-else :class="empty">
+          <GitBranch class="size-4 shrink-0" aria-hidden="true" />
+          {{ t('dock.session.noBranch') }}
+        </p>
+        <div :class="row">
+          <Coffee class="size-4 shrink-0 text-muted" aria-hidden="true" />
+          <span class="min-w-0 flex-1 truncate" aria-hidden="true">{{ t('settings.general.system.keepAwake') }}</span>
+          <UiSwitch v-model="general.keepAwake" :label="t('settings.general.system.keepAwake')" />
+        </div>
+        <UiTooltip :label="t('dock.session.soon')" side="bottom">
+          <div :class="row">
+            <RemoteControl class="size-4 shrink-0 text-muted" aria-hidden="true" />
+            <span class="min-w-0 flex-1 truncate text-muted" aria-hidden="true">{{ t('dock.session.remoteControl') }}</span>
+            <UiSwitch :model-value="false" :label="`${t('dock.session.remoteControl')} · ${t('dock.session.soon')}`" disabled class="pointer-events-none" />
+          </div>
+        </UiTooltip>
+      </template>
     </section>
 
     <section class="flex flex-col gap-0.5 border-t border-stroke pt-2">
-      <h3 :class="title">{{ t('dock.session.context') }}</h3>
-      <template v-if="context">
+      <h3>
+        <button type="button" :class="title" :aria-expanded="!collapsed.context" @click="collapsed.context = !collapsed.context">
+          {{ t('dock.session.context') }}<ChevronRight class="size-3" :class="{ 'rotate-90': !collapsed.context }" aria-hidden="true" />
+        </button>
+      </h3>
+      <template v-if="!collapsed.context && context">
         <button type="button" :class="action" :aria-expanded="contextOpen" @click="contextOpen = !contextOpen">
           <span class="flex-1 tabular-nums">{{ t('composer.context.used', { percent }) }}</span>
           <span class="h-1.5 w-16 overflow-hidden rounded-full bg-content/10" aria-hidden="true">
@@ -141,42 +189,60 @@ const empty = `${row} text-muted`
           </li>
         </ul>
       </template>
-      <p v-else :class="empty">{{ t('dock.session.noContext') }}</p>
+      <p v-else-if="!collapsed.context" :class="empty">{{ t('dock.session.noContext') }}</p>
     </section>
 
     <section class="flex flex-col gap-0.5 border-t border-stroke pt-2">
       <h3>
-        <button type="button" :class="[title, 'w-full gap-1 rounded-lg hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-ring']" @click="layout.showView('tasks')">
-          {{ t('dock.tasks.title') }}<ChevronRight class="size-3" aria-hidden="true" />
+        <button type="button" :class="title" :aria-expanded="!collapsed.tasks" @click="collapsed.tasks = !collapsed.tasks">
+          {{ t('dock.tasks.title') }}<ChevronRight class="size-3" :class="{ 'rotate-90': !collapsed.tasks }" aria-hidden="true" />
         </button>
       </h3>
-      <p v-for="{ tool, task } in running" :key="task.id" :class="row">
-        <ChatSpinner :agent="chat.agent" class="text-sm" />
-        <span class="truncate">{{ task.description ?? tool.detail?.description ?? tool.summary ?? tool.name }}</span>
-      </p>
-      <p v-if="finished" :class="empty">{{ t('dock.session.finished', { n: finished }, finished) }}</p>
-      <p v-if="!tasks.length" :class="empty">{{ t('dock.session.noTasks') }}</p>
+      <template v-if="!collapsed.tasks">
+        <p v-for="{ tool, task } in running" :key="task.id" :class="row">
+          <ChatSpinner :agent="chat.agent" class="text-sm" />
+          <span class="truncate">{{ task.description ?? tool.detail?.description ?? tool.summary ?? tool.name }}</span>
+        </p>
+        <p v-if="finished" :class="empty">{{ t('dock.session.finished', { n: finished }, finished) }}</p>
+        <p v-if="!tasks.length" :class="empty">{{ t('dock.session.noTasks') }}</p>
+        <button v-else type="button" :class="[action, 'text-muted hover:text-content']" @click="layout.showView('tasks')">
+          <span class="flex-1">{{ t('dock.session.showAll') }}</span>
+          <ChevronRight class="size-3.5 shrink-0" aria-hidden="true" />
+        </button>
+      </template>
     </section>
 
     <section class="flex flex-col gap-0.5 border-t border-stroke pt-2">
-      <h3 :class="title">{{ t('dock.session.results') }}</h3>
-      <button v-for="file in shown" :key="file.path" type="button" :class="action" :title="file.path" @click="layout.showView('changes')">
-        <span class="shrink-0">{{ file.name }}</span>
-        <span class="min-w-0 flex-1 truncate text-muted">{{ file.dir }}</span>
-        <ChatDiffStat :added="file.added" :removed="file.removed" plain class="text-xs" />
-      </button>
-      <span v-if="more" :key="limit" ref="sentinel" class="h-px" aria-hidden="true" />
-      <p v-if="!results.length" :class="empty">{{ t('dock.session.noResults') }}</p>
+      <h3>
+        <button type="button" :class="title" :aria-expanded="!collapsed.results" @click="collapsed.results = !collapsed.results">
+          {{ t('dock.session.results') }}<ChevronRight class="size-3" :class="{ 'rotate-90': !collapsed.results }" aria-hidden="true" />
+        </button>
+      </h3>
+      <template v-if="!collapsed.results">
+        <button v-for="file in shown" :key="file.path" type="button" :class="action" :title="file.path" @click="layout.showView('changes')">
+          <span class="shrink-0">{{ file.name }}</span>
+          <span class="min-w-0 flex-1 truncate text-muted">{{ file.dir }}</span>
+          <ChatDiffStat :added="file.added" :removed="file.removed" plain class="text-xs" />
+        </button>
+        <span v-if="more" :key="limit" ref="sentinel" class="h-px" aria-hidden="true" />
+        <p v-if="!results.length" :class="empty">{{ t('dock.session.noResults') }}</p>
+      </template>
     </section>
 
     <section class="flex flex-col gap-0.5 border-t border-stroke pt-2">
-      <h3 :class="title">{{ t('dock.changes.title') }}</h3>
-      <button v-if="diff.added || diff.removed" type="button" :class="action" @click="layout.showView('changes')">
-        <span class="flex-1">{{ t('dock.session.lines') }}</span>
-        <ChatDiffStat :added="diff.added" :removed="diff.removed" plain class="text-xs" />
-        <ChevronRight class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
-      </button>
-      <p v-else :class="empty">{{ t('dock.session.noChanges') }}</p>
+      <h3>
+        <button type="button" :class="title" :aria-expanded="!collapsed.changes" @click="collapsed.changes = !collapsed.changes">
+          {{ t('dock.changes.title') }}<ChevronRight class="size-3" :class="{ 'rotate-90': !collapsed.changes }" aria-hidden="true" />
+        </button>
+      </h3>
+      <template v-if="!collapsed.changes">
+        <button v-if="diff.added || diff.removed" type="button" :class="action" @click="layout.showView('changes')">
+          <span class="flex-1">{{ t('dock.session.lines') }}</span>
+          <ChatDiffStat :added="diff.added" :removed="diff.removed" plain class="text-xs" />
+          <ChevronRight class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
+        </button>
+        <p v-else :class="empty">{{ t('dock.session.noChanges') }}</p>
+      </template>
     </section>
   </div>
   <p v-else class="flex flex-1 items-center justify-center p-6 text-center text-sm text-muted">{{ t('dock.session.empty') }}</p>

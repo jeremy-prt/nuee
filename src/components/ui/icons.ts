@@ -19,6 +19,7 @@ import CalendarAdd01Icon from '@hugeicons/core-free-icons/CalendarAdd01Icon'
 import Cancel01Icon from '@hugeicons/core-free-icons/Cancel01Icon'
 import CheckmarkCircle02Icon from '@hugeicons/core-free-icons/CheckmarkCircle02Icon'
 import Clock01Icon from '@hugeicons/core-free-icons/Clock01Icon'
+import Coffee02Icon from '@hugeicons/core-free-icons/Coffee02Icon'
 import CommentAdd01Icon from '@hugeicons/core-free-icons/CommentAdd01Icon'
 import ComputerTerminal01Icon from '@hugeicons/core-free-icons/ComputerTerminal01Icon'
 import Copy01Icon from '@hugeicons/core-free-icons/Copy01Icon'
@@ -81,6 +82,7 @@ import PinOffIcon from '@hugeicons/core-free-icons/PinOffIcon'
 import Plug01Icon from '@hugeicons/core-free-icons/Plug01Icon'
 import PythonIcon from '@hugeicons/core-free-icons/PythonIcon'
 import Refresh01Icon from '@hugeicons/core-free-icons/Refresh01Icon'
+import RemoteControlIcon from '@hugeicons/core-free-icons/RemoteControlIcon'
 import Search01Icon from '@hugeicons/core-free-icons/Search01Icon'
 import SecurityCheckIcon from '@hugeicons/core-free-icons/SecurityCheckIcon'
 import SentIcon from '@hugeicons/core-free-icons/SentIcon'
@@ -148,6 +150,7 @@ export const ChevronsUpDown = icon(ChevronsUpDownGlyph)
 export const CircleAlert = icon(AlertCircleIcon)
 export const CircleCheck = icon(CheckmarkCircle02Icon)
 export const Clock = icon(Clock01Icon)
+export const Coffee = icon(Coffee02Icon)
 export const Columns2 = icon(LayoutTwoColumnIcon)
 export const Copy = icon(Copy01Icon)
 export const CornerDownRight = icon(ArrowTurnForwardIcon)
@@ -217,6 +220,7 @@ export const PinOff = icon(PinOffIcon)
 export const Plug = icon(Plug01Icon)
 export const Plus = icon(Add01Icon)
 export const RefreshCw = icon(Refresh01Icon)
+export const RemoteControl = icon(RemoteControlIcon)
 export const RotateCcw = icon(UndoIcon)
 export const Search = icon(Search01Icon)
 export const SendHorizontal = icon(SentIcon)

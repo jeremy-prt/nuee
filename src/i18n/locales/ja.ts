@@ -119,6 +119,9 @@ export default {
       noResults: '作成・編集されたファイルなし',
       lines: '変更された行',
       noChanges: '変更なし',
+      showAll: 'すべて表示',
+      remoteControl: 'Remote Control',
+      soon: '近日対応',
     },
     terminal: {
       title: 'ターミナル',

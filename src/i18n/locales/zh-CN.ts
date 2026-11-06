@@ -119,6 +119,9 @@ export default {
       noResults: '没有创建或修改的文件',
       lines: '已更改的行',
       noChanges: '无更改',
+      showAll: '全部显示',
+      remoteControl: 'Remote Control',
+      soon: '即将推出',
     },
     terminal: {
       title: '终端',

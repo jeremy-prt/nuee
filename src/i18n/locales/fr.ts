@@ -119,6 +119,9 @@ export default {
       noResults: 'Aucun fichier créé ou modifié',
       lines: 'Lignes modifiées',
       noChanges: 'Aucune modification',
+      showAll: 'Tout afficher',
+      remoteControl: 'Remote Control',
+      soon: 'Bientôt disponible',
     },
     terminal: {
       title: 'Terminal',
