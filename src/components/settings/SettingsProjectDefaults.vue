@@ -5,7 +5,6 @@ import SettingsGroup from '@/components/settings/SettingsGroup.vue'
 import SettingsResetButton from '@/components/settings/SettingsResetButton.vue'
 import SettingsRow from '@/components/settings/SettingsRow.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
-import UiSwitch from '@/components/ui/UiSwitch.vue'
 import { useResetToast } from '@/composables/useResetToast'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { Effort } from '@/ipc/bindings/Effort'
@@ -15,17 +14,15 @@ import { agents } from '@/utils/agents'
 import { formatUntil } from '@/utils/duration'
 
 // Réglages d'un projet qu'on change souvent : sur la page Projets et en tête de la sous-page du projet.
-const props = defineProps<{ id: string }>()
+// id null : ceux de « Cet ordinateur ».
+const props = defineProps<{ id: string | null }>()
 
 const { t, locale } = useI18n()
 const projects = useProjectsStore()
 const catalog = useCatalogStore()
 const resetToast = useResetToast()
 
-const project = computed(() => projects.byId(props.id))
-
-// Le dossier a pu devenir (ou cesser d'être) un dépôt git depuis la dernière lecture.
-watch(project, (current) => current && projects.checkWorktree(current), { immediate: true })
+const project = computed(() => projects.settingsOf(props.id))
 
 const agent = computed({
   get: () => projects.chatAgent(props.id),
@@ -67,18 +64,7 @@ function resetDefaults(event: MouseEvent) {
   if (event.detail === 0) document.querySelector<HTMLElement>('[data-setting="project-agent"] button')?.focus()
 }
 
-// Absente tant que git n'a pas répondu (ou hors de l'app) : rien n'est bloqué d'avance.
-const support = computed(() => projects.support[props.id])
-const worktreeReady = computed(() => support.value === undefined || support.value === 'ready')
-const worktree = computed({
-  get: () => !!project.value?.worktree && worktreeReady.value,
-  set: (value: boolean) => project.value && (project.value.worktree = value),
-})
-const worktreeHint = computed(() =>
-  worktreeReady.value ? t('settings.projects.worktreeHint') : t(`settings.projects.worktreeSupport.${support.value}`),
-)
-
-const muted = computed(() => (project.value && projects.isMuted(project.value.id) ? project.value.muted : null))
+const muted = computed(() => (project.value && projects.isMuted(props.id) ? project.value.muted : null))
 const muteOptions = computed(() => (['on', 'hour', 'tomorrow', 'always'] as const).map((value) => ({ value, label: t(`settings.projects.mute.${value}`) })))
 const mute = computed({
   get: () => muted.value?.kind ?? 'on',
@@ -108,9 +94,6 @@ const muteHint = computed(() => {
     </SettingsRow>
     <SettingsRow v-if="effortOptions.length" data-setting="project-effort" :label="t('settings.projects.effort')">
       <UiSelect v-model="effort" :label="t('settings.projects.effort')" :options="effortOptions" />
-    </SettingsRow>
-    <SettingsRow v-slot="{ hintId }" data-setting="project-worktree" :label="t('settings.projects.worktree')" :hint="worktreeHint" :disabled="!worktreeReady">
-      <UiSwitch v-model="worktree" :label="t('settings.projects.worktree')" :disabled="!worktreeReady" :aria-describedby="hintId" />
     </SettingsRow>
   </SettingsGroup>
 

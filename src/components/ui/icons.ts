@@ -123,6 +123,7 @@ const SidebarOpenIcon = SidebarLeft01Icon.map(([tag, attrs]) =>
 const chevron = (d: string) => [['path', { d, stroke: 'currentColor', strokeLinecap: 'round', strokeLinejoin: 'round', strokeWidth: '1.5', key: '0' }]] as Glyph
 const ChevronDownGlyph = chevron('M6 9L12 15L18 9')
 const ChevronRightGlyph = chevron('M9 6L15 12L9 18')
+const ChevronLeftGlyph = chevron('M15 6L9 12L15 18')
 const ChevronsUpDownGlyph = chevron('M8 9L12 5L16 9M8 15L12 19L16 15')
 
 export const Archive = icon(Archive02Icon)
@@ -139,6 +140,7 @@ export const Brain = icon(BrainIcon)
 export const CalendarAdd = icon(CalendarAdd01Icon)
 export const Check = icon(Tick02Icon)
 export const ChevronDown = icon(ChevronDownGlyph)
+export const ChevronLeft = icon(ChevronLeftGlyph)
 export const ChevronRight = icon(ChevronRightGlyph)
 // Sélecteur pleine largeur : un chevron seul au bout de la ligne se lit comme un panneau à replier.
 export const ChevronsUpDown = icon(ChevronsUpDownGlyph)

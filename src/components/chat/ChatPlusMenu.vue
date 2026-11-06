@@ -4,7 +4,7 @@ import { DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuP
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
-import { menuHint, menuIcon, menuLabel, menuPanel, menuRow, menuTitle } from '@/components/ui/menuRow'
+import { menuIcon, menuLabel, menuPanel, menuRow, menuTitle } from '@/components/ui/menuRow'
 import { isMac } from '@/utils/shortcuts'
 
 // Bouton « + » du champ de saisie. `mention` : seulement dans un projet, le menu « @ » cherche dans son dossier.
@@ -58,14 +58,11 @@ function onCloseAutoFocus(event: Event) {
               v-for="entry in entries"
               :key="entry.id"
               :text-value="t(`composer.plus.${entry.id}`)"
-              :class="[menuRow, 'py-2']"
+              :class="[menuRow, 'py-1.5']"
               @select="entry.run"
             >
               <component :is="entry.icon" :class="[menuIcon, entry.tint]" aria-hidden="true" />
-              <span class="min-w-0 flex-1">
-                <span :class="menuLabel">{{ t(`composer.plus.${entry.id}`) }}</span>
-                <span :class="menuHint">{{ t(`composer.plus.hints.${entry.id}`) }}</span>
-              </span>
+              <span :class="[menuLabel, 'min-w-0 flex-1']">{{ t(`composer.plus.${entry.id}`) }}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenuPortal>

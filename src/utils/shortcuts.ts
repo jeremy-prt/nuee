@@ -38,7 +38,15 @@ export const defaultShortcuts = {
   previousProject: { group: 'navigation', key: 'ArrowUp', alt: true },
   nextProject: { group: 'navigation', key: 'ArrowDown', alt: true },
   newChat: { group: 'chats', key: 'n' },
+  newTab: { group: 'chats', key: 't' },
   closeTab: { group: 'chats', key: 'w' },
+  closeAllTabs: { group: 'chats', key: 'w', shift: true },
+  reopenTab: { group: 'chats', key: 't', shift: true },
+  // Comme monocode, Orca et T3 Code. [ et ] se tapent avec ⌥ en AZERTY Mac : on lit la touche physique.
+  nextTab: { group: 'chats', key: ']', shift: 'any', codes: ['BracketRight'] },
+  previousTab: { group: 'chats', key: '[', shift: 'any', codes: ['BracketLeft'] },
+  // Un seul réglage pour les neuf chiffres ; App.vue lit le chiffre tapé. ⇧ en AZERTY, d'où 'any'.
+  goToTab: { group: 'chats', key: '1', shift: 'any', codes: ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9'], label: '1…9' },
   split: { group: 'chats', key: 'd' },
   rename: { group: 'chats', key: 'r' },
   send: { group: 'message', key: 'Enter', mod: 'any', when: 'composer' },

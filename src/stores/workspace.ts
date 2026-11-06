@@ -175,7 +175,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   function createChat(title: string | null = null, worktreePath: string | null | undefined = undefined) {
     const projectId = navigation.projectId
     const agent = projects.chatAgent(projectId)
-    const worktree = worktreePath === undefined ? !!projects.byId(projectId)?.worktree : worktreePath !== null
+    const worktree = worktreePath !== undefined && worktreePath !== null
     const summary = { id: crypto.randomUUID(), projectId, number: nextChatNumber(projectId), agent, title, started: false, worktree, worktreePath: worktreePath ?? null, archived: false, archivedAt: null, createdAt: Date.now(), updatedAt: Date.now(), pinned: false, model: null, added: 0, removed: 0 }
     const tab: Tab = { ...summary, kind: 'chat' }
     tabs.value.push(tab)
@@ -184,10 +184,15 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return tab
   }
 
+  // Comme monocode : un onglet ouvert s'insère juste après l'actif, et prend la place de l'actif s'il est vierge.
   function show(id: string) {
     seenAt[id] = Date.now()
     const layout = current()
-    if (!layout.tabs.includes(id)) layout.tabs.push(id)
+    const active = layout.panes[layout.focused]
+    if (!layout.tabs.includes(id)) {
+      const at = active ? layout.tabs.indexOf(active) : -1
+      layout.tabs.splice(at === -1 ? layout.tabs.length : at + 1, 0, id)
+    }
     const index = layout.panes.indexOf(id)
     if (index !== -1) {
       layout.focused = index
@@ -197,6 +202,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     } else {
       layout.panes[layout.focused] = id
     }
+    if (active && active !== id && isBlank(active) && !layout.panes.includes(active)) closeTab(active, layout)
+  }
+
+  // Nouvelle session (« + », ⌘N, ⌘T) : la vierge du contexte plutôt qu'une de plus.
+  function newTab() {
+    show(blankChat().id)
   }
 
   // `worktreePath` : null pour le dossier du projet, le chemin d'un worktree pour le rejoindre.
@@ -266,9 +277,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     layout.focused = Math.max(0, Math.min(layout.focused, layout.panes.length - 1))
   }
 
+  // Onglets de sessions lancées fermés récemment, par disposition : ⌘⇧T rouvre le dernier.
+  const closed = new WeakMap<PaneLayout, string[]>()
+
   function closeTab(id: string, layout = current()) {
     const index = layout.tabs.indexOf(id)
     if (index === -1) return
+    if (tabs.value.some((tab) => tab.id === id && tab.started)) closed.set(layout, [...(closed.get(layout) ?? []), id].slice(-10))
     layout.tabs.splice(index, 1)
     if (!Object.values(layouts).some((other) => other.tabs.includes(id))) useTerminalsStore().closeChat(id)
     // Fermé sans message, il ne serait plus visible nulle part : on ne le garde pas.
@@ -282,6 +297,39 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const replacement = neighbours.find((tabId) => tabId && !layout.panes.includes(tabId))
     if (replacement) layout.panes[paneIndex] = replacement
     else closePane(paneIndex, layout)
+  }
+
+  // Menu d'un onglet, comme monocode : les autres, ceux d'un côté, ou tous.
+  function closeTabs(id: string, which: 'others' | 'right' | 'left' | 'all') {
+    const open = [...current().tabs]
+    const index = open.indexOf(id)
+    const targets = open.filter((other, i) =>
+      which === 'all' ? true : which === 'others' ? other !== id : which === 'right' ? i > index : i < index,
+    )
+    for (const target of targets) closeTab(target)
+  }
+
+  function reopenTab() {
+    const stack = closed.get(current()) ?? []
+    while (stack.length) {
+      const id = stack.pop()!
+      if (tabs.value.some((tab) => tab.id === id && !tab.archived)) return show(id)
+    }
+  }
+
+  // `step` : suivant (1) ou précédent (-1), en boucle.
+  function stepTab(step: 1 | -1) {
+    const layout = current()
+    if (!layout.tabs.length) return
+    const at = layout.tabs.indexOf(activeTabId.value ?? '')
+    show(layout.tabs[(at + step + layout.tabs.length) % layout.tabs.length]!)
+  }
+
+  // ⌘1…8 : l'onglet de ce rang ; ⌘9 : le dernier, comme les navigateurs.
+  function goToTab(rank: number) {
+    const open = current().tabs
+    const id = rank === 9 ? open.at(-1) : open[rank - 1]
+    if (id) show(id)
   }
 
   function closeActiveTab() {
@@ -514,6 +562,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     closePane,
     closeTab,
     closeActiveTab,
+    newTab,
+    reopenTab,
+    stepTab,
+    goToTab,
+    closeTabs,
     deleteChat: deleteChatWithWorktree,
     deleteProjectChats,
     setWorktree,

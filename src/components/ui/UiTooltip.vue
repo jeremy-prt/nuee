@@ -9,7 +9,8 @@ withDefaults(
     sideOffset?: number
     disabled?: boolean
   }>(),
-  { side: 'bottom', sideOffset: 6, shortcut: undefined },
+  // Au-dessus par défaut (choix de Jérémy) ; reka la retourne en dessous quand la place manque (barre de titre).
+  { side: 'top', sideOffset: 6, shortcut: undefined },
 )
 </script>
 

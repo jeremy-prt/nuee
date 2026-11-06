@@ -158,6 +158,7 @@ pub fn run() {
             commands::worktree::worktree_support,
             commands::worktree::worktree_list,
             commands::worktree::worktree_branches,
+            commands::worktree::worktree_checkout,
             commands::worktree::worktree_refs,
             commands::worktree::worktree_create,
             commands::worktree::worktree_remove,

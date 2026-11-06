@@ -46,13 +46,13 @@ const open = ref(false)
 
 <template>
   <div>
-    <!-- La vignette reste hors du bouton (un bouton n'en contient pas un autre), le survol couvre les deux. -->
-    <div class="flex items-center gap-1 rounded-md" :class="{ 'hover:bg-selection-hover': expandable }">
+    <!-- La vignette reste hors du bouton (un bouton n'en contient pas un autre). Survol sans fond, comme l'app Claude. -->
+    <div class="flex items-center gap-1 rounded-md">
       <component
         :is="expandable ? 'button' : 'div'"
         :type="expandable ? 'button' : undefined"
         class="flex min-w-0 items-center gap-1.5 rounded-md px-2 py-1 text-start text-muted"
-        :class="{ 'focus-visible:outline-2 focus-visible:outline-ring': expandable }"
+        :class="{ 'hover:text-content focus-visible:outline-2 focus-visible:outline-ring': expandable }"
         :aria-expanded="expandable ? open : undefined"
         @click="expandable && (open = !open)"
       >

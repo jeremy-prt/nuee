@@ -94,7 +94,7 @@ function renameActive() {
   workspace.requestRename()
 }
 
-const actions: [ShortcutId, () => void][] = [
+const actions: [ShortcutId, (event: KeyboardEvent) => void][] = [
   ['toggleRail', layout.toggleRail],
   ['newChat', () => newChat()],
   ['search', () => navigation.go('search')],
@@ -104,7 +104,13 @@ const actions: [ShortcutId, () => void][] = [
   ['togglePanel', togglePanel],
   ['toggleRightDock', inChatsOnly(layout.toggleRight)],
   ['toggleTerminal', inChatsOnly(toggleTerminal)],
+  ['newTab', () => newChat()],
   ['closeTab', inChatsOnly(workspace.closeActiveTab)],
+  ['closeAllTabs', inChatsOnly(() => workspace.activeTabId && workspace.closeTabs(workspace.activeTabId, 'all'))],
+  ['reopenTab', inChatsOnly(workspace.reopenTab)],
+  ['nextTab', inChatsOnly(() => workspace.stepTab(1))],
+  ['previousTab', inChatsOnly(() => workspace.stepTab(-1))],
+  ['goToTab', (event) => inChatsOnly(() => workspace.goToTab(Number(event.code.slice(-1))))()],
   ['split', inChatsOnly(workspace.split)],
   ['rename', inChatsOnly(renameActive)],
   ['settings', () => navigation.go('settings')],
@@ -117,7 +123,7 @@ function onKeydown(event: KeyboardEvent) {
   const action = actions.find(([id]) => shortcuts.matches(event, id))
   if (!action) return
   event.preventDefault()
-  action[1]()
+  action[1](event)
 }
 
 // Rust ne demande que si un agent travaille encore ; un second ⌘Q pendant la question est ignoré.

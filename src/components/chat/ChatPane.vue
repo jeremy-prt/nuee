@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, useTemplateRef } from 'vue'
+import { computed, onMounted, provide, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatApproval from '@/components/chat/ChatApproval.vue'
 import ChatComposer from '@/components/chat/ChatComposer.vue'
@@ -12,8 +12,10 @@ import ChatQueue from '@/components/chat/ChatQueue.vue'
 import ChatTranscript from '@/components/chat/ChatTranscript.vue'
 import { useFileDrop } from '@/composables/useFileDrop'
 import { isAppError } from '@/ipc/agent'
+import { worktreeCheckout } from '@/ipc/worktree'
 import { useCatalogStore } from '@/stores/catalog'
 import { useDialogStore } from '@/stores/dialog'
+import { mentionPlaceKey } from '@/stores/mentions'
 import { useToastsStore } from '@/stores/toasts'
 import { type Place, useConversationsStore } from '@/stores/conversations'
 import type { Attachment } from '@/ipc/bindings/Attachment'
@@ -48,6 +50,10 @@ conversations.open(props.tab.id, props.tab.agent, props.tab.projectId)
 catalog.load(props.tab.agent)
 
 const project = computed(() => projects.byId(props.tab.projectId))
+provide(
+  mentionPlaceKey,
+  computed(() => (project.value ? { chatId: props.tab.id, project: project.value.path } : null)),
+)
 const conversation = computed(() => conversations.find(props.tab.id))
 const items = computed(() => conversation.value?.items ?? [])
 const answering = computed(() => conversation.value?.phase === 'answering')
@@ -106,6 +112,16 @@ const worktreeState = computed<WorktreeChoice | null>(() =>
 function chooseWorktree(choice: string) {
   if (choice === 'project') workspace.setWorktree(props.tab.id, false)
   else workspace.setWorktree(props.tab.id, true, choice === 'new' ? null : choice)
+}
+
+async function checkout(branch: string) {
+  if (!project.value) return
+  try {
+    await worktreeCheckout(project.value.path, branch)
+  } catch (error) {
+    toasts.push({ kind: 'error', title: t('composer.branch.checkoutFailed'), body: isAppError(error) ? error.message : String(error) })
+  }
+  await worktrees.load(project.value)
 }
 
 function send(prompt: string, attachments: Attachment[]) {
@@ -195,6 +211,7 @@ onMounted(() => {
           :worktree="worktreeState"
           @worktree="chooseWorktree"
           @base="worktrees.setBase(tab.id, $event)"
+          @checkout="checkout"
         >
           <template v-if="$slots.project" #project><slot name="project" /></template>
         </ChatPlaceRow>

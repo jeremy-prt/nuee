@@ -33,6 +33,15 @@ pub async fn worktree_branches(
     worktrees.branches(&PathBuf::from(path)).await
 }
 
+#[tauri::command]
+pub async fn worktree_checkout(
+    path: String,
+    branch: String,
+    worktrees: State<'_, WorktreeService>,
+) -> Result<(), AppError> {
+    worktrees.checkout(&PathBuf::from(path), &branch).await
+}
+
 /// Dossier de la session : son worktree s'il en a un en base, sinon celui du projet.
 fn session_dir(chats: &ChatService, chat_id: &str, project: &str) -> Result<PathBuf, AppError> {
     Ok(PathBuf::from(

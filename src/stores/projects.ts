@@ -43,8 +43,6 @@ export interface Project {
   agent: AgentKind | null
   model: string | null
   effort: Effort | null
-  // Chaque nouveau chat travaille dans un worktree git plutôt que dans le dossier.
-  worktree: boolean
   muted: Mute | null
   // Groupe de la barre latérale ; null : dans la liste hors groupe.
   group: string | null
@@ -88,7 +86,6 @@ function restore(value: Partial<Record<keyof Project, unknown>>): Project | null
     agent: typeof value.agent === 'string' && value.agent in agents ? (value.agent as AgentKind) : null,
     model: typeof value.model === 'string' ? value.model : null,
     effort: typeof value.effort === 'string' ? (value.effort as Effort) : null,
-    worktree: value.worktree === true,
     muted: restoreMute(value.muted),
     group: typeof value.group === 'string' ? value.group : null,
     pinned: value.pinned === true,
@@ -119,6 +116,24 @@ function restoreMute(value: unknown): Mute | null {
   const mute = value as Partial<Mute> | null
   if (!mute || !MUTE_KINDS.includes(mute.kind as MuteKind)) return null
   return { kind: mute.kind as MuteKind, until: typeof mute.until === 'number' ? mute.until : null }
+}
+
+// Réglages des sessions de « Cet ordinateur », qui n'est pas un projet : ceux d'un projet qui ont un sens sans dossier.
+export type ContextSettings = Pick<Project, 'agent' | 'model' | 'effort' | 'muted'>
+const COMPUTER_KEY = 'nuee.computer.v1'
+
+function loadComputer(): ContextSettings {
+  try {
+    const value = JSON.parse(localStorage.getItem(COMPUTER_KEY) ?? '{}') as Partial<Record<keyof ContextSettings, unknown>>
+    return {
+      agent: typeof value.agent === 'string' && value.agent in agents ? (value.agent as AgentKind) : null,
+      model: typeof value.model === 'string' ? value.model : null,
+      effort: typeof value.effort === 'string' ? (value.effort as Effort) : null,
+      muted: restoreMute(value.muted),
+    }
+  } catch {
+    return { agent: null, model: null, effort: null, muted: null }
+  }
 }
 
 function load(): Project[] {
@@ -164,6 +179,24 @@ export const useProjectsStore = defineStore('projects', () => {
     { deep: true },
   )
 
+  const computer = reactive(loadComputer())
+  watch(
+    computer,
+    (value) => {
+      try {
+        localStorage.setItem(COMPUTER_KEY, JSON.stringify(value))
+      } catch {
+        // Stockage indisponible : les réglages restent valables pour la session.
+      }
+    },
+    { deep: true },
+  )
+
+  // null : « Cet ordinateur ».
+  function settingsOf(id: string | null): ContextSettings | null {
+    return id === null ? computer : byId(id)
+  }
+
   watch(
     groups,
     (value) => {
@@ -189,7 +222,6 @@ export const useProjectsStore = defineStore('projects', () => {
       agent: null,
       model: null,
       effort: null,
-      worktree: false,
       muted: null,
       group: null,
       pinned: false,
@@ -309,28 +341,30 @@ export const useProjectsStore = defineStore('projects', () => {
     }
   }
 
-  function mute(project: Project, kind: MuteKind | null) {
+  function mute(project: ContextSettings, kind: MuteKind | null) {
     project.muted = kind ? { kind, until: muteEnd(kind) } : null
   }
 
   function isMuted(projectId: string | null, at = now.value) {
-    const muted = byId(projectId)?.muted
+    const muted = settingsOf(projectId)?.muted
     return !!muted && (muted.until === null || muted.until > at)
   }
 
   function chatAgent(projectId: string | null): AgentKind {
-    return byId(projectId)?.agent ?? defaultAgent
+    return settingsOf(projectId)?.agent ?? defaultAgent
   }
 
   // Réglages de départ d'un chat : ceux de l'agent dans Réglages › Agents, sauf ce que le projet a choisi.
   function chatOptions(projectId: string | null, agent: AgentKind): TurnOptions {
     const options = agentSettings.chatDefaults(agent)
-    const project = byId(projectId)
+    const project = settingsOf(projectId)
     if (!project || chatAgent(projectId) !== agent) return options
     return { ...options, model: project.model ?? options.model, effort: project.effort ?? options.effort }
   }
 
   return {
+    computer,
+    settingsOf,
     projects,
     groups,
     pinned,

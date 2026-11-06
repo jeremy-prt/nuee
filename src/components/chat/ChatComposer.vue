@@ -26,7 +26,6 @@ import { useDraftsStore } from '@/stores/drafts'
 import { useGeneralStore } from '@/stores/general'
 import type { Project } from '@/stores/projects'
 import { useShortcutsStore } from '@/stores/shortcuts'
-import { useSkillsStore } from '@/stores/skills'
 
 const props = defineProps<{
   chatId: string
@@ -53,7 +52,6 @@ const emit = defineEmits<{ send: [prompt: string, attachments: Attachment[]]; st
 const { t } = useI18n()
 const shortcuts = useShortcutsStore()
 const general = useGeneralStore()
-const skills = useSkillsStore()
 const drafts = useDraftsStore()
 const prompt = ref(drafts.get(props.chatId)?.text ?? '')
 const attachments = ref<Attachment[]>(drafts.get(props.chatId)?.attachments ?? [])
@@ -151,9 +149,6 @@ async function chooseSkill(name: string) {
 }
 
 const highlight = useTemplateRef('highlight')
-// Le skill est toujours en tête : son icône prend place dans un retrait de première ligne, posé sur les deux
-// couches pour qu'elles passent à la ligne au même endroit.
-const indent = computed(() => (skills.names.has(/^\/(\S+)/.exec(prompt.value)?.[1] ?? '') ? { textIndent: '1.125rem' } : undefined))
 const syncScroll = () => {
   if (highlight.value && input.value) highlight.value.scrollTop = input.value.scrollTop
 }
@@ -345,10 +340,9 @@ function onKeydown(event: KeyboardEvent) {
         <div
           ref="highlight"
           aria-hidden="true"
-          :style="indent"
           class="pointer-events-none absolute inset-0 overflow-hidden px-3.5 pt-3.5 pb-2 text-sm leading-5.5 wrap-break-word whitespace-pre-wrap"
         >
-          <ChatPromptText :text="prompt" fit :typing="mention?.start" />
+          <ChatPromptText :text="prompt" fit />
         </div>
         <textarea
           :id="id"
@@ -363,7 +357,6 @@ function onKeydown(event: KeyboardEvent) {
           spellcheck="false"
           writingsuggestions="false"
           :disabled="disabled"
-          :style="indent"
           class="prompt-field relative block max-h-60 min-h-18 w-full resize-none bg-transparent px-3.5 pt-3.5 pb-2 text-sm leading-5.5 select-text outline-none placeholder:truncate"
           :placeholder="t('composer.placeholder')"
           @keydown="onKeydown"

@@ -24,21 +24,22 @@ import UiMenuChoices from '@/components/ui/UiMenuChoices.vue'
 import UiMenuSub from '@/components/ui/UiMenuSub.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { menuPanel, menuTitle } from '@/components/ui/menuRow'
+import type { Branch } from '@/ipc/bindings/Branch'
 import { worktreeRefs } from '@/ipc/worktree'
 
-// Où l'agent travaille, avant le premier message : en local, ou dans un nouveau worktree dont le sous-menu demande la
-// branche de départ. Un worktree partagé ne s'ajoute que s'il est déjà choisi, ouvert depuis ses réglages.
+// Où l'agent travaille, avant le premier message : le dossier du projet (sur la branche choisie, git y bascule) ou un
+// nouveau worktree (depuis la branche choisie). Un worktree partagé ne s'ajoute que s'il est déjà choisi, ouvert depuis ses réglages.
 defineOptions({ inheritAttrs: false })
 const props = defineProps<{ chatId: string; projectPath: string; worktree: WorktreeChoice; disabled: boolean }>()
-const emit = defineEmits<{ worktree: [choice: string]; base: [branch: string | null] }>()
+const emit = defineEmits<{ worktree: [choice: string]; base: [branch: string | null]; checkout: [branch: string] }>()
 
 const { t } = useI18n()
-const branches = ref<string[]>([])
+const branches = ref<Branch[]>([])
 
 async function loadBranches(open: boolean) {
   if (!open) return
   try {
-    branches.value = (await worktreeRefs(props.chatId, props.projectPath)).branches.map((branch) => branch.name)
+    branches.value = (await worktreeRefs(props.chatId, props.projectPath)).branches
   } catch {
     branches.value = []
   }
@@ -63,22 +64,30 @@ const label = computed(() => {
   return branch ? `${place} · ${branch}` : place
 })
 
-const places = computed<UiMenuSection>(() => ({
-  id: 'place',
+const shares = computed<UiMenuSection>(() => ({
+  id: 'shared',
   value: choice.value,
-  options: [
-    { value: 'project', label: t('composer.worktree.project'), icon: Folder },
-    ...(shared.value ? [{ value: shared.value, label: sharedLabel.value, icon: GitBranch }] : []),
-  ],
+  options: shared.value ? [{ value: shared.value, label: sharedLabel.value, icon: GitBranch }] : [],
 }))
-const starts = computed<UiMenuSection>(() => {
-  const names = branches.value.length ? branches.value : props.worktree.current ? [props.worktree.current] : []
-  return {
-    id: 'base',
-    value: choice.value === 'new' ? (start.value ?? '') : '',
-    options: names.map((name) => ({ value: name, label: name, icon: GitBranch })),
-  }
-})
+const known = computed(() =>
+  branches.value.length ? branches.value : props.worktree.current ? [{ name: props.worktree.current, elsewhere: false }] : [],
+)
+// Une branche prise par un worktree n'est pas proposée au dossier du projet : git refuse de l'y extraire.
+const locals = computed<UiMenuSection>(() => ({
+  id: 'local',
+  value: choice.value === 'project' ? (props.worktree.current ?? '') : '',
+  options: known.value.filter((branch) => !branch.elsewhere).map((branch) => ({ value: branch.name, label: branch.name, icon: GitBranch })),
+}))
+const starts = computed<UiMenuSection>(() => ({
+  id: 'base',
+  value: choice.value === 'new' ? (start.value ?? '') : '',
+  options: known.value.map((branch) => ({ value: branch.name, label: branch.name, icon: GitBranch })),
+}))
+
+function chooseLocal(branch: string) {
+  emit('worktree', 'project')
+  if (branch !== props.worktree.current) emit('checkout', branch)
+}
 
 function chooseStart(branch: string) {
   emit('worktree', 'new')
@@ -102,7 +111,11 @@ function chooseStart(branch: string) {
         <DropdownMenuPortal>
           <DropdownMenuContent side="bottom" align="end" :side-offset="6" :collision-padding="8" :class="[menuPanel, 'w-60']">
             <DropdownMenuLabel :class="menuTitle">{{ t('composer.worktree.menu') }}</DropdownMenuLabel>
-            <UiMenuChoices :section="places" @select="emit('worktree', $event)" />
+            <UiMenuSub :label="t('composer.worktree.project')" :icon="Folder" :value="choice === 'project' ? (worktree.current ?? undefined) : undefined">
+              <DropdownMenuLabel :class="menuTitle">{{ t('composer.branch.label') }}</DropdownMenuLabel>
+              <UiMenuChoices :section="locals" @select="chooseLocal" />
+            </UiMenuSub>
+            <UiMenuChoices v-if="shared" :section="shares" @select="emit('worktree', $event)" />
             <UiMenuSub :label="t('composer.worktree.new')" :icon="FolderTree" :value="choice === 'new' ? (start ?? undefined) : undefined">
               <DropdownMenuLabel :class="menuTitle">{{ t('composer.branch.base') }}</DropdownMenuLabel>
               <UiMenuChoices :section="starts" @select="chooseStart" />

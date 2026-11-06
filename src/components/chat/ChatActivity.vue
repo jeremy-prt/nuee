@@ -101,7 +101,7 @@ const entries = computed(() => props.items.filter((item) => item.kind === 'tool'
         :is="items.length ? 'button' : 'div'"
         :type="items.length ? 'button' : undefined"
         class="flex max-w-full min-w-0 items-center gap-1.5 rounded-md px-2 py-1 text-start text-muted"
-        :class="{ 'hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring': items.length }"
+        :class="{ 'hover:text-content focus-visible:outline-2 focus-visible:outline-ring': items.length }"
         :aria-expanded="items.length ? open : undefined"
         @click="items.length && (open = !open)"
       >

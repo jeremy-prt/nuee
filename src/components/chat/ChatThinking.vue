@@ -27,7 +27,7 @@ const latest = computed(() => {
   <div class="text-xs">
     <button
       type="button"
-      class="flex w-full min-w-0 items-center gap-2 rounded-md px-2 py-1 text-start text-muted hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring"
+      class="flex w-full min-w-0 items-center gap-2 rounded-md px-2 py-1 text-start text-muted hover:text-content focus-visible:outline-2 focus-visible:outline-ring"
       :aria-expanded="open"
       :disabled="!text"
       @click="open = !open"

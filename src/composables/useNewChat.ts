@@ -8,6 +8,6 @@ export function useNewChat() {
 
   return function newChat(projectId = navigation.view === 'chats' ? navigation.projectId : null) {
     navigation.openChats(projectId)
-    workspace.openChat()
+    workspace.newTab()
   }
 }

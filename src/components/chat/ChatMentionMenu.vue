@@ -3,8 +3,7 @@ import { computed, ref, shallowRef, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatSuggest from '@/components/chat/ChatSuggest.vue'
 import UiFileIcon from '@/components/ui/UiFileIcon.vue'
-import { projectFiles } from '@/ipc/project'
-import { useGeneralStore } from '@/stores/general'
+import { useMentionsStore } from '@/stores/mentions'
 import { normalize } from '@/utils/search'
 
 const LIMIT = 50
@@ -14,7 +13,7 @@ const props = defineProps<{ id: string; query: string | null; chatId: string; pr
 const emit = defineEmits<{ choose: [path: string] }>()
 
 const { t } = useI18n()
-const general = useGeneralStore()
+const mentions = useMentionsStore()
 const suggest = useTemplateRef('suggest')
 // Fichiers et dossiers relatifs (un dossier finit par « / »), mis à plat au chargement : la liste suit chaque frappe.
 type Entry = { path: string; name: string; parent: string; depth: number; folder: boolean; searchName: string; searchPath: string }
@@ -32,17 +31,7 @@ function entry(path: string): Entry {
 
 async function load() {
   loaded.value = false
-  try {
-    const files = await projectFiles(props.chatId, props.project, general.mentionIgnored)
-    const folders = new Set<string>()
-    for (const file of files) {
-      for (let cut = file.indexOf('/'); cut !== -1; cut = file.indexOf('/', cut + 1)) folders.add(file.slice(0, cut + 1))
-    }
-    entries.value = [...folders, ...files].map(entry)
-  } catch {
-    // Dossier du projet effacé ou déplacé : rien à proposer.
-    entries.value = []
-  }
+  entries.value = (await mentions.load(props.chatId, props.project)).map(entry)
   loaded.value = true
 }
 

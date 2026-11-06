@@ -321,7 +321,6 @@ const projectRows: (Pick<SettingEntry, 'label' | 'hint' | 'terms' | 'keywords'> 
   { row: 'agent', label: 'settings.projects.agent', hint: 'settings.projects.defaults', keywords: ['agentDefaults'] },
   { row: 'model', label: 'settings.projects.model', hint: 'settings.projects.defaults', keywords: ['agentDefaults'] },
   { row: 'effort', label: 'settings.projects.effort', hint: 'settings.projects.defaults', keywords: ['agentDefaults'] },
-  { row: 'worktree', label: 'settings.projects.worktree', hint: 'settings.projects.worktreeHint', keywords: ['worktree'] },
   {
     row: 'worktrees',
     label: 'settings.projects.worktrees.title',

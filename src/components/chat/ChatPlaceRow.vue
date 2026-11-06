@@ -9,7 +9,7 @@ import type { Project } from '@/stores/projects'
 // Ligne au-dessus du champ d'une session vierge, comme Paseo : projet, machine, endroit et branche. Le slot
 // `project` remplace le projet affiché par un sélecteur (Nouvel espace de travail).
 defineProps<{ chatId: string; project: Project | null; worktree: WorktreeChoice | null }>()
-const emit = defineEmits<{ worktree: [choice: string]; base: [branch: string | null] }>()
+const emit = defineEmits<{ worktree: [choice: string]; base: [branch: string | null]; checkout: [branch: string] }>()
 
 const { t } = useI18n()
 
@@ -18,7 +18,7 @@ const placeBadge =
 </script>
 
 <template>
-  <div class="flex min-w-0 flex-wrap items-center gap-1 text-[13px]">
+  <div class="flex min-w-0 items-center gap-1 text-[13px]">
     <slot name="project">
       <p class="flex h-7 min-w-0 items-center gap-2 px-2 text-muted" :title="project?.path">
         <ProjectIcon v-if="project" :project="project" class="size-4 shrink-0 rounded-sm" />
@@ -29,7 +29,8 @@ const placeBadge =
     </slot>
     <ChatHostPicker :class="placeBadge" />
     <!-- Comme Paseo : où l'on travaille à gauche, l'endroit et sa branche à droite. -->
-    <div v-if="project && worktree" class="ms-auto flex min-w-0 items-center gap-1">
+    <!-- Une branche au nom long se tronque : la ligne ne passe jamais sur deux lignes. -->
+    <div v-if="project && worktree" class="ms-auto flex max-w-1/2 min-w-0 items-center gap-1">
       <ChatWorktreePicker
         :chat-id="chatId"
         :project-path="project.path"
@@ -38,6 +39,7 @@ const placeBadge =
         :class="placeBadge"
         @worktree="emit('worktree', $event)"
         @base="emit('base', $event)"
+        @checkout="emit('checkout', $event)"
       />
     </div>
   </div>

@@ -220,6 +220,24 @@ impl WorktreeService {
             .collect())
     }
 
+    /// Passe le dossier du projet sur une branche existante, avant le premier message d'une session. git refuse
+    /// seul si des modifications non commitées seraient écrasées ou si la branche est prise par un worktree.
+    pub async fn checkout(&self, project: &Path, branch: &str) -> Result<(), AppError> {
+        let git = require_git()?;
+        let branch = branch.trim();
+        valid_branch(&git, project, branch).await?;
+        let reference = format!("refs/heads/{branch}");
+        let verify = ["rev-parse", "--verify", "--quiet", reference.as_str()];
+        if run(&git, project, &verify, GIT_TIMEOUT).await.is_err() {
+            return Err(AppError::InvalidInput(format!(
+                "la branche {branch} n'existe pas"
+            )));
+        }
+        run(&git, project, &["switch", branch], GIT_TIMEOUT)
+            .await
+            .map(|_| ())
+    }
+
     /// Branches vues depuis `dir` : le dossier du projet ou l'un de ses worktrees, jamais un autre chemin.
     pub async fn refs(&self, project: &Path, dir: &Path) -> Result<BranchList, AppError> {
         let git = require_git()?;
@@ -650,6 +668,32 @@ mod tests {
         git(&repo, &["add", "."]);
         git(&repo, &["commit", "-qm", "départ"]);
         repo
+    }
+
+    #[test]
+    fn checkout_switches_the_project_folder_and_keeps_local_changes_safe() {
+        if git_binary().is_none() {
+            return;
+        }
+        let root = sandbox("checkout");
+        let repo = repo(&root);
+        let service = WorktreeService::new(root.join("worktrees"));
+        git(&repo, &["branch", "autre"]);
+
+        block_on(service.checkout(&repo, "autre")).expect("bascule");
+        assert_eq!(git(&repo, &["branch", "--show-current"]).trim(), "autre");
+
+        assert!(block_on(service.checkout(&repo, "absente")).is_err());
+        assert!(block_on(service.checkout(&repo, "-x")).is_err());
+
+        let main = git(&repo, &["rev-parse", "--abbrev-ref", "@{-1}"])
+            .trim()
+            .to_owned();
+        std::fs::write(repo.join("app/main.txt"), "sur autre").expect("modif");
+        git(&repo, &["commit", "-qam", "autre"]);
+        std::fs::write(repo.join("app/main.txt"), "en cours").expect("modif locale");
+        assert!(block_on(service.checkout(&repo, &main)).is_err());
+        assert_eq!(git(&repo, &["branch", "--show-current"]).trim(), "autre");
     }
 
     #[test]

@@ -20,6 +20,11 @@ export function worktreeRefs(chatId: string, path: string) {
   return invoke<BranchList>('worktree_refs', { chatId, path })
 }
 
+// Passe le dossier du projet sur une branche existante ; git refuse si des modifications seraient écrasées.
+export function worktreeCheckout(path: string, branch: string) {
+  return invoke<void>('worktree_checkout', { path, branch })
+}
+
 // existing : la branche existe déjà ; sinon elle part du HEAD du projet.
 export function worktreeCreate(projectId: string, path: string, branch: string, existing: boolean) {
   return invoke<Worktree>('worktree_create', { projectId, path, branch, existing })

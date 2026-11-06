@@ -54,9 +54,7 @@ const worktreeReady = computed(() => support.value === undefined || support.valu
 watch(support, (value) => value === 'ready' && project.value && worktrees.load(project.value), { immediate: true })
 const worktreeCount = computed(() => worktrees.lists[props.id]?.filter((tree) => !tree.main).length ?? 0)
 
-const worktreeHint = computed(() =>
-  worktreeReady.value ? t('settings.projects.worktreeHint') : t(`settings.projects.worktreeSupport.${support.value}`),
-)
+const worktreeHint = computed(() => t(`settings.projects.worktreeSupport.${support.value}`))
 
 // Toutes les lignes du projet, archivées comprises ; un onglet jamais servi n'est pas un chat.
 const projectChats = computed(() => workspace.tabsFor(props.id).filter((tab) => tab.started))
