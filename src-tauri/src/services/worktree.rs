@@ -61,6 +61,16 @@ pub struct Branch {
     pub elsewhere: bool,
 }
 
+/// Changements non commités d'un dossier, fichiers non suivis compris.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct WorktreeChanges {
+    pub added: u32,
+    pub removed: u32,
+    pub files: u32,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
@@ -273,6 +283,61 @@ impl WorktreeService {
         Ok(BranchList { current, branches })
     }
 
+    /// Lignes ajoutées et retirées depuis le dernier commit dans `dir` (le dossier du projet ou l'un de ses
+    /// worktrees). Hors git : rien.
+    pub async fn changes(&self, project: &Path, dir: &Path) -> Result<WorktreeChanges, AppError> {
+        let Some(git) = git_binary() else {
+            return Ok(WorktreeChanges::default());
+        };
+        let inside = ["rev-parse", "--is-inside-work-tree"];
+        if !run(&git, project, &inside, GIT_TIMEOUT)
+            .await
+            .is_ok_and(|out| out.trim() == "true")
+        {
+            return Ok(WorktreeChanges::default());
+        }
+        let dir = session_dir(&git, project, dir).await?;
+        // Tout le dépôt, même pour un projet rangé dans un sous-dossier : c'est ce que le commit emportera.
+        let top = run(&git, &dir, &["rev-parse", "--show-toplevel"], GIT_TIMEOUT).await?;
+        let dir = PathBuf::from(top.trim_end_matches(['\n', '\r']));
+        let head = ["rev-parse", "--verify", "--quiet", "HEAD^{commit}"];
+        // Dépôt sans commit : tout se compare à l'arbre vide (son empreinte dépend du format du dépôt).
+        let base = match run(&git, &dir, &head, GIT_TIMEOUT).await {
+            Ok(_) => "HEAD".to_owned(),
+            Err(_) => run(
+                &git,
+                &dir,
+                &["hash-object", "-t", "tree", "--stdin"],
+                GIT_TIMEOUT,
+            )
+            .await?
+            .trim()
+            .to_owned(),
+        };
+        let numstat = ["diff", "--numstat", "--no-renames", "-z", base.as_str()];
+        let mut changes = WorktreeChanges::default();
+        for entry in run(&git, &dir, &numstat, GIT_TIMEOUT).await?.split('\0') {
+            let mut parts = entry.splitn(3, '\t');
+            let (Some(added), Some(removed), Some(_)) = (parts.next(), parts.next(), parts.next())
+            else {
+                continue;
+            };
+            changes.files += 1;
+            changes.added += added.parse::<u32>().unwrap_or(0);
+            changes.removed += removed.parse::<u32>().unwrap_or(0);
+        }
+        let others = ["ls-files", "--others", "--exclude-standard", "-z"];
+        for path in run(&git, &dir, &others, GIT_TIMEOUT)
+            .await?
+            .split('\0')
+            .filter(|path| !path.is_empty())
+        {
+            changes.files += 1;
+            changes.added += line_count(&dir.join(path));
+        }
+        Ok(changes)
+    }
+
     /// Worktree dans `worktrees/<id du projet>/<branche nettoyée>`, sur une nouvelle branche partie du HEAD du
     /// projet ou sur une branche locale existante.
     pub async fn create(
@@ -433,6 +498,28 @@ impl WorktreeService {
         }
         Ok(self.dir.join(chat_id))
     }
+}
+
+/// Au-delà, un fichier non suivi compte pour un fichier sans ligne : un gros fichier généré ne se lit pas en entier.
+const MAX_COUNTED: u64 = 1024 * 1024;
+
+/// Lignes d'un fichier non suivi, comptées comme git le ferait ; 0 pour un binaire, un lien ou un fichier trop gros.
+fn line_count(path: &Path) -> u32 {
+    let Ok(meta) = std::fs::symlink_metadata(path) else {
+        return 0;
+    };
+    if !meta.is_file() || meta.len() > MAX_COUNTED {
+        return 0;
+    }
+    let Ok(bytes) = std::fs::read(path) else {
+        return 0;
+    };
+    if bytes.contains(&0) {
+        return 0;
+    }
+    let breaks = bytes.iter().filter(|&&byte| byte == b'\n').count();
+    let last = usize::from(bytes.last().is_some_and(|&byte| byte != b'\n'));
+    u32::try_from(breaks + last).unwrap_or(u32::MAX)
 }
 
 /// `check-ref-format --branch` développe `@{-1}` : un nom qui commence par `@` ou `-` n'en est pas un.
@@ -694,6 +781,43 @@ mod tests {
         std::fs::write(repo.join("app/main.txt"), "en cours").expect("modif locale");
         assert!(block_on(service.checkout(&repo, &main)).is_err());
         assert_eq!(git(&repo, &["branch", "--show-current"]).trim(), "autre");
+    }
+
+    #[test]
+    fn changes_count_tracked_and_untracked_lines() {
+        if git_binary().is_none() {
+            return;
+        }
+        let root = sandbox("changes");
+        let service = WorktreeService::new(root.join("worktrees"));
+        let plain = root.join("plain");
+        std::fs::create_dir_all(&plain).expect("dossier");
+        assert_eq!(
+            block_on(service.changes(&plain, &plain)).expect("hors git"),
+            WorktreeChanges::default()
+        );
+
+        let fresh = root.join("fresh");
+        std::fs::create_dir_all(&fresh).expect("dépôt vide");
+        git(&fresh, &["init", "-q"]);
+        std::fs::write(fresh.join("a.txt"), "un\ndeux").expect("fichier");
+        git(&fresh, &["add", "."]);
+        std::fs::write(fresh.join("b.txt"), "un\n").expect("non suivi");
+        let changes = block_on(service.changes(&fresh, &fresh)).expect("sans commit");
+        assert_eq!((changes.added, changes.removed, changes.files), (3, 0, 2));
+
+        let repo = repo(&root);
+        assert_eq!(
+            block_on(service.changes(&repo, &repo)).expect("propre"),
+            WorktreeChanges::default()
+        );
+        std::fs::write(repo.join("app/main.txt"), "bonjour\nà tous\n").expect("modif");
+        std::fs::write(repo.join("app/neuf.txt"), "a\nb\nc\n").expect("non suivi");
+        std::fs::write(repo.join("app/image.bin"), [0u8, 1, 2]).expect("binaire");
+        let changes = block_on(service.changes(&repo, &repo.join("app/.."))).expect("modifié");
+        assert_eq!((changes.added, changes.removed, changes.files), (5, 1, 3));
+
+        assert!(block_on(service.changes(&repo, &root)).is_err());
     }
 
     #[test]

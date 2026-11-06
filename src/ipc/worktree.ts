@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core'
 import type { BranchList } from '@/ipc/bindings/BranchList'
 import type { Worktree } from '@/ipc/bindings/Worktree'
+import type { WorktreeChanges } from '@/ipc/bindings/WorktreeChanges'
 import type { WorktreeSupport } from '@/ipc/bindings/WorktreeSupport'
 
 export function worktreeSupport(path: string) {
@@ -18,6 +19,11 @@ export function worktreeBranches(path: string) {
 // Branches vues depuis le dossier de la session (son worktree, sinon le projet `path`).
 export function worktreeRefs(chatId: string, path: string) {
   return invoke<BranchList>('worktree_refs', { chatId, path })
+}
+
+// Changements non commités du dossier de la session, fichiers non suivis compris ; zéro hors git.
+export function worktreeChanges(chatId: string, path: string) {
+  return invoke<WorktreeChanges>('worktree_changes', { chatId, path })
 }
 
 // Passe le dossier du projet sur une branche existante ; git refuse si des modifications seraient écrasées.

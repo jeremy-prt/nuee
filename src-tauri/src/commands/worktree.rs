@@ -6,7 +6,7 @@ use crate::error::AppError;
 use crate::services::agent::AgentService;
 use crate::services::chat::ChatService;
 use crate::services::worktree::{
-    BranchList, Worktree, WorktreeService, WorktreeSupport, canonical,
+    BranchList, Worktree, WorktreeChanges, WorktreeService, WorktreeSupport, canonical,
 };
 
 #[tauri::command]
@@ -61,6 +61,18 @@ pub async fn worktree_refs(
 ) -> Result<BranchList, AppError> {
     let dir = session_dir(&chats, &chat_id, &path)?;
     worktrees.refs(&PathBuf::from(path), &dir).await
+}
+
+/// Changements non commités du dossier de la session.
+#[tauri::command]
+pub async fn worktree_changes(
+    chat_id: String,
+    path: String,
+    worktrees: State<'_, WorktreeService>,
+    chats: State<'_, ChatService>,
+) -> Result<WorktreeChanges, AppError> {
+    let dir = session_dir(&chats, &chat_id, &path)?;
+    worktrees.changes(&PathBuf::from(path), &dir).await
 }
 
 /// `existing` : la branche existe déjà ; sinon elle naît du HEAD du projet.

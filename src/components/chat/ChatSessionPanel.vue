@@ -5,27 +5,31 @@ import { useI18n } from 'vue-i18n'
 import ChatDiffStat from '@/components/chat/ChatDiffStat.vue'
 import ChatSpinner from '@/components/chat/ChatSpinner.vue'
 import ProjectIcon from '@/components/project/ProjectIcon.vue'
+import UiButton from '@/components/ui/UiButton.vue'
+import UiFileIcon from '@/components/ui/UiFileIcon.vue'
 import UiSwitch from '@/components/ui/UiSwitch.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { useMachineName } from '@/composables/useMachineName'
 import { useProgressiveList } from '@/composables/useProgressiveList'
 import { useTerminalChat } from '@/composables/useTerminalChat'
 import { isAppError } from '@/ipc/agent'
+import type { WorktreeChanges } from '@/ipc/bindings/WorktreeChanges'
 import { projectReveal } from '@/ipc/project'
+import { worktreeChanges } from '@/ipc/worktree'
 import { useConversationsStore } from '@/stores/conversations'
 import { useGeneralStore } from '@/stores/general'
 import { useLayoutStore } from '@/stores/layout'
 import { useProjectsStore } from '@/stores/projects'
 import { useToastsStore } from '@/stores/toasts'
 import { useWorktreesStore } from '@/stores/worktrees'
-import { fileName, fileVerb, sessionDiff } from '@/utils/activity'
+import { fileName, fileVerb } from '@/utils/activity'
 import { contextFormats, contextRatio, contextRows } from '@/utils/context'
 import { tasksOf } from '@/utils/tasks'
 
 // Résumé de la session active, comme le volet Environnement de Claude Code : où travaille l'agent, son contexte,
 // ses tâches et ce qu'il a produit.
 const { t, locale } = useI18n()
-const { chat } = useTerminalChat()
+const { chat, place } = useTerminalChat()
 const projects = useProjectsStore()
 const worktrees = useWorktreesStore()
 const conversations = useConversationsStore()
@@ -79,27 +83,47 @@ const tasks = computed(() => tasksOf(items.value))
 const running = computed(() => tasks.value.filter(({ task }) => task.status === 'running'))
 const finished = computed(() => tasks.value.length - running.value.length)
 
-// Un fichier par ligne, dans l'ordre où l'agent l'a touché la première fois ; ses +/− s'additionnent.
+// Un fichier par ligne, dans l'ordre où l'agent l'a touché la première fois.
 const results = computed(() => {
-  const files = new Map<string, { path: string; added: number; removed: number }>()
+  const paths = new Set<string>()
   for (const item of items.value) {
     if (item.kind !== 'tool' || !item.summary || item.status === 'failed') continue
     const verb = fileVerb(item)
-    if (verb !== 'created' && verb !== 'edited') continue
-    const file = files.get(item.summary) ?? { path: item.summary, added: 0, removed: 0 }
-    file.added += item.change?.added ?? 0
-    file.removed += item.change?.removed ?? 0
-    files.set(item.summary, file)
+    if (verb === 'created' || verb === 'edited') paths.add(item.summary)
   }
   const root = folder.value ? `${folder.value.replace(/[\\/]+$/, '')}/` : null
-  return [...files.values()].map((file) => {
-    const relative = root && file.path.startsWith(root) ? file.path.slice(root.length) : file.path
+  return [...paths].map((path) => {
+    const relative = root && path.startsWith(root) ? path.slice(root.length) : path
     const name = fileName(relative)
-    return { ...file, name, dir: relative.slice(0, -name.length).replace(/[\\/]+$/, '') }
+    return { path, name, dir: relative.slice(0, -name.length).replace(/[\\/]+$/, '') }
   })
 })
 const { shown, more, limit, sentinel } = useProgressiveList(results, () => chat.value?.id)
-const diff = computed(() => sessionDiff(items.value))
+
+// État git réel du dossier de la session, relu à chaque fin de tour : l'agent a pu commiter ou modifier.
+const phase = computed(() => (chat.value ? conversations.find(chat.value.id)?.phase : undefined))
+const changes = ref<WorktreeChanges | null>(null)
+let request = 0
+async function loadChanges() {
+  const id = ++request
+  const tab = chat.value
+  if (!tab?.started || !project.value) return (changes.value = null)
+  try {
+    const result = await worktreeChanges(tab.id, project.value.path)
+    if (id === request) changes.value = result
+  } catch {
+    if (id === request) changes.value = null
+  }
+}
+watch([() => chat.value?.id, () => chat.value?.started, () => project.value?.path, folder], loadChanges, { immediate: true })
+watch(phase, (value, previous) => {
+  if (value === 'idle' && previous && previous !== 'idle') loadChanges()
+})
+
+function commit() {
+  if (!chat.value || !place.value || phase.value !== 'idle') return
+  conversations.send(chat.value.id, place.value, t('dock.session.commitPrompt'), [])
+}
 
 async function reveal() {
   if (!folder.value) return
@@ -217,9 +241,9 @@ const empty = `${row} text-muted`
       </h3>
       <template v-if="!collapsed.results">
         <button v-for="file in shown" :key="file.path" type="button" :class="action" :title="file.path" @click="layout.showView('changes')">
+          <UiFileIcon :name="file.name" class="size-4 shrink-0" />
           <span class="shrink-0">{{ file.name }}</span>
           <span class="min-w-0 flex-1 truncate text-muted">{{ file.dir }}</span>
-          <ChatDiffStat :added="file.added" :removed="file.removed" plain class="text-xs" />
         </button>
         <span v-if="more" :key="limit" ref="sentinel" class="h-px" aria-hidden="true" />
         <p v-if="!results.length" :class="empty">{{ t('dock.session.noResults') }}</p>
@@ -233,11 +257,14 @@ const empty = `${row} text-muted`
         </button>
       </h3>
       <template v-if="!collapsed.changes">
-        <button v-if="diff.added || diff.removed" type="button" :class="action" @click="layout.showView('changes')">
-          <span class="flex-1">{{ t('dock.session.lines') }}</span>
-          <ChatDiffStat :added="diff.added" :removed="diff.removed" plain class="text-xs" />
-          <ChevronRight class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
-        </button>
+        <template v-if="changes?.files">
+          <button type="button" :class="action" @click="layout.showView('changes')">
+            <span class="flex-1 truncate">{{ t('dock.session.files', { n: changes.files }, changes.files) }}</span>
+            <ChatDiffStat :added="changes.added" :removed="changes.removed" plain class="text-xs" />
+            <ChevronRight class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
+          </button>
+          <UiButton size="sm" class="mx-2 mt-1" :disabled="phase !== 'idle'" @click="commit">{{ t('dock.session.commit') }}</UiButton>
+        </template>
         <p v-else :class="empty">{{ t('dock.session.noChanges') }}</p>
       </template>
     </section>
