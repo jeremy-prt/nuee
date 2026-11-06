@@ -13,11 +13,13 @@ import { useServerSetup } from '@/composables/useServerSetup'
 import { useTerminalChat } from '@/composables/useTerminalChat'
 import type { ServerInfo } from '@/ipc/bindings/ServerInfo'
 import type { ServerStatus } from '@/ipc/bindings/ServerStatus'
+import { useConversationsStore } from '@/stores/conversations'
 import { useServersStore } from '@/stores/servers'
 
 // Menu Serveurs de l'en-tête du volet Navigateur, comme « Dev servers » dans l'app Claude.
 const { t } = useI18n()
 const servers = useServersStore()
+const conversations = useConversationsStore()
 const { chat, place } = useTerminalChat()
 const { list, ask } = useServerSetup()
 
@@ -40,8 +42,14 @@ function refresh() {
   if (chat.value && place.value) servers.refresh(chat.value.id, place.value).catch(() => {})
 }
 
-// Relu à l'ouverture du menu : le fichier a pu changer entre-temps.
+// Relu à l'ouverture du menu et en fin de tour : l'agent a pu écrire le fichier entre-temps.
 watch(() => chat.value?.id, refresh, { immediate: true })
+watch(
+  () => (chat.value ? conversations.find(chat.value.id)?.phase : undefined),
+  (phase, previous) => {
+    if (phase === 'idle' && previous && previous !== 'idle') refresh()
+  },
+)
 
 function onOpen(open: boolean) {
   if (open) refresh()
