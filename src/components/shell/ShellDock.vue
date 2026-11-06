@@ -2,6 +2,7 @@
 import { Plus, X } from '@/components/ui/icons'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import ChatChangesPanel from '@/components/chat/ChatChangesPanel.vue'
 import ChatSessionPanel from '@/components/chat/ChatSessionPanel.vue'
 import ChatTasks from '@/components/chat/ChatTasks.vue'
 import TerminalPanel from '@/components/terminal/TerminalPanel.vue'
@@ -45,6 +46,7 @@ function newTerminal() {
     </div>
     <ChatSessionPanel v-if="view === 'session'" />
     <ChatTasks v-else-if="view === 'tasks'" />
+    <ChatChangesPanel v-else-if="view === 'changes'" />
     <TerminalPanel v-else-if="view === 'terminal'" />
     <div v-else class="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
       <component :is="dockIcons[view]" class="size-6 text-muted" aria-hidden="true" />

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { reactive, toRefs, watch } from 'vue'
+import { reactive, ref, toRefs, watch } from 'vue'
 
 export type DockView = 'session' | 'tasks' | 'terminal' | 'changes' | 'browser' | 'files'
 
@@ -123,9 +123,29 @@ export const useLayoutStore = defineStore('layout', () => {
     else showView(view)
   }
 
+  // Fichier à déplier dans le volet Modifications (chemin absolu), hors de l'état enregistré.
+  const changesFocus = ref<string | null>(null)
+
+  function showChanges(path: string | null = null) {
+    changesFocus.value = path
+    showView('changes')
+  }
+
   function reset() {
     Object.assign(state, defaults())
   }
 
-  return { ...toRefs(state), toggleRail, togglePanel, isShown, toggleRight, showView, hideView, toggleView, reset }
+  return {
+    ...toRefs(state),
+    changesFocus,
+    toggleRail,
+    togglePanel,
+    isShown,
+    toggleRight,
+    showView,
+    showChanges,
+    hideView,
+    toggleView,
+    reset,
+  }
 })

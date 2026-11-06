@@ -1,5 +1,7 @@
 import { invoke } from '@tauri-apps/api/core'
 import type { BranchList } from '@/ipc/bindings/BranchList'
+import type { ChangedFiles } from '@/ipc/bindings/ChangedFiles'
+import type { FileDiff } from '@/ipc/bindings/FileDiff'
 import type { Worktree } from '@/ipc/bindings/Worktree'
 import type { WorktreeChanges } from '@/ipc/bindings/WorktreeChanges'
 import type { WorktreeSupport } from '@/ipc/bindings/WorktreeSupport'
@@ -24,6 +26,16 @@ export function worktreeRefs(chatId: string, path: string) {
 // Changements non commités du dossier de la session, fichiers non suivis compris ; zéro hors git.
 export function worktreeChanges(chatId: string, path: string) {
   return invoke<WorktreeChanges>('worktree_changes', { chatId, path })
+}
+
+// Fichiers non commités du dossier de la session, chemins relatifs à `root` ; null hors git.
+export function worktreeChangedFiles(chatId: string, path: string) {
+  return invoke<ChangedFiles | null>('worktree_changed_files', { chatId, path })
+}
+
+// Diff d'un fichier de cette liste ; Rust refuse tout autre chemin.
+export function worktreeFileDiff(chatId: string, path: string, file: string) {
+  return invoke<FileDiff>('worktree_file_diff', { chatId, path, file })
 }
 
 // Passe le dossier du projet sur une branche existante ; git refuse si des modifications seraient écrasées.

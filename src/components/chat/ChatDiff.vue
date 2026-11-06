@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-const props = defineProps<{ patch: string }>()
+// unbounded : sans hauteur maximale, quand le conteneur défile déjà (volet Modifications).
+const props = defineProps<{ patch: string; unbounded?: boolean }>()
 
 type Line = { kind: 'hunk' | 'add' | 'del' | 'same'; text: string; old: number | null; new: number | null }
 
@@ -32,7 +33,7 @@ const SIGN = { add: '+', del: '−', same: ' ', hunk: '' }
 </script>
 
 <template>
-  <div class="max-h-80 overflow-auto rounded-md border border-stroke font-mono text-[11px] leading-[1.6] select-text">
+  <div class="overflow-auto rounded-md border border-stroke font-mono text-[11px] leading-[1.6] select-text" :class="{ 'max-h-80': !unbounded }">
     <table class="w-full border-collapse">
       <tbody>
         <tr v-for="(line, index) in lines" :key="index" :class="ROW[line.kind]">

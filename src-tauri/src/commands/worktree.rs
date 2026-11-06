@@ -6,7 +6,8 @@ use crate::error::AppError;
 use crate::services::agent::AgentService;
 use crate::services::chat::ChatService;
 use crate::services::worktree::{
-    BranchList, Worktree, WorktreeChanges, WorktreeService, WorktreeSupport, canonical,
+    BranchList, ChangedFiles, FileDiff, Worktree, WorktreeChanges, WorktreeService,
+    WorktreeSupport, canonical,
 };
 
 #[tauri::command]
@@ -73,6 +74,31 @@ pub async fn worktree_changes(
 ) -> Result<WorktreeChanges, AppError> {
     let dir = session_dir(&chats, &chat_id, &path)?;
     worktrees.changes(&PathBuf::from(path), &dir).await
+}
+
+/// Fichiers non commités du dossier de la session ; `None` hors git.
+#[tauri::command]
+pub async fn worktree_changed_files(
+    chat_id: String,
+    path: String,
+    worktrees: State<'_, WorktreeService>,
+    chats: State<'_, ChatService>,
+) -> Result<Option<ChangedFiles>, AppError> {
+    let dir = session_dir(&chats, &chat_id, &path)?;
+    worktrees.changed_files(&PathBuf::from(path), &dir).await
+}
+
+/// Diff d'un fichier de la liste précédente, chemin relatif à la racine du dépôt.
+#[tauri::command]
+pub async fn worktree_file_diff(
+    chat_id: String,
+    path: String,
+    file: String,
+    worktrees: State<'_, WorktreeService>,
+    chats: State<'_, ChatService>,
+) -> Result<FileDiff, AppError> {
+    let dir = session_dir(&chats, &chat_id, &path)?;
+    worktrees.file_diff(&PathBuf::from(path), &dir, &file).await
 }
 
 /// `existing` : la branche existe déjà ; sinon elle naît du HEAD du projet.

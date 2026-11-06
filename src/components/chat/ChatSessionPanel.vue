@@ -10,6 +10,7 @@ import UiFileIcon from '@/components/ui/UiFileIcon.vue'
 import UiSwitch from '@/components/ui/UiSwitch.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { useMachineName } from '@/composables/useMachineName'
+import { useCommitRequest } from '@/composables/useCommitRequest'
 import { useProgressiveList } from '@/composables/useProgressiveList'
 import { useTerminalChat } from '@/composables/useTerminalChat'
 import { isAppError } from '@/ipc/agent'
@@ -29,7 +30,8 @@ import { tasksOf } from '@/utils/tasks'
 // Résumé de la session active, comme le volet Environnement de Claude Code : où travaille l'agent, son contexte,
 // ses tâches et ce qu'il a produit.
 const { t, locale } = useI18n()
-const { chat, place } = useTerminalChat()
+const { chat } = useTerminalChat()
+const { phase, commit } = useCommitRequest()
 const projects = useProjectsStore()
 const worktrees = useWorktreesStore()
 const conversations = useConversationsStore()
@@ -101,7 +103,6 @@ const results = computed(() => {
 const { shown, more, limit, sentinel } = useProgressiveList(results, () => chat.value?.id)
 
 // État git réel du dossier de la session, relu à chaque fin de tour : l'agent a pu commiter ou modifier.
-const phase = computed(() => (chat.value ? conversations.find(chat.value.id)?.phase : undefined))
 const changes = ref<WorktreeChanges | null>(null)
 let request = 0
 async function loadChanges() {
@@ -119,11 +120,6 @@ watch([() => chat.value?.id, () => chat.value?.started, () => project.value?.pat
 watch(phase, (value, previous) => {
   if (value === 'idle' && previous && previous !== 'idle') loadChanges()
 })
-
-function commit() {
-  if (!chat.value || !place.value || phase.value !== 'idle') return
-  conversations.send(chat.value.id, place.value, t('dock.session.commitPrompt'), [])
-}
 
 async function reveal() {
   if (!folder.value) return
@@ -240,7 +236,7 @@ const empty = `${row} text-muted`
         </button>
       </h3>
       <template v-if="!collapsed.results">
-        <button v-for="file in shown" :key="file.path" type="button" :class="action" :title="file.path" @click="layout.showView('changes')">
+        <button v-for="file in shown" :key="file.path" type="button" :class="action" :title="file.path" @click="layout.showChanges(file.path)">
           <UiFileIcon :name="file.name" class="size-4 shrink-0" />
           <span class="shrink-0">{{ file.name }}</span>
           <span class="min-w-0 flex-1 truncate text-muted">{{ file.dir }}</span>
@@ -258,7 +254,7 @@ const empty = `${row} text-muted`
       </h3>
       <template v-if="!collapsed.changes">
         <template v-if="changes?.files">
-          <button type="button" :class="action" @click="layout.showView('changes')">
+          <button type="button" :class="action" @click="layout.showChanges()">
             <span class="flex-1 truncate">{{ t('dock.session.files', { n: changes.files }, changes.files) }}</span>
             <ChatDiffStat :added="changes.added" :removed="changes.removed" plain class="text-xs" />
             <ChevronRight class="size-3.5 shrink-0 text-muted" aria-hidden="true" />

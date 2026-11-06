@@ -71,6 +71,51 @@ pub struct WorktreeChanges {
     pub files: u32,
 }
 
+/// État d'un fichier par rapport au dernier commit.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum ChangeStatus {
+    Added,
+    Modified,
+    Deleted,
+    Renamed,
+    Untracked,
+}
+
+/// Un fichier non commité, chemin relatif à la racine du dépôt.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct ChangedFile {
+    pub path: String,
+    /// Ancien chemin d'un fichier renommé.
+    pub old_path: Option<String>,
+    pub status: ChangeStatus,
+    pub added: u32,
+    pub removed: u32,
+    pub binary: bool,
+}
+
+/// Fichiers non commités du dépôt, triés par chemin ; `root` : la racine du dépôt, d'où partent les chemins.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct ChangedFiles {
+    pub root: String,
+    pub files: Vec<ChangedFile>,
+}
+
+/// Diff unifié d'un fichier, à partir du premier `@@` ; vide pour un binaire ou un simple changement de droits.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct FileDiff {
+    pub patch: String,
+    /// Au-delà de `MAX_DIFF` : rien n'est envoyé.
+    pub too_large: bool,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
@@ -286,56 +331,95 @@ impl WorktreeService {
     /// Lignes ajoutées et retirées depuis le dernier commit dans `dir` (le dossier du projet ou l'un de ses
     /// worktrees). Hors git : rien.
     pub async fn changes(&self, project: &Path, dir: &Path) -> Result<WorktreeChanges, AppError> {
+        let files = self.changed_files(project, dir).await?;
+        let mut changes = WorktreeChanges::default();
+        for file in files.iter().flat_map(|files| &files.files) {
+            changes.files += 1;
+            changes.added += file.added;
+            changes.removed += file.removed;
+        }
+        Ok(changes)
+    }
+
+    /// Fichiers non commités de `dir`, non suivis compris. `None` hors git.
+    pub async fn changed_files(
+        &self,
+        project: &Path,
+        dir: &Path,
+    ) -> Result<Option<ChangedFiles>, AppError> {
         let Some(git) = git_binary() else {
-            return Ok(WorktreeChanges::default());
+            return Ok(None);
         };
         let inside = ["rev-parse", "--is-inside-work-tree"];
         if !run(&git, project, &inside, GIT_TIMEOUT)
             .await
             .is_ok_and(|out| out.trim() == "true")
         {
-            return Ok(WorktreeChanges::default());
+            return Ok(None);
         }
-        let dir = session_dir(&git, project, dir).await?;
-        // Tout le dépôt, même pour un projet rangé dans un sous-dossier : c'est ce que le commit emportera.
-        let top = run(&git, &dir, &["rev-parse", "--show-toplevel"], GIT_TIMEOUT).await?;
-        let dir = PathBuf::from(top.trim_end_matches(['\n', '\r']));
-        let head = ["rev-parse", "--verify", "--quiet", "HEAD^{commit}"];
-        // Dépôt sans commit : tout se compare à l'arbre vide (son empreinte dépend du format du dépôt).
-        let base = match run(&git, &dir, &head, GIT_TIMEOUT).await {
-            Ok(_) => "HEAD".to_owned(),
-            Err(_) => run(
-                &git,
-                &dir,
-                &["hash-object", "-t", "tree", "--stdin"],
-                GIT_TIMEOUT,
-            )
-            .await?
-            .trim()
-            .to_owned(),
-        };
-        let numstat = ["diff", "--numstat", "--no-renames", "-z", base.as_str()];
-        let mut changes = WorktreeChanges::default();
-        for entry in run(&git, &dir, &numstat, GIT_TIMEOUT).await?.split('\0') {
-            let mut parts = entry.splitn(3, '\t');
-            let (Some(added), Some(removed), Some(_)) = (parts.next(), parts.next(), parts.next())
-            else {
-                continue;
-            };
-            changes.files += 1;
-            changes.added += added.parse::<u32>().unwrap_or(0);
-            changes.removed += removed.parse::<u32>().unwrap_or(0);
-        }
-        let others = ["ls-files", "--others", "--exclude-standard", "-z"];
-        for path in run(&git, &dir, &others, GIT_TIMEOUT)
-            .await?
-            .split('\0')
-            .filter(|path| !path.is_empty())
+        let (top, base) = repo_base(&git, project, dir).await?;
+        let files = collect(&git, &top, &base).await?;
+        Ok(Some(ChangedFiles {
+            root: top.to_string_lossy().into_owned(),
+            files,
+        }))
+    }
+
+    /// Diff d'un seul fichier de la liste des changements : jamais un autre chemin.
+    pub async fn file_diff(
+        &self,
+        project: &Path,
+        dir: &Path,
+        file: &str,
+    ) -> Result<FileDiff, AppError> {
+        let path = Path::new(file);
+        if file.is_empty()
+            || !path
+                .components()
+                .all(|part| matches!(part, Component::Normal(_)))
         {
-            changes.files += 1;
-            changes.added += line_count(&dir.join(path));
+            return Err(AppError::InvalidInput("chemin de fichier invalide".into()));
         }
-        Ok(changes)
+        let git = require_git()?;
+        let (top, base) = repo_base(&git, project, dir).await?;
+        let entry = collect(&git, &top, &base)
+            .await?
+            .into_iter()
+            .find(|entry| entry.path == file)
+            .ok_or_else(|| {
+                AppError::InvalidInput(format!("{file} ne fait pas partie des modifications"))
+            })?;
+        if entry.binary {
+            return Ok(FileDiff {
+                patch: String::new(),
+                too_large: false,
+            });
+        }
+        if entry.status == ChangeStatus::Untracked {
+            return Ok(untracked_diff(&top.join(path)));
+        }
+        let mut args = vec![
+            "diff".to_owned(),
+            "--no-ext-diff".to_owned(),
+            "--no-color".to_owned(),
+            "-M".to_owned(),
+            base,
+            "--".to_owned(),
+        ];
+        args.extend(entry.old_path.iter().map(|old| format!(":(literal){old}")));
+        args.push(format!(":(literal){}", entry.path));
+        let args: Vec<&str> = args.iter().map(String::as_str).collect();
+        let out = run(&git, &top, &args, GIT_TIMEOUT).await?;
+        if out.len() > MAX_DIFF {
+            return Ok(FileDiff {
+                patch: String::new(),
+                too_large: true,
+            });
+        }
+        Ok(FileDiff {
+            patch: hunks(&out),
+            too_large: false,
+        })
     }
 
     /// Worktree dans `worktrees/<id du projet>/<branche nettoyée>`, sur une nouvelle branche partie du HEAD du
@@ -503,23 +587,159 @@ impl WorktreeService {
 /// Au-delà, un fichier non suivi compte pour un fichier sans ligne : un gros fichier généré ne se lit pas en entier.
 const MAX_COUNTED: u64 = 1024 * 1024;
 
-/// Lignes d'un fichier non suivi, comptées comme git le ferait ; 0 pour un binaire, un lien ou un fichier trop gros.
-fn line_count(path: &Path) -> u32 {
-    let Ok(meta) = std::fs::symlink_metadata(path) else {
-        return 0;
-    };
-    if !meta.is_file() || meta.len() > MAX_COUNTED {
-        return 0;
+/// Au-delà, le diff d'un fichier n'est pas envoyé : la webview ramerait à l'afficher.
+const MAX_DIFF: usize = 512 * 1024;
+
+/// Contenu d'un fichier régulier d'au plus `max` octets ; `None` pour un lien, un dossier ou un fichier plus gros.
+fn small_file(path: &Path, max: u64) -> Option<Vec<u8>> {
+    let meta = std::fs::symlink_metadata(path).ok()?;
+    if !meta.is_file() || meta.len() > max {
+        return None;
     }
-    let Ok(bytes) = std::fs::read(path) else {
-        return 0;
-    };
-    if bytes.contains(&0) {
-        return 0;
-    }
+    std::fs::read(path).ok()
+}
+
+/// Lignes comptées comme git le ferait.
+fn lines_of(bytes: &[u8]) -> u32 {
     let breaks = bytes.iter().filter(|&&byte| byte == b'\n').count();
     let last = usize::from(bytes.last().is_some_and(|&byte| byte != b'\n'));
     u32::try_from(breaks + last).unwrap_or(u32::MAX)
+}
+
+/// Un fichier non suivi tout en lignes ajoutées, comme `git diff --no-index /dev/null`.
+fn untracked_diff(path: &Path) -> FileDiff {
+    let too_large = std::fs::symlink_metadata(path).is_ok_and(|meta| meta.len() > MAX_DIFF as u64);
+    let text = small_file(path, MAX_DIFF as u64)
+        .filter(|bytes| !bytes.contains(&0))
+        .map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
+        .unwrap_or_default();
+    if text.is_empty() {
+        return FileDiff {
+            patch: String::new(),
+            too_large,
+        };
+    }
+    let lines: Vec<&str> = text.lines().collect();
+    let patch = std::iter::once(format!("@@ -0,0 +1,{} @@", lines.len()))
+        .chain(lines.iter().map(|line| format!("+{line}")))
+        .collect::<Vec<_>>()
+        .join("\n");
+    FileDiff { patch, too_large }
+}
+
+/// Le diff sans ses en-têtes (`diff --git`, `---`, `+++`, que le rendu prendrait pour des lignes) ni les
+/// « \\ No newline at end of file ».
+fn hunks(out: &str) -> String {
+    let Some(start) = out
+        .find("\n@@ ")
+        .map(|at| at + 1)
+        .or_else(|| out.starts_with("@@ ").then_some(0))
+    else {
+        return String::new();
+    };
+    out[start..]
+        .lines()
+        .filter(|line| !line.starts_with('\\'))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// Racine du dépôt vue depuis `dir` et la référence à laquelle comparer : HEAD, ou l'arbre vide d'un dépôt sans
+/// commit (son empreinte dépend du format du dépôt).
+async fn repo_base(git: &Path, project: &Path, dir: &Path) -> Result<(PathBuf, String), AppError> {
+    let dir = session_dir(git, project, dir).await?;
+    // Tout le dépôt, même pour un projet rangé dans un sous-dossier : c'est ce que le commit emportera.
+    let top = run(git, &dir, &["rev-parse", "--show-toplevel"], GIT_TIMEOUT).await?;
+    let top = PathBuf::from(top.trim_end_matches(['\n', '\r']));
+    let head = ["rev-parse", "--verify", "--quiet", "HEAD^{commit}"];
+    let base = match run(git, &top, &head, GIT_TIMEOUT).await {
+        Ok(_) => "HEAD".to_owned(),
+        Err(_) => run(
+            git,
+            &top,
+            &["hash-object", "-t", "tree", "--stdin"],
+            GIT_TIMEOUT,
+        )
+        .await?
+        .trim()
+        .to_owned(),
+    };
+    Ok((top, base))
+}
+
+/// Fichiers suivis qui diffèrent de `base` (renommages repérés), puis fichiers non suivis.
+async fn collect(git: &Path, top: &Path, base: &str) -> Result<Vec<ChangedFile>, AppError> {
+    let names = ["diff", "--name-status", "-M", "-z", base];
+    let mut files = Vec::new();
+    let out = run(git, top, &names, GIT_TIMEOUT).await?;
+    let mut fields = out.split('\0');
+    while let Some(code) = fields.next().filter(|code| !code.is_empty()) {
+        let (status, old_path) = match code.as_bytes()[0] {
+            b'A' => (ChangeStatus::Added, None),
+            b'D' => (ChangeStatus::Deleted, None),
+            b'R' => (ChangeStatus::Renamed, fields.next().map(str::to_owned)),
+            // Une copie (`C`) cite aussi sa source.
+            b'C' => {
+                fields.next();
+                (ChangeStatus::Added, None)
+            }
+            _ => (ChangeStatus::Modified, None),
+        };
+        let Some(path) = fields.next() else { break };
+        files.push(ChangedFile {
+            path: path.to_owned(),
+            old_path,
+            status,
+            added: 0,
+            removed: 0,
+            binary: false,
+        });
+    }
+
+    // Avec -z, un renommage s'écrit `ajoutées\tretirées\t\0ancien\0nouveau\0`.
+    let numstat = ["diff", "--numstat", "-M", "-z", base];
+    let out = run(git, top, &numstat, GIT_TIMEOUT).await?;
+    let mut fields = out.split('\0');
+    while let Some(entry) = fields.next().filter(|entry| !entry.is_empty()) {
+        let mut parts = entry.splitn(3, '\t');
+        let (Some(added), Some(removed), Some(path)) = (parts.next(), parts.next(), parts.next())
+        else {
+            continue;
+        };
+        let path = if path.is_empty() {
+            fields.next();
+            fields.next().unwrap_or_default()
+        } else {
+            path
+        };
+        if let Some(file) = files.iter_mut().find(|file| file.path == path) {
+            file.binary = added == "-";
+            file.added = added.parse().unwrap_or(0);
+            file.removed = removed.parse().unwrap_or(0);
+        }
+    }
+
+    let others = ["ls-files", "--others", "--exclude-standard", "-z"];
+    for path in run(git, top, &others, GIT_TIMEOUT)
+        .await?
+        .split('\0')
+        .filter(|path| !path.is_empty())
+    {
+        let bytes = small_file(&top.join(path), MAX_COUNTED);
+        let binary = bytes.as_ref().is_some_and(|bytes| bytes.contains(&0));
+        files.push(ChangedFile {
+            path: path.to_owned(),
+            old_path: None,
+            status: ChangeStatus::Untracked,
+            added: bytes
+                .filter(|_| !binary)
+                .map_or(0, |bytes| lines_of(&bytes)),
+            removed: 0,
+            binary,
+        });
+    }
+    files.sort_by(|a, b| a.path.cmp(&b.path));
+    Ok(files)
 }
 
 /// `check-ref-format --branch` développe `@{-1}` : un nom qui commence par `@` ou `-` n'en est pas un.
@@ -818,6 +1038,77 @@ mod tests {
         assert_eq!((changes.added, changes.removed, changes.files), (5, 1, 3));
 
         assert!(block_on(service.changes(&repo, &root)).is_err());
+    }
+
+    #[test]
+    fn changed_files_list_each_file_and_give_its_diff() {
+        if git_binary().is_none() {
+            return;
+        }
+        let root = sandbox("files");
+        let service = WorktreeService::new(root.join("worktrees"));
+        let plain = root.join("plain");
+        std::fs::create_dir_all(&plain).expect("dossier");
+        assert_eq!(
+            block_on(service.changed_files(&plain, &plain)).expect("hors git"),
+            None
+        );
+
+        let repo = repo(&root);
+        std::fs::write(repo.join("app/old.txt"), "garde\n").expect("fichier");
+        std::fs::write(repo.join("app/gone.txt"), "a\nb\n").expect("fichier");
+        git(&repo, &["add", "."]);
+        git(&repo, &["commit", "-qm", "plus"]);
+        let clean = block_on(service.changed_files(&repo, &repo))
+            .expect("propre")
+            .expect("dépôt");
+        assert!(clean.files.is_empty());
+
+        std::fs::write(repo.join("app/main.txt"), "bonjour\n").expect("modif");
+        std::fs::write(repo.join("app/neuf.txt"), "a\nb\n").expect("non suivi");
+        std::fs::remove_file(repo.join("app/gone.txt")).expect("suppression");
+        git(&repo, &["mv", "app/old.txt", "app/new.txt"]);
+        let listed = block_on(service.changed_files(&repo, &repo))
+            .expect("modifié")
+            .expect("dépôt");
+        assert_eq!(listed.root, canonical(&repo));
+        let summary: Vec<_> = listed
+            .files
+            .iter()
+            .map(|file| (file.path.as_str(), file.status, file.added, file.removed))
+            .collect();
+        assert_eq!(
+            summary,
+            [
+                ("app/gone.txt", ChangeStatus::Deleted, 0, 2),
+                ("app/main.txt", ChangeStatus::Modified, 1, 1),
+                ("app/neuf.txt", ChangeStatus::Untracked, 2, 0),
+                ("app/new.txt", ChangeStatus::Renamed, 0, 0),
+            ]
+        );
+        assert_eq!(listed.files[3].old_path.as_deref(), Some("app/old.txt"));
+
+        let diff = block_on(service.file_diff(&repo, &repo, "app/main.txt")).expect("diff");
+        assert_eq!(diff.patch, "@@ -1 +1 @@\n-salut\n+bonjour");
+        let diff = block_on(service.file_diff(&repo, &repo, "app/neuf.txt")).expect("non suivi");
+        assert_eq!(diff.patch, "@@ -0,0 +1,2 @@\n+a\n+b");
+        let diff = block_on(service.file_diff(&repo, &repo, "app/gone.txt")).expect("supprimé");
+        assert_eq!(diff.patch, "@@ -1,2 +0,0 @@\n-a\n-b");
+
+        std::fs::write(root.join("secret.txt"), "non").expect("hors dépôt");
+        for path in [
+            "../secret.txt",
+            "app/../app/main.txt",
+            "/etc/hosts",
+            "app/old.txt",
+            "",
+        ] {
+            assert!(
+                block_on(service.file_diff(&repo, &repo, path)).is_err(),
+                "{path}"
+            );
+        }
+        assert!(block_on(service.file_diff(&repo, &root, "app/main.txt")).is_err());
     }
 
     #[test]
