@@ -9,7 +9,7 @@ import UiSwitch from '@/components/ui/UiSwitch.vue'
 import { useRefocus } from '@/composables/useRefocus'
 import { useNavigationStore } from '@/stores/navigation'
 import { type McpServer, useSkillsStore } from '@/stores/skills'
-import { mcpStatus } from '@/utils/mcp'
+import { mcpLabel, mcpStatus } from '@/utils/mcp'
 
 const props = defineProps<{ server: McpServer }>()
 
@@ -23,15 +23,16 @@ const on = computed(() => store.serverOn(props.server))
 const status = computed(() => mcpStatus(props.server, on.value, t))
 
 const origin = computed(() => {
-  const { scope, transport } = props.server
-  if (!transport) return null
+  const { scope, transport, connector } = props.server
+  if (!transport || connector) return null
   return scope === 'plugin' ? `plugin · ${transport}` : transport
 })
 const action = computed(() => on.value && (props.server.status === 'needsAuth' || props.server.status === 'failed'))
 
 // Connecté, le bouton disparaît : validé au clavier, le focus passe au bouton de réglages de la ligne.
 function act(event: MouseEvent) {
-  const { name, status } = props.server
+  const { name, status, connector } = props.server
+  if (connector) return store.openConnectors()
   refocusAfter(event, () => (status === 'needsAuth' ? store.connect(name) : store.reconnect(name)), `[data-customize="mcp:${CSS.escape(name)}"]`)
 }
 </script>
@@ -41,7 +42,7 @@ function act(event: MouseEvent) {
     <div class="min-w-0 flex-1 transition-opacity motion-reduce:transition-none" :class="{ 'opacity-40': !on }">
       <p class="flex min-w-0 items-center gap-2">
         <SettingsMcpLogo :name="server.name" />
-        <span class="truncate text-sm font-medium" :title="server.target || undefined">{{ server.name }}</span>
+        <span class="truncate text-sm font-medium" :title="server.target || undefined">{{ mcpLabel(server.name) }}</span>
       </p>
       <p :id="hintId" class="line-clamp-2 ps-6 text-xs/relaxed wrap-break-word text-muted" :title="server.error ?? (server.target || undefined)">
         <span :class="{ 'text-danger': on && server.status === 'failed' }">{{ status.text }}</span>
@@ -49,7 +50,7 @@ function act(event: MouseEvent) {
       </p>
     </div>
     <template v-if="action">
-      <UiIconButton v-if="store.logins.has(server.name)" :label="t('settings.skills.cancelConnect', { name: server.name })" @click="store.connect(server.name)">
+      <UiIconButton v-if="!server.connector && store.logins.has(server.name)" :label="t('settings.skills.cancelConnect', { name: server.name })" @click="store.connect(server.name)">
         <X class="size-3.5" aria-hidden="true" />
       </UiIconButton>
       <UiButton
@@ -58,10 +59,11 @@ function act(event: MouseEvent) {
         :aria-describedby="hintId"
         @click="act($event)"
       >
-        {{ server.status === 'needsAuth' ? t('settings.skills.connect') : t('settings.skills.reconnect') }}
+        {{ server.status === 'needsAuth' || server.connector ? t('settings.skills.connect') : t('settings.skills.reconnect') }}
       </UiButton>
     </template>
     <UiIconButton
+      v-if="!server.connector"
       :label="t('settings.skills.configure', { name: server.name })"
       :data-customize="`mcp:${server.name}`"
       @click="navigation.showSettingsDetail(`mcp:${server.name}`)"
@@ -71,7 +73,7 @@ function act(event: MouseEvent) {
     <UiSwitch
       :model-value="on"
       :disabled="store.serverLocked(server) || store.pending.has(server.name)"
-      :label="t('settings.skills.use', { name: server.name })"
+      :label="t('settings.skills.use', { name: mcpLabel(server.name) })"
       :aria-describedby="hintId"
       @update:model-value="store.setServer(server, $event)"
     />

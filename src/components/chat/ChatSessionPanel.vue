@@ -46,10 +46,12 @@ const general = useGeneralStore()
 const skills = useSkillsStore()
 
 // Sections repliées, mémorisées en local : simple confort, rien de grave si la lecture échoue.
-const COLLAPSED_KEY = 'nuee.sessionPanel.v1'
+const COLLAPSED_KEY = 'nuee.sessionPanel.v2'
 const sections = ['environment', 'context', 'connectors', 'tasks', 'results', 'changes'] as const
 type Section = (typeof sections)[number]
-const collapsed = reactive<Record<Section, boolean>>(Object.fromEntries(sections.map((name) => [name, false])) as Record<Section, boolean>)
+// Repliées par défaut : les sections qu'on consulte rarement (choix de Jérémy). Un choix enregistré l'emporte.
+const FOLDED: readonly Section[] = ['connectors', 'results']
+const collapsed = reactive<Record<Section, boolean>>(Object.fromEntries(sections.map((name) => [name, FOLDED.includes(name)])) as Record<Section, boolean>)
 try {
   const saved: unknown = JSON.parse(localStorage.getItem(COLLAPSED_KEY) ?? '{}')
   if (saved && typeof saved === 'object')
@@ -138,9 +140,9 @@ watch(
   { immediate: true },
 )
 // Un connecteur claude.ai non connecté est seulement disponible sur le compte, jamais branché : comme l'app Claude, il
-// ne compte pas comme « à reconnecter » ; la liste complète reste dans Réglages › Skills et MCP.
+// ne compte pas comme « à reconnecter ». Coupé pour Nuée, il disparaît aussi ; Réglages › Skills et MCP les liste tous.
 const servers = computed(() =>
-  skills.servers.filter((server) => !server.connector || server.status !== 'needsAuth').map((server) => {
+  skills.servers.filter((server) => !server.connector || (server.status !== 'needsAuth' && skills.serverOn(server))).map((server) => {
     const on = skills.serverOn(server)
     return { server, on, status: mcpStatus(server, on, t), broken: on && (server.status === 'needsAuth' || server.status === 'failed') }
   }),
