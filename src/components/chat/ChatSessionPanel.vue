@@ -46,7 +46,7 @@ const general = useGeneralStore()
 const skills = useSkillsStore()
 
 // Sections repliées, mémorisées en local : simple confort, rien de grave si la lecture échoue.
-const COLLAPSED_KEY = 'nuee.sessionPanel.v2'
+const COLLAPSED_KEY = 'nuee.sessionPanel.v3'
 const sections = ['environment', 'context', 'connectors', 'tasks', 'results', 'changes'] as const
 type Section = (typeof sections)[number]
 // Repliées par défaut : les sections qu'on consulte rarement (choix de Jérémy). Un choix enregistré l'emporte.
@@ -55,9 +55,12 @@ const collapsed = reactive<Record<Section, boolean>>(Object.fromEntries(sections
 try {
   const saved: unknown = JSON.parse(localStorage.getItem(COLLAPSED_KEY) ?? '{}')
   if (saved && typeof saved === 'object')
-    for (const name of sections) collapsed[name] = (saved as Record<string, unknown>)[name] === true
+    for (const name of sections) {
+      const value = (saved as Record<string, unknown>)[name]
+      if (typeof value === 'boolean') collapsed[name] = value
+    }
 } catch {
-  // Valeurs par défaut : tout déplié.
+  // Valeurs par défaut.
 }
 watch(collapsed, (value) => {
   try {
