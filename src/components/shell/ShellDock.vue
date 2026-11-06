@@ -40,7 +40,8 @@ function newTerminal() {
         <Plus class="size-4" aria-hidden="true" />
       </UiIconButton>
       <span class="flex-1" />
-      <UiIconButton :label="t('dock.close')" @click="layout.hideView(props.view)">
+      <!-- Seul, le volet se ferme avec le bouton du panneau : la croix ne sert qu'à retirer l'un de deux volets empilés. -->
+      <UiIconButton v-if="layout.right.panes.length > 1" :label="t('dock.close')" @click="layout.hideView(props.view)">
         <X class="size-4" aria-hidden="true" />
       </UiIconButton>
     </div>
