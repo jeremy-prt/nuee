@@ -87,7 +87,7 @@ export default {
   },
   workspace: {
     tabs: 'Onglets ouverts',
-    chatTitle: 'Session {n}',
+    chatTitle: 'Nouvelle session',
     closeTab: 'Fermer l\'onglet',
     split: 'Diviser à droite',
     closePane: 'Fermer le panneau',
@@ -95,6 +95,7 @@ export default {
   },
   dock: {
     right: 'Panneau de droite',
+    toggle: 'Afficher ou masquer le panneau de droite',
     close: 'Masquer le volet',
     resize: 'Redimensionner le panneau',
     terminal: {

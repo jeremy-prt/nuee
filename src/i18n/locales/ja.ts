@@ -87,7 +87,7 @@ export default {
   },
   workspace: {
     tabs: '開いているタブ',
-    chatTitle: 'セッション {n}',
+    chatTitle: '新しいセッション',
     closeTab: 'タブを閉じる',
     split: '右に分割',
     closePane: 'パネルを閉じる',
@@ -95,6 +95,7 @@ export default {
   },
   dock: {
     right: '右パネル',
+    toggle: '右パネルの表示を切り替え',
     close: 'パネルを隠す',
     resize: 'パネルのサイズを変更',
     terminal: {

@@ -87,7 +87,7 @@ export default {
   },
   workspace: {
     tabs: '已打开的标签页',
-    chatTitle: '会话 {n}',
+    chatTitle: '新会话',
     closeTab: '关闭标签页',
     split: '向右拆分',
     closePane: '关闭面板',
@@ -95,6 +95,7 @@ export default {
   },
   dock: {
     right: '右侧面板',
+    toggle: '显示或隐藏右侧面板',
     close: '隐藏面板',
     resize: '调整面板大小',
     terminal: {

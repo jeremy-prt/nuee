@@ -128,7 +128,7 @@ src-tauri/src/
 - Champs de texte : pas de correction ni de suggestions de macOS (choix de Jérémy). `autocorrect`, `autocapitalize`, `spellcheck` et `writingsuggestions` coupés sur `<html>` (`index.html`) et rappelés sur chaque `input`/`textarea` : WebKit ne les hérite pas tous.
 - Fichiers glissés depuis le Finder : les événements HTML5 ne les reçoivent pas (Tauri capte le dépôt), passer par `useFileDrop` qui teste la position contre la zone.
 - Glisser-déposer des onglets et projets de la barre latérale : `composables/useLayoutDrag.ts` (seuil de 4 px, Échap annule, pas de HTML5 drag : Tauri capte le dépôt). Il repère les zones par `data-tab-strip`, `data-tab-id`, `data-pane-index`, `data-group-id`, `data-project-row`, `data-projects-heading` et `data-pinned-heading` : renommer l'un casse le dépôt sans erreur.
-- Panneau de droite comme l'app Claude : une icône par volet dans la barre de titre (`DOCK_VIEWS`, `layout.toggleView`), un ou deux volets empilés (`layout.right.panes`), un troisième remplace celui du bas. Plus de volet en bas (choix de Jérémy).
+- Panneau de droite comme Orca et l'app Claude : un bouton l'ouvre en haut à droite ; ouvert, une icône par volet au-dessus de lui dans la barre de titre, zone calée sur `layout.right.size` (`DOCK_VIEWS`, `layout.toggleView`), un ou deux volets empilés (`layout.right.panes`), un troisième remplace celui du bas. Plus de volet en bas (choix de Jérémy).
 - Disposition (panneaux, tailles) mémorisée en localStorage par `stores/layout.ts` : confort local, rien de critique. Une nouvelle valeur par défaut ne touche pas une disposition déjà enregistrée : changer `STORAGE_KEY` pour repartir de zéro.
 
 ## Sécurité

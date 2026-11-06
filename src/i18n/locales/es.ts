@@ -87,7 +87,7 @@ export default {
   },
   workspace: {
     tabs: 'Pestañas abiertas',
-    chatTitle: 'Sesión {n}',
+    chatTitle: 'Nueva sesión',
     closeTab: 'Cerrar pestaña',
     split: 'Dividir a la derecha',
     closePane: 'Cerrar panel',
@@ -95,6 +95,7 @@ export default {
   },
   dock: {
     right: 'Panel derecho',
+    toggle: 'Mostrar u ocultar el panel derecho',
     close: 'Ocultar panel',
     resize: 'Cambiar el tamaño del panel',
     terminal: {

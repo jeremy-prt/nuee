@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import { CircleAlert, CircleCheck, LayoutList, MessageQuestion, ShieldQuestion, X } from '@/components/ui/icons'
+import { CircleAlert, CircleCheck, LayoutList, MessageQuestion, PanelRight, Plus, ShieldQuestion, X } from '@/components/ui/icons'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatSpinner from '@/components/chat/ChatSpinner.vue'
+import SettingsAgentLogo from '@/components/settings/SettingsAgentLogo.vue'
 import SettingsSearch from '@/components/settings/SettingsSearch.vue'
 import { dockIcons } from '@/components/shell/dockIcons'
 import ShellRailToggle from '@/components/shell/ShellRailToggle.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { useLayoutDrag } from '@/composables/useLayoutDrag'
+import { useNewChat } from '@/composables/useNewChat'
 import { sessionStatusColor, useSessionStatus } from '@/composables/useSessionStatus'
 import { useTabTitle } from '@/composables/useTabTitle'
 import { isMacosApp } from '@/ipc/system'
@@ -29,6 +31,7 @@ const attention = useAttentionStore()
 const workspace = useWorkspaceStore()
 const drag = useDragStore()
 const { startTabDrag } = useLayoutDrag()
+const newChat = useNewChat()
 const { tabTitle } = useTabTitle()
 const sessionStatus = useSessionStatus()
 const statuses = computed(() => Object.fromEntries(workspace.contextTabs.map((tab) => [tab.id, sessionStatus(tab.id)])))
@@ -141,7 +144,7 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
           role="tablist"
           data-tab-strip
           :aria-label="t('workspace.tabs')"
-          class="flex h-full min-w-0 flex-1 items-center gap-0.5 overflow-x-auto"
+          class="flex h-full min-w-0 items-center gap-0.5 overflow-x-auto"
           data-tauri-drag-region
         >
           <div
@@ -180,6 +183,8 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
             <span v-else-if="attention.isUnseen(tab.id)" class="size-1.5 shrink-0 rounded-full bg-signal">
               <span class="sr-only">{{ t('attention.unseen') }}</span>
             </span>
+            <!-- Comme Orca : le logo de l'agent devant le titre ; pendant un tour, le spinner aux couleurs de l'agent suffit. -->
+            <SettingsAgentLogo v-if="statuses[tab.id] !== 'working'" :id="tab.agent" small class="-my-0.5" />
             <!-- Comme les sessions : la croix n'occupe pas de place, elle se pose au survol sur la fin du titre, qui s'estompe. -->
             <span class="truncate group-focus-within:fade-under-one group-hover:fade-under-one">{{ tabTitle(tab) }}</span>
             <UiTooltip :label="t('workspace.closeTab')" :shortcut="shortcuts.label('closeTab')">
@@ -197,18 +202,41 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
 
         </div>
 
-        <!-- Un bouton par volet du panneau de droite, comme l'app Claude. -->
-        <UiIconButton
-          v-for="view in DOCK_VIEWS"
-          :key="view"
-          :label="t(`dock.${view}.title`)"
-          :shortcut="view === 'terminal' ? shortcuts.label('toggleTerminal') : undefined"
-          :active="layout.isShown(view)"
-          :aria-pressed="layout.isShown(view)"
-          @click="layout.toggleView(view)"
-        >
-          <component :is="dockIcons[view]" class="size-4" aria-hidden="true" />
+        <UiIconButton :label="t('chats.newChat')" :shortcut="shortcuts.label('newChat')" class="ms-0.5" @click="newChat()">
+          <Plus class="size-4" aria-hidden="true" />
         </UiIconButton>
+        <span class="flex-1 self-stretch" data-tauri-drag-region />
+        <!-- Comme Orca et l'app Claude : panneau ouvert, ses volets se choisissent au-dessus de lui, dans une zone calée
+             sur sa largeur (marge de 6 px et poignée comprises) ; le bouton qui l'ouvre reste tout à droite. -->
+        <div
+          class="flex shrink-0 items-center gap-0.5 self-stretch pe-1.5"
+          :class="{ 'ps-3.75': layout.right.open }"
+          :style="layout.right.open ? { width: `${layout.right.size + 7}px` } : undefined"
+          data-tauri-drag-region
+        >
+          <template v-if="layout.right.open">
+            <UiIconButton
+              v-for="view in DOCK_VIEWS"
+              :key="view"
+              :label="t(`dock.${view}.title`)"
+              :shortcut="view === 'terminal' ? shortcuts.label('toggleTerminal') : undefined"
+              :active="layout.isShown(view)"
+              :aria-pressed="layout.isShown(view)"
+              @click="layout.toggleView(view)"
+            >
+              <component :is="dockIcons[view]" class="size-4" aria-hidden="true" />
+            </UiIconButton>
+            <span class="flex-1 self-stretch" data-tauri-drag-region />
+          </template>
+          <UiIconButton
+            :label="t('dock.toggle')"
+            :shortcut="shortcuts.label('toggleRightDock')"
+            :aria-expanded="layout.right.open"
+            @click="layout.toggleRight()"
+          >
+            <PanelRight class="size-4" aria-hidden="true" />
+          </UiIconButton>
+        </div>
       </template>
     </div>
   </header>

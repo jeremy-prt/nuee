@@ -85,7 +85,7 @@ export const useAttentionStore = defineStore('attention', () => {
     unseen.set(chatId, kind)
     if (!tab || muted) return
     const { t } = i18nGlobal()
-    const title = tab.title ?? t('workspace.chatTitle', { n: tab.number })
+    const title = tab.title ?? t('workspace.chatTitle')
     const body = t(`attention.${kind}`, { agent: agents[tab.agent].name })
     if (!focused.value && general.systemNotifications && isTauriApp()) {
       notificationSend(chatId, title, body).catch(() => {})

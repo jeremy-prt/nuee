@@ -85,7 +85,7 @@ export default {
   },
   workspace: {
     tabs: 'Open tabs',
-    chatTitle: 'Session {n}',
+    chatTitle: 'New session',
     closeTab: 'Close tab',
     split: 'Split right',
     closePane: 'Close pane',
@@ -93,6 +93,7 @@ export default {
   },
   dock: {
     right: 'Right panel',
+    toggle: 'Show or hide the right panel',
     close: 'Hide pane',
     resize: 'Resize panel',
     terminal: {
