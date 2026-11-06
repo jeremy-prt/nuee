@@ -25,7 +25,7 @@ import type { TurnOptions } from '@/ipc/bindings/TurnOptions'
 import { pickFiles } from '@/ipc/dialog'
 import { useDraftsStore } from '@/stores/drafts'
 import { useGeneralStore } from '@/stores/general'
-import type { WorktreeChoice } from '@/components/chat/ChatWorktreePicker.vue'
+import ChatWorktreePicker, { type WorktreeChoice } from '@/components/chat/ChatWorktreePicker.vue'
 import type { Project } from '@/stores/projects'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { useSkillsStore } from '@/stores/skills'
@@ -412,6 +412,14 @@ function onKeydown(event: KeyboardEvent) {
           <span class="@max-sm:sr-only">{{ t(`composer.mode.${options.mode}`) }}</span>
         </UiMenu>
         <ChatContextMeter v-if="context" :usage="context" :disabled="disabled || running || !compactable" @compact="emit('compact')" />
+        <ChatWorktreePicker
+          v-if="project && worktree?.started"
+          :chat-id="chatId"
+          :worktree="worktree"
+          :disabled="disabled"
+          :focus-after="focusInput"
+          class="group flex h-7 min-w-0 items-center gap-1.5 rounded-md px-2 text-xs whitespace-nowrap text-content/85 hover:bg-selection-inner hover:text-content focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-40 aria-expanded:bg-selection-inner aria-expanded:text-content"
+        />
         <ChatBranchPicker
           v-if="project && worktree?.started"
           :key="chatId"

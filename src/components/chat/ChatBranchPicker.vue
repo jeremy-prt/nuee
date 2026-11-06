@@ -92,7 +92,7 @@ const blockedText = computed(() => {
 })
 
 const item =
-  'flex h-7 shrink-0 cursor-pointer items-center gap-2 rounded-md px-2 text-content/75 outline-none data-[highlighted]:not-data-[current]:bg-selection-hover data-[highlighted]:text-content data-[current]:bg-selection data-[current]:text-content data-[disabled]:cursor-default data-[disabled]:opacity-40'
+  'flex h-8 shrink-0 cursor-pointer items-center gap-2 rounded-lg px-2 text-[13px] text-content/75 outline-none data-[highlighted]:not-data-[current]:bg-selection-hover data-[highlighted]:text-content data-[current]:bg-selection data-[current]:text-content data-[disabled]:cursor-default data-[disabled]:opacity-40'
 </script>
 
 <template>
@@ -110,9 +110,9 @@ const item =
       />
     </PopoverTrigger>
     <PopoverPortal>
-      <PopoverContent side="top" align="end" :side-offset="6" :collision-padding="8" class="ui-pop z-50 w-72 p-1 text-xs text-content select-none">
+      <PopoverContent side="top" align="end" :side-offset="6" :collision-padding="8" class="ui-pop z-50 w-72 text-xs text-content select-none">
         <ListboxRoot model-value="" highlight-on-hover :aria-label="t('composer.branch.label')" @update:model-value="choose">
-          <label class="mx-1 flex h-9 items-center gap-2 border-b border-stroke ps-2 pe-1.5 text-muted focus-within:border-ring focus-within:text-content">
+          <label class="flex h-9 items-center gap-2 border-b border-stroke px-3 text-muted">
             <Search class="size-3.5 shrink-0" aria-hidden="true" />
             <ListboxFilter
               v-model="query"
@@ -124,10 +124,10 @@ const item =
               writingsuggestions="false"
               :aria-label="t('composer.branch.search')"
               :placeholder="t('composer.branch.search')"
-              class="min-w-0 flex-1 bg-transparent text-content outline-none select-text placeholder:text-muted"
+              class="min-w-0 flex-1 bg-transparent text-[13px] text-content outline-none select-text placeholder:text-muted"
             />
           </label>
-          <ListboxContent class="mt-1 flex max-h-72 flex-col gap-0.5 overflow-y-auto">
+          <ListboxContent class="flex max-h-72 flex-col gap-0.5 overflow-y-auto p-1">
             <p v-if="!shown.length && !creatable" class="px-2 py-1.5 text-muted">{{ t('composer.branch.none') }}</p>
             <ListboxItem
               v-for="branch in shown"
@@ -146,8 +146,8 @@ const item =
               <span class="min-w-0 flex-1 truncate">{{ t('composer.branch.create', { name: wanted }) }}</span>
             </ListboxItem>
           </ListboxContent>
-          <p v-if="blocked" class="px-2 pt-1.5 pb-1 text-warning" role="alert">{{ blockedText }}</p>
-          <p v-else-if="error" class="px-2 pt-1.5 pb-1 text-danger" role="alert">{{ error }}</p>
+          <p v-if="blocked" class="px-3 pb-2 text-warning" role="alert">{{ blockedText }}</p>
+          <p v-else-if="error" class="px-3 pb-2 text-danger" role="alert">{{ error }}</p>
         </ListboxRoot>
       </PopoverContent>
     </PopoverPortal>
