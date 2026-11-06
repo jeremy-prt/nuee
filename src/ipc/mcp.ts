@@ -17,6 +17,11 @@ export function mcpLogin(agent: AgentKind, name: string) {
   return invoke<McpServer>('mcp_login', { agent, name })
 }
 
+// Page des connecteurs du compte de l'agent ; l'adresse est fixée côté Rust.
+export function mcpOpenConnectors(agent: AgentKind) {
+  return invoke<void>('mcp_open_connectors', { agent })
+}
+
 export function mcpCancelLogin(name: string) {
   return invoke<void>('mcp_cancel_login', { name })
 }

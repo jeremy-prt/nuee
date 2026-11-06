@@ -2,8 +2,7 @@
 import type { McpStatus } from "./McpStatus";
 
 /**
- * Serveur MCP de la config de l'agent, tel qu'un nouveau chat le verrait. Les connecteurs de son compte
- * claude.ai n'en font pas partie : ils ne se règlent pas d'ici (choix de Jérémy).
+ * Serveur MCP de la config de l'agent, tel qu'un nouveau chat le verrait, connecteurs du compte compris.
  */
 export type McpServer = { name: string, status: McpStatus, 
 /**
@@ -17,4 +16,8 @@ target: string,
 /**
  * Origine telle que l'agent la nomme : `user`, `claudeai`, `plugin`...
  */
-scope: string, tools: number | null, error: string | null, };
+scope: string, tools: number | null, error: string | null, 
+/**
+ * Connecteur du compte de l'agent (claude.ai) : il se connecte sur le site, pas d'ici.
+ */
+connector: boolean, };

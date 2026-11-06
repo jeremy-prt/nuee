@@ -510,6 +510,10 @@ trait Driver: Send + Sync {
     /// Ligne qui demande l'autorisation (OAuth) d'un serveur ; `parse_mcp_auth` lit la réponse.
     fn mcp_auth_message(&self, name: &str) -> String;
     fn parse_mcp_auth(&self, line: &str) -> Option<Result<McpAuth, String>>;
+    /// Page où se gèrent les connecteurs du compte de l'agent ; `None` s'il n'en a pas.
+    fn connectors_page(&self) -> Option<&'static str> {
+        None
+    }
     /// Paquet npm où l'agent publie ses versions, et l'étiquette que suit cette installation.
     fn release(&self, program: &Path) -> (&'static str, &'static str);
     /// Mise à jour par la CLI elle-même : elle sait mieux que Nuée comment elle a été installée.

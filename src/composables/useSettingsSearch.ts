@@ -254,6 +254,7 @@ const entries: SettingEntry[] = [
   },
   { id: 'skills-list', section: 'skills', label: 'settings.skills.skills', keywords: ['skills'] },
   { id: 'servers-list', section: 'skills', label: 'settings.skills.servers', keywords: ['mcp'] },
+  { id: 'connectors-list', section: 'skills', label: 'settings.skills.connectors', keywords: ['mcp'], names: ['claude.ai'] },
   { id: 'projects-list', section: 'projects', label: 'settings.projects.add', keywords: ['projects'] },
   {
     id: 'auto-archive',

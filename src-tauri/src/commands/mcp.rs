@@ -47,6 +47,15 @@ pub async fn mcp_set_enabled(
     agents.mcp_set_enabled(agent, &name, enabled)
 }
 
+/// Les connecteurs du compte se connectent sur le site de l'agent, à une adresse fixée côté Rust.
+#[tauri::command]
+pub fn mcp_open_connectors(
+    agent: AgentKind,
+    agents: State<'_, AgentService>,
+) -> Result<(), AppError> {
+    agents.mcp_open_connectors(agent)
+}
+
 #[tauri::command]
 pub fn mcp_cancel_login(name: String, agents: State<'_, AgentService>) {
     agents.mcp_cancel_login(&name);

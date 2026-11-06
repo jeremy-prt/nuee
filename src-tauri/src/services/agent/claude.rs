@@ -407,6 +407,10 @@ impl Driver for Claude {
         }))
     }
 
+    fn connectors_page(&self) -> Option<&'static str> {
+        Some("https://claude.ai/settings/connectors")
+    }
+
     fn release(&self, program: &Path) -> (&'static str, &'static str) {
         let real = std::fs::canonicalize(program).unwrap_or_else(|_| program.to_owned());
         let real = real.to_string_lossy();
@@ -867,12 +871,15 @@ fn mcp_server_of(server: &Value) -> Option<McpServer> {
         Value::Array(tools) => u32::try_from(tools.len()).ok(),
         tools => tools.as_u64().and_then(|count| u32::try_from(count).ok()),
     };
+    let name = server["name"].as_str()?;
+    let scope = str_of(&server["scope"]);
     Some(McpServer {
-        name: server["name"].as_str()?.to_owned(),
+        name: name.to_owned(),
         status,
         transport: transport.to_owned(),
         target,
-        scope: str_of(&server["scope"]).to_owned(),
+        scope: scope.to_owned(),
+        connector: scope == "claudeai" || name.starts_with("claude.ai "),
         tools,
         error: server["error"]
             .as_str()
@@ -2075,6 +2082,7 @@ mod tests {
         assert_eq!(servers[2].target, "https://mcp.example.com/mcp");
         assert_eq!(servers[3].status, McpStatus::Pending);
         assert_eq!(servers[3].scope, "claudeai");
+        assert!(servers[3].connector && !servers[0].connector);
 
         let error = r#"{"type":"control_response","response":{"subtype":"error","request_id":"nuee-mcp","error":"not supported"}}"#;
         assert_eq!(

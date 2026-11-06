@@ -24,8 +24,7 @@ pub(super) struct McpAuth {
     pub url: Option<String>,
 }
 
-/// Serveur MCP de la config de l'agent, tel qu'un nouveau chat le verrait. Les connecteurs de son compte
-/// claude.ai n'en font pas partie : ils ne se règlent pas d'ici (choix de Jérémy).
+/// Serveur MCP de la config de l'agent, tel qu'un nouveau chat le verrait, connecteurs du compte compris.
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
@@ -40,6 +39,8 @@ pub struct McpServer {
     pub scope: String,
     pub tools: Option<u32>,
     pub error: Option<String>,
+    /// Connecteur du compte de l'agent (claude.ai) : il se connecte sur le site, pas d'ici.
+    pub connector: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
@@ -144,6 +145,17 @@ impl AgentService {
         Ok(server)
     }
 
+    /// Page des connecteurs du compte, choisie par le driver : le front n'envoie jamais d'adresse.
+    pub fn mcp_open_connectors(&self, kind: AgentKind) -> Result<(), AppError> {
+        let page = kind
+            .driver(&self.scratch)
+            .connectors_page()
+            .ok_or_else(|| AppError::InvalidInput("agent sans connecteurs de compte".into()))?;
+        tauri_plugin_opener::open_url(page, None::<&str>)
+            .map_err(|error| std::io::Error::other(error.to_string()))?;
+        Ok(())
+    }
+
     pub fn mcp_cancel_login(&self, name: &str) {
         if let Some(pid) = lock(&self.logins).remove(name) {
             process::kill_tree(pid, true);
@@ -196,7 +208,12 @@ impl AgentService {
                 .await
                 .ok_or_else(stopped)?
                 .map_err(AppError::AgentFailed)?;
-            if servers.iter().any(|server| server.name == name) {
+            if let Some(server) = servers.iter().find(|server| server.name == name) {
+                if server.connector {
+                    return Err(AppError::InvalidInput(format!(
+                        "connecteur du compte, à connecter depuis son site : {name}"
+                    )));
+                }
                 break;
             }
             if Instant::now() + MCP_POLL >= deadline {
@@ -315,21 +332,18 @@ fn denied_servers(kind: AgentKind) -> Vec<String> {
         .unwrap_or_default()
 }
 
-/// Sans les connecteurs claude.ai. La CLI tait les serveurs coupés partout : ils reviennent dans la
-/// liste pour pouvoir être rallumés.
+/// La CLI tait les serveurs coupés partout : ils reviennent dans la liste pour pouvoir être rallumés.
 fn visible(servers: &[McpServer], denied: &[String]) -> Vec<McpServer> {
-    let connector = |name: &str| name.starts_with("claude.ai ");
-    let mut all: Vec<McpServer> = servers
-        .iter()
-        .filter(|server| server.scope != "claudeai" && !connector(&server.name))
-        .cloned()
-        .collect();
+    let mut all = servers.to_vec();
     for name in denied {
-        if connector(name) || all.iter().any(|server| &server.name == name) {
+        if all.iter().any(|server| &server.name == name) {
             continue;
         }
+        let connector = name.starts_with("claude.ai ");
         let scope = if name.starts_with("plugin:") {
             "plugin"
+        } else if connector {
+            "claudeai"
         } else {
             ""
         };
@@ -341,6 +355,7 @@ fn visible(servers: &[McpServer], denied: &[String]) -> Vec<McpServer> {
             scope: scope.to_owned(),
             tools: None,
             error: None,
+            connector,
         });
     }
     all
@@ -490,7 +505,7 @@ done
     }
 
     #[test]
-    fn connectors_hidden_and_denied_servers_listed() {
+    fn connectors_kept_and_denied_servers_listed() {
         let servers = [McpServer {
             name: "good".into(),
             status: McpStatus::Connected,
@@ -499,10 +514,12 @@ done
             scope: "user".into(),
             tools: Some(1),
             error: None,
+            connector: false,
         }];
         let connector = McpServer {
             name: "claude.ai Linear".into(),
             scope: "claudeai".into(),
+            connector: true,
             ..servers[0].clone()
         };
         let all = visible(
@@ -510,8 +527,19 @@ done
             &["claude.ai Notion".into(), "plugin:figma:figma".into()],
         );
         let names: Vec<&str> = all.iter().map(|server| server.name.as_str()).collect();
-        assert_eq!(names, ["good", "plugin:figma:figma"]);
-        assert_eq!(all[1].status, McpStatus::Disabled);
-        assert_eq!(all[1].scope, "plugin");
+        assert_eq!(
+            names,
+            [
+                "good",
+                "claude.ai Linear",
+                "claude.ai Notion",
+                "plugin:figma:figma"
+            ]
+        );
+        assert_eq!(all[2].status, McpStatus::Disabled);
+        assert!(all[2].connector);
+        assert_eq!(all[3].status, McpStatus::Disabled);
+        assert_eq!(all[3].scope, "plugin");
+        assert!(!all[3].connector);
     }
 }

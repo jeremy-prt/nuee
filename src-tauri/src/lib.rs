@@ -130,6 +130,7 @@ pub fn run() {
             commands::mcp::mcp_check,
             commands::mcp::mcp_login,
             commands::mcp::mcp_cancel_login,
+            commands::mcp::mcp_open_connectors,
             commands::mcp::mcp_set_enabled,
             commands::notification::notification_send,
             commands::notification::notification_withdraw,

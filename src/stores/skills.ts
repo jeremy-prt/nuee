@@ -6,7 +6,7 @@ import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { McpServer } from '@/ipc/bindings/McpServer'
 import type { Skill } from '@/ipc/bindings/Skill'
 import type { SkillMode } from '@/ipc/bindings/SkillMode'
-import { mcpCancelLogin, mcpCheck, mcpLogin, mcpSetEnabled, mcpStatus } from '@/ipc/mcp'
+import { mcpCancelLogin, mcpCheck, mcpLogin, mcpOpenConnectors, mcpSetEnabled, mcpStatus } from '@/ipc/mcp'
 import { skillsList, skillsRead, skillsReveal, skillsSetMode, skillsTrash, skillsWrite } from '@/ipc/skills'
 import { useDialogStore } from '@/stores/dialog'
 import { useToastsStore } from '@/stores/toasts'
@@ -21,7 +21,7 @@ const AGENT_NAME = agents[AGENT].name
 const MODES: SkillMode[] = ['on', 'nameOnly', 'userInvocableOnly', 'off']
 // nuee : un réglage ne vaut que pour les chats de Nuée. everywhere : il modifie la config de l'agent.
 export type Scope = 'nuee' | 'everywhere'
-export type Group = 'skills' | 'servers'
+export type Group = 'skills' | 'servers' | 'connectors'
 
 function defaultPrefs() {
   return { skills: {} as Record<string, SkillMode>, servers: [] as string[] }
@@ -109,8 +109,10 @@ export const useSkillsStore = defineStore('skills', () => {
 
   // Une relecture lancée pendant une autre la remplace : seule la dernière écrit la liste.
   let run = 0
+  let checkedAt = 0
   async function loadServers() {
     const current = ++run
+    checkedAt = Date.now()
     checking.value = true
     const apply = (list: McpServer[]) => {
       if (current === run) servers.value = list
@@ -123,6 +125,12 @@ export const useSkillsStore = defineStore('skills', () => {
     } finally {
       if (current === run) checking.value = false
     }
+  }
+
+  // Relecture automatique (volet Session) : chaque lecture lance la CLI, pas plus d'une toutes les 30 s.
+  function refreshServers() {
+    if (checking.value || Date.now() - checkedAt < 30_000) return
+    return loadServers()
   }
 
   function load() {
@@ -323,6 +331,15 @@ export const useSkillsStore = defineStore('skills', () => {
     }
   }
 
+  async function openConnectors() {
+    try {
+      await mcpOpenConnectors(AGENT)
+    } catch (error) {
+      const { t } = i18nGlobal()
+      useToastsStore().push({ kind: 'error', title: t('settings.skills.openConnectorsFailed'), body: message(error) })
+    }
+  }
+
   function fail(key: string, name: string, error: unknown) {
     const { t } = i18nGlobal()
     useToastsStore().push({ kind: 'error', title: t(key, { name }), body: message(error) })
@@ -388,6 +405,7 @@ export const useSkillsStore = defineStore('skills', () => {
     load, refresh,
     loadSkills,
     loadServers,
+    refreshServers,
     mode,
     differs,
     setMode,
@@ -407,6 +425,7 @@ export const useSkillsStore = defineStore('skills', () => {
     trash,
     reconnect,
     connect,
+    openConnectors,
     preview,
     edit,
     confirmClose,

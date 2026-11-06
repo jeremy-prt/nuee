@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronRight, Coffee, Folder, FolderOpen, FolderTree, GitBranch, NoProject, RemoteControl } from '@/components/ui/icons'
+import { ChevronRight, Coffee, Folder, FolderOpen, FolderTree, GitBranch, NoProject, RemoteControl, X } from '@/components/ui/icons'
 import { computed, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatDiffStat from '@/components/chat/ChatDiffStat.vue'
@@ -22,9 +22,11 @@ import { useConversationsStore } from '@/stores/conversations'
 import { useGeneralStore } from '@/stores/general'
 import { useLayoutStore } from '@/stores/layout'
 import { useProjectsStore } from '@/stores/projects'
+import { type McpServer, useSkillsStore } from '@/stores/skills'
 import { useToastsStore } from '@/stores/toasts'
 import { useWorktreesStore } from '@/stores/worktrees'
 import { fileName, fileVerb } from '@/utils/activity'
+import { mcpStatus } from '@/utils/mcp'
 import { contextFormats, contextRatio, contextRows } from '@/utils/context'
 import { tasksOf } from '@/utils/tasks'
 
@@ -40,10 +42,11 @@ const toasts = useToastsStore()
 const machine = useMachineName()
 const layout = useLayoutStore()
 const general = useGeneralStore()
+const skills = useSkillsStore()
 
 // Sections repliées, mémorisées en local : simple confort, rien de grave si la lecture échoue.
 const COLLAPSED_KEY = 'nuee.sessionPanel.v1'
-const sections = ['environment', 'context', 'tasks', 'results', 'changes'] as const
+const sections = ['environment', 'context', 'connectors', 'tasks', 'results', 'changes'] as const
 type Section = (typeof sections)[number]
 const collapsed = reactive<Record<Section, boolean>>(Object.fromEntries(sections.map((name) => [name, false])) as Record<Section, boolean>)
 try {
@@ -119,8 +122,41 @@ async function loadChanges() {
 }
 watch([() => chat.value?.id, () => chat.value?.started, () => project.value?.path, folder], loadChanges, { immediate: true })
 watch(phase, (value, previous) => {
-  if (value === 'idle' && previous && previous !== 'idle') loadChanges()
+  if (value !== 'idle' || !previous || previous === 'idle') return
+  loadChanges()
+  if (!collapsed.connectors) skills.refreshServers()
 })
+
+// Serveurs MCP tels qu'un chat de Nuée les voit (même relevé que Réglages, sans le dossier du projet),
+// relus à l'ouverture de la section et en fin de tour.
+watch(
+  () => collapsed.connectors,
+  (closed) => {
+    if (!closed) skills.refreshServers()
+  },
+  { immediate: true },
+)
+// Un connecteur claude.ai non connecté est seulement disponible sur le compte, jamais branché : comme l'app Claude, il
+// ne compte pas comme « à reconnecter » ; la liste complète reste dans Réglages › Skills et MCP.
+const servers = computed(() =>
+  skills.servers.filter((server) => !server.connector || server.status !== 'needsAuth').map((server) => {
+    const on = skills.serverOn(server)
+    return { server, on, status: mcpStatus(server, on, t), broken: on && (server.status === 'needsAuth' || server.status === 'failed') }
+  }),
+)
+const serversSummary = computed(() => {
+  const broken = servers.value.filter((item) => item.broken).length
+  if (broken) return t('dock.session.toReconnect', { n: broken }, broken)
+  const connected = servers.value.filter((item) => item.on && item.server.status === 'connected').length
+  return connected ? t('dock.session.connected', { n: connected }, connected) : ''
+})
+
+// Connecteur du compte : sa page sur le site de l'agent. Sinon le flux OAuth ou le nouvel essai de Réglages.
+function connectServer(server: McpServer) {
+  if (server.connector) skills.openConnectors()
+  else if (server.status === 'needsAuth') skills.connect(server.name)
+  else skills.reconnect(server.name)
+}
 
 async function reveal() {
   if (!folder.value) return
@@ -214,6 +250,34 @@ const empty = `${row} text-muted`
         </ul>
       </template>
       <p v-else-if="!collapsed.context" :class="empty">{{ t('dock.session.noContext') }}</p>
+    </section>
+
+    <section class="flex flex-col gap-0.5 border-t border-stroke pt-2">
+      <h3>
+        <button type="button" :class="title" :aria-expanded="!collapsed.connectors" @click="collapsed.connectors = !collapsed.connectors">
+          {{ t('dock.session.connectors') }}<ChevronRight class="size-3" :class="{ 'rotate-90': !collapsed.connectors }" aria-hidden="true" />
+          <span v-if="serversSummary" class="ms-auto truncate font-normal" :class="{ 'text-danger': servers.some((item) => item.broken) }">{{ serversSummary }}</span>
+        </button>
+      </h3>
+      <template v-if="!collapsed.connectors">
+        <div v-for="{ server, on, status, broken } in servers" :key="server.name" :class="row" :title="server.error ?? undefined">
+          <span class="size-1.5 shrink-0 rounded-full" :class="status.tone" aria-hidden="true" />
+          <span class="min-w-0 flex-1 truncate" :class="{ 'text-muted': !on }">{{ server.name }}</span>
+          <span class="sr-only">{{ status.text }}</span>
+          <template v-if="broken">
+            <UiIconButton v-if="skills.logins.has(server.name)" :label="t('settings.skills.cancelConnect', { name: server.name })" class="-me-1" @click="skills.connect(server.name)">
+              <X class="size-3.5" aria-hidden="true" />
+            </UiIconButton>
+            <UiButton size="xs" class="-me-1" :loading="skills.pending.has(server.name)" @click="connectServer(server)">
+              {{ server.status === 'needsAuth' || server.connector ? t('settings.skills.connect') : t('settings.skills.reconnect') }}
+            </UiButton>
+          </template>
+        </div>
+        <p v-if="!servers.length && skills.errors.servers" :class="row" class="text-danger" :title="skills.errors.servers">
+          <span class="truncate">{{ skills.errors.servers }}</span>
+        </p>
+        <p v-else-if="!servers.length" :class="empty">{{ skills.checking ? t('settings.skills.loading') : t('dock.session.noConnectors') }}</p>
+      </template>
     </section>
 
     <section class="flex flex-col gap-0.5 border-t border-stroke pt-2">

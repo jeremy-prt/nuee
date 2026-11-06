@@ -4,6 +4,7 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsAgentLogo from '@/components/settings/SettingsAgentLogo.vue'
 import SettingsMcpRow from '@/components/settings/SettingsMcpRow.vue'
+import UiButton from '@/components/ui/UiButton.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiSwitch from '@/components/ui/UiSwitch.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
@@ -11,6 +12,7 @@ import { isMacosApp } from '@/ipc/system'
 import { useNavigationStore } from '@/stores/navigation'
 import { type Group, type McpServer, type Skill, useSkillsStore } from '@/stores/skills'
 import { agents, upcomingAgents } from '@/utils/agents'
+import { mcpStatus } from '@/utils/mcp'
 import { normalize } from '@/utils/search'
 
 const { t } = useI18n()
@@ -29,16 +31,30 @@ const busy = computed(() => store.loading || store.checking)
 const on = (skill: Skill) => store.mode(skill) !== 'off'
 const command = (skill: Skill) => store.mode(skill) === 'userInvocableOnly' || (skill.manual && on(skill))
 
-const servers = computed(() => store.servers.filter((server) => matches(server.name, server.target)))
+// Les connecteurs du compte se gèrent sur le site de l'agent : groupe à part, sans interrupteur.
+const configured = computed(() => store.servers.filter((server) => !server.connector))
+const accountConnectors = computed(() => store.servers.filter((server) => server.connector))
+const servers = computed(() => configured.value.filter((server) => matches(server.name, server.target)))
+const connectors = computed(() => accountConnectors.value.filter((server) => matches(server.name, server.target)))
 
 const groups = computed(() => [
   { kind: 'skills' as Group, title: t('settings.skills.skills'), total: store.skills.length, on: store.skills.filter(on).length },
   {
     kind: 'servers' as Group,
     title: t('settings.skills.servers'),
-    total: store.servers.length,
-    on: store.servers.filter((server: McpServer) => store.serverOn(server)).length,
+    total: configured.value.length,
+    on: configured.value.filter((server: McpServer) => store.serverOn(server)).length,
   },
+  ...(accountConnectors.value.length
+    ? [
+        {
+          kind: 'connectors' as Group,
+          title: t('settings.skills.connectors'),
+          total: accountConnectors.value.length,
+          on: accountConnectors.value.filter((server) => server.status === 'connected').length,
+        },
+      ]
+    : []),
 ])
 
 function empty(kind: Group) {
@@ -194,6 +210,24 @@ function onFilterKeydown(event: KeyboardEvent) {
                   :aria-describedby="`skill-${index}`"
                   @update:model-value="store.setMode(skill, $event ? 'on' : 'off')"
                 />
+              </div>
+            </template>
+
+            <template v-else-if="group.kind === 'connectors'">
+              <p v-if="!connectors.length" class="px-4 py-3 text-xs text-muted">{{ t('settings.skills.noMatch') }}</p>
+              <div v-for="server in connectors" :key="server.name" class="flex items-center gap-4 border-b border-stroke px-4 py-2 last:border-b-0">
+                <div class="min-w-0 flex-1" :class="{ 'opacity-40': server.status === 'disabled' }">
+                  <p class="flex min-w-0 items-center gap-2">
+                    <span class="size-1.5 shrink-0 rounded-full" :class="mcpStatus(server, true, t).tone" aria-hidden="true" />
+                    <span class="truncate text-sm font-medium">{{ server.name }}</span>
+                  </p>
+                  <p class="line-clamp-2 ps-3.5 text-xs/relaxed wrap-break-word text-muted" :title="server.error ?? undefined">
+                    {{ mcpStatus(server, true, t).text }}
+                  </p>
+                </div>
+                <UiButton v-if="server.status === 'needsAuth' || server.status === 'failed'" size="xs" @click="store.openConnectors()">
+                  {{ t('settings.skills.connect') }}
+                </UiButton>
               </div>
             </template>
 
