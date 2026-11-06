@@ -55,6 +55,8 @@ export const useSkillsStore = defineStore('skills', () => {
   const loading = ref(false)
   // État des serveurs en cours de lecture : la CLI met quelques secondes à les joindre.
   const checking = ref(false)
+  // Liste d'une lecture terminée : le volet Session l'affiche, sans les états de passage (« en connexion »).
+  const settledServers = ref<McpServer[]>([])
   const errors = reactive<{ skills: string | null; servers: string | null }>({ skills: null, servers: null })
   const prefs = reactive(loadPrefs())
   // Groupes repliés : le temps de la session seulement, jamais mémorisés (choix de Jérémy).
@@ -119,7 +121,10 @@ export const useSkillsStore = defineStore('skills', () => {
     }
     try {
       apply(await mcpStatus(AGENT, apply))
-      if (current === run) errors.servers = null
+      if (current === run) {
+        settledServers.value = servers.value
+        errors.servers = null
+      }
     } catch (error) {
       if (current === run) errors.servers = message(error)
     } finally {
@@ -297,6 +302,7 @@ export const useSkillsStore = defineStore('skills', () => {
 
   function update(server: McpServer) {
     servers.value = servers.value.map((item) => (item.name === server.name ? server : item))
+    settledServers.value = settledServers.value.map((item) => (item.name === server.name ? server : item))
   }
 
   async function reconnect(name: string) {
@@ -392,6 +398,7 @@ export const useSkillsStore = defineStore('skills', () => {
     loaded,
     loading,
     checking,
+    settledServers,
     errors,
     pending,
     logins,

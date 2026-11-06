@@ -145,7 +145,7 @@ watch(
 // Un connecteur claude.ai non connecté est seulement disponible sur le compte, jamais branché : comme l'app Claude, il
 // ne compte pas comme « à reconnecter ». Coupé pour Nuée, il disparaît aussi ; Réglages › Skills et MCP les liste tous.
 const servers = computed(() =>
-  skills.servers.filter((server) => !server.connector || (server.status !== 'needsAuth' && skills.serverOn(server))).map((server) => {
+  skills.settledServers.filter((server) => !server.connector || (server.status !== 'needsAuth' && skills.serverOn(server))).map((server) => {
     const on = skills.serverOn(server)
     return { server, on, status: mcpStatus(server, on, t), broken: on && (server.status === 'needsAuth' || server.status === 'failed') }
   }),
@@ -282,7 +282,7 @@ const empty = `${row} text-muted`
         <p v-if="!servers.length && skills.errors.servers" :class="row" class="text-danger" :title="skills.errors.servers">
           <span class="truncate">{{ skills.errors.servers }}</span>
         </p>
-        <p v-else-if="!servers.length" :class="empty">{{ skills.checking ? t('settings.skills.loading') : t('dock.session.noConnectors') }}</p>
+        <p v-else-if="!servers.length && !skills.checking" :class="empty">{{ t('dock.session.noConnectors') }}</p>
       </template>
     </section>
 
