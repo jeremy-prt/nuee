@@ -3,6 +3,7 @@ import { ChevronRight, Eye, FolderOpen, RefreshCw, Search, SlidersHorizontal } f
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsAgentLogo from '@/components/settings/SettingsAgentLogo.vue'
+import SettingsMcpLogo from '@/components/settings/SettingsMcpLogo.vue'
 import SettingsMcpRow from '@/components/settings/SettingsMcpRow.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
@@ -12,7 +13,7 @@ import { isMacosApp } from '@/ipc/system'
 import { useNavigationStore } from '@/stores/navigation'
 import { type Group, type McpServer, type Skill, useSkillsStore } from '@/stores/skills'
 import { agents, upcomingAgents } from '@/utils/agents'
-import { mcpStatus } from '@/utils/mcp'
+import { mcpLabel, mcpStatus } from '@/utils/mcp'
 import { normalize } from '@/utils/search'
 
 const { t } = useI18n()
@@ -218,10 +219,10 @@ function onFilterKeydown(event: KeyboardEvent) {
               <div v-for="server in connectors" :key="server.name" class="flex items-center gap-4 border-b border-stroke px-4 py-2 last:border-b-0">
                 <div class="min-w-0 flex-1" :class="{ 'opacity-40': server.status === 'disabled' }">
                   <p class="flex min-w-0 items-center gap-2">
-                    <span class="size-1.5 shrink-0 rounded-full" :class="mcpStatus(server, true, t).tone" aria-hidden="true" />
-                    <span class="truncate text-sm font-medium">{{ server.name }}</span>
+                    <SettingsMcpLogo :name="server.name" />
+                    <span class="truncate text-sm font-medium">{{ mcpLabel(server.name) }}</span>
                   </p>
-                  <p class="line-clamp-2 ps-3.5 text-xs/relaxed wrap-break-word text-muted" :title="server.error ?? undefined">
+                  <p class="line-clamp-2 ps-6 text-xs/relaxed wrap-break-word text-muted" :title="server.error ?? undefined">
                     {{ mcpStatus(server, true, t).text }}
                   </p>
                 </div>

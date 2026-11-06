@@ -8,6 +8,7 @@ import ProjectIcon from '@/components/project/ProjectIcon.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiFileIcon from '@/components/ui/UiFileIcon.vue'
 import UiSwitch from '@/components/ui/UiSwitch.vue'
+import SettingsMcpLogo from '@/components/settings/SettingsMcpLogo.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { useMachineName } from '@/composables/useMachineName'
@@ -26,7 +27,7 @@ import { type McpServer, useSkillsStore } from '@/stores/skills'
 import { useToastsStore } from '@/stores/toasts'
 import { useWorktreesStore } from '@/stores/worktrees'
 import { fileName, fileVerb } from '@/utils/activity'
-import { mcpStatus } from '@/utils/mcp'
+import { mcpLabel, mcpStatus } from '@/utils/mcp'
 import { contextFormats, contextRatio, contextRows } from '@/utils/context'
 import { tasksOf } from '@/utils/tasks'
 
@@ -261,8 +262,8 @@ const empty = `${row} text-muted`
       </h3>
       <template v-if="!collapsed.connectors">
         <div v-for="{ server, on, status, broken } in servers" :key="server.name" :class="row" :title="server.error ?? undefined">
-          <span class="size-1.5 shrink-0 rounded-full" :class="status.tone" aria-hidden="true" />
-          <span class="min-w-0 flex-1 truncate" :class="{ 'text-muted': !on }">{{ server.name }}</span>
+          <SettingsMcpLogo :name="server.name" :class="{ 'opacity-50': !on }" />
+          <span class="min-w-0 flex-1 truncate" :class="{ 'text-muted': !on }">{{ mcpLabel(server.name) }}</span>
           <span class="sr-only">{{ status.text }}</span>
           <template v-if="broken">
             <UiIconButton v-if="skills.logins.has(server.name)" :label="t('settings.skills.cancelConnect', { name: server.name })" class="-me-1" @click="skills.connect(server.name)">

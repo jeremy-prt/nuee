@@ -89,6 +89,7 @@ src-tauri/src/
 
 ## Interface
 
+- Logos des serveurs MCP et connecteurs : Simple Icons (CC0) dans `src/assets/mcp`, trouvés par nom (`mcpLogo` de `utils/mcp.ts`), sinon l'initiale (`SettingsMcpLogo`) ; un nouveau service s'ajoute en copiant son SVG.
 - Icônes : Hugeicons (comme monocode, choix de Jérémy), jamais lucide. Toujours par `components/ui/icons.ts`, qui importe chaque glyphe à part (`@hugeicons/core-free-icons/XxxIcon`, sinon tout le catalogue est chargé) ; une icône manquante s'y ajoute.
 - Composants accessibles : reka-ui (headless) habillé dans `components/ui/`, jamais une lib de composants déjà stylés. Confirmation : `useDialogStore().confirm()`, jamais le `ask` natif ; message en bas de fenêtre : `useToastsStore().push()`.
 - Infobulle sur un bouton qui ouvre un menu ou un popover reka : `UiTooltip` autour du `*Root`, jamais entre le `Root` et son `Trigger` (contexte Popper injecté au plus proche : le menu se cale sur l'infobulle et reste hors de l'écran, sans erreur). Voir `UiMenu`.

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SettingsMcpLogo from '@/components/settings/SettingsMcpLogo.vue'
 import { SlidersHorizontal, X } from '@/components/ui/icons'
 import { computed, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -39,10 +40,10 @@ function act(event: MouseEvent) {
   <div class="flex items-center gap-4 border-b border-stroke px-4 py-2 last:border-b-0">
     <div class="min-w-0 flex-1 transition-opacity motion-reduce:transition-none" :class="{ 'opacity-40': !on }">
       <p class="flex min-w-0 items-center gap-2">
-        <span class="size-1.5 shrink-0 rounded-full" :class="status.tone" aria-hidden="true" />
+        <SettingsMcpLogo :name="server.name" />
         <span class="truncate text-sm font-medium" :title="server.target || undefined">{{ server.name }}</span>
       </p>
-      <p :id="hintId" class="line-clamp-2 ps-3.5 text-xs/relaxed wrap-break-word text-muted" :title="server.error ?? (server.target || undefined)">
+      <p :id="hintId" class="line-clamp-2 ps-6 text-xs/relaxed wrap-break-word text-muted" :title="server.error ?? (server.target || undefined)">
         <span :class="{ 'text-danger': on && server.status === 'failed' }">{{ status.text }}</span>
         <template v-if="origin"> · {{ origin }}</template>
       </p>
