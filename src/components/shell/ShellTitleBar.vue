@@ -49,21 +49,18 @@ const railWidth = computed(() => (layout.rail.expanded ? layout.rail.width : RAI
 const panelOpen = computed(() => !menu.value && navigation.hasPanel && layout.panel.open)
 
 // La zone de gauche couvre la barre latérale (sa bordure monte si elle est plus large que les boutons), au moins
-// jusqu'au bouton. La colonne qui touche la carte finit par une marge de 6 px, les autres par un trait de 1 px.
-const railEdge = computed(() => (panelOpen.value ? 1 : 6))
-const leftZone = computed(() => {
-  const column = menu.value ? (layout.rail.expanded ? layout.rail.width + 6 : 0) : railWidth.value + railEdge.value
-  return Math.max(column, lights.value + TOGGLE)
-})
-const railBorderUp = computed(() => !menu.value && panelOpen.value && leftZone.value === railWidth.value + 1)
-const centerStart = computed(() => railWidth.value + railEdge.value + (panelOpen.value ? layout.panel.width + 6 : 0))
+// jusqu'au bouton. Chaque colonne finit par un trait de 1 px.
+const railShown = computed(() => !menu.value || layout.rail.expanded)
+const leftZone = computed(() => Math.max(railShown.value ? railWidth.value + 1 : 0, lights.value + TOGGLE))
+const railBorderUp = computed(() => railShown.value && leftZone.value === railWidth.value + 1)
+const centerStart = computed(() => railWidth.value + 1 + (panelOpen.value ? layout.panel.width + 1 : 0))
 const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - leftZone.value)))
 </script>
 
 <template>
   <!-- Jamais moins de 40 pt de haut : les boutons macOS, fixes, doivent y tenir quel que soit le zoom. -->
   <header
-    class="flex shrink-0 items-center bg-frame"
+    class="flex shrink-0 items-center border-b border-stroke bg-frame"
     :style="{ height: 'max(2.5rem, calc(2.5rem / var(--ui-zoom, 1)))' }"
     data-tauri-drag-region
   >
@@ -80,6 +77,8 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
     <div
       v-if="!menu"
       class="flex shrink-0 items-center justify-end self-stretch pe-2"
+      :class="{ 'border-e border-stroke': panelOpen && spacer > 0 }"
+      data-title-edge="panel"
       :style="{ width: `${spacer}px` }"
       data-tauri-drag-region
     >
@@ -207,11 +206,12 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
         </UiIconButton>
         <span class="flex-1 self-stretch" data-tauri-drag-region />
         <!-- Comme Orca et l'app Claude : panneau ouvert, ses volets se choisissent au-dessus de lui, dans une zone calée
-             sur sa largeur (marge de 6 px et poignée comprises) ; le bouton qui l'ouvre reste tout à droite. -->
+             sur sa largeur (poignée comprise), son bord continue celui du panneau ; `-me-2` annule la marge de la barre ; le bouton qui l'ouvre reste tout à droite. -->
         <div
-          class="flex shrink-0 items-center gap-0.5 self-stretch pe-1.5"
-          :class="{ 'ps-3.75': layout.right.open }"
-          :style="layout.right.open ? { width: `${layout.right.size + 7}px` } : undefined"
+          class="-me-2 flex shrink-0 items-center gap-0.5 self-stretch pe-3.5"
+          :class="{ 'border-s border-stroke ps-2': layout.right.open }"
+          data-title-edge="right"
+          :style="layout.right.open ? { width: `${layout.right.size + 1}px` } : undefined"
           data-tauri-drag-region
         >
           <template v-if="layout.right.open">

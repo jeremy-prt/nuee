@@ -224,9 +224,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (shown && (!arriving || isRecent(shown))) return
     const latest = contextChats.value.reduce<Tab | null>((best, tab) => (!best || tab.updatedAt > best.updatedAt ? tab : best), null)
     if (!shown && latest && isRecent(latest.id)) return show(latest.id)
-    const blank = layout.tabs.find((id) => tabs.value.some((tab) => tab.id === id && !tab.started))
-    if (blank) show(blank)
-    else openChat()
+    const blank = blankChat()
+    show(blank.id)
+  }
+
+  // Session vierge du contexte, reprise plutôt que doublée : celle de « Nouvel espace de travail » sert ensuite ici.
+  function blankChat() {
+    const id = current().tabs.find((id) => tabs.value.some((tab) => tab.id === id && !tab.started))
+    return tabs.value.find((tab) => tab.id === id) ?? createChat()
   }
 
   function isRecent(id: string) {
@@ -501,6 +506,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     tabsFor,
     show,
     openChat,
+    blankChat,
     openBeside,
     split,
     closePane,

@@ -1,19 +1,22 @@
 <script setup lang="ts">
-import { ChevronDown, NoProject, Search } from '@/components/ui/icons'
+import { ChevronDown, FolderPlus, NoProject, Search } from '@/components/ui/icons'
 import { ListboxContent, ListboxFilter, ListboxItem, ListboxRoot, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from 'reka-ui'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ProjectIcon from '@/components/project/ProjectIcon.vue'
+import { useAddProject } from '@/composables/useAddProject'
 import { useProjectsStore } from '@/stores/projects'
 import { normalize } from '@/utils/search'
 
 // Titre cliquable qui ouvre la liste des projets. `noneLabel` ajoute en tête le choix « sans projet » (valeur '').
-// counts : nombre affiché à droite de chaque choix, clé '' pour « sans projet ». large : titre de page.
-const props = defineProps<{ label: string; noneLabel?: string; counts?: Record<string, number>; large?: boolean }>()
+// counts : nombre affiché à droite de chaque choix, clé '' pour « sans projet ». large : titre de page. badge : discret,
+// dans une ligne de choix (Nouvel espace de travail), liste large avec les chemins et l'ajout d'un projet, comme Paseo.
+const props = defineProps<{ label: string; noneLabel?: string; counts?: Record<string, number>; large?: boolean; badge?: boolean }>()
 const model = defineModel<string>({ required: true })
 
 const { t } = useI18n()
 const projects = useProjectsStore()
+const pickProject = useAddProject()
 const open = ref(false)
 const query = ref('')
 
@@ -34,6 +37,12 @@ function choose(value: unknown) {
   open.value = false
 }
 
+async function addProject() {
+  open.value = false
+  const project = await pickProject()
+  if (project) model.value = project.id
+}
+
 const item =
   'flex h-8 cursor-pointer items-center gap-2 rounded-md px-2 text-content/80 outline-none data-[highlighted]:not-data-[state=checked]:bg-selection-hover data-[highlighted]:text-content data-[state=checked]:bg-selection data-[state=checked]:text-content'
 </script>
@@ -41,10 +50,10 @@ const item =
 <template>
   <PopoverRoot v-model:open="open">
     <PopoverTrigger
-      class="group inline-flex max-w-full min-w-0 items-center gap-2 rounded-md ps-2 pe-1.5 font-semibold hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring data-[state=open]:bg-selection-hover"
-      :class="large ? 'h-9 text-xl' : 'h-8 text-[15px]'"
+      class="group inline-flex max-w-full min-w-0 items-center gap-2 rounded-md ps-2 pe-1.5 hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring data-[state=open]:bg-selection-hover"
+      :class="badge ? 'h-7 text-[13px] text-muted hover:text-content data-[state=open]:text-content' : large ? 'h-9 text-xl font-semibold' : 'h-8 text-[15px] font-semibold'"
     >
-      <ProjectIcon v-if="current" :project="current" class="shrink-0 rounded-sm" :class="large ? 'size-6' : 'size-4.5'" />
+      <ProjectIcon v-if="current" :project="current" class="shrink-0 rounded-sm" :class="large ? 'size-6' : badge ? 'size-4' : 'size-4.5'" />
       <NoProject v-else class="size-4 shrink-0 text-muted" aria-hidden="true" />
       <span class="sr-only">{{ label }}</span>
       <span class="truncate">{{ current?.name ?? noneLabel }}</span>
@@ -59,7 +68,8 @@ const item =
         align="start"
         :side-offset="6"
         :collision-padding="8"
-        class="ui-pop z-50 w-64 text-[13px] text-content select-none"
+        class="ui-pop z-50 text-[13px] text-content select-none"
+        :class="badge ? 'w-[min(30rem,calc(100vw-2rem))]' : 'w-64'"
       >
         <ListboxRoot :model-value="model" highlight-on-hover :aria-label="label" @update:model-value="choose">
           <div class="flex h-9 items-center gap-2 border-b border-stroke px-3">
@@ -86,11 +96,18 @@ const item =
             <p v-if="!shown.length && !showNone" class="px-2 py-1.5 text-muted">{{ t('projectPicker.none') }}</p>
             <ListboxItem v-for="project in shown" :key="project.id" :value="project.id" :class="item">
               <ProjectIcon :project="project" class="size-4 shrink-0 rounded-sm" />
-              <span class="min-w-0 flex-1 truncate font-medium">{{ project.name }}</span>
+              <span class="min-w-0 truncate font-medium" :class="{ 'flex-1': !badge }">{{ project.name }}</span>
+              <span v-if="badge" class="min-w-0 flex-1 truncate text-xs text-muted">{{ project.path }}</span>
               <span v-if="counts" class="shrink-0 text-xs text-muted tabular-nums">{{ counts[project.id] ?? 0 }}</span>
             </ListboxItem>
           </ListboxContent>
         </ListboxRoot>
+        <div v-if="badge" class="border-t border-stroke p-1">
+          <button type="button" :class="[item, 'w-full hover:bg-selection-hover hover:text-content focus-visible:bg-selection-hover']" @click="addProject">
+            <FolderPlus class="size-4 shrink-0 text-muted" aria-hidden="true" />
+            <span class="font-medium">{{ t('rail.addProject') }}</span>
+          </button>
+        </div>
       </PopoverContent>
     </PopoverPortal>
   </PopoverRoot>

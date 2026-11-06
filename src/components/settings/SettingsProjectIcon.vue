@@ -5,7 +5,6 @@ import { computed, ref } from 'vue'
 import { Translation, useI18n } from 'vue-i18n'
 import ProjectBackgroundChoices from '@/components/project/ProjectBackgroundChoices.vue'
 import ProjectIcon from '@/components/project/ProjectIcon.vue'
-import ProjectMascot from '@/components/project/ProjectMascot.vue'
 import SettingsRow from '@/components/settings/SettingsRow.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiSegmented from '@/components/ui/UiSegmented.vue'
@@ -13,7 +12,7 @@ import { isAppError } from '@/ipc/agent'
 import { ICON_EXTENSIONS, pickImage } from '@/ipc/dialog'
 import { type IconMode, type Project, useProjectsStore } from '@/stores/projects'
 import { useToastsStore } from '@/stores/toasts'
-import { colorVar, mascotIds, projectColors } from '@/utils/projects'
+import { iconColors, iconColorVar } from '@/utils/projects'
 
 const props = defineProps<{ project: Project }>()
 
@@ -23,13 +22,13 @@ const toasts = useToastsStore()
 
 const found = computed(() => projects.icons[props.project.id])
 const shown = computed(() => projects.shown(props.project))
-const showsMascot = computed(() => !!shown.value && 'mascot' in shown.value)
+const showsLetter = computed(() => shown.value === 'letter')
 const importing = ref(false)
 
-// Rien trouvé dans le dossier : « Détectée » est grisé et c'est la mascotte qui apparaît choisie.
+// Rien trouvé dans le dossier : « Détectée » est grisé et c'est l'initiale qui apparaît choisie.
 const noIcon = computed(() => !!found.value && !found.value.detected)
 const modes = computed(() =>
-  (['auto', 'mascot', 'image'] as const).map((value) => ({
+  (['auto', 'letter', 'image'] as const).map((value) => ({
     value,
     label: t(`settings.projects.iconModes.${value}`),
     disabled: value === 'auto' && noIcon.value,
@@ -39,16 +38,11 @@ const modes = computed(() =>
 
 // Passer sur Image sans image importée ouvre le sélecteur ; annulé, le mode ne change pas.
 const mode = computed({
-  get: () => (props.project.icon === 'auto' && noIcon.value ? 'mascot' : props.project.icon),
+  get: () => (props.project.icon === 'auto' && noIcon.value ? 'letter' : props.project.icon),
   set: (value: IconMode) => {
     if (value === 'image' && !found.value?.custom) importImage()
     else props.project.icon = value
   },
-})
-
-const mascot = computed({
-  get: () => projects.mascotFor(props.project),
-  set: (value: string) => (props.project.mascot = value),
 })
 
 // Une aide pour l'icône du projet seulement : où elle a été trouvée (chemin inséré par Translation).
@@ -86,20 +80,7 @@ async function importImage() {
     </template>
   </SettingsRow>
 
-  <template v-if="showsMascot">
-    <SettingsRow data-setting="project-mascot" :label="t('settings.projects.mascot')">
-      <RadioGroupRoot v-model="mascot" :aria-label="t('settings.projects.mascot')" orientation="horizontal" class="flex flex-wrap justify-end gap-1">
-        <RadioGroupItem
-          v-for="id in mascotIds"
-          :key="id"
-          :value="id"
-          :aria-label="t(`settings.projects.mascots.${id}`)"
-          class="grid size-11 cursor-pointer place-items-center rounded-lg hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring data-[state=checked]:bg-signal/15"
-        >
-          <ProjectMascot :mascot="id" :color="project.color" class="size-7" />
-        </RadioGroupItem>
-      </RadioGroupRoot>
-    </SettingsRow>
+  <template v-if="showsLetter">
     <SettingsRow data-setting="project-color" :label="t('settings.projects.color')">
       <RadioGroupRoot
         v-model="project.color"
@@ -108,14 +89,14 @@ async function importImage() {
         class="flex flex-wrap justify-end gap-1.5"
       >
         <RadioGroupItem
-          v-for="color in projectColors"
+          v-for="color in iconColors"
           :key="color"
           :value="color"
           :aria-label="t(`settings.projects.colors.${color}`)"
           class="grid size-6 cursor-pointer place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          :style="{ background: colorVar(color) }"
+          :style="{ background: iconColorVar(color) }"
         >
-          <RadioGroupIndicator><Check class="size-3.5 text-canvas" aria-hidden="true" /></RadioGroupIndicator>
+          <RadioGroupIndicator><Check class="size-3.5 text-white" aria-hidden="true" /></RadioGroupIndicator>
         </RadioGroupItem>
       </RadioGroupRoot>
     </SettingsRow>

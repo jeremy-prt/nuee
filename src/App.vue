@@ -28,7 +28,7 @@ import { useTerminalsStore } from '@/stores/terminals'
 import { useUpdatesStore } from '@/stores/updates'
 import { useWorkspaceStore } from '@/stores/workspace'
 import type { ShortcutId } from '@/utils/shortcuts'
-import HomeView from '@/views/HomeView.vue'
+import NewWorkspaceView from '@/views/NewWorkspaceView.vue'
 import PlaceholderView from '@/views/PlaceholderView.vue'
 import SearchView from '@/views/SearchView.vue'
 import SettingsView from '@/views/SettingsView.vue'
@@ -160,46 +160,38 @@ onUnmounted(() => {
             <ShellRail />
             <ShellResizeHandle
               v-model="layout.rail.width"
+              data-edge="rail"
               v-bind="SIZES.rail"
               orientation="vertical"
-              ghost
               :label="t('rail.resize')"
             />
           </template>
         </template>
-        <!-- La colonne qui touche la carte finit par une marge de 6 px sans trait, comme en « Projets en menu ». -->
         <template v-else>
           <ShellRail />
           <ShellResizeHandle
             v-if="layout.rail.expanded"
             v-model="layout.rail.width"
-            :data-edge="panelShown ? 'rail' : undefined"
+            data-edge="rail"
             v-bind="SIZES.rail"
             orientation="vertical"
-            :ghost="!panelShown"
             :label="t('rail.resize')"
           />
-          <div v-else class="shrink-0" :class="panelShown ? 'separator w-px' : 'w-1.5 bg-frame'" />
+          <div v-else class="separator w-px shrink-0" />
         </template>
 
         <template v-if="panelShown">
           <ShellSidePanel :style="{ width: `${layout.panel.width}px` }" />
           <ShellResizeHandle
             v-model="layout.panel.width"
+            data-edge="panel"
             v-bind="SIZES.panel"
             orientation="vertical"
-            ghost
             :label="t('chats.resize')"
           />
         </template>
 
-        <!-- Centre en carte : son ombre pleine peint le cadre autour d'elle, que l'enveloppe coupe.
-             Un fond sous la carte s'ajouterait au sien et changerait sa transparence. Le trait est un calque posé
-             sur le contenu : une vraie bordure n'aurait rien dessous et laisserait voir le bureau, trop clair. -->
-        <div class="flex min-w-0 flex-1 overflow-hidden pe-1.5 pb-1.5" :class="{ 'ps-1.5': menu && !layout.rail.expanded }">
-          <div
-            class="relative flex min-w-0 flex-1 overflow-hidden rounded-[10px] shadow-[0_0_0_100vmax_var(--color-frame)] after:pointer-events-none after:absolute after:inset-0 after:z-20 after:rounded-[10px] after:border after:border-content/10"
-          >
+        <div class="relative flex min-w-0 flex-1 overflow-hidden">
             <div
               v-if="navigation.view === 'chats'"
               class="flex min-w-0 flex-1"
@@ -214,6 +206,7 @@ onUnmounted(() => {
               <template v-if="showRightDock">
                 <ShellResizeHandle
                   v-model="layout.right.size"
+                  data-edge="right"
                   v-bind="SIZES.right"
                   orientation="vertical"
                   invert
@@ -243,7 +236,7 @@ onUnmounted(() => {
 
             <main v-else id="view-area" class="relative isolate min-w-0 flex-1 bg-surface">
               <ShellBackground />
-              <HomeView v-if="navigation.view === 'home'" />
+              <NewWorkspaceView v-if="navigation.view === 'new'" />
               <SearchView v-else-if="navigation.view === 'search'" />
               <SettingsView v-else-if="navigation.view === 'settings'" />
               <PlaceholderView v-else :view="navigation.view" />
@@ -259,7 +252,6 @@ onUnmounted(() => {
               <SettingsSkillPanel :skill="previewedSkill" :style="{ width: `${layout.right.size}px` }" />
             </template>
           </div>
-        </div>
       </div>
     </div>
 

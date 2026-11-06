@@ -3,7 +3,7 @@ import { Archive, Bell, BellOff, FolderInput, FolderOpen, ImageUp, Pencil, Pin, 
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ProjectBackgroundMenu from '@/components/project/ProjectBackgroundMenu.vue'
-import ProjectLookChoices from '@/components/project/ProjectLookChoices.vue'
+import ProjectColorChoices from '@/components/project/ProjectColorChoices.vue'
 import UiMenuChoices from '@/components/ui/UiMenuChoices.vue'
 import UiMenuItem from '@/components/ui/UiMenuItem.vue'
 import UiMenuSeparator from '@/components/ui/UiMenuSeparator.vue'
@@ -27,20 +27,20 @@ const newChat = useNewChat()
 
 const found = computed(() => projects.icons[props.project.id])
 const shown = computed(() => projects.shown(props.project))
-const showsMascot = computed(() => !!shown.value && 'mascot' in shown.value)
+const showsLetter = computed(() => shown.value === 'letter')
 
 // Les trois modes des réglages du projet : « Détectée » grisé sans icône dans le dossier, « Image » sans image
 // importée ouvre le sélecteur.
 const noIcon = computed(() => !!found.value && !found.value.detected)
 const iconModes = computed(() =>
-  (['auto', 'mascot', 'image'] as const).map((value) => ({
+  (['auto', 'letter', 'image'] as const).map((value) => ({
     value,
     label: t(`settings.projects.iconModes.${value}`),
     disabled: value === 'auto' && noIcon.value,
     hint: value === 'auto' && noIcon.value ? t('settings.projects.iconHints.none') : undefined,
   })),
 )
-const iconMode = computed(() => (props.project.icon === 'auto' && noIcon.value ? 'mascot' : props.project.icon))
+const iconMode = computed(() => (props.project.icon === 'auto' && noIcon.value ? 'letter' : props.project.icon))
 
 const muted = computed(() => projects.isMuted(props.project.id))
 const muteValue = computed(() => (muted.value ? (props.project.muted?.kind ?? 'on') : 'on'))
@@ -77,14 +77,9 @@ function pickMute(value: string) {
 </script>
 
 <template>
-  <!-- Mascottes et couleurs n'ont d'effet que sur une mascotte : rien à choisir avec une icône ou une image. -->
-  <template v-if="showsMascot">
-    <ProjectLookChoices
-      :mascot="projects.mascotFor(project)"
-      :color="project.color"
-      @mascot="project.mascot = $event"
-      @color="project.color = $event"
-    />
+  <!-- La couleur n'a d'effet que sur l'initiale : rien à choisir avec une icône ou une image. -->
+  <template v-if="showsLetter">
+    <ProjectColorChoices :color="project.color" @color="project.color = $event" />
     <UiMenuSeparator />
   </template>
 

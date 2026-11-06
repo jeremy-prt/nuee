@@ -23,3 +23,8 @@ export function isTauriApp() {
 export function isMacosApp() {
   return isTauri() && navigator.userAgent.includes('Mac')
 }
+
+// Vide si le système ne le donne pas.
+export function systemMachineName() {
+  return invoke<string>('system_machine_name')
+}

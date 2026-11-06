@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrangeAZ, CalendarAdd, Clock, SlidersHorizontal } from '@/components/ui/icons'
+import { ArrangeAZ, CalendarAdd, Clock, LayoutList, SlidersHorizontal } from '@/components/ui/icons'
 import { DropdownMenuContent, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuTrigger } from 'reka-ui'
 import { computed, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -20,6 +20,16 @@ const section = computed<UiMenuSection>(() => ({
     { value: 'activity', label: t('chats.sort.activity'), icon: Clock },
     { value: 'created', label: t('chats.sort.created'), icon: CalendarAdd },
     { value: 'name', label: t('chats.sort.name'), icon: ArrangeAZ },
+  ],
+}))
+
+// Les intertitres de date n'ont pas de sens en tri par nom.
+const groupSection = computed<UiMenuSection>(() => ({
+  id: 'group',
+  value: layout.sessionGroups ? 'date' : 'none',
+  options: [
+    { value: 'none', label: t('chats.sort.noGroups'), icon: LayoutList },
+    { value: 'date', label: t('chats.sort.byDate'), icon: CalendarAdd, disabled: layout.sessionSort === 'name' },
   ],
 }))
 
@@ -51,6 +61,8 @@ const openedBy = (pointer: boolean) => {
           >
             <DropdownMenuLabel :id="`${id}-label`" :class="menuTitle">{{ t('chats.sort.title') }}</DropdownMenuLabel>
             <UiMenuChoices :section="section" :labelledby="`${id}-label`" @select="layout.sessionSort = $event as SessionSort" />
+            <DropdownMenuLabel :id="`${id}-group`" :class="[menuTitle, 'mt-1']">{{ t('chats.sort.group') }}</DropdownMenuLabel>
+            <UiMenuChoices :section="groupSection" :labelledby="`${id}-group`" @select="layout.sessionGroups = $event === 'date'" />
           </DropdownMenuContent>
         </DropdownMenuPortal>
       </DropdownMenuRoot>

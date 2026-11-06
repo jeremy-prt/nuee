@@ -59,16 +59,17 @@
   --project-red: oklch(0.68 0.16 25);
   --project-pink: oklch(0.72 0.14 350);
   --project-violet: oklch(0.7 0.14 300);
-}
-
-/* Mascottes des projets (src/assets/mascots) : tout se dérive de --tint, la couleur du projet, comme le
-   logo de brume (lumière en haut, ombre en bas, brume pâle autour). */
-.mascot {
-  --tint-hi: color-mix(in oklch, var(--tint) 45%, white);
-  --tint-lo: color-mix(in oklch, var(--tint) 62%, hsl(222 30% 8%));
-  --mist: color-mix(in oklch, var(--tint) 22%, hsl(218 22% 86%));
-  --eye: hsl(222 30% 9%);
-  --glint: white;
+  /* Fond de l'initiale d'un projet (palette de Paseo) : tons sourds, même contraste avec la lettre blanche. */
+  --icon-slate: #6b7385;
+  --icon-blue: #5179b0;
+  --icon-sky: #3d7ea6;
+  --icon-teal: #368080;
+  --icon-emerald: #388068;
+  --icon-indigo: #6a70b8;
+  --icon-violet: #7a6aa8;
+  --icon-pink: #b05c80;
+  --icon-red: #b06260;
+  --icon-orange: #a4673a;
 }
 
 html,
@@ -151,14 +152,24 @@ html.is-macos:not([data-window='opaque']) {
 
 /* Le bord d'une colonne continue dans la barre de titre : ce segment s'allume avec la poignée, et descend
    d'un pixel pour passer sur la bordure basse de la barre, sinon la ligne allumée est coupée à la jonction. */
-html:has([data-edge='rail']:is(:hover, :active, :focus-visible)) [data-title-edge='rail'] {
+html:has([data-edge='rail']:is(:hover, :active, :focus-visible)) [data-title-edge='rail'],
+html:has([data-edge='panel']:is(:hover, :active, :focus-visible)) [data-title-edge='panel'] {
   --edge: var(--color-edge-hover);
   margin-bottom: -1px;
   border-color: var(--edge);
   /* Même épaisseur que la poignée (3 px, centrés sur le trait). */
   box-shadow: inset -1px 0 0 0 var(--edge), 1px 0 0 0 var(--edge);
 }
-html:has([data-edge='rail']:focus-visible) [data-title-edge='rail'] {
+/* Le panneau de droite porte son trait à gauche : même lueur, de l'autre côté. */
+html:has([data-edge='right']:is(:hover, :active, :focus-visible)) [data-title-edge='right'] {
+  --edge: var(--color-edge-hover);
+  margin-bottom: -1px;
+  border-color: var(--edge);
+  box-shadow: inset 1px 0 0 0 var(--edge), -1px 0 0 0 var(--edge);
+}
+html:has([data-edge='rail']:focus-visible) [data-title-edge='rail'],
+html:has([data-edge='panel']:focus-visible) [data-title-edge='panel'],
+html:has([data-edge='right']:focus-visible) [data-title-edge='right'] {
   --edge: var(--color-ring);
 }
 
@@ -168,15 +179,23 @@ html:has([data-edge='rail']:focus-visible) [data-title-edge='rail'] {
 [data-reka-popper-content-wrapper]:has(> .ui-pop),
 .ui-glass {
   overflow: hidden;
-  border: 1px solid var(--color-stroke);
+  /* Réglages de monocode, bien plus lisibles : flou de 24 px (à 10 px le fond restait net sous le texte), bord à
+     10 %, ombre en deux couches et texte en blanc presque pur. */
+  --color-content: hsl(0 0% 98%);
+  --color-muted: color-mix(in srgb, hsl(0 0% 98%) 60%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-content) 10%, transparent);
   background: var(--color-popover);
-  box-shadow: 0 12px 32px -8px rgb(0 0 0 / 0.5);
-  backdrop-filter: blur(10px);
+  color: var(--color-content);
+  box-shadow:
+    0 20px 25px -5px rgb(0 0 0 / 0.25),
+    0 8px 10px -6px rgb(0 0 0 / 0.25);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  backdrop-filter: blur(24px) saturate(1.4);
 }
 
 /* Le défilement d'une longue liste reste à ses propres classes (`overflow-y-auto`). */
 [data-reka-popper-content-wrapper]:has(> .ui-pop) {
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
 }
 
 /* Un menu ou une liste grandit depuis son ancrage (curseur, bouton), comme monocode : choix de Jérémy. */

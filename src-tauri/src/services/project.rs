@@ -82,7 +82,7 @@ const WALK_DEPTH: usize = 12;
 const XCODE_VISITS: usize = 2000;
 
 /// Images en `data:` : la CSP refuse toute autre image hors des dossiers de l'app. Le front choisit laquelle
-/// afficher selon le mode du projet (automatique, mascotte ou image importée).
+/// afficher selon le mode du projet (automatique, initiale ou image importée).
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]

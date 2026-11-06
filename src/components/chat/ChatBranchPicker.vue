@@ -99,7 +99,7 @@ const item =
   <PopoverRoot v-if="!failed" v-model:open="open">
     <PopoverTrigger
       :disabled="disabled"
-      class="group flex h-6 min-w-0 items-center gap-1.5 rounded-md px-1.5 text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none data-[state=open]:bg-selection-hover data-[state=open]:text-content"
+      class="group flex h-7 min-w-0 items-center gap-1.5 rounded-md px-2 text-xs whitespace-nowrap text-content/85 hover:bg-selection-inner hover:text-content focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-40 data-[state=open]:bg-selection-inner data-[state=open]:text-content"
     >
       <GitBranch class="size-3.5 shrink-0" aria-hidden="true" />
       <span class="sr-only">{{ t('composer.branch.label') }}</span>

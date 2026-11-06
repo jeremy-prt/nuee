@@ -80,14 +80,14 @@ export function settingsDetailTitle(detail: SettingsDetail, t: (key: string) => 
   return t(`settings.appearance.styles.${detail}`)
 }
 
-export type View = 'home' | 'chats' | 'issues' | 'pullRequests' | 'notes' | 'search' | 'usage' | 'settings'
+export type View = 'new' | 'chats' | 'github' | 'notes' | 'search' | 'usage' | 'settings'
 
 // Vues « liste à gauche, détail au centre » : elles affichent le second panneau.
-const PANEL_VIEWS: readonly View[] = ['chats', 'issues', 'pullRequests', 'notes']
+const PANEL_VIEWS: readonly View[] = ['chats', 'github', 'notes']
 
 export const useNavigationStore = defineStore('navigation', () => {
   const layout = useLayoutStore()
-  const view = ref<View>('home')
+  const view = ref<View>('new')
   // Contexte des chats : un projet, ou null pour les chats sans projet.
   const projectId = ref<string | null>(null)
   const settingsSection = ref<SettingsSection>('general')
@@ -95,7 +95,7 @@ export const useNavigationStore = defineStore('navigation', () => {
   // Projet affiché par Réglages › Projets : le dernier ouvert, que sa sous-page reprend en titre.
   const settingsProjectId = ref<string | null>(null)
   // Vue que le bouton Retour des réglages retrouve.
-  const beforeSettings = ref<View>('home')
+  const beforeSettings = ref<View>('new')
   // Réglage choisi dans la recherche : SettingsView le fait défiler jusqu'à lui et le met en avant.
   const revealed = ref<{ id: string; focus: boolean } | null>(null)
 

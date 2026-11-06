@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import ChatApproval from '@/components/chat/ChatApproval.vue'
 import ChatComposer from '@/components/chat/ChatComposer.vue'
 import ChatLimit from '@/components/chat/ChatLimit.vue'
+import ChatPlaceRow from '@/components/chat/ChatPlaceRow.vue'
 import ChatQuestion from '@/components/chat/ChatQuestion.vue'
 import ChatQueue from '@/components/chat/ChatQueue.vue'
 import ChatTranscript from '@/components/chat/ChatTranscript.vue'
@@ -23,16 +24,15 @@ import { worktreeBranch } from '@/utils/projects'
 const props = defineProps<{ tab: Tab }>()
 
 const { t, tm } = useI18n()
-// Accueil tiré de l'id de la session : les mêmes phrases à chaque retour sur elle, d'autres d'une session à
-// l'autre. Le sous-titre prend une autre part du nombre, sinon titre et sous-titre iraient toujours par paire.
+// Accueil tiré de l'id de la session : la même phrase à chaque retour sur elle, une autre d'une session à l'autre.
 const seed = computed(() => {
   let hash = 0
   for (const char of props.tab.id) hash = (hash * 31 + char.charCodeAt(0)) >>> 0
   return hash
 })
-function pick(key: string, shift = 0) {
+function pick(key: string) {
   const count = (tm(key) as unknown[]).length
-  return `${key}.${(seed.value >>> shift) % count}`
+  return `${key}.${seed.value % count}`
 }
 const projects = useProjectsStore()
 const conversations = useConversationsStore()
@@ -160,6 +160,8 @@ const { over } = useFileDrop(pane, (paths) => {
   if (loaded.value) composer.value?.attach(paths)
 })
 
+defineExpose({ focus: () => composer.value?.focus() })
+
 // Chat de skill qui attend la réponse à son formulaire : il vient d'être ouvert pour qu'on y écrive.
 onMounted(() => {
   if (loaded.value && items.value.length === 1 && items.value[0]?.kind === 'command') composer.value?.focus()
@@ -179,11 +181,18 @@ onMounted(() => {
       @rewind="rewindTo"
       @resend="resend"
     />
-    <div v-else-if="loaded" class="flex flex-1 flex-col items-center justify-end px-6 pb-8 text-center">
-      <p class="max-w-2xl text-3xl font-semibold tracking-tight text-balance break-words">
-        {{ project ? t(pick('chat.projectTitles'), { project: project.name }) : t(pick('chat.freeTitles')) }}
-      </p>
-      <p class="mt-2 text-sm text-muted">{{ t(pick(project ? 'chat.projectHints' : 'chat.freeHints', 5)) }}</p>
+    <!-- Même en-tête que Nouvel espace de travail : titre, puis projet, machine et endroit juste au-dessus du champ. -->
+    <div v-else-if="loaded" class="flex flex-1 flex-col items-center justify-end px-6 pb-2">
+      <div class="w-full max-w-(--chat-width)">
+        <slot name="title">
+          <h1 class="px-1 text-2xl font-semibold tracking-tight text-balance break-words">
+            {{ project ? t(pick('chat.projectTitles'), { project: project.name }) : t(pick('chat.freeTitles')) }}
+          </h1>
+        </slot>
+        <ChatPlaceRow class="mt-5" :chat-id="tab.id" :project="project" :worktree="worktreeState" @worktree="chooseWorktree">
+          <template v-if="$slots.project" #project><slot name="project" /></template>
+        </ChatPlaceRow>
+      </div>
     </div>
     <div v-else class="flex-1" />
     <!-- La demande s'affiche au-dessus du champ sans le démonter : un brouillon en cours reste. -->
@@ -236,7 +245,6 @@ onMounted(() => {
         :approving="!!approval"
         @send="send"
         @warm="conversations.warm(tab.id, place)"
-        @worktree="chooseWorktree"
         @stop="conversations.stop(tab.id)"
         @compact="send('/compact', [])"
       />

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronDown, ChevronRight, NoProject, Plus, Search, Settings, SlidersHorizontal } from '@/components/ui/icons'
+import { ChevronRight, ChevronsUpDown, NoProject, Plus, Search, Settings, SlidersHorizontal } from '@/components/ui/icons'
 import {
   DropdownMenuContent,
   DropdownMenuPortal,
@@ -28,7 +28,7 @@ import { type Project, useProjectsStore } from '@/stores/projects'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { normalize } from '@/utils/search'
 
-// En haut à gauche de « Projets en menu » : le projet en cours, et la liste pour passer à un autre ou aux « Sessions libres ».
+// En haut à gauche de « Projets en menu » : le projet en cours, et la liste pour passer à un autre ou à « Cet ordinateur ».
 // Ses réglages : la roue de chaque ligne ouvre sa page (comme T3 Code) ; « Réglages rapides », en bas, ouvre le
 // menu du clic droit (comme « Project settings » de monocode), qui mène aussi à la page.
 const { t } = useI18n()
@@ -49,7 +49,7 @@ const shown = computed(() => {
 const showNone = computed(() => !query.value.trim() || normalize(noneLabel.value).includes(normalize(query.value)))
 
 
-// Listbox en valeurs texte : '' vaut les « Sessions libres ». Rechoisir le projet en cours ramène à ses sessions.
+// Listbox en valeurs texte : '' vaut « Cet ordinateur ». Rechoisir le projet en cours ramène à ses sessions.
 function choose(value: unknown) {
   if (typeof value === 'string') navigation.openChats(value || null)
   open.value = false
@@ -108,7 +108,7 @@ watch(open, (value) => {
 })
 onBeforeUnmount(() => clearTimeout(quickTimer))
 
-// Toutes les lignes à 32 px, contenu centré : la roue des projets les rendait plus hautes que « Sessions libres »,
+// Toutes les lignes à 32 px, contenu centré : la roue des projets les rendait plus hautes que « Cet ordinateur »,
 // et `items-start` de menuRow remontait leur icône.
 const row = [menuRow.replace('items-start', 'items-center'), 'h-8']
 </script>
@@ -118,16 +118,13 @@ const row = [menuRow.replace('items-start', 'items-center'), 'h-8']
     <UiTooltip :label="t('rail.switchProject')" :shortcut="shortcuts.label('switchProject')" :disabled="open">
       <PopoverRoot v-model:open="open">
         <PopoverTrigger
-          class="group flex h-7 max-w-full min-w-0 items-center gap-2 rounded-md px-2 text-sm font-semibold hover:bg-selection-hover focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring data-[state=open]:bg-selection-hover"
+          class="group flex h-8 w-full min-w-0 items-center gap-2 rounded-md px-2 text-sm font-semibold hover:bg-selection-hover focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring data-[state=open]:bg-selection-hover"
           :aria-label="`${t('rail.switchProject')}, ${current?.name ?? noneLabel}`"
         >
-          <ProjectIcon v-if="current" :project="current" class="size-4 shrink-0 rounded-sm" />
+          <ProjectIcon v-if="current" :project="current" class="size-4.5 shrink-0 rounded-sm" />
           <NoProject v-else class="size-4 shrink-0 text-muted" aria-hidden="true" />
           <span class="min-w-0 truncate">{{ current?.name ?? noneLabel }}</span>
-          <ChevronDown
-            class="size-3.5 shrink-0 text-muted transition-transform duration-150 group-data-[state=open]:rotate-180 motion-reduce:transition-none"
-            aria-hidden="true"
-          />
+          <ChevronsUpDown class="ms-auto size-3.5 shrink-0 text-muted" aria-hidden="true" />
         </PopoverTrigger>
         <PopoverPortal>
           <PopoverContent
@@ -135,7 +132,7 @@ const row = [menuRow.replace('items-start', 'items-center'), 'h-8']
             align="start"
             :side-offset="6"
             :collision-padding="8"
-            class="ui-pop z-50 w-64 text-xs text-content select-none"
+            class="ui-pop z-50 w-(--reka-popover-trigger-width) min-w-64 text-xs text-content select-none"
           >
             <ListboxRoot
               :model-value="navigation.projectId ?? ''"

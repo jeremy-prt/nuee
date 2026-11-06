@@ -22,6 +22,8 @@ interface LayoutState {
   panel: { open: boolean; width: number }
   right: Dock
   sessionSort: SessionSort
+  // Intertitres de date dans la liste des sessions : coupés par défaut, chaque session montre déjà sa date.
+  sessionGroups: boolean
 }
 
 const STORAGE_KEY = 'nuee.layout.v5'
@@ -42,6 +44,7 @@ function defaults(): LayoutState {
     panel: { open: true, width: SIZES.panel.defaultSize },
     right: { open: false, size: SIZES.right.defaultSize, panes: ['changes'], split: SIZES.split.defaultSize },
     sessionSort: 'activity',
+    sessionGroups: false,
   }
 }
 

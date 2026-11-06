@@ -10,7 +10,7 @@ import { worktreeSupport } from '@/ipc/worktree'
 import { i18nGlobal } from '@/i18n'
 import { useAgentsStore } from '@/stores/agents'
 import { agents, defaultAgent } from '@/utils/agents'
-import { colorFromName, isProjectColor, mascotIds, mascotOf, type ProjectColor } from '@/utils/projects'
+import { colorFromName, type IconColor, isIconColor, isProjectColor, type ProjectColor } from '@/utils/projects'
 
 // Notifications coupées pour les chats du projet : pendant une heure, jusqu'au lendemain matin, ou sans limite.
 export type MuteKind = 'hour' | 'tomorrow' | 'always'
@@ -29,18 +29,16 @@ export function muteEnd(kind: MuteKind, at = Date.now()): number | null {
   return null
 }
 
-// auto : l'icône trouvée dans le dossier, sinon la mascotte. image : celle importée dans les réglages.
-export type IconMode = 'auto' | 'mascot' | 'image'
-const ICON_MODES: IconMode[] = ['auto', 'mascot', 'image']
+// auto : l'icône trouvée dans le dossier, sinon l'initiale. image : celle importée dans les réglages.
+export type IconMode = 'auto' | 'letter' | 'image'
+const ICON_MODES: IconMode[] = ['auto', 'letter', 'image']
 
 export interface Project {
   id: string
   name: string
   path: string
   icon: IconMode
-  // null : la mascotte tirée de l'id du projet.
-  mascot: string | null
-  color: ProjectColor
+  color: IconColor
   // Réglages de départ d'un nouveau chat du projet ; null suit Réglages › Agents.
   agent: AgentKind | null
   model: string | null
@@ -71,6 +69,12 @@ function folderName(path: string) {
   return path.split(/[\\/]/).filter(Boolean).pop() ?? path
 }
 
+// Le mode « mascotte » des anciennes versions devient l'initiale.
+function restoreIcon(value: unknown): IconMode {
+  if (value === 'mascot') return 'letter'
+  return ICON_MODES.includes(value as IconMode) ? (value as IconMode) : 'auto'
+}
+
 // Les projets de la première version n'avaient que id, name et path : le reste prend sa valeur de départ.
 function restore(value: Partial<Record<keyof Project, unknown>>): Project | null {
   if (typeof value.id !== 'string' || typeof value.path !== 'string') return null
@@ -79,9 +83,8 @@ function restore(value: Partial<Record<keyof Project, unknown>>): Project | null
     id: value.id,
     name,
     path: value.path,
-    icon: ICON_MODES.includes(value.icon as IconMode) ? (value.icon as IconMode) : 'auto',
-    mascot: typeof value.mascot === 'string' && mascotIds.includes(value.mascot) ? value.mascot : null,
-    color: isProjectColor(value.color) ? value.color : colorFromName(name),
+    icon: restoreIcon(value.icon),
+    color: isIconColor(value.color) ? value.color : colorFromName(name),
     agent: typeof value.agent === 'string' && value.agent in agents ? (value.agent as AgentKind) : null,
     model: typeof value.model === 'string' ? value.model : null,
     effort: typeof value.effort === 'string' ? (value.effort as Effort) : null,
@@ -182,7 +185,6 @@ export const useProjectsStore = defineStore('projects', () => {
       name,
       path,
       icon: 'auto',
-      mascot: null,
       color: colorFromName(name),
       agent: null,
       model: null,
@@ -289,19 +291,14 @@ export const useProjectsStore = defineStore('projects', () => {
     project.icon = 'image'
   }
 
-  function mascotFor(project: Project) {
-    return project.mascot ?? mascotOf(project.id)
-  }
-
-  // Ce qui s'affiche : une image, une mascotte, ou rien tant que le dossier n'a pas été lu. Une image importée
+  // Ce qui s'affiche : une image, l'initiale, ou rien tant que le dossier n'a pas été lu. Une image importée
   // disparue retombe sur l'automatique.
-  function shown(project: Project): { image: string } | { mascot: string } | null {
-    const mascot = { mascot: mascotFor(project) }
-    if (project.icon === 'mascot') return mascot
+  function shown(project: Project): { image: string } | 'letter' | null {
+    if (project.icon === 'letter') return 'letter'
     const found = icons[project.id]
     if (!found) return null
     if (project.icon === 'image' && found.custom) return { image: found.custom }
-    return found.detected ? { image: found.detected.data } : mascot
+    return found.detected ? { image: found.detected.data } : 'letter'
   }
 
   async function checkWorktree(project: Project) {
@@ -355,7 +352,6 @@ export const useProjectsStore = defineStore('projects', () => {
     remove,
     loadIcon,
     importIcon,
-    mascotFor,
     shown,
     checkWorktree,
     mute,

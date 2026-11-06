@@ -313,10 +313,9 @@ const projectRows: (Pick<SettingEntry, 'label' | 'hint' | 'terms' | 'keywords'> 
   {
     row: 'icon',
     label: 'settings.projects.icon',
-    terms: ['settings.projects.iconModes.auto', 'settings.projects.iconModes.mascot', 'settings.projects.iconModes.image', 'settings.projects.chooseIcon'],
+    terms: ['settings.projects.iconModes.auto', 'settings.projects.iconModes.letter', 'settings.projects.iconModes.image', 'settings.projects.chooseIcon'],
   },
-  // Mascotte et couleur n'apparaissent qu'avec une mascotte : la recherche mène à la ligne Icône, toujours là.
-  { row: 'icon', label: 'settings.projects.mascot' },
+  // La couleur n'apparaît qu'avec l'initiale : la recherche mène à la ligne Icône, toujours là.
   { row: 'icon', label: 'settings.projects.color' },
   { row: 'background', label: 'settings.projects.background', hint: 'settings.projects.backgroundHint' },
   { row: 'agent', label: 'settings.projects.agent', hint: 'settings.projects.defaults', keywords: ['agentDefaults'] },

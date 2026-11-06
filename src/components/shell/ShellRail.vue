@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import {
   ArrowLeft,
-  CircleDot,
   FolderPlus,
   Gauge,
-  GitPullRequest,
-  House,
+  Github,
   NoProject,
   NotebookPen,
   Plus,
@@ -56,7 +54,6 @@ watch(
 )
 
 const footerButtons = useTemplateRef<HTMLButtonElement[]>('footerButtons')
-const chatList = useTemplateRef<InstanceType<typeof ShellChatList>>('chatList')
 
 // Le focus ne suit que si on a validé au clavier le bouton qui disparaît (Réglages, Retour) :
 // un clic, Échap ou un raccourci le laissent où il est. `detail` vaut 0 pour un clic venu du clavier.
@@ -88,14 +85,12 @@ async function addProject() {
 }
 
 const pages = [
-  { view: 'home', icon: House },
-  { view: 'issues', icon: CircleDot },
-  { view: 'pullRequests', icon: GitPullRequest },
+  { view: 'new', icon: Plus },
+  { view: 'github', icon: Github },
   { view: 'notes', icon: NotebookPen },
   { view: 'search', icon: Search, shortcut: 'search' },
 ] as const
 
-const menuPages = pages.filter((page) => page.view !== 'search')
 
 // Mises à jour n'est pas une vue : le bouton mène à Réglages > Général.
 const footer = [
@@ -116,33 +111,26 @@ function footerLabel(id: (typeof footer)[number]['id']) {
     :style="{ width: `${layout.rail.expanded ? layout.rail.width : RAIL_COLLAPSED_WIDTH}px` }"
   >
     <template v-if="menu && navigation.view !== 'settings'">
-      <!-- La recherche passe en icône à droite du projet, comme la loupe de monocode. -->
-      <div class="flex shrink-0 items-center gap-1 ps-2 pe-0.5 pt-1 pb-2">
-        <!-- Le sélecteur s'ajuste à son nom, comme monocode : un fond pleine largeur avec la flèche collée au nom faisait bancal. -->
-        <div class="flex min-w-0 flex-1 *:min-w-0"><ShellProjectSwitcher /></div>
-        <UiIconButton
-          :label="t('rail.search')"
-          :shortcut="shortcuts.label('search')"
-          :active="navigation.view === 'search'"
-          @click="navigation.go('search')"
-        >
-          <Search class="size-4" aria-hidden="true" />
-        </UiIconButton>
-      </div>
-      <nav class="flex shrink-0 flex-col gap-0.5 ps-2 pe-0.5" :aria-label="t('rail.label')">
+      <nav class="flex shrink-0 flex-col gap-0.5 ps-2 pe-0.5 pt-1" :aria-label="t('rail.label')">
         <ShellRailItem
-          v-for="item in menuPages"
+          v-for="item in pages"
           :key="item.view"
           :icon="item.icon"
           :label="t(`rail.${item.view}`)"
+          :shortcut="'shortcut' in item ? shortcuts.label(item.shortcut) : undefined"
           expanded
           :active="navigation.view === item.view"
           @click="navigation.go(item.view)"
         />
       </nav>
-      <section class="mt-3 flex min-h-0 flex-1 flex-col" aria-labelledby="sidebar-sessions">
-        <div class="flex h-8 shrink-0 items-center ps-4 pe-0.5">
-          <h2 id="sidebar-sessions" class="min-w-0 flex-1 truncate text-xs font-medium text-muted">{{ chatList?.heading ?? t('chats.recent') }}</h2>
+      <div class="ms-4 me-2.5 mt-3 mb-2 h-px shrink-0 bg-stroke" />
+      <!-- Hiérarchie par la taille, sans trait (il prenait de la largeur) : le projet, l'environnement, en gros ;
+           puis « Sessions » avec tri et nouvelle session ; puis les dates, plus discrètes. -->
+      <section class="flex min-h-0 flex-1 flex-col" aria-labelledby="sidebar-sessions">
+        <!-- Menu du projet au clic droit sur sa ligne (ShellProjectSwitcher), sans « … » qui chargeait la ligne. -->
+        <div class="flex shrink-0 ps-2 pe-0.5 *:min-w-0 *:flex-1"><ShellProjectSwitcher /></div>
+        <div class="mt-2 flex h-8 shrink-0 items-center ps-4 pe-0.5">
+          <h2 id="sidebar-sessions" class="min-w-0 flex-1 truncate text-[13px] font-semibold text-content/80">{{ t('chats.recent') }}</h2>
           <ShellChatSort />
           <UiIconButton :label="t('chats.newChat')" :shortcut="shortcuts.label('newChat')" @click="newChat()">
             <Plus class="size-4" aria-hidden="true" />
@@ -150,11 +138,11 @@ function footerLabel(id: (typeof footer)[number]['id']) {
         </div>
         <div
           :key="navigation.projectId ?? ''"
-          class="min-h-0 flex-1 overflow-y-auto ps-2 pe-0.5 pb-2"
+          class="mb-2 min-h-0 flex-1 overflow-y-auto ps-2 pe-0.5"
           :class="{ 'project-slide': sliding }"
           :data-step="navigation.projectStep"
         >
-          <ShellChatList ref="chatList" titled />
+          <ShellChatList />
         </div>
       </section>
     </template>

@@ -13,9 +13,22 @@ function hash(text: string) {
   return value
 }
 
+// Couleurs de l'initiale d'un projet (jetons `--icon-*` de main.css). Le gris n'est jamais tiré au hasard.
+export const iconColors = ['slate', 'blue', 'sky', 'teal', 'emerald', 'indigo', 'violet', 'pink', 'red', 'orange'] as const
+
+export type IconColor = (typeof iconColors)[number]
+
+export function isIconColor(value: unknown): value is IconColor {
+  return iconColors.includes(value as IconColor)
+}
+
+export function iconColorVar(color: IconColor) {
+  return `var(--icon-${color})`
+}
+
 // Couleur de départ tirée du nom : deux projets aux noms différents ont peu de chances de se ressembler.
-export function colorFromName(name: string): ProjectColor {
-  return projectColors[(hash(name) % (projectColors.length - 1)) + 1] ?? 'blue'
+export function colorFromName(name: string): IconColor {
+  return iconColors[(hash(name) % (iconColors.length - 1)) + 1] ?? 'blue'
 }
 
 export function colorVar(color: ProjectColor) {
@@ -32,22 +45,4 @@ export function rowTint(color: ProjectColor) {
 // Même règle que `branch` dans services/worktree.rs.
 export function worktreeBranch(chatId: string) {
   return `nuee/${chatId.slice(0, 8)}`
-}
-
-// Mascottes dessinées dans src/assets/mascots : teintées par les variables de `.mascot` (main.css), leurs `id`
-// commencent par `__ID__`, remplacé par instance (plusieurs mascottes de couleurs différentes sur une page).
-const files = import.meta.glob<string>('@/assets/mascots/*.svg', { query: '?raw', import: 'default', eager: true })
-const svgs: Record<string, string> = Object.fromEntries(
-  Object.entries(files).map(([path, svg]) => [path.slice(path.lastIndexOf('/') + 1, -'.svg'.length), svg]),
-)
-
-export const mascotIds = ['nuage', 'brouillard', 'pluie', 'orage', 'lune', 'tourbillon', 'vent', 'eclaircie'].filter((id) => id in svgs)
-
-export function mascotSvg(id: string, instance: string) {
-  return (svgs[id] ?? svgs[mascotIds[0] ?? ''] ?? '').replaceAll('__ID__', instance)
-}
-
-// Tirée de l'id : elle ne change pas quand on renomme le projet.
-export function mascotOf(projectId: string) {
-  return mascotIds[hash(projectId) % mascotIds.length] ?? ''
 }

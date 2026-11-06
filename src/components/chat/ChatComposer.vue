@@ -2,10 +2,10 @@
 import { ArrowUp, ShieldAlert, ShieldCheck, Square, X } from '@/components/ui/icons'
 import { type Component, computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import ChatBranchPicker from '@/components/chat/ChatBranchPicker.vue'
 import ChatContextMeter from '@/components/chat/ChatContextMeter.vue'
 import ChatMentionMenu from '@/components/chat/ChatMentionMenu.vue'
 import ChatModelPicker from '@/components/chat/ChatModelPicker.vue'
-import ChatPlaceBar from '@/components/chat/ChatPlaceBar.vue'
 import ChatPlusMenu from '@/components/chat/ChatPlusMenu.vue'
 import ChatPromptText from '@/components/chat/ChatPromptText.vue'
 import ChatSlashMenu from '@/components/chat/ChatSlashMenu.vue'
@@ -22,11 +22,10 @@ import type { ContextUsage } from '@/ipc/bindings/ContextUsage'
 import type { Effort } from '@/ipc/bindings/Effort'
 import type { PermissionMode } from '@/ipc/bindings/PermissionMode'
 import type { TurnOptions } from '@/ipc/bindings/TurnOptions'
-import type { Worktree } from '@/ipc/bindings/Worktree'
-import type { WorktreeSupport } from '@/ipc/bindings/WorktreeSupport'
 import { pickFiles } from '@/ipc/dialog'
 import { useDraftsStore } from '@/stores/drafts'
 import { useGeneralStore } from '@/stores/general'
+import type { WorktreeChoice } from '@/components/chat/ChatWorktreePicker.vue'
 import type { Project } from '@/stores/projects'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { useSkillsStore } from '@/stores/skills'
@@ -36,15 +35,8 @@ const props = defineProps<{
   agent: AgentKind
   // null : chat sans projet.
   project: Project | null
-  // Worktree du chat : choisi avant le premier message, affiché ensuite. `choice` : 'project', 'new' ou le chemin
-  // d'un worktree de `trees` ; `blocked` : pourquoi il est impossible.
-  worktree: {
-    choice: string
-    started: boolean
-    blocked: Exclude<WorktreeSupport, 'ready'> | null
-    branch: string
-    trees: Worktree[]
-  } | null
+  // Endroit du chat, choisi au-dessus du champ avant le premier message ; ensuite seule sa branche s'affiche ici.
+  worktree: WorktreeChoice | null
   // null tant que l'agent n'a pas décrit ses modèles : on laisse alors son choix par défaut.
   catalog: Catalog | null
   // null tant que l'agent n'a pas relevé son contexte pour ce modèle.
@@ -60,7 +52,7 @@ const props = defineProps<{
 }>()
 // Réglages résolus : modèle et effort sont toujours des valeurs réelles du catalogue.
 const options = defineModel<TurnOptions>('options', { required: true })
-const emit = defineEmits<{ send: [prompt: string, attachments: Attachment[]]; stop: []; warm: []; worktree: [choice: string]; compact: [] }>()
+const emit = defineEmits<{ send: [prompt: string, attachments: Attachment[]]; stop: []; warm: []; compact: [] }>()
 
 const { t } = useI18n()
 const shortcuts = useShortcutsStore()
@@ -90,7 +82,6 @@ const modeSections = computed<UiMenuSection[]>(() => [
     options: (['bypass', 'auto'] as const).map((mode) => ({
       value: mode,
       label: t(`composer.mode.${mode}`),
-      hint: t(`composer.mode.${mode}Hint`),
       ...modeLooks[mode],
     })),
   },
@@ -420,8 +411,16 @@ function onKeydown(event: KeyboardEvent) {
           <component :is="modeLook.icon" class="size-3.5 shrink-0" :class="modeLook.iconClass" aria-hidden="true" />
           <span class="@max-sm:sr-only">{{ t(`composer.mode.${options.mode}`) }}</span>
         </UiMenu>
+        <ChatContextMeter v-if="context" :usage="context" :disabled="disabled || running || !compactable" @compact="emit('compact')" />
+        <ChatBranchPicker
+          v-if="project && worktree?.started"
+          :key="chatId"
+          :chat-id="chatId"
+          :project="project"
+          :fallback="worktree.branch"
+          :disabled="disabled || running"
+        />
         <span class="flex-1" />
-        <ChatContextMeter v-if="context" :usage="context" :disabled="disabled || running || !compactable" class="me-1" @compact="emit('compact')" />
         <!-- Pendant une réponse : le message attend la fin du tour ou la rejoint, selon Réglages › Général. -->
         <UiTooltip v-if="running && canSend" :label="t(general.followUp === 'steer' ? 'composer.steer' : 'composer.queue')" :shortcut="shortcuts.label('send')" side="top">
           <button
@@ -456,16 +455,6 @@ function onKeydown(event: KeyboardEvent) {
         </UiTooltip>
       </div>
     </div>
-    <ChatPlaceBar
-      v-if="project"
-      :chat-id="chatId"
-      :project="project"
-      :worktree="worktree"
-      :disabled="disabled"
-      :running="running"
-      :focus-after="focusInput"
-      @worktree="emit('worktree', $event)"
-    />
     <ChatSlashMenu ref="slashMenu" :id="`${id}-skills`" :query="slashQuery" @choose="chooseSkill" />
     <ChatMentionMenu v-if="project" ref="mentionMenu" :id="`${id}-files`" :query="mention?.query ?? null" :chat-id="chatId" :project="project.path" @choose="chooseFile" />
   </form>

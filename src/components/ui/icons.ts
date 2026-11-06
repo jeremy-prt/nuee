@@ -4,10 +4,8 @@ import Add01Icon from '@hugeicons/core-free-icons/Add01Icon'
 import AlertCircleIcon from '@hugeicons/core-free-icons/AlertCircleIcon'
 import Archive02Icon from '@hugeicons/core-free-icons/Archive02Icon'
 import ArrangeByLettersAZIcon from '@hugeicons/core-free-icons/ArrangeByLettersAZIcon'
-import ArrowDown01Icon from '@hugeicons/core-free-icons/ArrowDown01Icon'
 import ArrowDown02Icon from '@hugeicons/core-free-icons/ArrowDown02Icon'
 import ArrowLeft02Icon from '@hugeicons/core-free-icons/ArrowLeft02Icon'
-import ArrowRight01Icon from '@hugeicons/core-free-icons/ArrowRight01Icon'
 import ArrowShrink02Icon from '@hugeicons/core-free-icons/ArrowShrink02Icon'
 import ArrowTurnBackwardIcon from '@hugeicons/core-free-icons/ArrowTurnBackwardIcon'
 import ArrowTurnForwardIcon from '@hugeicons/core-free-icons/ArrowTurnForwardIcon'
@@ -19,9 +17,7 @@ import BrainIcon from '@hugeicons/core-free-icons/BrainIcon'
 import BubbleChatQuestionIcon from '@hugeicons/core-free-icons/BubbleChatQuestionIcon'
 import CalendarAdd01Icon from '@hugeicons/core-free-icons/CalendarAdd01Icon'
 import Cancel01Icon from '@hugeicons/core-free-icons/Cancel01Icon'
-import Chatting01Icon from '@hugeicons/core-free-icons/Chatting01Icon'
 import CheckmarkCircle02Icon from '@hugeicons/core-free-icons/CheckmarkCircle02Icon'
-import CircleDotIcon from '@hugeicons/core-free-icons/CircleDotIcon'
 import Clock01Icon from '@hugeicons/core-free-icons/Clock01Icon'
 import CommentAdd01Icon from '@hugeicons/core-free-icons/CommentAdd01Icon'
 import ComputerTerminal01Icon from '@hugeicons/core-free-icons/ComputerTerminal01Icon'
@@ -51,9 +47,8 @@ import FolderTreeIcon from '@hugeicons/core-free-icons/FolderTreeIcon'
 import GitBranchIcon from '@hugeicons/core-free-icons/GitBranchIcon'
 import GitCompareIcon from '@hugeicons/core-free-icons/GitCompareIcon'
 import GitForkIcon from '@hugeicons/core-free-icons/GitForkIcon'
-import GitPullRequestIcon from '@hugeicons/core-free-icons/GitPullRequestIcon'
+import GithubIcon from '@hugeicons/core-free-icons/GithubIcon'
 import Globe02Icon from '@hugeicons/core-free-icons/Globe02Icon'
-import Home01Icon from '@hugeicons/core-free-icons/Home01Icon'
 import HourglassIcon from '@hugeicons/core-free-icons/HourglassIcon'
 import Html5Icon from '@hugeicons/core-free-icons/Html5Icon'
 import ImageAdd01Icon from '@hugeicons/core-free-icons/ImageAdd01Icon'
@@ -61,6 +56,7 @@ import ImageUpload01Icon from '@hugeicons/core-free-icons/ImageUpload01Icon'
 import InformationCircleIcon from '@hugeicons/core-free-icons/InformationCircleIcon'
 import JavaScriptIcon from '@hugeicons/core-free-icons/JavaScriptIcon'
 import KeyboardIcon from '@hugeicons/core-free-icons/KeyboardIcon'
+import LaptopIcon from '@hugeicons/core-free-icons/LaptopIcon'
 import LayerIcon from '@hugeicons/core-free-icons/LayerIcon'
 import LayoutBottomIcon from '@hugeicons/core-free-icons/LayoutBottomIcon'
 import LayoutTwoColumnIcon from '@hugeicons/core-free-icons/LayoutTwoColumnIcon'
@@ -90,6 +86,7 @@ import SentIcon from '@hugeicons/core-free-icons/SentIcon'
 import Settings01Icon from '@hugeicons/core-free-icons/Settings01Icon'
 import ShieldAlertIcon from '@hugeicons/core-free-icons/ShieldAlertIcon'
 import ShieldQuestionMarkIcon from '@hugeicons/core-free-icons/ShieldQuestionMarkIcon'
+import ServerStack01Icon from '@hugeicons/core-free-icons/ServerStack01Icon'
 import SidebarLeft01Icon from '@hugeicons/core-free-icons/SidebarLeft01Icon'
 import SidebarRight01Icon from '@hugeicons/core-free-icons/SidebarRight01Icon'
 import SparklesIcon from '@hugeicons/core-free-icons/SparklesIcon'
@@ -122,6 +119,12 @@ const SidebarOpenIcon = SidebarLeft01Icon.map(([tag, attrs]) =>
     : [tag, attrs],
 ) as Glyph
 
+// Chevrons tracés à la main, en angle net : ceux de Hugeicons sont des courbes molles (choix de Jérémy).
+const chevron = (d: string) => [['path', { d, stroke: 'currentColor', strokeLinecap: 'round', strokeLinejoin: 'round', strokeWidth: '1.5', key: '0' }]] as Glyph
+const ChevronDownGlyph = chevron('M6 9L12 15L18 9')
+const ChevronRightGlyph = chevron('M9 6L15 12L9 18')
+const ChevronsUpDownGlyph = chevron('M8 9L12 5L16 9M8 15L12 19L16 15')
+
 export const Archive = icon(Archive02Icon)
 export const ArrangeAZ = icon(ArrangeByLettersAZIcon)
 export const ArrowDown = icon(ArrowDown02Icon)
@@ -135,11 +138,12 @@ export const Bot = icon(BotIcon)
 export const Brain = icon(BrainIcon)
 export const CalendarAdd = icon(CalendarAdd01Icon)
 export const Check = icon(Tick02Icon)
-export const ChevronDown = icon(ArrowDown01Icon)
-export const ChevronRight = icon(ArrowRight01Icon)
+export const ChevronDown = icon(ChevronDownGlyph)
+export const ChevronRight = icon(ChevronRightGlyph)
+// Sélecteur pleine largeur : un chevron seul au bout de la ligne se lit comme un panneau à replier.
+export const ChevronsUpDown = icon(ChevronsUpDownGlyph)
 export const CircleAlert = icon(AlertCircleIcon)
 export const CircleCheck = icon(CheckmarkCircle02Icon)
-export const CircleDot = icon(CircleDotIcon)
 export const Clock = icon(Clock01Icon)
 export const Columns2 = icon(LayoutTwoColumnIcon)
 export const Copy = icon(Copy01Icon)
@@ -180,10 +184,9 @@ export const Gauge = icon(DashboardSpeed01Icon)
 export const GitBranch = icon(GitBranchIcon)
 export const GitBranchPlus = icon(GitForkIcon)
 export const GitCompare = icon(GitCompareIcon)
-export const GitPullRequest = icon(GitPullRequestIcon)
+export const Github = icon(GithubIcon)
 export const Globe = icon(Globe02Icon)
 export const Hourglass = icon(HourglassIcon)
-export const House = icon(Home01Icon)
 export const ImagePlus = icon(ImageAdd01Icon)
 export const ImageUp = icon(ImageUpload01Icon)
 export const Info = icon(InformationCircleIcon)
@@ -194,8 +197,8 @@ export const LoaderCircle = icon(Loading03Icon)
 export const MessageQuestion = icon(BubbleChatQuestionIcon)
 export const MessageSquarePlus = icon(CommentAdd01Icon)
 export const Minimize2 = icon(ArrowShrink02Icon)
-// « Sessions libres » (choix de Jérémy).
-export const NoProject = icon(Chatting01Icon)
+// « Cet ordinateur » (choix de Jérémy).
+export const NoProject = icon(LaptopIcon)
 export const NotebookPen = icon(NoteEditIcon)
 export const PaintBucket = icon(PaintBucketIcon)
 export const Palette = icon(PaintBoardIcon)
@@ -213,6 +216,7 @@ export const RefreshCw = icon(Refresh01Icon)
 export const RotateCcw = icon(UndoIcon)
 export const Search = icon(Search01Icon)
 export const SendHorizontal = icon(SentIcon)
+export const Server = icon(ServerStack01Icon)
 export const Settings = icon(Settings01Icon)
 export const ShieldAlert = icon(ShieldAlertIcon)
 export const ShieldCheck = icon(SecurityCheckIcon)
