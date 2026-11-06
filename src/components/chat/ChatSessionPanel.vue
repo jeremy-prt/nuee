@@ -132,15 +132,13 @@ const empty = `${row} text-muted`
         <UiTooltip v-if="folder" :label="folder" side="bottom">
           <button type="button" :class="action" :aria-label="`${t('settings.projects.reveal')} · ${folder}`" @click="reveal">
             <ProjectIcon v-if="project" :project="project" class="size-4 shrink-0 rounded-sm" />
-            <span class="shrink-0">{{ project?.name }}</span>
-            <span class="min-w-0 truncate text-muted">· {{ chat.worktree ? t('composer.worktree.short') : t('composer.worktree.project') }}</span>
+            <span class="truncate">{{ project?.name }}</span>
           </button>
         </UiTooltip>
         <p v-else :class="row">
           <ProjectIcon v-if="project" :project="project" class="size-4 shrink-0 rounded-sm" />
           <component :is="chat.worktree ? FolderTree : Folder" v-else class="size-4 shrink-0 text-muted" aria-hidden="true" />
-          <span class="shrink-0">{{ project?.name ?? t('rail.chats') }}</span>
-          <span class="min-w-0 truncate text-muted">{{ project ? `· ${t('composer.worktree.short')}` : t('dock.session.scratch') }}</span>
+          <span class="truncate">{{ project?.name ?? t('rail.chats') }}</span>
         </p>
         <p v-if="branch" :class="row">
           <GitBranch class="size-4 shrink-0 text-muted" aria-hidden="true" />
@@ -151,11 +149,14 @@ const empty = `${row} text-muted`
           <GitBranch class="size-4 shrink-0" aria-hidden="true" />
           {{ t('dock.session.noBranch') }}
         </p>
-        <div :class="row">
-          <Coffee class="size-4 shrink-0 text-muted" aria-hidden="true" />
-          <span class="min-w-0 flex-1 truncate" aria-hidden="true">{{ t('settings.general.system.keepAwake') }}</span>
-          <UiSwitch v-model="general.keepAwake" :label="t('settings.general.system.keepAwake')" />
-        </div>
+        <!-- Le même réglage que Réglages › Général, raccourci ici comme dans l'app Claude. -->
+        <UiTooltip :label="t('settings.general.system.keepAwake')" side="bottom">
+          <div :class="row">
+            <Coffee class="size-4 shrink-0 text-muted" aria-hidden="true" />
+            <span class="min-w-0 flex-1 truncate" aria-hidden="true">{{ t('dock.session.keepAwake') }}</span>
+            <UiSwitch v-model="general.keepAwake" :label="t('settings.general.system.keepAwake')" />
+          </div>
+        </UiTooltip>
         <UiTooltip :label="t('dock.session.soon')" side="bottom">
           <div :class="row">
             <RemoteControl class="size-4 shrink-0 text-muted" aria-hidden="true" />
@@ -205,10 +206,6 @@ const empty = `${row} text-muted`
         </p>
         <p v-if="finished" :class="empty">{{ t('dock.session.finished', { n: finished }, finished) }}</p>
         <p v-if="!tasks.length" :class="empty">{{ t('dock.session.noTasks') }}</p>
-        <button v-else type="button" :class="[action, 'text-muted hover:text-content']" @click="layout.showView('tasks')">
-          <span class="flex-1">{{ t('dock.session.showAll') }}</span>
-          <ChevronRight class="size-3.5 shrink-0" aria-hidden="true" />
-        </button>
       </template>
     </section>
 
