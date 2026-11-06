@@ -81,6 +81,9 @@ pub struct SessionSpec {
     /// Worktree du dépôt rejoint par le chat. `None` avec `worktree` : le sien, créé au premier message.
     #[serde(default)]
     pub worktree_path: Option<String>,
+    /// Branche locale d'où part le worktree du chat à sa création. `None` : le HEAD du projet.
+    #[serde(default)]
+    pub worktree_base: Option<String>,
 }
 
 /// Commande de Nuée attachée à un message : des consignes que l'utilisateur ne voit pas partent avec lui.

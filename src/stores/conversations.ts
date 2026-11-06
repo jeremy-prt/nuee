@@ -87,6 +87,8 @@ export interface Place {
   cwd: string | null
   worktree: boolean
   worktreePath: string | null
+  // Branche d'où part son propre worktree, créé au premier message. null : la branche actuelle du projet.
+  worktreeBase: string | null
 }
 
 export interface Queued {

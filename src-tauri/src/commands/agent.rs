@@ -83,7 +83,12 @@ async fn place(
             if !create && !worktrees.exists(&spec.chat_id) {
                 return Ok(Place::Later);
             }
-            let cwd = worktrees.ensure(&spec.chat_id, project).await?;
+            let base = if create {
+                spec.worktree_base.as_deref()
+            } else {
+                None
+            };
+            let cwd = worktrees.ensure(&spec.chat_id, project, base).await?;
             if spec.worktree_path.is_none() {
                 chats.set_worktree(&spec.chat_id, true, Some(&own))?;
             }

@@ -46,7 +46,7 @@ async fn work_dir(
                 return worktrees.enter(Path::new(&path), Path::new(&project)).await;
             }
             _ if worktrees.exists(chat_id) => {
-                return worktrees.ensure(chat_id, Path::new(&project)).await;
+                return worktrees.ensure(chat_id, Path::new(&project), None).await;
             }
             _ => {}
         }

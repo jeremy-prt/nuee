@@ -14,7 +14,7 @@ export function useTerminalChat() {
     if (!tab) return null
     const project = projects.byId(tab.projectId)
     const worktree = !!project && tab.worktree
-    return { cwd: project?.path ?? null, worktree, worktreePath: worktree ? tab.worktreePath : null }
+    return { cwd: project?.path ?? null, worktree, worktreePath: worktree ? tab.worktreePath : null, worktreeBase: null }
   })
 
   return { chat, place }

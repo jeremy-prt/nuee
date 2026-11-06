@@ -2,7 +2,6 @@
 import { ArrowUp, ShieldAlert, ShieldCheck, Square, X } from '@/components/ui/icons'
 import { type Component, computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import ChatBranchPicker from '@/components/chat/ChatBranchPicker.vue'
 import ChatContextMeter from '@/components/chat/ChatContextMeter.vue'
 import ChatMentionMenu from '@/components/chat/ChatMentionMenu.vue'
 import ChatModelPicker from '@/components/chat/ChatModelPicker.vue'
@@ -25,7 +24,6 @@ import type { TurnOptions } from '@/ipc/bindings/TurnOptions'
 import { pickFiles } from '@/ipc/dialog'
 import { useDraftsStore } from '@/stores/drafts'
 import { useGeneralStore } from '@/stores/general'
-import ChatWorktreePicker, { type WorktreeChoice } from '@/components/chat/ChatWorktreePicker.vue'
 import type { Project } from '@/stores/projects'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { useSkillsStore } from '@/stores/skills'
@@ -35,8 +33,6 @@ const props = defineProps<{
   agent: AgentKind
   // null : chat sans projet.
   project: Project | null
-  // Endroit du chat, choisi au-dessus du champ avant le premier message ; ensuite seule sa branche s'affiche ici.
-  worktree: WorktreeChoice | null
   // null tant que l'agent n'a pas décrit ses modèles : on laisse alors son choix par défaut.
   catalog: Catalog | null
   // null tant que l'agent n'a pas relevé son contexte pour ce modèle.
@@ -411,24 +407,9 @@ function onKeydown(event: KeyboardEvent) {
           <component :is="modeLook.icon" class="size-3.5 shrink-0" :class="modeLook.iconClass" aria-hidden="true" />
           <span class="@max-sm:sr-only">{{ t(`composer.mode.${options.mode}`) }}</span>
         </UiMenu>
-        <ChatContextMeter v-if="context" :usage="context" :disabled="disabled || running || !compactable" @compact="emit('compact')" />
-        <ChatWorktreePicker
-          v-if="project && worktree?.started"
-          :chat-id="chatId"
-          :worktree="worktree"
-          :disabled="disabled"
-          :focus-after="focusInput"
-          class="group flex h-7 min-w-0 items-center gap-1.5 rounded-md px-2 text-xs whitespace-nowrap text-content/85 hover:bg-selection-inner hover:text-content focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-40 aria-expanded:bg-selection-inner aria-expanded:text-content"
-        />
-        <ChatBranchPicker
-          v-if="project && worktree?.started"
-          :key="chatId"
-          :chat-id="chatId"
-          :project="project"
-          :fallback="worktree.branch"
-          :disabled="disabled || running"
-        />
         <span class="flex-1" />
+        <!-- État de la conversation, à côté de l'envoi ; à gauche, les réglages du prochain message. -->
+        <ChatContextMeter v-if="context" :usage="context" :disabled="disabled || running || !compactable" class="me-1" @compact="emit('compact')" />
         <!-- Pendant une réponse : le message attend la fin du tour ou la rejoint, selon Réglages › Général. -->
         <UiTooltip v-if="running && canSend" :label="t(general.followUp === 'steer' ? 'composer.steer' : 'composer.queue')" :shortcut="shortcuts.label('send')" side="top">
           <button

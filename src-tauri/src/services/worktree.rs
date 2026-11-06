@@ -61,15 +61,6 @@ pub struct Branch {
     pub elsewhere: bool,
 }
 
-/// `Blocked` : des modifications non commitées seraient écrasées, git n'a rien changé.
-#[derive(Debug, Clone, Serialize, TS)]
-#[serde(rename_all = "camelCase", tag = "kind")]
-#[ts(export)]
-pub enum SwitchOutcome {
-    Done { branch: String },
-    Blocked { files: Vec<String> },
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
@@ -120,9 +111,14 @@ impl WorktreeService {
             .is_ok_and(|dir| dir.join(".git").exists())
     }
 
-    /// Dossier où travaille l'agent du chat : le worktree, créé au premier appel depuis le HEAD du projet.
-    /// Un projet rangé dans un sous-dossier du dépôt retrouve ce sous-dossier dans le worktree.
-    pub async fn ensure(&self, chat_id: &str, project: &Path) -> Result<PathBuf, AppError> {
+    /// Dossier où travaille l'agent du chat : le worktree, créé au premier appel depuis la branche locale `base`,
+    /// ou le HEAD du projet. Un projet rangé dans un sous-dossier du dépôt retrouve ce sous-dossier dans le worktree.
+    pub async fn ensure(
+        &self,
+        chat_id: &str,
+        project: &Path,
+        base: Option<&str>,
+    ) -> Result<PathBuf, AppError> {
         let dir = self.path(chat_id)?;
         let project = std::fs::canonicalize(project).map_err(|_| {
             AppError::InvalidInput(format!("dossier introuvable : {}", project.display()))
@@ -138,6 +134,20 @@ impl WorktreeService {
             let local = format!("refs/heads/{branch}");
             let verify = ["rev-parse", "--verify", "--quiet", local.as_str()];
             let known = run(&git, &project, &verify, GIT_TIMEOUT).await.is_ok();
+            let start = match base {
+                Some(base) if !known => {
+                    valid_branch(&git, &project, base).await?;
+                    let start = format!("refs/heads/{base}");
+                    let verify = ["rev-parse", "--verify", "--quiet", start.as_str()];
+                    if run(&git, &project, &verify, GIT_TIMEOUT).await.is_err() {
+                        return Err(AppError::InvalidInput(format!(
+                            "la branche {base} n'existe pas"
+                        )));
+                    }
+                    start
+                }
+                _ => "HEAD".to_owned(),
+            };
             let (target, branch) = (target.as_ref(), branch.as_str());
             let args: Vec<&str> = if known {
                 vec!["worktree", "add", "--", target, branch]
@@ -150,7 +160,7 @@ impl WorktreeService {
                     branch,
                     "--",
                     target,
-                    "HEAD",
+                    start.as_str(),
                 ]
             };
             run(&git, &project, &args, ADD_TIMEOUT).await?;
@@ -243,42 +253,6 @@ impl WorktreeService {
             );
         }
         Ok(BranchList { current, branches })
-    }
-
-    /// Passe `dir` sur `branch`, créée depuis le HEAD actuel si `create`. Les modifications non commitées suivent
-    /// quand git le peut ; sinon rien ne bouge et `Blocked` nomme les fichiers en cause.
-    pub async fn switch(
-        &self,
-        project: &Path,
-        dir: &Path,
-        branch: &str,
-        create: bool,
-    ) -> Result<SwitchOutcome, AppError> {
-        let git = require_git()?;
-        let dir = session_dir(&git, project, dir).await?;
-        let branch = branch.trim();
-        valid_branch(&git, &dir, branch).await?;
-        let args: &[&str] = if create {
-            &["switch", "--create", branch]
-        } else {
-            &["switch", branch]
-        };
-        match run(&git, &dir, args, GIT_TIMEOUT).await {
-            Ok(_) => Ok(SwitchOutcome::Done {
-                branch: current_branch(&git, &dir)
-                    .await?
-                    .unwrap_or_else(|| branch.to_owned()),
-            }),
-            Err(AppError::Git(message)) => {
-                let files = blocking_files(&message);
-                if files.is_empty() {
-                    Err(AppError::Git(message))
-                } else {
-                    Ok(SwitchOutcome::Blocked { files })
-                }
-            }
-            Err(error) => Err(error),
-        }
     }
 
     /// Worktree dans `worktrees/<id du projet>/<branche nettoyée>`, sur une nouvelle branche partie du HEAD du
@@ -471,16 +445,6 @@ async fn current_branch(git: &Path, dir: &Path) -> Result<Option<String>, AppErr
     let out = run(git, dir, &["branch", "--show-current"], GIT_TIMEOUT).await?;
     let name = out.trim();
     Ok((!name.is_empty()).then(|| name.to_owned()))
-}
-
-/// Fichiers que git refuse d'écraser, cités un par ligne en retrait. Le reste du message est traduit selon la
-/// langue du système : seules ces lignes se lisent partout.
-fn blocking_files(message: &str) -> Vec<String> {
-    message
-        .lines()
-        .filter(|line| line.starts_with('\t'))
-        .map(|line| line.trim().to_owned())
-        .collect()
 }
 
 fn require_git() -> Result<PathBuf, AppError> {
@@ -689,11 +653,11 @@ mod tests {
     }
 
     #[test]
-    fn switching_branch_lists_creates_and_reports_blocking_changes() {
+    fn refs_list_the_current_branch_first_and_flag_taken_ones() {
         if git_binary().is_none() {
             return;
         }
-        let root = sandbox("switch");
+        let root = sandbox("refs");
         let repo = repo(&root);
         let service = WorktreeService::new(root.join("worktrees"));
         let main = git(&repo, &["branch", "--show-current"]).trim().to_owned();
@@ -719,26 +683,55 @@ mod tests {
             .find(|branch| branch.name == "prise")
             .expect("prise");
         assert!(taken.elsewhere);
-
-        let created = block_on(service.switch(&repo, &repo, "nouvelle", true)).expect("créée");
-        assert!(matches!(created, SwitchOutcome::Done { ref branch } if branch == "nouvelle"));
-
-        // Un fichier modifié ici et différent sur `autre` bloque le passage : rien ne bouge.
-        std::fs::write(repo.join("app/main.txt"), "local").expect("modif");
-        git(&repo, &["stash", "-q"]);
-        git(&repo, &["switch", "-q", "autre"]);
-        std::fs::write(repo.join("app/main.txt"), "sur autre").expect("autre");
-        git(&repo, &["commit", "-qam", "autre"]);
-        git(&repo, &["switch", "-q", "nouvelle"]);
-        git(&repo, &["stash", "pop", "-q"]);
-        let blocked = block_on(service.switch(&repo, &repo, "autre", false)).expect("bloqué");
         assert!(
-            matches!(blocked, SwitchOutcome::Blocked { ref files } if files == &["app/main.txt"])
+            refs.branches
+                .iter()
+                .any(|branch| branch.name == "autre" && !branch.elsewhere)
         );
-        assert_eq!(git(&repo, &["branch", "--show-current"]).trim(), "nouvelle");
-
         assert!(block_on(service.refs(&repo, &root.join("ailleurs-faux"))).is_err());
-        assert!(block_on(service.switch(&repo, &repo, "-x", true)).is_err());
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn a_new_worktree_starts_from_the_chosen_branch() {
+        if git_binary().is_none() {
+            return;
+        }
+        let root = sandbox("base");
+        let repo = repo(&root);
+        let service = WorktreeService::new(root.join("worktrees"));
+        git(&repo, &["switch", "-q", "-c", "feat/base"]);
+        std::fs::write(repo.join("app/main.txt"), "sur la base").expect("fichier");
+        git(&repo, &["commit", "-qam", "base"]);
+        git(&repo, &["switch", "-q", "-"]);
+
+        let chat = "f1a2b3c4-0000-4000-8000-000000000004";
+        let cwd = block_on(service.ensure(chat, &repo, Some("feat/base"))).expect("créé");
+        assert_eq!(
+            std::fs::read_to_string(cwd.join("app/main.txt")).expect("copie"),
+            "sur la base"
+        );
+        assert_eq!(
+            git(&cwd, &["branch", "--show-current"]).trim(),
+            "nuee/f1a2b3c4"
+        );
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn an_unknown_base_is_refused() {
+        if git_binary().is_none() {
+            return;
+        }
+        let root = sandbox("nobase");
+        let repo = repo(&root);
+        let service = WorktreeService::new(root.join("worktrees"));
+        let chat = "a2a2b3c4-0000-4000-8000-000000000005";
+        let error = block_on(service.ensure(chat, &repo, Some("absente"))).expect_err("refusé");
+        assert!(matches!(error, AppError::InvalidInput(_)));
+        assert!(block_on(service.ensure(chat, &repo, Some("-x"))).is_err());
+        assert!(block_on(service.ensure(chat, &repo, Some("@{-1}"))).is_err());
+        assert!(!root.join("worktrees").join(chat).join(".git").exists());
         let _ = std::fs::remove_dir_all(root);
     }
 
@@ -772,7 +765,7 @@ mod tests {
         let clean = "c1a2b3c4-0000-4000-8000-000000000001";
         let changed = "d1a2b3c4-0000-4000-8000-000000000002";
 
-        let cwd = block_on(service.ensure(clean, &repo.join("app"))).expect("créé");
+        let cwd = block_on(service.ensure(clean, &repo.join("app"), None)).expect("créé");
         assert_eq!(cwd, root.join("worktrees").join(clean).join("app"));
         assert_eq!(
             std::fs::read_to_string(cwd.join("main.txt")).expect("copie"),
@@ -781,11 +774,11 @@ mod tests {
         assert!(git(&repo, &["worktree", "list"]).contains(clean));
         // Un second appel reprend le même worktree.
         assert_eq!(
-            block_on(service.ensure(clean, &repo.join("app"))).expect("repris"),
+            block_on(service.ensure(clean, &repo.join("app"), None)).expect("repris"),
             cwd
         );
 
-        let other = block_on(service.ensure(changed, &repo)).expect("créé");
+        let other = block_on(service.ensure(changed, &repo, None)).expect("créé");
         std::fs::write(other.join("app/main.txt"), "modifié").expect("modif");
         assert_eq!(
             std::fs::read_to_string(repo.join("app/main.txt")).expect("projet"),
@@ -799,7 +792,7 @@ mod tests {
         let branches = git(&repo, &["branch", "--list", "nuee/*"]);
         assert!(branches.contains("nuee/c1a2b3c4") && branches.contains("nuee/d1a2b3c4"));
         assert_eq!(block_on(service.discard("ghost-chat")), None);
-        assert!(block_on(service.ensure("../evil", &repo)).is_err());
+        assert!(block_on(service.ensure("../evil", &repo, None)).is_err());
         let _ = std::fs::remove_dir_all(root);
     }
 
@@ -812,13 +805,13 @@ mod tests {
         let repo = repo(&root);
         let service = WorktreeService::new(root.join("worktrees"));
         let chat = "e1a2b3c4-0000-4000-8000-000000000003";
-        let cwd = block_on(service.ensure(chat, &repo)).expect("créé");
+        let cwd = block_on(service.ensure(chat, &repo, None)).expect("créé");
         std::fs::write(cwd.join("note.txt"), "commitée").expect("fichier");
         git(&cwd, &["add", "."]);
         git(&cwd, &["commit", "-qm", "travail"]);
         std::fs::remove_dir_all(&cwd).expect("effacé");
 
-        let again = block_on(service.ensure(chat, &repo)).expect("recréé");
+        let again = block_on(service.ensure(chat, &repo, None)).expect("recréé");
         assert_eq!(
             std::fs::read_to_string(again.join("note.txt")).expect("branche"),
             "commitée"

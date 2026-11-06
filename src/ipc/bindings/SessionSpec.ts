@@ -35,4 +35,8 @@ worktree: boolean,
 /**
  * Worktree du dépôt rejoint par le chat. `None` avec `worktree` : le sien, créé au premier message.
  */
-worktreePath: string | null, };
+worktreePath: string | null, 
+/**
+ * Branche locale d'où part le worktree du chat à sa création. `None` : le HEAD du projet.
+ */
+worktreeBase: string | null, };

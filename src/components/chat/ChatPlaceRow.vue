@@ -6,10 +6,10 @@ import ChatWorktreePicker, { type WorktreeChoice } from '@/components/chat/ChatW
 import ProjectIcon from '@/components/project/ProjectIcon.vue'
 import type { Project } from '@/stores/projects'
 
-// Ligne au-dessus du champ d'une session vierge, comme Paseo : projet, machine, endroit. Le slot `project` remplace
-// le projet affiché par un sélecteur (Nouvel espace de travail).
+// Ligne au-dessus du champ d'une session vierge, comme Paseo : projet, machine, endroit et branche. Le slot
+// `project` remplace le projet affiché par un sélecteur (Nouvel espace de travail).
 defineProps<{ chatId: string; project: Project | null; worktree: WorktreeChoice | null }>()
-const emit = defineEmits<{ worktree: [choice: string] }>()
+const emit = defineEmits<{ worktree: [choice: string]; base: [branch: string | null] }>()
 
 const { t } = useI18n()
 
@@ -28,14 +28,17 @@ const placeBadge =
       </p>
     </slot>
     <ChatHostPicker :class="placeBadge" />
-    <ChatWorktreePicker
-      v-if="project && worktree"
-      :chat-id="chatId"
-      :worktree="worktree"
-      :disabled="false"
-      side="bottom"
-      :class="placeBadge"
-      @worktree="emit('worktree', $event)"
-    />
+    <!-- Comme Paseo : où l'on travaille à gauche, l'endroit et sa branche à droite. -->
+    <div v-if="project && worktree" class="ms-auto flex min-w-0 items-center gap-1">
+      <ChatWorktreePicker
+        :chat-id="chatId"
+        :project-path="project.path"
+        :worktree="worktree"
+        :disabled="false"
+        :class="placeBadge"
+        @worktree="emit('worktree', $event)"
+        @base="emit('base', $event)"
+      />
+    </div>
   </div>
 </template>

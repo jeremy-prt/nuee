@@ -4,7 +4,9 @@ import { useI18n } from 'vue-i18n'
 import ChatApproval from '@/components/chat/ChatApproval.vue'
 import ChatComposer from '@/components/chat/ChatComposer.vue'
 import ChatLimit from '@/components/chat/ChatLimit.vue'
+import ChatPlaceInfo from '@/components/chat/ChatPlaceInfo.vue'
 import ChatPlaceRow from '@/components/chat/ChatPlaceRow.vue'
+import type { WorktreeChoice } from '@/components/chat/ChatWorktreePicker.vue'
 import ChatQuestion from '@/components/chat/ChatQuestion.vue'
 import ChatQueue from '@/components/chat/ChatQueue.vue'
 import ChatTranscript from '@/components/chat/ChatTranscript.vue'
@@ -19,7 +21,6 @@ import { useProjectsStore } from '@/stores/projects'
 import { type Tab, useWorkspaceStore } from '@/stores/workspace'
 import { useWorktreesStore } from '@/stores/worktrees'
 import { agents } from '@/utils/agents'
-import { worktreeBranch } from '@/utils/projects'
 
 const props = defineProps<{ tab: Tab }>()
 
@@ -77,31 +78,27 @@ const clock = computed(() => {
 // Le worktree se choisit jusqu'au premier message. D'ici là, un dossier hors git (ou git absent) le coupe.
 const started = computed(() => props.tab.started || items.value.some((item) => item.kind === 'user'))
 if (project.value && !started.value) projects.checkWorktree(project.value)
-if (project.value && (!started.value || props.tab.worktree)) worktrees.ensure(project.value)
+if (project.value) worktrees.ensure(project.value)
 const support = computed(() => (project.value ? projects.support[project.value.id] : undefined))
 const blocked = computed(() => (support.value && support.value !== 'ready' ? support.value : null))
 const worktree = computed(() => !!project.value && props.tab.worktree && (started.value || !blocked.value))
-const place = computed<Place>(() => ({ cwd: cwd.value, worktree: worktree.value, worktreePath: worktree.value ? props.tab.worktreePath : null }))
+// La branche de départ ne sert qu'à créer son propre worktree, au premier message.
+const base = computed(() => worktrees.bases[props.tab.id] ?? null)
+const place = computed<Place>(() => ({
+  cwd: cwd.value,
+  worktree: worktree.value,
+  worktreePath: worktree.value ? props.tab.worktreePath : null,
+  worktreeBase: worktree.value && !props.tab.worktreePath ? base.value : null,
+}))
 
-// Nom affiché avant que git soit lu : le sien porte la branche tirée de son id, un worktree rejoint celle que git donne.
-const branch = computed(() => {
-  if (!worktree.value) return ''
-  const path = props.tab.worktreePath
-  const tree = worktrees.find(props.tab.projectId, path)
-  if (tree) return tree.branch ?? tree.path.split(/[\\/]/).pop() ?? ''
-  return !path || path.endsWith(props.tab.id) ? worktreeBranch(props.tab.id) : ''
-})
-const trees = computed(() =>
-  (project.value ? (worktrees.lists[project.value.id] ?? []) : []).filter((tree) => !tree.main && tree.state !== 'missing'),
-)
-const worktreeState = computed(() =>
+const worktreeState = computed<WorktreeChoice | null>(() =>
   project.value
     ? {
         choice: worktree.value ? (props.tab.worktreePath ?? 'new') : 'project',
-        started: started.value,
         blocked: blocked.value,
-        branch: branch.value,
-        trees: trees.value,
+        trees: (worktrees.lists[project.value.id] ?? []).filter((tree) => !tree.main && tree.state !== 'missing'),
+        current: worktrees.lists[project.value.id]?.find((tree) => tree.main)?.branch ?? null,
+        base: base.value,
       }
     : null,
 )
@@ -112,11 +109,13 @@ function chooseWorktree(choice: string) {
 }
 
 function send(prompt: string, attachments: Attachment[]) {
-  if (!items.value.some((item) => item.kind === 'user')) {
+  const first = !items.value.some((item) => item.kind === 'user')
+  if (first) {
     workspace.setWorktree(props.tab.id, worktree.value, props.tab.worktreePath)
     workspace.startChat(props.tab.id, prompt, attachments)
   }
   conversations.send(props.tab.id, place.value, prompt, attachments)
+  if (first) worktrees.setBase(props.tab.id, null)
 }
 
 // Lu à la frappe d'une flèche seulement : une liste calculée serait refaite à chaque image d'une réponse en cours.
@@ -189,7 +188,14 @@ onMounted(() => {
             {{ project ? t(pick('chat.projectTitles'), { project: project.name }) : t(pick('chat.freeTitles')) }}
           </h1>
         </slot>
-        <ChatPlaceRow class="mt-5" :chat-id="tab.id" :project="project" :worktree="worktreeState" @worktree="chooseWorktree">
+        <ChatPlaceRow
+          class="mt-5"
+          :chat-id="tab.id"
+          :project="project"
+          :worktree="worktreeState"
+          @worktree="chooseWorktree"
+          @base="worktrees.setBase(tab.id, $event)"
+        >
           <template v-if="$slots.project" #project><slot name="project" /></template>
         </ChatPlaceRow>
       </div>
@@ -228,6 +234,9 @@ onMounted(() => {
         @send="conversations.sendNow(tab.id, $event)"
         @remove="conversations.unqueue(tab.id, $event)"
       />
+      <div v-if="started && project" class="flex w-full max-w-(--chat-width) justify-end">
+        <ChatPlaceInfo :tab="tab" />
+      </div>
       <ChatComposer
         ref="composer"
         class="w-full max-w-(--chat-width)"
@@ -235,7 +244,6 @@ onMounted(() => {
         v-model:options="options"
         :agent="agent"
         :project="project"
-        :worktree="worktreeState"
         :catalog="catalog.get(agent)"
         :context="conversation?.context ?? null"
         :compactable="items.some((item) => item.kind === 'user')"

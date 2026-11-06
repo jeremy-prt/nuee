@@ -11,6 +11,7 @@ import { useNavigationStore } from '@/stores/navigation'
 import { useProjectsStore } from '@/stores/projects'
 import { useTerminalsStore } from '@/stores/terminals'
 import { useToastsStore } from '@/stores/toasts'
+import { useWorktreesStore } from '@/stores/worktrees'
 
 export interface Tab {
   id: string
@@ -294,6 +295,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (layout) closeTab(id, layout)
     tabs.value = tabs.value.filter((item) => item.id !== id)
     useDraftsStore().set(id, '', [])
+    useWorktreesStore().setBase(id, null)
     return conversations.remove(id)
   }
 

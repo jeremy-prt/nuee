@@ -3,7 +3,7 @@ import type { DetectedIcon } from "./DetectedIcon";
 
 /**
  * Images en `data:` : la CSP refuse toute autre image hors des dossiers de l'app. Le front choisit laquelle
- * afficher selon le mode du projet (automatique, mascotte ou image importée).
+ * afficher selon le mode du projet (automatique, initiale ou image importée).
  */
 export type ProjectIcons = { detected: DetectedIcon | null, 
 /**

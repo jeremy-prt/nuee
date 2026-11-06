@@ -149,8 +149,8 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <!-- Délai proche de celui de macOS ; en passant aussitôt à un bouton voisin, son infobulle vient tout de suite. -->
-  <TooltipProvider :delay-duration="1000" :skip-delay-duration="400">
+  <!-- Délai court, comme Paseo (une seconde paraissait lent) ; en passant aussitôt à un bouton voisin, son infobulle vient tout de suite. -->
+  <TooltipProvider :delay-duration="400" :skip-delay-duration="200">
     <h1 class="sr-only">Nuée</h1>
     <div class="flex h-full flex-col">
       <ShellTitleBar />

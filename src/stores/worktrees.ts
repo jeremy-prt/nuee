@@ -12,6 +12,14 @@ export const useWorktreesStore = defineStore('worktrees', () => {
   const lists = reactive<Record<string, Worktree[]>>({})
   // Dialogue de création ouvert, depuis l'en-tête de la page ou son état vide.
   const creating = ref(false)
+  // Branche de départ choisie pour le futur worktree d'une session vierge, par id de session. Absente : la branche
+  // actuelle du projet. En mémoire seulement : un redémarrage avant l'envoi repart de la branche actuelle.
+  const bases = reactive<Record<string, string>>({})
+
+  function setBase(chatId: string, branch: string | null) {
+    if (branch) bases[chatId] = branch
+    else delete bases[chatId]
+  }
 
   async function load(project: Project) {
     try {
@@ -52,5 +60,5 @@ export const useWorktreesStore = defineStore('worktrees', () => {
     return !tab.worktreePath || tab.worktreePath.endsWith(tab.id) ? worktreeBranch(tab.id) : null
   }
 
-  return { lists, creating, load, ensure, create, remove, find, branchOf }
+  return { lists, creating, bases, load, ensure, create, remove, find, branchOf, setBase }
 })
