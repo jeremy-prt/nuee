@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { reactive, watch } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import type { Attachment } from '@/ipc/bindings/Attachment'
 
 export interface Draft {
@@ -44,10 +44,17 @@ export const useDraftsStore = defineStore('drafts', () => {
     else drafts[chatId] = { text, attachments }
   }
 
+  // Texte proposé depuis un volet : le champ de la session le reprend dès qu'il est affiché, sans l'envoyer.
+  const proposed = ref<{ chatId: string; text: string } | null>(null)
+
+  function propose(chatId: string, text: string) {
+    proposed.value = { chatId, text }
+  }
+
   // Brouillons de sessions qui n'existent plus (jamais envoyées, fermées avant le premier message).
   function prune(keep: Set<string>) {
     for (const id of Object.keys(drafts)) if (!keep.has(id)) delete drafts[id]
   }
 
-  return { get, set, prune }
+  return { proposed, get, set, propose, prune }
 })

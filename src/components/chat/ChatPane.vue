@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, provide, useTemplateRef } from 'vue'
+import { computed, onMounted, provide, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatApproval from '@/components/chat/ChatApproval.vue'
 import ChatComposer from '@/components/chat/ChatComposer.vue'
@@ -15,6 +15,7 @@ import { isAppError } from '@/ipc/agent'
 import { worktreeCheckout } from '@/ipc/worktree'
 import { useCatalogStore } from '@/stores/catalog'
 import { useDialogStore } from '@/stores/dialog'
+import { useDraftsStore } from '@/stores/drafts'
 import { mentionPlaceKey } from '@/stores/mentions'
 import { useToastsStore } from '@/stores/toasts'
 import { type Place, useConversationsStore } from '@/stores/conversations'
@@ -182,6 +183,17 @@ const { over } = useFileDrop(pane, (paths) => {
 })
 
 defineExpose({ focus: () => composer.value?.focus() })
+
+const drafts = useDraftsStore()
+watch(
+  [() => drafts.proposed, composer],
+  ([proposed, field]) => {
+    if (!proposed || !field || proposed.chatId !== props.tab.id) return
+    field.fill(proposed.text, [])
+    drafts.proposed = null
+  },
+  { immediate: true },
+)
 
 // Chat de skill qui attend la réponse à son formulaire : il vient d'être ouvert pour qu'on y écrive.
 onMounted(() => {

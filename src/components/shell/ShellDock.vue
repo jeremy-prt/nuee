@@ -33,8 +33,6 @@ const logs = computed(() => {
   return viewing && list?.root === viewing.root ? viewing : null
 })
 
-const cards = computed(() => !!chat.value && !!servers.listOf(chat.value.id)?.servers.some((server) => !server.external))
-
 const shells = computed(() => (chat.value ? terminals.tabsOf(chat.value.id).length : 0))
 
 function newTerminal() {
@@ -65,7 +63,7 @@ function newTerminal() {
     <ChatChangesPanel v-else-if="view === 'changes'" />
     <TerminalPanel v-else-if="view === 'terminal'" />
     <ServerLogs v-else-if="view === 'browser' && logs" :root="logs.root" :name="logs.name" />
-    <ServerCards v-else-if="view === 'browser' && cards" />
+    <ServerCards v-else-if="view === 'browser' && chat" />
     <div v-else class="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
       <component :is="dockIcons[view]" class="size-6 text-muted" aria-hidden="true" />
       <p class="text-sm text-muted">{{ t(`dock.${view}.empty`) }}</p>

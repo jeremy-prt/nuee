@@ -1,14 +1,15 @@
 <script setup lang="ts">
-import { Ellipsis, Logs, Play, Stop } from '@/components/ui/icons'
+import { Logs, Play, Plus, Server, Stop, Wrench } from '@/components/ui/icons'
 import { DropdownMenuContent, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuTrigger } from 'reka-ui'
 import { type Component, computed, h, watch } from 'vue'
-import { Translation, useI18n } from 'vue-i18n'
+import { useI18n } from 'vue-i18n'
 import ServerStatusDot from '@/components/server/ServerStatusDot.vue'
 import UiMenuItem from '@/components/ui/UiMenuItem.vue'
 import UiMenuSeparator from '@/components/ui/UiMenuSeparator.vue'
 import UiMenuSub from '@/components/ui/UiMenuSub.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { menuPanel, menuTitle } from '@/components/ui/menuRow'
+import { useServerSetup } from '@/composables/useServerSetup'
 import { useTerminalChat } from '@/composables/useTerminalChat'
 import type { ServerInfo } from '@/ipc/bindings/ServerInfo'
 import type { ServerStatus } from '@/ipc/bindings/ServerStatus'
@@ -18,8 +19,8 @@ import { useServersStore } from '@/stores/servers'
 const { t } = useI18n()
 const servers = useServersStore()
 const { chat, place } = useTerminalChat()
+const { list, ask } = useServerSetup()
 
-const list = computed(() => (chat.value ? servers.listOf(chat.value.id) : null))
 const alive = (server: ServerInfo) => server.status === 'starting' || server.status === 'running'
 const running = computed(() => list.value?.servers.filter(alive).length ?? 0)
 
@@ -63,7 +64,6 @@ function onCloseAutoFocus(event: Event) {
   <UiTooltip :label="t('dock.servers.menu')">
     <span class="flex">
       <DropdownMenuRoot :modal="false" @update:open="onOpen">
-        <!-- Une seule icône dans l'en-tête, comme le menu ⋯ de l'app Claude : les actions du volet s'y rangent. -->
         <DropdownMenuTrigger
           :disabled="!chat"
           class="relative grid size-7 place-items-center rounded-md text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-40 aria-expanded:bg-selection-hover aria-expanded:text-content"
@@ -71,7 +71,7 @@ function onCloseAutoFocus(event: Event) {
           @pointerdown="openedBy(true)"
           @keydown="openedBy(false)"
         >
-          <Ellipsis class="size-4" aria-hidden="true" />
+          <Server class="size-4" aria-hidden="true" />
           <span v-if="running" class="absolute end-1 top-1 size-1.5 rounded-full bg-success" aria-hidden="true" />
         </DropdownMenuTrigger>
         <DropdownMenuPortal>
@@ -79,18 +79,12 @@ function onCloseAutoFocus(event: Event) {
             align="end"
             :side-offset="4"
             :collision-padding="8"
-            :class="[menuPanel, 'max-h-(--reka-dropdown-menu-content-available-height) w-64']"
+            :class="[menuPanel, 'max-h-(--reka-dropdown-menu-content-available-height) w-56']"
             @close-auto-focus="onCloseAutoFocus"
           >
             <DropdownMenuLabel :class="menuTitle">{{ t('dock.servers.heading') }}</DropdownMenuLabel>
-            <p v-if="!list" class="px-2 pb-1.5 text-muted">{{ t('dock.servers.loading') }}</p>
-            <p v-else-if="list.problem" class="px-2 pb-1.5 text-muted">
-              <span class="block text-danger">{{ t('dock.servers.invalid') }}</span>
-              <span class="block font-mono text-[11px] break-words">{{ list.problem }}</span>
-            </p>
-            <Translation v-else-if="!list.servers.length" keypath="dock.servers.none" tag="p" class="px-2 pb-1.5 text-muted">
-              <template #file><span class="font-mono">.claude/launch.json</span></template>
-            </Translation>
+            <p v-if="list?.problem" class="px-2 pb-1 text-danger">{{ t('dock.servers.invalid') }}</p>
+            <p v-else-if="list && !list.servers.length" class="px-2 pb-1 text-muted">{{ t('dock.servers.none') }}</p>
             <template v-for="server in list?.servers ?? []" :key="server.name">
               <UiMenuItem v-if="server.external" :label="t('dock.servers.external', { name: server.name })" :icon="dot('stopped')" disabled />
               <UiMenuSub v-else :label="server.name" :icon="dot(server.status)" :value="state(server)">
@@ -99,9 +93,11 @@ function onCloseAutoFocus(event: Event) {
                 <UiMenuItem :label="t('dock.servers.logs')" :icon="Logs" @select="servers.show(list!.root, server.name)" />
               </UiMenuSub>
             </template>
-            <template v-if="list?.servers.length">
+            <template v-if="list">
               <UiMenuSeparator />
-              <UiMenuItem :label="t('dock.servers.stopAll')" :icon="Stop" :disabled="!running" @select="servers.stopAll(list.root)" />
+              <UiMenuItem v-if="list.problem" :label="t('dock.servers.fix')" :icon="Wrench" @select="ask" />
+              <UiMenuItem v-else :label="t('dock.servers.add')" :icon="Plus" @select="ask" />
+              <UiMenuItem v-if="list.servers.length" :label="t('dock.servers.stopAll')" :icon="Stop" :disabled="!running" @select="servers.stopAll(list.root)" />
             </template>
           </DropdownMenuContent>
         </DropdownMenuPortal>
