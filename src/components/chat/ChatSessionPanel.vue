@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronRight, Coffee, Folder, FolderTree, GitBranch, NoProject, RemoteControl } from '@/components/ui/icons'
+import { ChevronRight, Coffee, Folder, FolderOpen, FolderTree, GitBranch, NoProject, RemoteControl } from '@/components/ui/icons'
 import { computed, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatDiffStat from '@/components/chat/ChatDiffStat.vue'
@@ -8,6 +8,7 @@ import ProjectIcon from '@/components/project/ProjectIcon.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiFileIcon from '@/components/ui/UiFileIcon.vue'
 import UiSwitch from '@/components/ui/UiSwitch.vue'
+import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { useMachineName } from '@/composables/useMachineName'
 import { useCommitRequest } from '@/composables/useCommitRequest'
@@ -149,12 +150,14 @@ const empty = `${row} text-muted`
           <NoProject class="size-4 shrink-0 text-muted" aria-hidden="true" />
           <span class="truncate">{{ machine || t('composer.hosts.local') }}</span>
         </p>
-        <UiTooltip v-if="folder" :label="folder" side="bottom">
-          <button type="button" :class="action" :aria-label="`${t('settings.projects.reveal')} · ${folder}`" @click="reveal">
-            <ProjectIcon v-if="project" :project="project" class="size-4 shrink-0 rounded-sm" />
-            <span class="truncate">{{ project?.name }}</span>
-          </button>
-        </UiTooltip>
+        <!-- Comme l'app Claude : la ligne reste du texte, seule l'icône à droite ouvre le dossier (son chemin en infobulle). -->
+        <div v-if="folder" :class="row">
+          <ProjectIcon v-if="project" :project="project" class="size-4 shrink-0 rounded-sm" />
+          <span class="min-w-0 flex-1 truncate">{{ project?.name }}</span>
+          <UiIconButton :label="`${t('settings.projects.reveal')} · ${folder}`" class="-me-1.5" @click="reveal">
+            <FolderOpen class="size-3.5" aria-hidden="true" />
+          </UiIconButton>
+        </div>
         <p v-else :class="row">
           <ProjectIcon v-if="project" :project="project" class="size-4 shrink-0 rounded-sm" />
           <component :is="chat.worktree ? FolderTree : Folder" v-else class="size-4 shrink-0 text-muted" aria-hidden="true" />
