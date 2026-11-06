@@ -57,7 +57,10 @@ export const useShortcutsStore = defineStore('shortcuts', () => {
     const base: Shortcut = defaultShortcuts[id]
     const override = overrides[id]
     if (override === undefined) return base
-    return override && { group: base.group, when: base.when, ...override }
+    if (!override) return null
+    // Un raccourci à plusieurs touches (⌘1…9) ne se règle que par ses modificateurs : il garde ses chiffres.
+    if (id === 'goToTab') return { ...base, mod: override.mod, ctrl: override.ctrl, alt: override.alt }
+    return { group: base.group, when: base.when, ...override }
   }
 
   function matches(event: KeyboardEvent, id: ShortcutId) {

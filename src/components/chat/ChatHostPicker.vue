@@ -1,17 +1,3 @@
-<script lang="ts">
-import { ref } from 'vue'
-import { systemMachineName } from '@/ipc/system'
-
-// Lu une fois par lancement : le nom de la machine ne change pas pendant que l'app tourne.
-const machineName = ref('')
-let loading: Promise<string> | null = null
-function loadMachineName() {
-  loading ??= systemMachineName()
-    .catch(() => '')
-    .then((value) => (machineName.value = value))
-}
-</script>
-
 <script setup lang="ts">
 import { ChevronDown, NoProject, Server } from '@/components/ui/icons'
 import { DropdownMenuContent, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuTrigger } from 'reka-ui'
@@ -23,12 +9,13 @@ import UiMenuItem from '@/components/ui/UiMenuItem.vue'
 import UiMenuSeparator from '@/components/ui/UiMenuSeparator.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { menuPanel, menuTitle } from '@/components/ui/menuRow'
+import { useMachineName } from '@/composables/useMachineName'
 
 // Machine où l'agent travaille, comme Paseo. Seule celle-ci pour l'instant : l'hôte SSH est annoncé, pas branché.
 defineOptions({ inheritAttrs: false })
 
 const { t } = useI18n()
-loadMachineName()
+const machineName = useMachineName()
 
 const section = computed<UiMenuSection>(() => ({
   id: 'host',

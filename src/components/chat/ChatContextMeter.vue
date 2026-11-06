@@ -4,8 +4,8 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
-import type { ContextCategory } from '@/ipc/bindings/ContextCategory'
 import type { ContextUsage } from '@/ipc/bindings/ContextUsage'
+import { contextFormats, contextRatio, contextRows } from '@/utils/context'
 
 const props = defineProps<{ usage: ContextUsage; disabled: boolean }>()
 const emit = defineEmits<{ compact: [] }>()
@@ -17,44 +17,14 @@ const SIZE = 14
 const STROKE = 2
 const RADIUS = (SIZE - STROKE) / 2
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS
-// Les plus grosses parts en couleur, comme l'app Claude ; les petites restent grises pour ne pas faire arc-en-ciel.
-const PALETTE = ['bg-info', 'bg-orange', 'bg-success', 'bg-warning']
 
-const ratio = computed(() => Math.min(1, props.usage.used / props.usage.window))
+const ratio = computed(() => contextRatio(props.usage))
 const tone = computed(() => (ratio.value >= 0.9 ? 'text-danger' : ratio.value >= 0.75 ? 'text-warning' : 'text-muted'))
 
-const formats = computed(() => ({
-  percent: new Intl.NumberFormat(locale.value, { style: 'percent' }),
-  share: new Intl.NumberFormat(locale.value, { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 }),
-  tokens: new Intl.NumberFormat(locale.value, { notation: 'compact', maximumFractionDigits: 1 }),
-}))
+const formats = computed(() => contextFormats(locale.value))
 const percent = computed(() => formats.value.percent.format(ratio.value))
 const tokens = computed(() => ({ used: formats.value.tokens.format(props.usage.used), window: formats.value.tokens.format(props.usage.window) }))
-
-interface Row extends ContextCategory {
-  color: string
-  share: string
-  width: string
-}
-
-const rows = computed(() => {
-  const byKind = (kind: ContextCategory['kind']) => props.usage.categories.filter((category) => category.kind === kind)
-  const used = [...byKind('used')].sort((a, b) => b.tokens - a.tokens)
-  const row = (category: ContextCategory, color: string): Row => ({
-    ...category,
-    color,
-    share: category.kind === 'deferred' ? '—' : formats.value.share.format(category.tokens / props.usage.window),
-    width: `${(category.tokens / props.usage.window) * 100}%`,
-  })
-  return {
-    filled: [
-      ...used.map((category, i) => row(category, PALETTE[i] ?? 'bg-content/40')),
-      ...byKind('buffer').map((category) => row(category, 'bg-content/25')),
-    ],
-    free: byKind('free').map((category) => row(category, 'bg-content/10')),
-    deferred: byKind('deferred').map((category) => row(category, 'bg-content/25')),
-  }
-})
+const rows = computed(() => contextRows(props.usage, formats.value))
 
 function compact() {
   open.value = false

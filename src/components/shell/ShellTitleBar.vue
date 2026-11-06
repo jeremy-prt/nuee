@@ -11,7 +11,7 @@ import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { useNewChat } from '@/composables/useNewChat'
 import { isMacosApp } from '@/ipc/system'
 import { useAppearanceStore } from '@/stores/appearance'
-import { DOCK_VIEWS, RAIL_COLLAPSED_WIDTH, useLayoutStore } from '@/stores/layout'
+import { RAIL_COLLAPSED_WIDTH, TITLE_BAR_VIEWS, useLayoutStore } from '@/stores/layout'
 import { parentDetail, settingsDetailTitle, useNavigationStore } from '@/stores/navigation'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { useWorkspaceStore } from '@/stores/workspace'
@@ -143,7 +143,7 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
         >
           <template v-if="layout.right.open">
             <UiIconButton
-              v-for="view in DOCK_VIEWS"
+              v-for="view in TITLE_BAR_VIEWS"
               :key="view"
               :label="t(`dock.${view}.title`)"
               :shortcut="view === 'terminal' ? shortcuts.label('toggleTerminal') : undefined"

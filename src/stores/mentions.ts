@@ -39,5 +39,10 @@ export const useMentionsStore = defineStore('mentions', () => {
     if (!known.has(chatId) && !pending.has(chatId)) load(chatId, project)
   }
 
-  return { known, load, ensure }
+  // Session refermée ou supprimée : sa liste n'a plus à rester en mémoire.
+  function forget(chatId: string) {
+    known.delete(chatId)
+  }
+
+  return { known, load, ensure, forget }
 })

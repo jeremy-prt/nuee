@@ -19,6 +19,7 @@ import { mentionPlaceKey } from '@/stores/mentions'
 import { useToastsStore } from '@/stores/toasts'
 import { type Place, useConversationsStore } from '@/stores/conversations'
 import type { Attachment } from '@/ipc/bindings/Attachment'
+import { useLayoutStore } from '@/stores/layout'
 import { useProjectsStore } from '@/stores/projects'
 import { type Tab, useWorkspaceStore } from '@/stores/workspace'
 import { useWorktreesStore } from '@/stores/worktrees'
@@ -38,6 +39,7 @@ function pick(key: string) {
   return `${key}.${seed.value % count}`
 }
 const projects = useProjectsStore()
+const layout = useLayoutStore()
 const conversations = useConversationsStore()
 const catalog = useCatalogStore()
 const workspace = useWorkspaceStore()
@@ -131,7 +133,11 @@ function send(prompt: string, attachments: Attachment[]) {
     workspace.startChat(props.tab.id, prompt, attachments)
   }
   conversations.send(props.tab.id, place.value, prompt, attachments)
-  if (first) worktrees.setBase(props.tab.id, null)
+  if (first) {
+    worktrees.setBase(props.tab.id, null)
+    // Comme Claude Code et T3 Code : le résumé de la session s'ouvre à droite dès le premier message.
+    if (!layout.right.open) layout.showView('session')
+  }
 }
 
 // Lu à la frappe d'une flèche seulement : une liste calculée serait refaite à chaque image d'une réponse en cours.

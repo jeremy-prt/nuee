@@ -1,10 +1,12 @@
 import { defineStore } from 'pinia'
 import { reactive, toRefs, watch } from 'vue'
 
-export type DockView = 'tasks' | 'terminal' | 'changes' | 'browser' | 'files'
+export type DockView = 'session' | 'tasks' | 'terminal' | 'changes' | 'browser' | 'files'
 
-// Ordre des icônes de la barre de titre.
-export const DOCK_VIEWS: DockView[] = ['tasks', 'terminal', 'changes', 'browser', 'files']
+export const DOCK_VIEWS: DockView[] = ['session', 'tasks', 'terminal', 'changes', 'browser', 'files']
+
+// Icônes de la barre de titre, cinq comme l'app Claude Code : Tâches s'ouvre depuis le volet Session.
+export const TITLE_BAR_VIEWS = DOCK_VIEWS.filter((view) => view !== 'tasks')
 
 export type SessionSort = 'activity' | 'created' | 'name'
 
@@ -42,7 +44,7 @@ function defaults(): LayoutState {
   return {
     rail: { expanded: true, width: SIZES.rail.defaultSize },
     panel: { open: true, width: SIZES.panel.defaultSize },
-    right: { open: false, size: SIZES.right.defaultSize, panes: ['changes'], split: SIZES.split.defaultSize },
+    right: { open: false, size: SIZES.right.defaultSize, panes: ['session'], split: SIZES.split.defaultSize },
     sessionSort: 'activity',
     sessionGroups: false,
   }
@@ -55,6 +57,7 @@ function load(): LayoutState {
     // Disposition d'avant les volets empilés (volet du bas, onglets) : on garde la largeur.
     if (!Array.isArray(state.right.panes)) state.right = { ...defaults().right, size: state.right.size }
     state.right.panes = state.right.panes.filter((view) => DOCK_VIEWS.includes(view))
+    if (state.right.panes.includes('session')) state.right.panes = ['session']
     const legacy = state as LayoutState & { bottom?: unknown; views?: unknown }
     delete legacy.bottom
     delete legacy.views
@@ -94,14 +97,15 @@ export const useLayoutStore = defineStore('layout', () => {
   }
 
   function toggleRight() {
-    if (!state.right.panes.length) state.right.panes = ['changes']
+    if (!state.right.panes.length) state.right.panes = ['session']
     state.right.open = !state.right.open
   }
 
-  // Ouvre le volet sous celui déjà affiché ; avec deux volets, il remplace celui du bas.
+  // Ouvre le volet sous celui déjà affiché ; avec deux volets, il remplace celui du bas. Session ne s'empile jamais :
+  // il prend tout le panneau, et le volet ouvert ensuite le remplace.
   function showView(view: DockView) {
     const dock = state.right
-    if (!dock.open) dock.panes = []
+    if (!dock.open || view === 'session' || dock.panes.includes('session')) dock.panes = []
     dock.open = true
     if (dock.panes.includes(view)) return
     if (dock.panes.length < 2) dock.panes.push(view)

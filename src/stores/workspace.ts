@@ -5,6 +5,8 @@ import type { Attachment } from '@/ipc/bindings/Attachment'
 import { chatList, chatRename, chatSetArchived, chatSetPinned, chatSetWorktree, chatTitle } from '@/ipc/chat'
 import { i18nGlobal } from '@/i18n'
 import { useDraftsStore } from '@/stores/drafts'
+import { useLayoutStore } from '@/stores/layout'
+import { useMentionsStore } from '@/stores/mentions'
 import { useConversationsStore } from '@/stores/conversations'
 import { useGeneralStore } from '@/stores/general'
 import { useNavigationStore } from '@/stores/navigation'
@@ -238,6 +240,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (!shown && latest && isRecent(latest.id)) return show(latest.id)
     const blank = blankChat()
     show(blank.id)
+    // Comme une nouvelle session : le panneau de droite s'ouvrira au premier message.
+    useLayoutStore().right.open = false
   }
 
   // Session vierge du contexte, reprise plutôt que doublée : celle de « Nouvel espace de travail » sert ensuite ici.
@@ -288,7 +292,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (!Object.values(layouts).some((other) => other.tabs.includes(id))) useTerminalsStore().closeChat(id)
     // Fermé sans message, il ne serait plus visible nulle part : on ne le garde pas.
     if (tabs.value.some((tab) => tab.id === id && !tab.started)) deleteChat(id)
-    else if (!Object.values(layouts).some((other) => other.tabs.includes(id))) conversations.release(id)
+    else if (!Object.values(layouts).some((other) => other.tabs.includes(id))) {
+      conversations.release(id)
+      useMentionsStore().forget(id)
+    }
 
     const paneIndex = layout.panes.indexOf(id)
     if (paneIndex === -1) return

@@ -24,6 +24,7 @@ import ComputerTerminal01Icon from '@hugeicons/core-free-icons/ComputerTerminal0
 import Copy01Icon from '@hugeicons/core-free-icons/Copy01Icon'
 import Css3Icon from '@hugeicons/core-free-icons/Css3Icon'
 import DashboardSpeed01Icon from '@hugeicons/core-free-icons/DashboardSpeed01Icon'
+import DashboardSquare02Icon from '@hugeicons/core-free-icons/DashboardSquare02Icon'
 import Delete02Icon from '@hugeicons/core-free-icons/Delete02Icon'
 import Download04Icon from '@hugeicons/core-free-icons/Download04Icon'
 import File01Icon from '@hugeicons/core-free-icons/File01Icon'
@@ -194,6 +195,7 @@ export const ImageUp = icon(ImageUpload01Icon)
 export const Info = icon(InformationCircleIcon)
 export const Keyboard = icon(KeyboardIcon)
 export const Layers = icon(LayerIcon)
+export const LayoutDashboard = icon(DashboardSquare02Icon)
 export const LayoutList = icon(LeftToRightListBulletIcon)
 export const LoaderCircle = icon(Loading03Icon)
 export const MessageQuestion = icon(BubbleChatQuestionIcon)
