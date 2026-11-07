@@ -129,7 +129,7 @@ function footerLabel(id: (typeof footer)[number]['id']) {
       <section class="flex min-h-0 flex-1 flex-col" aria-labelledby="sidebar-sessions">
         <!-- Menu du projet au clic droit sur sa ligne (ShellProjectSwitcher), sans « … » qui chargeait la ligne. -->
         <div class="flex shrink-0 ps-2 pe-2 *:min-w-0 *:flex-1"><ShellProjectSwitcher /></div>
-        <div class="mt-2 flex h-8 shrink-0 items-center ps-4 pe-4">
+        <div class="mt-2 flex h-8 shrink-0 items-center ps-4 pe-2">
           <h2 id="sidebar-sessions" class="min-w-0 flex-1 truncate text-[13px] font-semibold text-content/80">{{ t('chats.recent') }}</h2>
           <ShellChatSort />
           <UiIconButton :label="t('chats.newChat')" :shortcut="shortcuts.label('newChat')" @click="newChat()">
