@@ -44,11 +44,11 @@ export const useDraftsStore = defineStore('drafts', () => {
     else drafts[chatId] = { text, attachments }
   }
 
-  // Texte proposé depuis un volet : le champ de la session le reprend dès qu'il est affiché, sans l'envoyer.
-  const proposed = ref<{ chatId: string; text: string } | null>(null)
+  // Message demandé depuis un volet : la session l'envoie dès qu'elle est affichée, comme s'il venait du champ.
+  const requested = ref<{ chatId: string; text: string } | null>(null)
 
-  function propose(chatId: string, text: string) {
-    proposed.value = { chatId, text }
+  function request(chatId: string, text: string) {
+    requested.value = { chatId, text }
   }
 
   // Brouillons de sessions qui n'existent plus (jamais envoyées, fermées avant le premier message).
@@ -56,5 +56,5 @@ export const useDraftsStore = defineStore('drafts', () => {
     for (const id of Object.keys(drafts)) if (!keep.has(id)) delete drafts[id]
   }
 
-  return { proposed, get, set, propose, prune }
+  return { requested, get, set, request, prune }
 })

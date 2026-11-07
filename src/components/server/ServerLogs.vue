@@ -85,7 +85,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col">
-    <div class="flex h-9 shrink-0 items-center gap-2 border-b border-stroke ps-3 pe-3.5 text-xs">
+    <div class="flex h-9 shrink-0 items-center gap-2 border-b border-stroke ps-4 pe-3.5 text-xs">
       <ServerStatusDot v-if="server" :status="server.status" class="size-3" />
       <span class="truncate text-content">{{ t('dock.servers.logsOf', { name }) }}</span>
       <span class="truncate text-muted">{{ state }}</span>

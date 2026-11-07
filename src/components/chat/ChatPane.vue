@@ -185,12 +185,13 @@ const { over } = useFileDrop(pane, (paths) => {
 defineExpose({ focus: () => composer.value?.focus() })
 
 const drafts = useDraftsStore()
+// Passe par `send` : un premier message lance la session comme depuis le champ.
 watch(
-  [() => drafts.proposed, composer],
-  ([proposed, field]) => {
-    if (!proposed || !field || proposed.chatId !== props.tab.id) return
-    field.fill(proposed.text, [])
-    drafts.proposed = null
+  [() => drafts.requested, loaded],
+  ([requested, ready]) => {
+    if (!requested || !ready || requested.chatId !== props.tab.id) return
+    drafts.requested = null
+    send(requested.text, [])
   },
   { immediate: true },
 )

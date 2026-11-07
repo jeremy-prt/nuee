@@ -42,8 +42,8 @@ function newTerminal() {
 
 <template>
   <section class="flex min-h-0 min-w-0 flex-col" :aria-label="t(`dock.${view}.title`)">
-    <!-- `pe-3.5` comme la zone du panneau dans la barre de titre : les boutons de droite tombent sous son bouton. -->
-    <div class="flex h-9 shrink-0 items-center gap-0.5 border-b border-stroke ps-3 pe-3.5">
+    <!-- Marges calées sur la zone du panneau dans la barre de titre : icônes et boutons tombent sous les siens. -->
+    <div class="flex h-9 shrink-0 items-center gap-0.5 border-b border-stroke ps-4 pe-3.5">
       <TerminalTabs v-if="view === 'terminal' && shells > 1" class="-ms-1" />
       <h2 v-else class="flex min-w-0 items-center gap-1.5 text-xs text-content">
         <component :is="dockIcons[view]" class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
