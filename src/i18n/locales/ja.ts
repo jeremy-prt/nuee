@@ -321,6 +321,10 @@ export default {
       user: 'ユーザー',
     },
     dropFiles: 'ドロップで添付',
+    resumed: "バックグラウンドタスクの完了後に再開",
+    subagent: {
+      steps: "{n} ステップ",
+    },
     tool: {
       running: '実行中',
       done: '完了',
@@ -360,7 +364,7 @@ export default {
     },
     end: {
       done: '完了',
-      completed: '{duration} で完了',
+      completed: "{duration} 作業しました",
       stopped: '停止しました',
       stoppedKept: '停止しました。{agent} はそれまでに書いた内容を覚えています。',
       failed: '{agent} はエラーで停止しました。',
@@ -409,8 +413,8 @@ export default {
     label: 'メッセージ',
     placeholder: '作るものを説明…',
     placeholderBusy: {
-      queue: "キューにメッセージを追加…",
-      steer: "実行中のターンに指示を追加…",
+      queue: "{send} でキューに追加、{other} で今すぐ送信",
+      steer: "{send} で今すぐ送信、{other} でキューに追加",
     },
     send: '送信',
     stop: '停止',
@@ -992,6 +996,7 @@ export default {
         split: '右に分割',
         rename: '現在のセッションの名前を変更',
         send: 'メッセージを送信',
+        sendOther: "応答中にもう一方の方法で送信(キューまたは今すぐ)",
         newline: '改行',
         recall: '空の入力欄から送信済みメッセージをさかのぼる',
         recallNext: '新しいメッセージへ戻り、最後に元の入力欄へ戻る',

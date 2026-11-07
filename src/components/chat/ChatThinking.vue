@@ -24,7 +24,8 @@ const latest = computed(() => {
 </script>
 
 <template>
-  <div class="text-xs">
+  <!-- Dépliée, la réflexion se pose dans un bloc avec son titre (choix de Jérémy). -->
+  <div class="text-xs" :class="{ 'rounded-lg bg-content/5 pb-2': open }">
     <button
       type="button"
       class="flex w-full min-w-0 items-center gap-2 rounded-md px-2 py-1 text-start text-muted hover:text-content focus-visible:outline-2 focus-visible:outline-ring"
@@ -42,7 +43,7 @@ const latest = computed(() => {
       />
     </button>
     <p v-if="live && !open && latest" class="ms-7.5 me-2 line-clamp-2 text-muted">{{ latest }}</p>
-    <div v-if="open" class="ms-7.5 me-2 border-s border-stroke ps-3 text-muted">
+    <div v-if="open" class="ms-7.5 me-3 text-muted">
       <ChatMarkdown :text="text" :streaming="live" />
     </div>
   </div>

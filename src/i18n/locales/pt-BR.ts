@@ -321,6 +321,10 @@ export default {
       user: 'Usuário',
     },
     dropFiles: 'Soltar para anexar',
+    resumed: "Retomado após uma tarefa em segundo plano",
+    subagent: {
+      steps: "1 etapa | {n} etapas",
+    },
     tool: {
       running: 'Em andamento',
       done: 'Concluído',
@@ -360,7 +364,7 @@ export default {
     },
     end: {
       done: 'Concluído',
-      completed: 'Concluído em {duration}',
+      completed: "Trabalhou por {duration}",
       stopped: 'Interrompido',
       stoppedKept: 'Interrompido. {agent} mantém o que já tinha escrito.',
       failed: '{agent} parou por causa de um erro.',
@@ -409,8 +413,8 @@ export default {
     label: 'Mensagem',
     placeholder: 'Descrever o que construir…',
     placeholderBusy: {
-      queue: "Adicionar uma mensagem à fila…",
-      steer: "Adicionar uma instrução ao turno em andamento…",
+      queue: "{send} para pôr na fila, {other} para enviar",
+      steer: "{send} para enviar, {other} para pôr na fila",
     },
     send: 'Enviar',
     stop: 'Parar',
@@ -992,6 +996,7 @@ export default {
         split: 'Dividir à direita',
         rename: 'Renomear a sessão atual',
         send: 'Enviar a mensagem',
+        sendOther: "Durante uma resposta, enviar do outro jeito (fila ou agora)",
         newline: 'Nova linha',
         recall: 'Recuperar as mensagens enviadas, a partir de um campo vazio',
         recallNext: 'Voltar às mensagens recentes e depois ao campo original',

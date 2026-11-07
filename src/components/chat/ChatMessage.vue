@@ -9,6 +9,7 @@ import ChatCopyButton from '@/components/chat/ChatCopyButton.vue'
 import ChatMarkdown from '@/components/chat/ChatMarkdown.vue'
 import ChatPromptText from '@/components/chat/ChatPromptText.vue'
 import ChatSkillForm from '@/components/chat/ChatSkillForm.vue'
+import ChatSubagent from '@/components/chat/ChatSubagent.vue'
 import ChatQuestionRecord from '@/components/chat/ChatQuestionRecord.vue'
 import ChatTool from '@/components/chat/ChatTool.vue'
 import UiButton from '@/components/ui/UiButton.vue'
@@ -89,8 +90,13 @@ watch(signedIn, async (now) => {
   </template>
   <ChatMarkdown v-else-if="item.kind === 'text'" :text="item.text" :streaming="streaming" />
   <ChatQuestionRecord v-else-if="item.kind === 'tool' && item.answers" :answers="item.answers" />
+  <ChatSubagent v-else-if="item.kind === 'tool' && item.tool === 'agent'" class="-mx-2 text-sm" :item="item" />
   <ChatTool v-else-if="item.kind === 'tool'" class="-mx-2 text-sm" :item="item" />
   <ChatCompact v-else-if="item.kind === 'compact'" :item="item" :agent="agent" />
+  <p v-else-if="item.kind === 'resume'" class="flex items-center gap-1.5 text-xs text-muted">
+    <CornerDownRight class="size-3.5 shrink-0" aria-hidden="true" />
+    {{ t('chat.resumed') }}
+  </p>
   <template v-else-if="item.kind === 'end'">
     <!-- Toujours affichée (choix de Jérémy) : copier, puis la durée du tour, remplacée par l'heure au survol. Les deux
          occupent la même case : la ligne ne change pas de largeur. -->
@@ -98,7 +104,7 @@ watch(signedIn, async (now) => {
       <ChatCopyButton v-if="answer && afterText" :text="answer" :label="t('chat.copy.answer')" />
       <span v-if="item.durationMs !== null && item.at" class="grid px-1 text-[11px] tabular-nums">
         <span class="col-start-1 row-start-1 transition-opacity duration-(--hover-duration) group-hover/end:opacity-0 group-focus-within/end:opacity-0 motion-reduce:transition-none">
-          {{ t('chat.end.completed', { duration: formatDuration(item.durationMs, locale) }) }}
+          {{ t('chat.end.completed', { duration: formatDuration(item.durationMs, locale, true) }) }}
         </span>
         <time
           :datetime="new Date(item.at).toISOString()"

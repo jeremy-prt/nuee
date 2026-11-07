@@ -414,6 +414,18 @@ pub enum AgentEvent {
         /// Image rendue par l'outil (fichier lu, capture) : le front la range avec les pièces jointes.
         image: Option<ToolImage>,
     },
+    /// Outil appelé par un sous-agent, rangé sous l'outil qui l'a lancé (`tool_id`). Le même `id` revient avec son issue,
+    /// sans le reste.
+    TaskStep {
+        tool_id: String,
+        id: String,
+        name: Option<String>,
+        kind: Option<ToolKind>,
+        summary: Option<String>,
+        detail: Option<ToolDetail>,
+        status: TaskStatus,
+        model: Option<String>,
+    },
     /// Tâche lancée par un outil (sous-agent, commande en arrière-plan). Seuls les champs présents changent.
     Task {
         id: String,

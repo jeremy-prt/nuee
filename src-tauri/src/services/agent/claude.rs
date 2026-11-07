@@ -161,6 +161,53 @@ impl Claude {
         }
     }
 
+    fn subagent_steps(&self, line: &Value) -> Vec<AgentEvent> {
+        let parent = str_of(&line["parent_tool_use_id"]);
+        let message = &line["message"];
+        let model = message["model"].as_str().map(str::to_owned);
+        let Some(blocks) = message["content"].as_array() else {
+            return Vec::new();
+        };
+        let step = |id: &str, status| AgentEvent::TaskStep {
+            tool_id: parent.to_owned(),
+            id: id.to_owned(),
+            name: None,
+            kind: None,
+            summary: None,
+            detail: None,
+            status,
+            model: None,
+        };
+        blocks
+            .iter()
+            .filter_map(|block| match block["type"].as_str()? {
+                "tool_use" => {
+                    let name = str_of(&block["name"]);
+                    let (kind, summary) = describe(name, &block["input"], &self.cwd);
+                    Some(AgentEvent::TaskStep {
+                        tool_id: parent.to_owned(),
+                        id: str_of(&block["id"]).to_owned(),
+                        name: Some(name.to_owned()),
+                        kind: Some(kind),
+                        summary,
+                        detail: detail_of(name, &block["input"]),
+                        status: TaskStatus::Running,
+                        model: model.clone(),
+                    })
+                }
+                "tool_result" => Some(step(
+                    str_of(&block["tool_use_id"]),
+                    if block["is_error"].as_bool() == Some(true) {
+                        TaskStatus::Failed
+                    } else {
+                        TaskStatus::Completed
+                    },
+                )),
+                _ => None,
+            })
+            .collect()
+    }
+
     fn task(&self, line: &Value) -> Option<AgentEvent> {
         let usage = &line["usage"];
         let count = |value: &Value| value.as_u64().and_then(|n| u32::try_from(n).ok());
@@ -722,9 +769,9 @@ impl Driver for Claude {
         let Ok(line) = serde_json::from_str::<Value>(line) else {
             return Vec::new();
         };
-        // Les sous-agents ont leur propre flux : seul leur appel (outil Task) est affiché.
+        // Un sous-agent a son propre flux : seuls ses outils remontent, en étapes de son appel (outil Task).
         if line["parent_tool_use_id"].is_string() {
-            return Vec::new();
+            return self.subagent_steps(&line);
         }
         let mut events = Vec::new();
         match line["type"].as_str() {
@@ -1844,11 +1891,21 @@ mod tests {
     }
 
     #[test]
-    fn subagent_lines_are_ignored() {
+    fn subagent_text_stays_hidden_and_its_tools_become_steps() {
         let (_, events) = parse(&[
-            r#"{"type":"assistant","parent_tool_use_id":"t1","message":{"id":"m2","content":[{"type":"text","text":"interne"}]}}"#,
+            r#"{"type":"assistant","parent_tool_use_id":"t1","message":{"id":"m2","model":"claude-haiku-5-5","content":[{"type":"text","text":"interne"},{"type":"tool_use","id":"s1","name":"Bash","input":{"command":"sleep 20","description":"Attendre"}}]}}"#,
+            r#"{"type":"user","parent_tool_use_id":"t1","message":{"content":[{"type":"tool_result","tool_use_id":"s1","is_error":true,"content":"non"}]}}"#,
         ]);
-        assert!(events.is_empty());
+        let [first, second] = events.as_slice() else {
+            panic!("{events:?}");
+        };
+        assert!(
+            matches!(first, AgentEvent::TaskStep { tool_id, id, name: Some(name), kind: Some(ToolKind::Command), status: TaskStatus::Running, model: Some(model), .. }
+            if tool_id == "t1" && id == "s1" && name == "Bash" && model == "claude-haiku-5-5")
+        );
+        assert!(
+            matches!(second, AgentEvent::TaskStep { id, name: None, status: TaskStatus::Failed, .. } if id == "s1")
+        );
     }
 
     fn probe(lines: &[&str]) -> Probe {

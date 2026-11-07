@@ -92,3 +92,11 @@ export function toolName(name: string) {
   const parts = name.split('__')
   return parts[0] === 'mcp' && parts.length >= 3 ? `${parts[1]} › ${parts.slice(2).join('__')}` : name
 }
+
+// « claude-haiku-5-5 » -> « Haiku 5.5 » : le dernier mot du nom, puis les chiffres de la version.
+export function modelName(id: string) {
+  const parts = id.split(/[-_]/)
+  const word = parts.filter((part) => /^[a-z]+$/i.test(part)).at(-1)
+  const version = parts.filter((part) => /^\d+$/.test(part)).slice(0, 2).join('.')
+  return word ? [word.charAt(0).toUpperCase() + word.slice(1), version].filter(Boolean).join(' ') : id
+}

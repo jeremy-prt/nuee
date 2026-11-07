@@ -17,7 +17,7 @@ export type AgentEvent = { "type": "session", id: string, } | { "type": "text", 
 /**
  * Image rendue par l'outil (fichier lu, capture) : le front la range avec les pièces jointes.
  */
-image: ToolImage | null, } | { "type": "task", id: string, toolId: string | null, kind: TaskKind | null, status: TaskStatus | null, description: string | null, 
+image: ToolImage | null, } | { "type": "taskStep", toolId: string, id: string, name: string | null, kind: ToolKind | null, summary: string | null, detail: ToolDetail | null, status: TaskStatus, model: string | null, } | { "type": "task", id: string, toolId: string | null, kind: TaskKind | null, status: TaskStatus | null, description: string | null, 
 /**
  * Ce que fait la tâche en ce moment, ou son bilan une fois finie.
  */

@@ -49,7 +49,9 @@ export const defaultShortcuts = {
   goToTab: { group: 'chats', key: '1', shift: 'any', codes: ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9'], label: '1…9' },
   split: { group: 'chats', key: 'd' },
   rename: { group: 'chats', key: 'r' },
-  send: { group: 'message', key: 'Enter', mod: 'any', when: 'composer' },
+  send: { group: 'message', key: 'Enter', mod: false, when: 'composer' },
+  // Comme l'app Claude : pendant une réponse, l'autre choix que le réglage (file d'attente ou tout de suite) ; sinon, envoie.
+  sendOther: { group: 'message', key: 'Enter', when: 'composer' },
   // Comportement natif du champ, laissé libre par `send` : listé pour qu'on le trouve.
   newline: { group: 'message', key: 'Enter', mod: false, shift: true, when: 'composer', fixed: true },
   // Champ vide ou texte rappelé intact seulement : ailleurs, les flèches gardent leur rôle dans le texte.

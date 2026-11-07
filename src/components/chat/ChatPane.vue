@@ -127,13 +127,13 @@ async function checkout(branch: string) {
   await worktrees.load(project.value)
 }
 
-function send(prompt: string, attachments: Attachment[]) {
+function send(prompt: string, attachments: Attachment[], other = false) {
   const first = !items.value.some((item) => item.kind === 'user')
   if (first) {
     workspace.setWorktree(props.tab.id, worktree.value, props.tab.worktreePath)
     workspace.startChat(props.tab.id, prompt, attachments)
   }
-  conversations.send(props.tab.id, place.value, prompt, attachments)
+  conversations.send(props.tab.id, place.value, prompt, attachments, other)
   if (first) {
     worktrees.setBase(props.tab.id, null)
     // Comme Claude Code et T3 Code : le résumé de la session s'ouvre à droite dès le premier message.

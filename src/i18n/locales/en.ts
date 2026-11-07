@@ -319,6 +319,10 @@ export default {
       user: 'User',
     },
     dropFiles: 'Drop to attach',
+    resumed: "Resumed after a background task",
+    subagent: {
+      steps: "1 step | {n} steps",
+    },
     tool: {
       running: 'Running',
       done: 'Done',
@@ -358,7 +362,7 @@ export default {
     },
     end: {
       done: 'Done',
-      completed: 'Done in {duration}',
+      completed: "Worked for {duration}",
       stopped: 'Stopped',
       stoppedKept: 'Stopped. {agent} keeps what it had written.',
       failed: '{agent} stopped on an error.',
@@ -407,8 +411,8 @@ export default {
     label: 'Message',
     placeholder: 'Describe what to build…',
     placeholderBusy: {
-      queue: "Add a message to the queue…",
-      steer: "Add an instruction to the current turn…",
+      queue: "{send} to queue, {other} to send now",
+      steer: "{send} to send now, {other} to queue",
     },
     send: 'Send',
     stop: 'Stop',
@@ -990,6 +994,7 @@ export default {
         split: 'Split right',
         rename: 'Rename the current session',
         send: 'Send the message',
+        sendOther: "Send the other way during an answer (queue or now)",
         newline: 'New line',
         recall: 'Bring back earlier sent messages, from an empty field',
         recallNext: 'Go back down to newer messages, then to the original field',

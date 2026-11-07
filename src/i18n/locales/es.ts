@@ -321,6 +321,10 @@ export default {
       user: 'Usuario',
     },
     dropFiles: 'Soltar para adjuntar',
+    resumed: "Reanudado tras una tarea en segundo plano",
+    subagent: {
+      steps: "1 paso | {n} pasos",
+    },
     tool: {
       running: 'En curso',
       done: 'Hecho',
@@ -360,7 +364,7 @@ export default {
     },
     end: {
       done: 'Hecho',
-      completed: 'Hecho en {duration}',
+      completed: "Trabajó durante {duration}",
       stopped: 'Detenido',
       stoppedKept: 'Detenido. {agent} conserva lo que ya había escrito.',
       failed: '{agent} se detuvo por un error.',
@@ -409,8 +413,8 @@ export default {
     label: 'Mensaje',
     placeholder: 'Describir lo que hay que construir…',
     placeholderBusy: {
-      queue: "Añadir un mensaje a la cola…",
-      steer: "Añadir una indicación al turno en curso…",
+      queue: "{send} para poner en cola, {other} para enviar",
+      steer: "{send} para enviar, {other} para poner en cola",
     },
     send: 'Enviar',
     stop: 'Detener',
@@ -992,6 +996,7 @@ export default {
         split: 'Dividir a la derecha',
         rename: 'Renombrar la sesión actual',
         send: 'Enviar el mensaje',
+        sendOther: "Durante una respuesta, enviar de la otra forma (cola o ahora)",
         newline: 'Nueva línea',
         recall: 'Recuperar los mensajes enviados, desde un campo vacío',
         recallNext: 'Volver a los mensajes recientes y luego al campo original',

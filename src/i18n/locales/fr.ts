@@ -321,6 +321,10 @@ export default {
       user: 'Utilisateur',
     },
     dropFiles: 'Déposer pour joindre',
+    resumed: "Reprise après une tâche de fond",
+    subagent: {
+      steps: "1 étape | {n} étapes",
+    },
     tool: {
       running: 'En cours',
       done: 'Terminé',
@@ -360,7 +364,7 @@ export default {
     },
     end: {
       done: 'Terminé',
-      completed: 'Terminé en {duration}',
+      completed: "A travaillé pendant {duration}",
       stopped: 'Arrêté',
       stoppedKept: 'Arrêté. {agent} garde ce qu\'il avait déjà écrit.',
       failed: '{agent} s\'est arrêté sur une erreur.',
@@ -409,8 +413,8 @@ export default {
     label: 'Message',
     placeholder: 'Décrire ce qu\'il faut construire…',
     placeholderBusy: {
-      queue: "Ajouter un message à la file d'attente…",
-      steer: "Ajouter une consigne au tour en cours…",
+      queue: "{send} pour mettre en file d'attente, {other} pour envoyer",
+      steer: "{send} pour envoyer, {other} pour mettre en file d'attente",
     },
     send: 'Envoyer',
     stop: 'Arrêter',
@@ -992,6 +996,7 @@ export default {
         split: 'Diviser à droite',
         rename: 'Renommer la session en cours',
         send: 'Envoyer le message',
+        sendOther: "Pendant une réponse, envoyer de l'autre façon (file ou tout de suite)",
         newline: 'Aller à la ligne',
         recall: 'Remonter les messages envoyés, depuis un champ vide',
         recallNext: 'Redescendre vers les messages récents, puis au champ d\'origine',

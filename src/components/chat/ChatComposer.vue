@@ -47,7 +47,7 @@ const props = defineProps<{
 }>()
 // Réglages résolus : modèle et effort sont toujours des valeurs réelles du catalogue.
 const options = defineModel<TurnOptions>('options', { required: true })
-const emit = defineEmits<{ send: [prompt: string, attachments: Attachment[]]; stop: []; warm: []; compact: [] }>()
+const emit = defineEmits<{ send: [prompt: string, attachments: Attachment[], other: boolean]; stop: []; warm: []; compact: [] }>()
 
 const { t } = useI18n()
 const shortcuts = useShortcutsStore()
@@ -167,9 +167,9 @@ watch(
   { flush: 'post' },
 )
 
-function submit() {
+function submit(other = false) {
   if (!canSend.value || props.disabled) return
-  emit('send', prompt.value.trim(), attachments.value)
+  emit('send', prompt.value.trim(), attachments.value, other)
   prompt.value = ''
   attachments.value = []
   attachError.value = null
@@ -300,15 +300,16 @@ function browse(event: KeyboardEvent) {
 function onKeydown(event: KeyboardEvent) {
   if (event.isComposing || slashMenu.value?.keydown(event) || mentionMenu.value?.keydown(event)) return
   if (browse(event)) return
-  if (!shortcuts.matches(event, 'send')) return
+  const other = shortcuts.matches(event, 'sendOther')
+  if (!other && !shortcuts.matches(event, 'send')) return
   event.preventDefault()
-  submit()
+  submit(other)
 }
 </script>
 
 <template>
   <!-- Le menu des skills est hors du cadre flouté : un flou imbriqué ne verrait que le cadre derrière lui. -->
-  <form class="relative" @submit.prevent="submit">
+  <form class="relative" @submit.prevent="submit()">
     <div
       class="@container rounded-2xl border border-stroke bg-selection/50 backdrop-blur-sm has-[textarea:focus]:border-stroke-focus"
       :class="{ 'opacity-60': disabled }"
@@ -358,7 +359,7 @@ function onKeydown(event: KeyboardEvent) {
           writingsuggestions="false"
           :disabled="disabled"
           class="prompt-field relative block max-h-60 min-h-18 w-full resize-none bg-transparent px-3.5 pt-3.5 pb-2 text-sm leading-5.5 select-text outline-none placeholder:truncate"
-          :placeholder="running ? t(`composer.placeholderBusy.${general.followUp}`) : t('composer.placeholder')"
+          :placeholder="running ? t(`composer.placeholderBusy.${general.followUp}`, { send: shortcuts.label('send'), other: shortcuts.label('sendOther') }) : t('composer.placeholder')"
           @keydown="onKeydown"
           @input="syncCaret"
           @keyup="syncCaret"

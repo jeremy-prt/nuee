@@ -60,6 +60,8 @@ export type ChatItem =
     }
   | { kind: 'end'; id: string; status: TurnStatus; error: string | null; durationMs: number | null; at?: number }
   | { kind: 'error'; id: string; error: AppError }
+  // L'agent reprend de lui-même (tâche de fond finie) : repère posé avant sa réponse, qui sinon suit la précédente.
+  | { kind: 'resume'; id: string; at: number }
   // Conversation résumée pour libérer du contexte : demandée par `/compact` (à la place de sa bulle, elle clôt le
   // tour) ou lancée par l'agent en plein tour (`auto`). before/after : tokens occupés, absents si l'agent ne les a
   // pas donnés.
@@ -79,6 +81,19 @@ export interface TaskState {
   background: boolean
   toolUses: number | null
   durationMs: number | null
+  // Outils appelés par un sous-agent, dans l'ordre ; absents des sessions enregistrées avant eux.
+  steps?: TaskStep[]
+  // Identifiant donné par l'agent (`claude-haiku-5-5`).
+  model?: string | null
+}
+
+export interface TaskStep {
+  id: string
+  name: string
+  tool: ToolKind
+  summary: string | null
+  detail: ToolDetail | null
+  status: 'running' | 'done' | 'failed'
 }
 
 // Où travaille l'agent. cwd null : chat sans projet, Rust lui donne un dossier vide à lui. worktree : un worktree
@@ -188,6 +203,10 @@ function endThinking(conversation: Conversation, items: ChatItem[]) {
   }
 }
 
+function emptyTask(id: string): TaskState {
+  return { id, kind: 'other', status: 'running', description: null, progress: null, background: false, toolUses: null, durationMs: null }
+}
+
 function lastIndexOfTask(items: ChatItem[], id: string, toolId: string | null) {
   return lastIndex(items, (item) => item.kind === 'tool' && (item.task?.id === id || (!!toolId && item.id === toolId)))
 }
@@ -273,20 +292,12 @@ function apply(conversation: Conversation, events: AgentEvent[]) {
         const index = lastIndexOfTask(items, event.id, event.toolId)
         const tool = items[index]
         if (tool?.kind !== 'tool') break
-        const task: TaskState = tool.task ?? {
-          id: event.id,
-          kind: 'other',
-          status: 'running',
-          description: null,
-          progress: null,
-          background: false,
-          toolUses: null,
-          durationMs: null,
-        }
+        const task: TaskState = tool.task ?? emptyTask(event.id)
         items[index] = {
           ...tool,
           task: {
             ...task,
+            id: event.id,
             kind: event.kind ?? task.kind,
             status: event.status ?? task.status,
             description: event.description ?? task.description,
@@ -296,6 +307,22 @@ function apply(conversation: Conversation, events: AgentEvent[]) {
             durationMs: event.durationMs ?? task.durationMs,
           },
         }
+        break
+      }
+      case 'taskStep': {
+        const index = lastIndex(items, (item) => item.kind === 'tool' && item.id === event.toolId)
+        const tool = items[index]
+        if (tool?.kind !== 'tool') break
+        const task: TaskState = tool.task ?? emptyTask(event.toolId)
+        const steps = [...(task.steps ?? [])]
+        const at = steps.findIndex((step) => step.id === event.id)
+        const status = event.status === 'running' ? 'running' : event.status === 'failed' ? 'failed' : 'done'
+        if (at === -1 && event.name) {
+          steps.push({ id: event.id, name: event.name, tool: event.kind ?? 'other', summary: event.summary, detail: event.detail, status })
+        } else if (at !== -1) {
+          steps[at] = { ...steps[at]!, status }
+        }
+        items[index] = { ...tool, task: { ...task, steps, model: event.model ?? task.model ?? null } }
         break
       }
       case 'approval': {
@@ -357,13 +384,12 @@ function apply(conversation: Conversation, events: AgentEvent[]) {
         conversation.activeAt = conversation.startedAt
         conversation.pausedMs = 0
         conversation.pausedAt = null
+        items.push({ kind: 'resume', id: crypto.randomUUID(), at: Date.now() })
         break
       case 'answered': {
         if (conversation.phase !== 'answering') break
         settleTools(items, 'done')
-        // Un tour ouvert par l'agent ne compte qu'à partir de son premier mot : une durée si courte ne dit rien.
-        const duration = elapsed(conversation)
-        items.push({ kind: 'end', id: crypto.randomUUID(), status: 'completed', error: null, durationMs: duration < 1000 ? null : duration, at: Date.now() })
+        items.push({ kind: 'end', id: crypto.randomUUID(), status: 'completed', error: null, durationMs: elapsed(conversation), at: Date.now() })
         conversation.phase = 'finishing'
         signal = strongest(signal, 'done')
         break
@@ -377,8 +403,7 @@ function apply(conversation: Conversation, events: AgentEvent[]) {
         const shown = conversation.phase === 'finishing' && items.at(-1)?.kind === 'end'
         if (shown && status !== 'completed') items[items.length - 1] = { kind: 'end', id: crypto.randomUUID(), status, error, durationMs: null, at: Date.now() }
         if (!shown && !compacted) {
-          const duration = elapsed(conversation)
-          const durationMs = status === 'completed' && duration >= 1000 ? duration : null
+          const durationMs = status === 'completed' ? elapsed(conversation) : null
           items.push({ kind: 'end', id: crypto.randomUUID(), status, error, durationMs, at: Date.now() })
         }
         if (status === 'failed' || status === 'unauthenticated') signal = strongest(signal, 'failed')
@@ -652,7 +677,8 @@ export const useConversationsStore = defineStore('conversations', () => {
   }
 
   // Pendant un tour, le message attend la fin, ou rejoint la réponse en cours selon Réglages › Général.
-  function send(chatId: string, place: Place, prompt: string, attachments: Attachment[]) {
+  // `other` : ⌘↵, l'inverse du réglage pour un message envoyé pendant une réponse.
+  function send(chatId: string, place: Place, prompt: string, attachments: Attachment[], other = false) {
     const conversation = conversations.get(chatId)
     if (!conversation?.loaded) return
     const message: Queued = { id: crypto.randomUUID(), place, prompt, attachments }
@@ -664,7 +690,8 @@ export const useConversationsStore = defineStore('conversations', () => {
     }
     conversation.queue = [...conversation.queue, message]
     // `/compact` résume la conversation entière : il attend la fin du tour au lieu de rejoindre la réponse.
-    if (conversation.phase === 'answering' && useGeneralStore().followUp === 'steer' && !isCompaction(prompt, attachments)) steer(chatId, conversation, message)
+    const steering = (useGeneralStore().followUp === 'steer') !== other
+    if (conversation.phase === 'answering' && steering && !isCompaction(prompt, attachments)) steer(chatId, conversation, message)
   }
 
   // Message de la file envoyé tout de suite : ajouté à la réponse en cours, ou envoyé si l'agent attend.

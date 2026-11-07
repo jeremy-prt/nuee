@@ -321,6 +321,10 @@ export default {
       user: '用户',
     },
     dropFiles: '拖放以附加',
+    resumed: "后台任务完成后继续",
+    subagent: {
+      steps: "{n} 个步骤",
+    },
     tool: {
       running: '进行中',
       done: '已完成',
@@ -360,7 +364,7 @@ export default {
     },
     end: {
       done: '已完成',
-      completed: '用时 {duration}',
+      completed: "工作了 {duration}",
       stopped: '已停止',
       stoppedKept: '已停止。{agent} 会保留已写出的内容。',
       failed: '{agent} 因错误而停止。',
@@ -409,8 +413,8 @@ export default {
     label: '消息',
     placeholder: '描述要构建的内容…',
     placeholderBusy: {
-      queue: "向队列添加消息…",
-      steer: "为当前轮次添加指示…",
+      queue: "{send} 加入队列,{other} 立即发送",
+      steer: "{send} 立即发送,{other} 加入队列",
     },
     send: '发送',
     stop: '停止',
@@ -992,6 +996,7 @@ export default {
         split: '向右拆分',
         rename: '重命名当前会话',
         send: '发送消息',
+        sendOther: "回复期间以另一种方式发送(队列或立即)",
         newline: '换行',
         recall: '从空输入框向上调出已发送的消息',
         recallNext: '向下回到较新的消息，最后回到原来的输入',
