@@ -43,8 +43,8 @@ const appearance = useAppearanceStore()
 
 // « Projets en menu » : un projet à la fois, choisi en haut, ses sessions dessous. Repliée, la barre disparaît.
 const menu = computed(() => appearance.layout === 'menu')
-// Collée à la carte du centre, la barre a déjà 6 px de marge à droite (App.vue) : elle n'en ajoute que 2 de son côté.
-const edge = computed(() => (menu.value || !(navigation.hasPanel && layout.panel.open) ? 'pe-0.5' : 'pe-2'))
+// Même marge à droite qu'à gauche (choix de Jérémy) : plus de carte au centre pour en fournir une.
+const edge = 'pe-2'
 // Glissé seulement à un vrai changement de projet : au lancement, une fenêtre en arrière-plan figerait
 // l'animation sur sa première image, la liste resterait invisible.
 const sliding = ref(false)
@@ -111,7 +111,7 @@ function footerLabel(id: (typeof footer)[number]['id']) {
     :style="{ width: `${layout.rail.expanded ? layout.rail.width : RAIL_COLLAPSED_WIDTH}px` }"
   >
     <template v-if="menu && navigation.view !== 'settings'">
-      <nav class="flex shrink-0 flex-col gap-0.5 ps-2 pe-0.5 pt-1" :aria-label="t('rail.label')">
+      <nav class="flex shrink-0 flex-col gap-0.5 ps-2 pe-2 pt-1" :aria-label="t('rail.label')">
         <ShellRailItem
           v-for="item in pages"
           :key="item.view"
@@ -128,8 +128,8 @@ function footerLabel(id: (typeof footer)[number]['id']) {
            puis « Sessions » avec tri et nouvelle session ; puis les dates, plus discrètes. -->
       <section class="flex min-h-0 flex-1 flex-col" aria-labelledby="sidebar-sessions">
         <!-- Menu du projet au clic droit sur sa ligne (ShellProjectSwitcher), sans « … » qui chargeait la ligne. -->
-        <div class="flex shrink-0 ps-2 pe-0.5 *:min-w-0 *:flex-1"><ShellProjectSwitcher /></div>
-        <div class="mt-2 flex h-8 shrink-0 items-center ps-4 pe-0.5">
+        <div class="flex shrink-0 ps-2 pe-2 *:min-w-0 *:flex-1"><ShellProjectSwitcher /></div>
+        <div class="mt-2 flex h-8 shrink-0 items-center ps-4 pe-4">
           <h2 id="sidebar-sessions" class="min-w-0 flex-1 truncate text-[13px] font-semibold text-content/80">{{ t('chats.recent') }}</h2>
           <ShellChatSort />
           <UiIconButton :label="t('chats.newChat')" :shortcut="shortcuts.label('newChat')" @click="newChat()">
@@ -138,7 +138,7 @@ function footerLabel(id: (typeof footer)[number]['id']) {
         </div>
         <div
           :key="navigation.projectId ?? ''"
-          class="mb-2 min-h-0 flex-1 overflow-y-auto ps-2 pe-0.5"
+          class="mb-2 min-h-0 flex-1 overflow-y-auto ps-2 pe-2"
           :class="{ 'project-slide': sliding }"
           :data-step="navigation.projectStep"
         >
