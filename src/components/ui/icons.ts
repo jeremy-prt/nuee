@@ -85,6 +85,7 @@ import Plug01Icon from '@hugeicons/core-free-icons/Plug01Icon'
 import PythonIcon from '@hugeicons/core-free-icons/PythonIcon'
 import Refresh01Icon from '@hugeicons/core-free-icons/Refresh01Icon'
 import RemoteControlIcon from '@hugeicons/core-free-icons/RemoteControlIcon'
+import Rows4Icon from '@hugeicons/core-free-icons/Rows4Icon'
 import Search01Icon from '@hugeicons/core-free-icons/Search01Icon'
 import SecurityCheckIcon from '@hugeicons/core-free-icons/SecurityCheckIcon'
 import SentIcon from '@hugeicons/core-free-icons/SentIcon'
@@ -225,6 +226,7 @@ export const Plus = icon(Add01Icon)
 export const RefreshCw = icon(Refresh01Icon)
 export const RemoteControl = icon(RemoteControlIcon)
 export const RotateCcw = icon(UndoIcon)
+export const RowsCompact = icon(Rows4Icon)
 export const Search = icon(Search01Icon)
 export const SendHorizontal = icon(SentIcon)
 export const Server = icon(ServerStack01Icon)

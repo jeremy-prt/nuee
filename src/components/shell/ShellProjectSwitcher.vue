@@ -17,6 +17,7 @@ import {
 import { computed, onBeforeUnmount, ref, toRef, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ProjectIcon from '@/components/project/ProjectIcon.vue'
+import NoProjectMenu from '@/components/project/NoProjectMenu.vue'
 import ProjectMenu from '@/components/project/ProjectMenu.vue'
 import UiContextMenu from '@/components/ui/UiContextMenu.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
@@ -114,7 +115,7 @@ const row = [menuRow.replace('items-start', 'items-center'), 'h-8']
 </script>
 
 <template>
-  <UiContextMenu :disabled="!current">
+  <UiContextMenu>
     <UiTooltip :label="t('rail.switchProject')" :shortcut="shortcuts.label('switchProject')" :disabled="open">
       <PopoverRoot v-model:open="open">
         <PopoverTrigger
@@ -225,6 +226,9 @@ const row = [menuRow.replace('items-start', 'items-center'), 'h-8']
         </PopoverPortal>
       </PopoverRoot>
     </UiTooltip>
-    <template v-if="current" #menu><ProjectMenu :project="current" @rename="actions.openSettings(current)" /></template>
+    <template #menu>
+      <ProjectMenu v-if="current" :project="current" @rename="actions.openSettings(current)" />
+      <NoProjectMenu v-else />
+    </template>
   </UiContextMenu>
 </template>

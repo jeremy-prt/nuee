@@ -26,7 +26,7 @@ export default {
     pin: '置顶',
     unpin: '取消置顶',
     pinned: '已置顶',
-    sort: { label: '排序会话', title: '排序方式', activity: '最近活动', created: '创建日期', name: '名称', group: '分组', byDate: '按日期', noGroups: '不分组' },
+    sort: { label: '排序会话', title: '排序方式', activity: '最近活动', created: '创建日期', name: '名称', byDate: '按日期分组', compact: '紧凑视图' },
     groups: { today: '今天', yesterday: '昨天', week: '最近 7 天', month: '最近 30 天', older: '更早' },
     recent: '会话',
     renameLabel: '会话名称',

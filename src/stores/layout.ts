@@ -30,6 +30,10 @@ interface LayoutState {
   sessionSort: SessionSort
   // Intertitres de date dans la liste des sessions : coupés par défaut, chaque session montre déjà sa date.
   sessionGroups: boolean
+  // Une ligne par session (titre, état ou heure), comme OpenCode.
+  sessionCompact: boolean
+  // Ordre des épinglées, choisi en les glissant ; une épinglée absente se range après, selon le tri.
+  pinnedOrder: string[]
 }
 
 const STORAGE_KEY = 'nuee.layout.v5'
@@ -55,6 +59,8 @@ function defaults(): LayoutState {
     right: { open: false, size: SIZES.right.defaultSize, tabs: ['session'], active: 'session', preferOpen: true, sessions: {} },
     sessionSort: 'activity',
     sessionGroups: false,
+    sessionCompact: false,
+    pinnedOrder: [],
   }
 }
 

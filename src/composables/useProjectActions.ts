@@ -1,7 +1,7 @@
 import { useI18n } from 'vue-i18n'
 import { isAppError } from '@/ipc/agent'
 import { ICON_EXTENSIONS, pickImage } from '@/ipc/dialog'
-import { projectReveal } from '@/ipc/project'
+import { projectReveal, projectRevealScratch } from '@/ipc/project'
 import { useDialogStore } from '@/stores/dialog'
 import { useGeneralStore } from '@/stores/general'
 import { useNavigationStore } from '@/stores/navigation'
@@ -26,6 +26,14 @@ export function useProjectActions() {
     toasts.push({ kind: 'error', title, body: isAppError(error) ? error.message : String(error) })
   }
 
+  async function revealScratch() {
+    try {
+      await projectRevealScratch()
+    } catch (error) {
+      fail(t('settings.projects.revealFailed'), error)
+    }
+  }
+
   async function reveal(project: Project) {
     try {
       await projectReveal(project.path)
@@ -45,7 +53,7 @@ export function useProjectActions() {
   }
 
   // Toutes les sessions d'un coup : on demande d'abord.
-  async function archiveProjectChats(project: Project) {
+  async function archiveProjectChats(project: { id: string | null; name: string }) {
     const n = workspace.tabsFor(project.id).filter((tab) => tab.started && !tab.archived).length
     const confirmed = await dialog.confirm({
       title: t('settings.projects.chats.archiveTitle', { name: project.name }),
@@ -119,5 +127,5 @@ export function useProjectActions() {
     if (confirmed) await workspace.deleteChat(tab.id)
   }
 
-  return { reveal, importIcon, archiveProjectChats, deleteProject, openSettings, renameChat, togglePin, archiveChat, deleteChat }
+  return { reveal, revealScratch, importIcon, archiveProjectChats, deleteProject, openSettings, renameChat, togglePin, archiveChat, deleteChat }
 }

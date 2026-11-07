@@ -26,7 +26,7 @@ export default {
     pin: 'ピン留め',
     unpin: 'ピン留めを外す',
     pinned: 'ピン留め',
-    sort: { label: 'セッションを並べ替え', title: '並べ替え', activity: '最終アクティビティ', created: '作成日', name: '名前', group: 'グループ化', byDate: '日付ごと', noGroups: 'なし' },
+    sort: { label: 'セッションを並べ替え', title: '並べ替え', activity: '最終アクティビティ', created: '作成日', name: '名前', byDate: '日付でグループ化', compact: 'コンパクト表示' },
     groups: { today: '今日', yesterday: '昨日', week: '過去 7 日間', month: '過去 30 日間', older: 'それ以前' },
     recent: 'セッション',
     renameLabel: 'セッション名',

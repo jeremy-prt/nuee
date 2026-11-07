@@ -1,6 +1,10 @@
 import { type DragSource, type PreviewRect, useDragStore } from '@/stores/drag'
+import { useI18n } from 'vue-i18n'
+import { useProjectActions } from '@/composables/useProjectActions'
+import { useTabTitle } from '@/composables/useTabTitle'
+import { useLayoutStore } from '@/stores/layout'
 import { useProjectsStore } from '@/stores/projects'
-import { useWorkspaceStore } from '@/stores/workspace'
+import { type Tab, useWorkspaceStore } from '@/stores/workspace'
 
 // Distance avant que l'appui devienne un glisser : un simple clic reste un clic.
 const THRESHOLD = 4
@@ -15,6 +19,10 @@ export function useLayoutDrag() {
   const drag = useDragStore()
   const workspace = useWorkspaceStore()
   const projects = useProjectsStore()
+  const actions = useProjectActions()
+  const layout = useLayoutStore()
+  const { locale } = useI18n()
+  const { tabTitle } = useTabTitle()
 
   function track(event: PointerEvent, source: DragSource, onMove: (x: number, y: number) => void, onDrop: () => void) {
     if (event.button !== 0) return
@@ -156,5 +164,87 @@ export function useLayoutDrag() {
     )
   }
 
-  return { startTabDrag, startProjectDrag }
+  // Sessions de la liste. Vers Épinglées : un trait montre la place exacte, l'ordre des épinglées est libre. Hors
+  // d'Épinglées, une épinglée perd son épingle et le trait montre où le tri la range. Ailleurs, rien.
+  function chatTarget(id: string, x: number, y: number) {
+    const tab = workspace.tabs.find((item) => item.id === id)
+    const hit = document.elementFromPoint(x, y)
+    if (!tab || !hit?.closest('[data-chat-list]')) {
+      drag.target = null
+      drag.preview = null
+      return
+    }
+    const pinnedZone = hit.closest('[data-chat-zone="pinned"]')
+    if (!pinnedZone && !tab.pinned) {
+      drag.target = null
+      drag.preview = null
+      return
+    }
+    const zone = document.querySelector(`[data-chat-zone="${pinnedZone ? 'pinned' : 'recent'}"]`)
+    const rows = [...(zone?.querySelectorAll<HTMLElement>('[data-chat-id]') ?? [])].filter((el) => el.dataset.chatId !== id)
+    let before: HTMLElement | undefined
+    if (pinnedZone) {
+      before = rows.find((el) => {
+        const r = el.getBoundingClientRect()
+        return y < r.top + r.height / 2
+      })
+      // Déjà à cette place parmi les épinglées : rien ne changerait.
+      if (tab.pinned) {
+        const all = [...(zone?.querySelectorAll<HTMLElement>('[data-chat-id]') ?? [])]
+        const next = all[all.findIndex((el) => el.dataset.chatId === id) + 1]
+        if (next === before) {
+          drag.target = null
+          drag.preview = null
+          return
+        }
+      }
+    } else {
+      before = rows.find((el) => comesBefore(tab, workspace.tabs.find((item) => item.id === el.dataset.chatId)))
+    }
+    drag.target = { kind: 'chat', pinned: !!pinnedZone, before: before?.dataset.chatId ?? null }
+    const last = rows.at(-1)?.getBoundingClientRect() ?? zone?.querySelector('h2')?.getBoundingClientRect()
+    const r = before?.getBoundingClientRect()
+    const top = r ? r.top - 1 : (last?.bottom ?? 0) + 1
+    const width = (r ?? last)?.width ?? 0
+    const left = (r ?? last)?.left ?? 0
+    drag.preview = { left, top, width, height: 0, line: true }
+  }
+
+  // Ordre de la liste des sessions (ShellChatList) : récentes d'abord, ou par nom.
+  function comesBefore(tab: Tab, other: Tab | undefined) {
+    if (!other) return false
+    if (layout.sessionSort === 'activity') return tab.updatedAt > other.updatedAt
+    if (layout.sessionSort === 'created') return tab.createdAt > other.createdAt
+    return new Intl.Collator(locale.value, { numeric: true, sensitivity: 'base' }).compare(tabTitle(tab), tabTitle(other)) < 0
+  }
+
+  function startChatDrag(event: PointerEvent, id: string) {
+    const label = tabTitle(workspace.tabs.find((item) => item.id === id)!)
+    track(
+      event,
+      { kind: 'chat', id },
+      (x, y) => {
+        drag.ghost = { x, y, label }
+        chatTarget(id, x, y)
+      },
+      () => {
+        const tab = workspace.tabs.find((item) => item.id === id)
+        const target = drag.target
+        if (!tab || target?.kind !== 'chat') return
+        if (target.pinned) {
+          const order = [...document.querySelectorAll<HTMLElement>('[data-chat-zone="pinned"] [data-chat-id]')]
+            .map((el) => el.dataset.chatId!)
+            .filter((other) => other !== id)
+          const at = target.before ? order.indexOf(target.before) : -1
+          order.splice(at === -1 ? order.length : at, 0, id)
+          layout.pinnedOrder = order
+        } else {
+          layout.pinnedOrder = layout.pinnedOrder.filter((other) => other !== id)
+        }
+        if (target.pinned !== tab.pinned) actions.togglePin(tab)
+      },
+    )
+  }
+
+  return { startTabDrag, startProjectDrag, startChatDrag }
 }

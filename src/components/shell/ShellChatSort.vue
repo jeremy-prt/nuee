@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { ArrangeAZ, CalendarAdd, Clock, LayoutList, SlidersHorizontal } from '@/components/ui/icons'
+import { ArrangeAZ, CalendarAdd, Clock, RowsCompact, SlidersHorizontal } from '@/components/ui/icons'
 import { DropdownMenuContent, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuTrigger } from 'reka-ui'
 import { computed, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { UiMenuSection } from '@/components/ui/UiMenu.vue'
 import UiMenuChoices from '@/components/ui/UiMenuChoices.vue'
+import UiMenuSeparator from '@/components/ui/UiMenuSeparator.vue'
+import UiMenuToggle from '@/components/ui/UiMenuToggle.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { menuPanel, menuTitle } from '@/components/ui/menuRow'
 import { type SessionSort, useLayoutStore } from '@/stores/layout'
@@ -20,16 +22,6 @@ const section = computed<UiMenuSection>(() => ({
     { value: 'activity', label: t('chats.sort.activity'), icon: Clock },
     { value: 'created', label: t('chats.sort.created'), icon: CalendarAdd },
     { value: 'name', label: t('chats.sort.name'), icon: ArrangeAZ },
-  ],
-}))
-
-// Les intertitres de date n'ont pas de sens en tri par nom.
-const groupSection = computed<UiMenuSection>(() => ({
-  id: 'group',
-  value: layout.sessionGroups ? 'date' : 'none',
-  options: [
-    { value: 'none', label: t('chats.sort.noGroups'), icon: LayoutList },
-    { value: 'date', label: t('chats.sort.byDate'), icon: CalendarAdd, disabled: layout.sessionSort === 'name' },
   ],
 }))
 
@@ -61,8 +53,15 @@ const openedBy = (pointer: boolean) => {
           >
             <DropdownMenuLabel :id="`${id}-label`" :class="menuTitle">{{ t('chats.sort.title') }}</DropdownMenuLabel>
             <UiMenuChoices :section="section" :labelledby="`${id}-label`" @select="layout.sessionSort = $event as SessionSort" />
-            <DropdownMenuLabel :id="`${id}-group`" :class="[menuTitle, 'mt-1']">{{ t('chats.sort.group') }}</DropdownMenuLabel>
-            <UiMenuChoices :section="groupSection" :labelledby="`${id}-group`" @select="layout.sessionGroups = $event === 'date'" />
+            <UiMenuSeparator />
+            <!-- Les intertitres de date n'ont pas de sens en tri par nom. -->
+            <UiMenuToggle
+              v-model="layout.sessionGroups"
+              :label="t('chats.sort.byDate')"
+              :icon="CalendarAdd"
+              :disabled="layout.sessionSort === 'name'"
+            />
+            <UiMenuToggle v-model="layout.sessionCompact" :label="t('chats.sort.compact')" :icon="RowsCompact" />
           </DropdownMenuContent>
         </DropdownMenuPortal>
       </DropdownMenuRoot>

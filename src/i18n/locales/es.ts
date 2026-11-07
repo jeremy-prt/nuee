@@ -26,7 +26,7 @@ export default {
     pin: 'Fijar',
     unpin: 'Desfijar',
     pinned: 'Fijadas',
-    sort: { label: 'Ordenar sesiones', title: 'Ordenar por', activity: 'Última actividad', created: 'Fecha de creación', name: 'Nombre', group: 'Agrupar', byDate: 'Por fecha', noGroups: 'Ninguno' },
+    sort: { label: 'Ordenar sesiones', title: 'Ordenar por', activity: 'Última actividad', created: 'Fecha de creación', name: 'Nombre', byDate: 'Agrupar por fecha', compact: 'Vista compacta' },
     groups: { today: 'Hoy', yesterday: 'Ayer', week: 'Últimos 7 días', month: 'Últimos 30 días', older: 'Más antiguas' },
     recent: 'Sesiones',
     renameLabel: 'Nombre de la sesión',

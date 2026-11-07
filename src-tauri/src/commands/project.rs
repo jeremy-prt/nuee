@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use tauri::State;
+use tauri::{AppHandle, Manager, State};
 
 use crate::error::AppError;
 use crate::services::chat::ChatService;
@@ -53,6 +53,19 @@ pub async fn project_files(
         None => project,
     };
     crate::services::project::files(&dir, ignored).await
+}
+
+/// Dossier des sessions de « Cet ordinateur » : chacune y a le sien, créé à son premier message.
+#[tauri::command]
+pub async fn project_reveal_scratch(app: AppHandle) -> Result<(), AppError> {
+    let dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|error| std::io::Error::other(error.to_string()))?
+        .join("scratch");
+    std::fs::create_dir_all(&dir)?;
+    tauri_plugin_opener::open_path(dir, None::<&str>)
+        .map_err(|error| std::io::Error::other(error.to_string()).into())
 }
 
 #[tauri::command]

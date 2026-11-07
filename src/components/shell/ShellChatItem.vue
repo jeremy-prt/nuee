@@ -10,11 +10,14 @@ import UiContextMenu from '@/components/ui/UiContextMenu.vue'
 import UiMoreMenu from '@/components/ui/UiMoreMenu.vue'
 import UiRenameField from '@/components/ui/UiRenameField.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
+import { useLayoutDrag } from '@/composables/useLayoutDrag'
 import { useProjectActions } from '@/composables/useProjectActions'
 import { sessionStatusColor, useSessionStatus } from '@/composables/useSessionStatus'
 import { useTabTitle } from '@/composables/useTabTitle'
 import { useCatalogStore } from '@/stores/catalog'
 import { useClockStore } from '@/stores/clock'
+import { useDragStore } from '@/stores/drag'
+import { useLayoutStore } from '@/stores/layout'
 import { useNavigationStore } from '@/stores/navigation'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { type Tab, useWorkspaceStore } from '@/stores/workspace'
@@ -27,11 +30,14 @@ const props = defineProps<{ tab: Tab }>()
 const { t, locale } = useI18n()
 const catalog = useCatalogStore()
 const clock = useClockStore()
+const layout = useLayoutStore()
 const navigation = useNavigationStore()
 const shortcuts = useShortcutsStore()
 const workspace = useWorkspaceStore()
 const worktrees = useWorktreesStore()
 const actions = useProjectActions()
+const { startChatDrag } = useLayoutDrag()
+const drag = useDragStore()
 const { tabTitle } = useTabTitle()
 
 catalog.load(props.tab.agent)
@@ -49,7 +55,7 @@ const active = computed(() => props.tab.id === workspace.activeTabId)
 const sessionStatus = useSessionStatus()
 const status = computed(() => sessionStatus(props.tab.id))
 
-const since = computed(() => formatSince(props.tab.updatedAt, clock.now, locale.value))
+const since = computed(() => formatSince(props.tab.updatedAt, clock.now, locale.value, layout.sessionCompact))
 const branch = computed(() => worktrees.branchOf(props.tab))
 const model = computed(() => catalog.modelLabel(props.tab.agent, props.tab.model))
 const diff = computed(() => (props.tab.added || props.tab.removed ? { added: props.tab.added, removed: props.tab.removed } : null))
@@ -105,26 +111,26 @@ watch(
         :is="renaming ? 'div' : 'button'"
         ref="row"
         :type="renaming ? undefined : 'button'"
-        class="flex w-full flex-col gap-1 rounded-md p-2 text-start focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
-        :class="renaming || active ? 'bg-selection' : menuOpen ? 'bg-selection-hover' : 'group-hover/row:bg-selection-hover'"
+        class="flex w-full rounded-md text-start focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+        :class="[
+          layout.sessionCompact ? 'h-8 items-center gap-2 px-2' : 'flex-col gap-1 p-2',
+          { 'opacity-50': drag.source?.kind === 'chat' && drag.source.id === tab.id },
+          renaming || active ? 'bg-selection' : menuOpen ? 'bg-selection-hover' : 'group-hover/row:bg-selection-hover',
+        ]"
         :aria-current="active && !renaming ? 'true' : undefined"
         :aria-keyshortcuts="renaming ? undefined : shortcuts.aria('rename')"
-        v-on="renaming ? {} : { click: select, dblclick: () => startRename(), keydown: onKeydown }"
+        v-on="renaming ? {} : { click: select, dblclick: () => startRename(), keydown: onKeydown, pointerdown: (e: PointerEvent) => startChatDrag(e, tab.id) }"
       >
-        <span class="flex h-4 items-center gap-1.5 text-[11px] text-muted">
-          <SettingsAgentLogo :id="tab.agent" small class="-my-0.5 -ms-0.5 -me-0.5" />
-          <span class="min-w-0 flex-1 truncate">{{ model ?? agents[tab.agent].name }}</span>
-          <span v-if="status" class="flex shrink-0 items-center gap-1" :class="sessionStatusColor[status]">
+        <template v-if="layout.sessionCompact">
+          <span class="grid size-4 shrink-0 place-items-center" :class="status && sessionStatusColor[status]">
             <ChatSpinner v-if="status === 'working'" :agent="tab.agent" inherit class="text-xs" />
-            <ShieldQuestion v-else-if="status === 'approval'" class="size-3" aria-hidden="true" />
-            <MessageQuestion v-else-if="status === 'question'" class="size-3" aria-hidden="true" />
-            <CircleCheck v-else-if="status === 'done'" class="size-3" aria-hidden="true" />
-            <CircleAlert v-else class="size-3" aria-hidden="true" />
-            {{ t(`chats.status.${status}`) }}
+            <ShieldQuestion v-else-if="status === 'approval'" class="size-3.5" aria-hidden="true" />
+            <MessageQuestion v-else-if="status === 'question'" class="size-3.5" aria-hidden="true" />
+            <CircleCheck v-else-if="status === 'done'" class="size-3.5" aria-hidden="true" />
+            <CircleAlert v-else-if="status" class="size-3.5" aria-hidden="true" />
+            <SettingsAgentLogo v-else :id="tab.agent" small />
+            <span v-if="status" class="sr-only">{{ t(`chats.status.${status}`) }}</span>
           </span>
-          <span v-else class="shrink-0">{{ since }}</span>
-        </span>
-        <span class="flex items-center gap-1.5">
           <UiRenameField
             v-if="renaming"
             :value="tabTitle(tab)"
@@ -133,21 +139,50 @@ watch(
             @commit="stopRename"
             @cancel="stopRename()"
           />
-          <span v-else class="min-w-0 flex-1 truncate text-[13px]/5 font-medium" :class="{ [fadeUnder]: !branch }">{{ tabTitle(tab) }}</span>
-          <ChatDiffStat v-if="!branch && diff && !renaming" v-bind="diff" plain class="text-[11px]" :class="hideUnder" />
-        </span>
-        <span v-if="branch" class="flex h-4 items-center gap-1.5 text-[11px] text-muted">
-          <span class="flex min-w-0 flex-1 items-center gap-1" :class="fadeUnder">
-            <GitBranch class="size-3 shrink-0" aria-hidden="true" />
-            <span class="min-w-0 truncate">{{ branch }}</span>
+          <template v-else>
+            <span class="min-w-0 flex-1 truncate text-[13px]/5" :class="fadeUnder">{{ tabTitle(tab) }}</span>
+            <span class="shrink-0 text-[11px] text-muted" :class="hideUnder">{{ since }}</span>
+          </template>
+        </template>
+        <template v-else>
+          <span class="flex h-4 items-center gap-1.5 text-[11px] text-muted">
+            <SettingsAgentLogo :id="tab.agent" small class="-my-0.5 -ms-0.5 -me-0.5" />
+            <span class="min-w-0 flex-1 truncate">{{ model ?? agents[tab.agent].name }}</span>
+            <span v-if="status" class="flex shrink-0 items-center gap-1" :class="sessionStatusColor[status]">
+              <ChatSpinner v-if="status === 'working'" :agent="tab.agent" inherit class="text-xs" />
+              <ShieldQuestion v-else-if="status === 'approval'" class="size-3" aria-hidden="true" />
+              <MessageQuestion v-else-if="status === 'question'" class="size-3" aria-hidden="true" />
+              <CircleCheck v-else-if="status === 'done'" class="size-3" aria-hidden="true" />
+              <CircleAlert v-else class="size-3" aria-hidden="true" />
+              {{ t(`chats.status.${status}`) }}
+            </span>
+            <span v-else class="shrink-0">{{ since }}</span>
           </span>
-          <ChatDiffStat v-if="diff" v-bind="diff" plain :class="hideUnder" />
-        </span>
+          <span class="flex items-center gap-1.5">
+            <UiRenameField
+              v-if="renaming"
+              :value="tabTitle(tab)"
+              :label="t('chats.renameLabel')"
+              class="-my-0.5 flex-1 text-[13px] font-medium"
+              @commit="stopRename"
+              @cancel="stopRename()"
+            />
+            <span v-else class="min-w-0 flex-1 truncate text-[13px]/5 font-medium" :class="{ [fadeUnder]: !branch }">{{ tabTitle(tab) }}</span>
+            <ChatDiffStat v-if="!branch && diff && !renaming" v-bind="diff" plain class="text-[11px]" :class="hideUnder" />
+          </span>
+          <span v-if="branch" class="flex h-4 items-center gap-1.5 text-[11px] text-muted">
+            <span class="flex min-w-0 flex-1 items-center gap-1" :class="fadeUnder">
+              <GitBranch class="size-3 shrink-0" aria-hidden="true" />
+              <span class="min-w-0 truncate">{{ branch }}</span>
+            </span>
+            <ChatDiffStat v-if="diff" v-bind="diff" plain :class="hideUnder" />
+          </span>
+        </template>
       </component>
       <div
         v-if="!renaming"
         class="absolute end-1 flex gap-0.5 transition-opacity duration-(--hover-duration) ease-out group-hover:opacity-100 focus-within:opacity-100 motion-reduce:transition-none"
-        :class="[menuOpen ? 'opacity-100' : 'opacity-0', branch ? 'bottom-1' : 'bottom-1.5']"
+        :class="[menuOpen ? 'opacity-100' : 'opacity-0', layout.sessionCompact ? 'top-1' : branch ? 'bottom-1' : 'bottom-1.5']"
       >
         <UiTooltip :label="t('chats.archive')">
           <button

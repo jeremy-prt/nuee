@@ -144,6 +144,7 @@ pub fn run() {
             commands::project::project_icon_reset,
             commands::project::project_files,
             commands::project::project_reveal,
+            commands::project::project_reveal_scratch,
             commands::server::server_list,
             commands::server::server_start,
             commands::server::server_stop,

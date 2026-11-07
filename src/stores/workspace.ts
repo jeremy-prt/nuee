@@ -62,15 +62,6 @@ function titleSeed(prompt: string, attachments: Attachment[]) {
   const line = prompt.split('\n').find((text) => text.trim())?.trim() ?? attachments.map((attachment) => attachment.name).join(', ')
   return line.length > SEED_LENGTH ? `${line.slice(0, SEED_LENGTH - 1).trimEnd()}…` : line
 }
-const STORAGE_KEY = 'nuee.workspace.v1'
-
-function loadLayouts(): Record<string, Partial<PaneLayout>> {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}')
-  } catch {
-    return {}
-  }
-}
 
 // Chaque contexte (un projet, ou les chats sans projet) a ses onglets et sa disposition.
 export const useWorkspaceStore = defineStore('workspace', () => {
@@ -82,25 +73,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const tabs = ref<Tab[]>([])
   const layouts = reactive<Record<string, PaneLayout>>({})
 
-  // La disposition enregistrée ne reprend que des chats qui existent encore.
+  // Onglets non repris au lancement (choix de Jérémy) : l'app repart sur « Nouvel espace de travail ».
   chatList()
     .then((chats) => {
       const known = new Set(chats.map((chat) => chat.id))
       tabs.value = [...chats.map((chat) => ({ ...chat, kind: 'chat' as const })), ...tabs.value.filter((tab) => !known.has(tab.id))]
       useDraftsStore().prune(new Set(tabs.value.map((tab) => tab.id)))
-      for (const [key, saved] of Object.entries(loadLayouts())) {
-        if (!Array.isArray(saved.tabs) || !Array.isArray(saved.panes)) continue
-        const open = saved.tabs.filter((id) => known.has(id))
-        const panes = saved.panes.filter((id) => open.includes(id))
-        // La session vierge du lancement a pu créer la disposition avant ce chargement : on y ajoute les onglets
-        // enregistrés au lieu de les perdre, ce qu'elle affiche déjà reste affiché.
-        const present = layouts[key]
-        if (present) {
-          present.tabs = [...open.filter((id) => !present.tabs.includes(id) && !isBlank(id)), ...present.tabs]
-          continue
-        }
-        layouts[key] = { tabs: open, panes, focused: Math.min(saved.focused ?? 0, Math.max(0, panes.length - 1)) }
-      }
     })
     .then(() => {
       tidy()
@@ -108,19 +86,6 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       ready.value = true
     })
     .catch((error) => console.error('historique', error))
-    .finally(() => {
-      watch(
-        layouts,
-        (value) => {
-          try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(value))
-          } catch {
-            // Stockage indisponible : la disposition reste valable pour la session.
-          }
-        },
-        { deep: true, immediate: true },
-      )
-    })
 
   const contextKey = computed(() => navigation.projectId ?? '')
 
@@ -193,7 +158,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return tab
   }
 
-  // Comme monocode : un onglet ouvert s'insère juste après l'actif, et prend la place de l'actif s'il est vierge.
+  // Comme monocode : un onglet ouvert s'insère juste après l'actif ; les onglets vierges non affichés se ferment.
   function show(id: string) {
     seenAt[id] = Date.now()
     const layout = current()
@@ -211,7 +176,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     } else {
       layout.panes[layout.focused] = id
     }
-    if (active && active !== id && isBlank(active) && !layout.panes.includes(active)) closeTab(active, layout)
+    // Pas seulement l'actif : la vierge de « Nouvel espace de travail » est dans les onglets sans être affichée.
+    for (const other of [...layout.tabs]) if (other !== id && isBlank(other) && !layout.panes.includes(other)) closeTab(other, layout)
   }
 
   // Nouvelle session (« + », ⌘N, ⌘T) : la vierge du contexte plutôt qu'une de plus.
@@ -422,7 +388,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   // Rend le nombre de chats archivés.
-  async function archiveProjectChats(projectId: string) {
+  async function archiveProjectChats(projectId: string | null) {
     const chats = tabsFor(projectId).filter((tab) => tab.started && !tab.archived)
     await archive(chats)
     return chats.length

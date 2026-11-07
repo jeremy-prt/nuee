@@ -183,7 +183,6 @@ onUnmounted(() => {
             <ShellRail />
             <ShellResizeHandle
               v-model="layout.rail.width"
-              data-edge="rail"
               v-bind="SIZES.rail"
               orientation="vertical"
               :label="t('rail.resize')"
@@ -195,7 +194,6 @@ onUnmounted(() => {
           <ShellResizeHandle
             v-if="layout.rail.expanded"
             v-model="layout.rail.width"
-            data-edge="rail"
             v-bind="SIZES.rail"
             orientation="vertical"
             :label="t('rail.resize')"
@@ -207,7 +205,6 @@ onUnmounted(() => {
           <ShellSidePanel :style="{ width: `${layout.panel.width}px` }" />
           <ShellResizeHandle
             v-model="layout.panel.width"
-            data-edge="panel"
             v-bind="SIZES.panel"
             orientation="vertical"
             :label="t('chats.resize')"
@@ -229,7 +226,6 @@ onUnmounted(() => {
               <template v-if="showRightDock">
                 <ShellResizeHandle
                   v-model="layout.right.size"
-                  data-edge="right"
                   v-bind="SIZES.right"
                   orientation="vertical"
                   invert
@@ -279,6 +275,14 @@ onUnmounted(() => {
       }"
       aria-hidden="true"
     />
+    <div
+      v-if="drag.ghost"
+      class="ui-glass pointer-events-none fixed z-50 max-w-56 truncate rounded-md px-2.5 py-1 text-[13px] text-content shadow-lg"
+      :style="{ left: `${drag.ghost.x + 12}px`, top: `${drag.ghost.y + 8}px` }"
+      aria-hidden="true"
+    >
+      {{ drag.ghost.label }}
+    </div>
     <AgentUpdateNotice />
     <UiConfirmDialog />
     <UiToasts />

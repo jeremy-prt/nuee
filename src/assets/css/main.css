@@ -151,29 +151,6 @@ html.is-macos:not([data-window='opaque']) {
   background-image: linear-gradient(var(--color-stroke), var(--color-stroke));
 }
 
-/* Le bord d'une colonne continue dans la barre de titre : ce segment s'allume avec la poignée, et descend
-   d'un pixel pour passer sur la bordure basse de la barre, sinon la ligne allumée est coupée à la jonction. */
-html:has([data-edge='rail']:is(:hover, :active, :focus-visible)) [data-title-edge='rail'],
-html:has([data-edge='panel']:is(:hover, :active, :focus-visible)) [data-title-edge='panel'] {
-  --edge: var(--color-edge-hover);
-  margin-bottom: -1px;
-  border-color: var(--edge);
-  /* Même épaisseur que la poignée : son trait, plus un pixel à sa droite. */
-  box-shadow: 1px 0 0 0 var(--edge);
-}
-/* Le panneau de droite porte son trait à gauche : même lueur, de l'autre côté. */
-html:has([data-edge='right']:is(:hover, :active, :focus-visible)) [data-title-edge='right'] {
-  --edge: var(--color-edge-hover);
-  margin-bottom: -1px;
-  border-color: var(--edge);
-  box-shadow: inset 1px 0 0 0 var(--edge);
-}
-html:has([data-edge='rail']:focus-visible) [data-title-edge='rail'],
-html:has([data-edge='panel']:focus-visible) [data-title-edge='panel'],
-html:has([data-edge='right']:focus-visible) [data-title-edge='right'] {
-  --edge: var(--color-ring);
-}
-
 /* Verre des menus et listes (.ui-pop), confirmations (UiConfirmDialog) et messages (UiToasts). Le verre est sur un
    cadre fixe où seul le contenu s'anime : WebKit peint un fond périmé si l'élément flouté est lui-même animé. Le
    cadre d'un menu ou d'une liste est l'enveloppe posée par reka. */

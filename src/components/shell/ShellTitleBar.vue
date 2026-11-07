@@ -35,11 +35,10 @@ const menu = computed(() => appearance.layout === 'menu')
 const railWidth = computed(() => (layout.rail.expanded ? layout.rail.width : RAIL_COLLAPSED_WIDTH))
 const panelOpen = computed(() => !menu.value && navigation.hasPanel && layout.panel.open)
 
-// La zone de gauche couvre la barre latérale (sa bordure monte si elle est plus large que les boutons), au moins
-// jusqu'au bouton. Chaque colonne finit par un trait de 1 px.
+// La zone de gauche couvre la barre latérale, au moins jusqu'au bouton. Chaque colonne finit par un trait de 1 px,
+// qui s'arrête sous la barre de titre (choix de Jérémy).
 const railShown = computed(() => !menu.value || layout.rail.expanded)
 const leftZone = computed(() => Math.max(railShown.value ? railWidth.value + 1 : 0, lights.value + TOGGLE))
-const railBorderUp = computed(() => railShown.value && leftZone.value === railWidth.value + 1)
 const centerStart = computed(() => railWidth.value + 1 + (panelOpen.value ? layout.panel.width + 1 : 0))
 const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - leftZone.value)))
 </script>
@@ -54,8 +53,6 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
   >
     <div
       class="flex shrink-0 items-center self-stretch"
-      :class="{ 'border-e border-stroke': railBorderUp }"
-      data-title-edge="rail"
       :style="{ width: `${leftZone}px`, paddingInlineStart: `${lights}px` }"
       data-tauri-drag-region
     >
@@ -65,8 +62,6 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
     <div
       v-if="!menu"
       class="flex shrink-0 items-center justify-end self-stretch border-b border-stroke pe-2"
-      :class="{ 'border-e border-stroke': panelOpen && spacer > 0 }"
-      data-title-edge="panel"
       :style="{ width: `${spacer}px` }"
       data-tauri-drag-region
     >
@@ -134,11 +129,10 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
         </UiIconButton>
         <span class="flex-1 self-stretch" data-tauri-drag-region />
         <!-- Comme Orca et l'app Claude : panneau ouvert, ses volets se choisissent au-dessus de lui, dans une zone calée
-             sur sa largeur (poignée comprise), son bord continue celui du panneau ; `-me-2` annule la marge de la barre ; le bouton qui l'ouvre reste tout à droite. -->
+             sur sa largeur (poignée comprise) ; `-me-2` annule la marge de la barre ; le bouton qui l'ouvre reste tout à droite. -->
         <div
           class="-me-2 flex shrink-0 items-center gap-0.5 self-stretch pe-3.5"
-          :class="{ 'border-s border-stroke ps-2': layout.right.open }"
-          data-title-edge="right"
+          :class="{ 'ps-2': layout.right.open }"
           :style="layout.right.open ? { width: `${layout.right.size + 1}px` } : undefined"
           data-tauri-drag-region
         >

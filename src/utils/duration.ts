@@ -19,11 +19,13 @@ const SINCE_UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
 ]
 
 // « maintenant », « il y a 5 min », « hier », « il y a 4 j », puis la date : « 9 oct. », avec l'année si ce n'est
-// pas celle en cours.
-export function formatSince(at: number, now: number, locale: string) {
+// pas celle en cours. `brief` : « 5 min », « 4 j », sans « il y a ».
+export function formatSince(at: number, now: number, locale: string, brief = false) {
   const relative = new Intl.RelativeTimeFormat(locale, { numeric: 'auto', style: 'short' })
   let value = Math.max(0, now - at) / 1000
   for (const [unit, size] of SINCE_UNITS) {
+    if (value < size && brief && unit !== 'second')
+      return new Intl.NumberFormat(locale, { style: 'unit', unit, unitDisplay: 'narrow' }).format(Math.floor(value))
     if (value < size) return relative.format(unit === 'second' ? 0 : -Math.floor(value), unit)
     value /= size
   }

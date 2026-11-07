@@ -21,6 +21,10 @@ export function projectFiles(chatId: string, path: string, ignored: boolean) {
   return invoke<string[]>('project_files', { chatId, path, ignored })
 }
 
+export function projectRevealScratch() {
+  return invoke<void>('project_reveal_scratch')
+}
+
 export function projectReveal(path: string) {
   return invoke<void>('project_reveal', { path })
 }

@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { Archive, Bell, BellOff, FolderInput, FolderOpen, ImageUp, Pencil, Pin, PinOff, Plus, SlidersHorizontal, Trash2 } from '@/components/ui/icons'
+import { Archive, FolderInput, FolderOpen, ImageUp, Pencil, Pin, PinOff, Plus, SlidersHorizontal, Trash2 } from '@/components/ui/icons'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ProjectBackgroundMenu from '@/components/project/ProjectBackgroundMenu.vue'
 import ProjectColorChoices from '@/components/project/ProjectColorChoices.vue'
+import ProjectMuteMenu from '@/components/project/ProjectMuteMenu.vue'
 import UiMenuChoices from '@/components/ui/UiMenuChoices.vue'
 import UiMenuItem from '@/components/ui/UiMenuItem.vue'
 import UiMenuSeparator from '@/components/ui/UiMenuSeparator.vue'
@@ -11,15 +12,16 @@ import UiMenuSub from '@/components/ui/UiMenuSub.vue'
 import { useNewChat } from '@/composables/useNewChat'
 import { useProjectActions } from '@/composables/useProjectActions'
 import { isMacosApp } from '@/ipc/system'
-import { type IconMode, type MuteKind, muteEnd, type Project, useProjectsStore } from '@/stores/projects'
+import { useAppearanceStore } from '@/stores/appearance'
+import { type IconMode, type Project, useProjectsStore } from '@/stores/projects'
 import { useWorkspaceStore } from '@/stores/workspace'
-import { formatUntil } from '@/utils/duration'
 
 // Contenu du menu d'un projet, posé dans son clic droit et dans son bouton « … ».
 const props = defineProps<{ project: Project }>()
 const emit = defineEmits<{ rename: [] }>()
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
+const appearance = useAppearanceStore()
 const projects = useProjectsStore()
 const workspace = useWorkspaceStore()
 const actions = useProjectActions()
@@ -42,16 +44,8 @@ const iconModes = computed(() =>
 )
 const iconMode = computed(() => (props.project.icon === 'auto' && noIcon.value ? 'letter' : props.project.icon))
 
-const muted = computed(() => projects.isMuted(props.project.id))
-const muteValue = computed(() => (muted.value ? (props.project.muted?.kind ?? 'on') : 'on'))
-// Sous chaque durée, l'heure de reprise : celle en cours pour le choix actif, sinon celle qu'il donnerait maintenant.
-const muteOptions = computed(() =>
-  (['on', 'hour', 'tomorrow', 'always'] as const).map((value) => {
-    const until = value === 'on' ? null : value === muteValue.value ? props.project.muted!.until : muteEnd(value, projects.now)
-    const hint = until === null ? undefined : t('settings.projects.muteUntil', { time: formatUntil(until, projects.now, locale.value) })
-    return { value, label: t(`settings.projects.mute.${value}`), hint }
-  }),
-)
+// En « Projets en menu », la liste des projets est à plat : épingle et groupe n'y changeraient rien de visible.
+const inColumn = computed(() => appearance.layout !== 'menu')
 
 const activeChats = computed(() => workspace.tabsFor(props.project.id).some((tab) => tab.started && !tab.archived))
 
@@ -69,10 +63,6 @@ function newGroup() {
 function pickMode(value: string) {
   if (value === 'image' && !found.value?.custom) actions.importIcon(props.project)
   else props.project.icon = value as IconMode
-}
-
-function pickMute(value: string) {
-  projects.mute(props.project, value === 'on' ? null : (value as MuteKind))
 }
 </script>
 
@@ -95,7 +85,7 @@ function pickMute(value: string) {
   </UiMenuSub>
 
   <ProjectBackgroundMenu v-model="project.background" />
-  <UiMenuSub :label="t('groups.moveTo')" :icon="FolderInput" :value="groupName">
+  <UiMenuSub v-if="inColumn" :label="t('groups.moveTo')" :icon="FolderInput" :value="groupName">
     <UiMenuItem :label="t('groups.create')" :icon="Plus" @select="newGroup" />
     <template v-if="projects.groups.length">
       <UiMenuSeparator />
@@ -108,6 +98,7 @@ function pickMute(value: string) {
 
   <UiMenuSeparator />
   <UiMenuItem
+    v-if="inColumn"
     :label="project.pinned ? t('menu.unpinProject') : t('menu.pinProject')"
     :icon="project.pinned ? PinOff : Pin"
     @select="project.pinned = !project.pinned"
@@ -119,9 +110,7 @@ function pickMute(value: string) {
     :icon="FolderOpen"
     @select="actions.reveal(project)"
   />
-  <UiMenuSub :label="t('settings.projects.notifications')" :icon="muted ? BellOff : Bell">
-    <UiMenuChoices :section="{ id: 'mute', value: muteValue, options: muteOptions }" @select="pickMute" />
-  </UiMenuSub>
+  <ProjectMuteMenu :settings="project" :project-id="project.id" />
   <UiMenuItem :label="t('menu.projectSettings')" :icon="SlidersHorizontal" @select="actions.openSettings(project)" />
 
   <UiMenuSeparator />

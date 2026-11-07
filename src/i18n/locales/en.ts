@@ -24,7 +24,7 @@ export default {
     pin: 'Pin',
     unpin: 'Unpin',
     pinned: 'Pinned',
-    sort: { label: 'Sort sessions', title: 'Sort by', activity: 'Last activity', created: 'Creation date', name: 'Name', group: 'Group', byDate: 'By date', noGroups: 'None' },
+    sort: { label: 'Sort sessions', title: 'Sort by', activity: 'Last activity', created: 'Creation date', name: 'Name', byDate: 'Group by date', compact: 'Compact view' },
     groups: { today: 'Today', yesterday: 'Yesterday', week: 'Last 7 days', month: 'Last 30 days', older: 'Older' },
     recent: 'Sessions',
     renameLabel: 'Session name',

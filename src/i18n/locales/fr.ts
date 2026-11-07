@@ -26,7 +26,7 @@ export default {
     pin: 'Épingler',
     unpin: 'Désépingler',
     pinned: 'Épinglées',
-    sort: { label: 'Trier les sessions', title: 'Trier par', activity: 'Dernière activité', created: 'Date de création', name: 'Nom', group: 'Regrouper', byDate: 'Par date', noGroups: 'Aucun' },
+    sort: { label: 'Trier les sessions', title: 'Trier par', activity: 'Dernière activité', created: 'Date de création', name: 'Nom', byDate: 'Regrouper par date', compact: 'Affichage compact' },
     groups: { today: 'Aujourd\'hui', yesterday: 'Hier', week: '7 derniers jours', month: '30 derniers jours', older: 'Plus anciennes' },
     recent: 'Sessions',
     renameLabel: 'Nom de la session',

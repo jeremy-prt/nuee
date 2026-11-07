@@ -6,6 +6,7 @@ import ShellChatItem from '@/components/shell/ShellChatItem.vue'
 import { useProgressiveList } from '@/composables/useProgressiveList'
 import { useTabTitle } from '@/composables/useTabTitle'
 import { useClockStore } from '@/stores/clock'
+import { useDragStore } from '@/stores/drag'
 import { useLayoutStore } from '@/stores/layout'
 import { useNavigationStore } from '@/stores/navigation'
 import { useProjectsStore } from '@/stores/projects'
@@ -19,6 +20,7 @@ import { type DateGroup, dateGroup } from '@/utils/duration'
 const { t, locale } = useI18n()
 const shortcuts = useShortcutsStore()
 const clock = useClockStore()
+const drag = useDragStore()
 const layout = useLayoutStore()
 const navigation = useNavigationStore()
 const projects = useProjectsStore()
@@ -35,7 +37,14 @@ function sorted(list: Tab[]) {
   return [...list].sort((a, b) => collator.compare(tabTitle(a), tabTitle(b)))
 }
 
-const pinned = computed(() => sorted(workspace.pinnedChats))
+// Ordre choisi au glisser d'abord, puis les autres selon le tri.
+const pinned = computed(() => {
+  const rank = (tab: Tab) => {
+    const index = layout.pinnedOrder.indexOf(tab.id)
+    return index === -1 ? Number.MAX_SAFE_INTEGER : index
+  }
+  return sorted(workspace.pinnedChats).sort((a, b) => rank(a) - rank(b))
+})
 const { shown: recentShown, more, limit, sentinel } = useProgressiveList(
   computed(() => sorted(workspace.recentChats)),
   () => navigation.projectId,
@@ -66,33 +75,36 @@ watch(
 </script>
 
 <template>
-  <template v-if="workspace.contextChats.length">
-    <template v-if="pinned.length">
+  <div v-if="workspace.contextChats.length" data-chat-list>
+    <!-- Sans épinglée, la section n'apparaît que pendant le glisser d'une session, pour l'y déposer. -->
+    <div v-if="pinned.length || drag.source?.kind === 'chat'" data-chat-zone="pinned">
       <h2 class="flex h-7 items-center gap-1.5 px-2 text-[11px] text-muted">
         <Pin class="size-3" aria-hidden="true" />{{ t('chats.pinned') }}
       </h2>
       <ul class="space-y-0.5">
-        <li v-for="tab in pinned" :key="tab.id"><ShellChatItem :tab="tab" /></li>
+        <li v-for="tab in pinned" :key="tab.id" :data-chat-id="tab.id"><ShellChatItem :tab="tab" /></li>
       </ul>
-    </template>
-    <template v-for="(group, index) in groups" :key="group.id ?? 'all'">
-      <h2
-        v-if="group.id"
-        class="flex h-7 items-center px-2 text-[11px] text-muted"
-        :class="{ 'mt-3': index || pinned.length }"
-      >
-        {{ t(`chats.groups.${group.id}`) }}
-      </h2>
-      <!-- Tri par nom : un titre seulement pour séparer des épinglées, et pas deux « Sessions » de suite. -->
-      <template v-else-if="pinned.length && group.tabs.length">
-        <h2 class="mt-3 flex h-7 items-center px-2 text-[11px] text-muted">{{ t('chats.recent') }}</h2>
+    </div>
+    <div data-chat-zone="recent">
+      <template v-for="(group, index) in groups" :key="group.id ?? 'all'">
+        <h2
+          v-if="group.id"
+          class="flex h-7 items-center px-2 text-[11px] text-muted"
+          :class="{ 'mt-3': index || pinned.length }"
+        >
+          {{ t(`chats.groups.${group.id}`) }}
+        </h2>
+        <!-- Tri par nom : un titre seulement pour séparer des épinglées, et pas deux « Sessions » de suite. -->
+        <template v-else-if="pinned.length && group.tabs.length">
+          <h2 class="mt-3 flex h-7 items-center px-2 text-[11px] text-muted">{{ t('chats.recent') }}</h2>
+        </template>
+        <ul class="space-y-0.5">
+          <li v-for="tab in group.tabs" :key="tab.id" :data-chat-id="tab.id"><ShellChatItem :tab="tab" /></li>
+        </ul>
       </template>
-      <ul class="space-y-0.5">
-        <li v-for="tab in group.tabs" :key="tab.id"><ShellChatItem :tab="tab" /></li>
-      </ul>
-    </template>
+    </div>
     <div v-if="more" :key="limit" ref="sentinel" class="h-px" aria-hidden="true" />
-  </template>
+  </div>
   <p v-else class="px-2 text-sm text-muted">
     {{ shortcuts.label('newChat') ? t('chats.empty', { shortcut: shortcuts.label('newChat') }) : t('chats.emptyNoShortcut') }}
   </p>

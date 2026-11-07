@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
-export type DragSource = { kind: 'tab'; id: string } | { kind: 'project'; id: string }
+export type DragSource = { kind: 'tab'; id: string } | { kind: 'project'; id: string } | { kind: 'chat'; id: string }
 
 export type DropTarget =
   | { kind: 'pane'; index: number; side: 'left' | 'right' | 'center' }
   | { kind: 'project'; group: string | null; pinned: boolean; before: string | null }
+  | { kind: 'chat'; pinned: boolean; before: string | null }
 
 export interface PreviewRect {
   left: number
@@ -20,12 +21,15 @@ export const useDragStore = defineStore('drag', () => {
   const source = ref<DragSource | null>(null)
   const target = ref<DropTarget | null>(null)
   const preview = ref<PreviewRect | null>(null)
+  // Session glissée : son titre suit le pointeur (App.vue).
+  const ghost = ref<{ x: number; y: number; label: string } | null>(null)
 
   function reset() {
     source.value = null
     target.value = null
     preview.value = null
+    ghost.value = null
   }
 
-  return { source, target, preview, reset }
+  return { source, target, preview, ghost, reset }
 })
