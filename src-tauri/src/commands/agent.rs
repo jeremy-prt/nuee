@@ -9,6 +9,7 @@ use crate::services::agent::{
     Rewind, SessionSpec,
 };
 use crate::services::attachment::Attachment;
+use crate::services::browser::BrowserService;
 use crate::services::chat::ChatService;
 use crate::services::worktree::{WorktreeService, canonical};
 
@@ -26,7 +27,9 @@ pub async fn agent_send(
     agents: State<'_, AgentService>,
     chats: State<'_, ChatService>,
     worktrees: State<'_, WorktreeService>,
+    browser: State<'_, BrowserService>,
 ) -> Result<Option<String>, AppError> {
+    browser.bind(&spec.chat_id, spec.cwd.as_deref());
     let Place::Ready(root) = place(&mut spec, &chats, &worktrees, true).await? else {
         return Err(AppError::Git("le worktree du chat n'a pas été créé".into()));
     };
@@ -41,7 +44,9 @@ pub async fn agent_warm(
     agents: State<'_, AgentService>,
     chats: State<'_, ChatService>,
     worktrees: State<'_, WorktreeService>,
+    browser: State<'_, BrowserService>,
 ) -> Result<Option<ContextUsage>, AppError> {
+    browser.bind(&spec.chat_id, spec.cwd.as_deref());
     match place(&mut spec, &chats, &worktrees, false).await? {
         Place::Ready(_) => agents.warm(spec).await,
         Place::Later => Ok(None),

@@ -561,7 +561,45 @@ impl Driver for Claude {
         if let Some(id) = &spec.session_id {
             args.extend(["--resume".to_owned(), id.clone()]);
         }
+        // Outils du navigateur, servis par Nuée sur ce même canal : pas de port ni de process de plus.
+        let server = crate::services::browser::tools::SERVER;
+        args.extend([
+            "--mcp-config".to_owned(),
+            serde_json::json!({ "mcpServers": { server: { "type": "sdk", "name": server } } })
+                .to_string(),
+            "--allowedTools".to_owned(),
+            format!("mcp__{server}"),
+        ]);
         args
+    }
+
+    fn tool_request(&self, line: &str) -> Option<(String, Value)> {
+        if !line.contains("\"mcp_message\"") {
+            return None;
+        }
+        let mut line = serde_json::from_str::<Value>(line).ok()?;
+        if line["type"] != "control_request"
+            || line["request"]["subtype"] != "mcp_message"
+            || line["request"]["server_name"] != crate::services::browser::tools::SERVER
+        {
+            return None;
+        }
+        let id = line["request_id"].as_str()?.to_owned();
+        Some((id, line["request"]["message"].take()))
+    }
+
+    fn tool_reply(&self) -> fn(&str, Value) -> String {
+        |request_id, response| {
+            serde_json::json!({
+                "type": "control_response",
+                "response": {
+                    "subtype": "success",
+                    "request_id": request_id,
+                    "response": { "mcp_response": response },
+                },
+            })
+            .to_string()
+        }
     }
 
     fn session_env(&self) -> &'static [(&'static str, &'static str)] {
@@ -1029,6 +1067,14 @@ fn describe(name: &str, input: &Value, cwd: &Path) -> (ToolKind, Option<String>)
         "WebFetch" => (ToolKind::Web, field("url").map(str::to_owned)),
         "WebSearch" => (ToolKind::Web, field("query").map(str::to_owned)),
         "Task" | "Agent" => (ToolKind::Agent, field("description").map(str::to_owned)),
+        // Outils du navigateur de Nuée : l'adresse, ce qu'on cherche ou le serveur lancé.
+        name if name.starts_with("mcp__nuee__") => (
+            ToolKind::Other,
+            field("url")
+                .or_else(|| field("query"))
+                .or_else(|| field("name"))
+                .map(str::to_owned),
+        ),
         "AskUserQuestion" => (
             ToolKind::Question,
             questions_of(input)
@@ -1062,7 +1108,8 @@ fn detail_of(name: &str, input: &Value) -> Option<ToolDetail> {
                 serde_json::to_string_pretty(input)
                     .ok()
                     .map(|json| truncate(&json)),
-                None,
+                // Phrase que l'agent écrit pour l'utilisateur (outils du navigateur).
+                field("action_summary"),
             ),
             _ => (None, None),
         },
@@ -1740,9 +1787,28 @@ mod tests {
                 "--settings",
                 r#"{"disableAllHooks":true}"#,
                 "--resume",
-                "s1"
+                "s1",
+                "--mcp-config",
+                r#"{"mcpServers":{"nuee":{"type":"sdk","name":"nuee"}}}"#,
+                "--allowedTools",
+                "mcp__nuee",
             ]
         );
+    }
+
+    #[test]
+    fn a_call_to_nuee_tools_is_answered_on_the_same_channel() {
+        let claude = Claude::new(Path::new("/projet"));
+        let line = r#"{"type":"control_request","request_id":"r9","request":{"subtype":"mcp_message","server_name":"nuee","message":{"jsonrpc":"2.0","id":3,"method":"tools/list"}}}"#;
+        let (id, message) = claude.tool_request(line).expect("requête");
+        assert_eq!(id, "r9");
+        assert_eq!(message["method"], "tools/list");
+        let other = line.replace(r#""server_name":"nuee""#, r#""server_name":"github""#);
+        assert!(claude.tool_request(&other).is_none());
+        let reply: Value =
+            serde_json::from_str(&claude.tool_reply()("r9", serde_json::json!({"id": 3}))).unwrap();
+        assert_eq!(reply["response"]["request_id"], "r9");
+        assert_eq!(reply["response"]["response"]["mcp_response"]["id"], 3);
     }
 
     #[test]

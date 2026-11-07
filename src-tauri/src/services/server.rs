@@ -93,9 +93,22 @@ pub struct ServerLogs {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct LaunchFile {
     #[serde(default)]
     configurations: Vec<LaunchEntry>,
+    auto_verify: Option<bool>,
+}
+
+/// Vérification après chaque modification, comme l'app Claude : active quand le dossier a un
+/// `.claude/launch.json`, sauf `"autoVerify": false`.
+pub fn auto_verify(root: &Path) -> bool {
+    let Ok(text) = std::fs::read_to_string(root.join(LAUNCH_FILE)) else {
+        return false;
+    };
+    serde_json::from_str::<LaunchFile>(&strip_jsonc(&text))
+        .map(|file| file.auto_verify != Some(false))
+        .unwrap_or(true)
 }
 
 #[derive(Clone, Deserialize)]
@@ -430,6 +443,13 @@ impl ServerService {
                 kill_tree(process.pid, true);
             }
         }
+    }
+
+    /// Sortie d'un serveur du dossier, pour l'agent (`preview_logs`).
+    pub fn logs(&self, root: &str, name: &str) -> Option<String> {
+        lock(&self.shared.processes)
+            .get(&(root.to_owned(), name.to_owned()))
+            .map(|process| lock(&process.logs).clone())
     }
 
     /// Branche le flux du front (un seul, remplacé au rechargement de la page) et rend les logs déjà reçus.

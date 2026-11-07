@@ -17,6 +17,8 @@ pub enum AppError {
     Io(#[from] std::io::Error),
     #[error(transparent)]
     Database(#[from] rusqlite::Error),
+    #[error("{0}")]
+    Browser(String),
 }
 
 #[derive(Serialize, TS)]
@@ -30,6 +32,7 @@ pub enum ErrorKind {
     Git,
     Io,
     Database,
+    Browser,
 }
 
 /// Forme reçue par le front quand une commande échoue : `kind` choisit le texte traduit.
@@ -50,6 +53,7 @@ impl Serialize for AppError {
             Self::Git(_) => ErrorKind::Git,
             Self::Io(_) => ErrorKind::Io,
             Self::Database(_) => ErrorKind::Database,
+            Self::Browser(_) => ErrorKind::Browser,
         };
         ErrorPayload {
             kind,

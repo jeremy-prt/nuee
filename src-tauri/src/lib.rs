@@ -13,6 +13,7 @@ use crate::services::agent::AgentService;
 use crate::services::attachment::AttachmentService;
 use crate::services::autostart::AutostartService;
 use crate::services::background::BackgroundService;
+use crate::services::browser::BrowserService;
 use crate::services::chat::ChatService;
 use crate::services::github::GithubService;
 use crate::services::power::PowerService;
@@ -67,7 +68,17 @@ pub fn run() {
                 eprintln!("worktrees des chats : {error}");
             }
             app.manage(chats);
-            app.manage(AgentService::new(data.join("scratch")));
+            let agents = AgentService::new(data.join("scratch"));
+            let handle = app.handle().clone();
+            agents.set_tools(std::sync::Arc::new(move |chat_id, cwd, message| {
+                let app = handle.clone();
+                Box::pin(async move {
+                    let caller = services::browser::tools::Caller { chat_id, cwd };
+                    services::browser::tools::handle(&app, &caller, message).await
+                })
+            }));
+            app.manage(agents);
+            app.manage(BrowserService::default());
             // Chemin repris par le scope `assetProtocol` de tauri.conf.json : les aperçus n'existent que là.
             app.manage(AttachmentService::new(data.join("attachments")));
             // Même contrainte que les pièces jointes : ce dossier est dans le scope `assetProtocol`.
@@ -109,6 +120,17 @@ pub fn run() {
             commands::autostart::autostart_set,
             commands::background::background_import,
             commands::background::background_remove,
+            commands::browser::browser_watch,
+            commands::browser::browser_open,
+            commands::browser::browser_close,
+            commands::browser::browser_close_chat,
+            commands::browser::browser_select,
+            commands::browser::browser_navigate,
+            commands::browser::browser_history,
+            commands::browser::browser_place,
+            commands::browser::browser_emulate,
+            commands::browser::browser_snapshot,
+            commands::browser::browser_clear_data,
             commands::chat::chat_list,
             commands::chat::chat_create,
             commands::chat::chat_content,

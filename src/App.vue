@@ -18,6 +18,7 @@ import { isTauriApp } from '@/ipc/system'
 import { useAgentsStore } from '@/stores/agents'
 import { useAppearanceStore } from '@/stores/appearance'
 import { useAttentionStore } from '@/stores/attention'
+import { useBrowserStore } from '@/stores/browser'
 import { useDialogStore } from '@/stores/dialog'
 import { useDragStore } from '@/stores/drag'
 import { useGeneralStore } from '@/stores/general'
@@ -60,6 +61,8 @@ const drag = useDragStore()
 const newChat = useNewChat()
 const shortcuts = useShortcutsStore()
 const terminals = useTerminalsStore()
+// Branché dès le lancement : les onglets ouverts par l'agent arrivent même volet fermé.
+const browser = useBrowserStore()
 // Pose le style de fenêtre sur <html> dès le démarrage, pas seulement à l'ouverture des réglages.
 const appearance = useAppearanceStore()
 // Langue choisie et mise en veille : appliquées avant le premier rendu.
@@ -94,6 +97,12 @@ function toggleTerminal() {
   if (layout.isShown('terminal')) terminals.requestFocus()
 }
 
+// ⌘L : le volet Navigateur s'ouvre au besoin, son adresse est sélectionnée.
+function browserAddress() {
+  layout.showView('browser')
+  browser.focusAddress++
+}
+
 function togglePanel() {
   if (navigation.hasPanel && !menu.value) layout.togglePanel()
 }
@@ -123,6 +132,8 @@ const actions: [ShortcutId, (event: KeyboardEvent) => void][] = [
   ['togglePanel', togglePanel],
   ['toggleRightDock', inChatsOnly(layout.toggleRight)],
   ['toggleTerminal', inChatsOnly(toggleTerminal)],
+  ['toggleBrowser', inChatsOnly(() => layout.toggleView('browser'))],
+  ['browserAddress', inChatsOnly(browserAddress)],
   ['newTab', () => newChat()],
   ['closeTab', inChatsOnly(workspace.closeActiveTab)],
   ['closeAllTabs', inChatsOnly(() => workspace.activeTabId && workspace.closeTabs(workspace.activeTabId, 'all'))],

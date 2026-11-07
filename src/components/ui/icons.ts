@@ -6,6 +6,7 @@ import Archive02Icon from '@hugeicons/core-free-icons/Archive02Icon'
 import ArrangeByLettersAZIcon from '@hugeicons/core-free-icons/ArrangeByLettersAZIcon'
 import ArrowDown02Icon from '@hugeicons/core-free-icons/ArrowDown02Icon'
 import ArrowLeft02Icon from '@hugeicons/core-free-icons/ArrowLeft02Icon'
+import ArrowRight02Icon from '@hugeicons/core-free-icons/ArrowRight02Icon'
 import ArrowShrink02Icon from '@hugeicons/core-free-icons/ArrowShrink02Icon'
 import ArrowTurnBackwardIcon from '@hugeicons/core-free-icons/ArrowTurnBackwardIcon'
 import ArrowTurnForwardIcon from '@hugeicons/core-free-icons/ArrowTurnForwardIcon'
@@ -25,6 +26,7 @@ import CommentAdd01Icon from '@hugeicons/core-free-icons/CommentAdd01Icon'
 import ComputerTerminal01Icon from '@hugeicons/core-free-icons/ComputerTerminal01Icon'
 import Copy01Icon from '@hugeicons/core-free-icons/Copy01Icon'
 import Css3Icon from '@hugeicons/core-free-icons/Css3Icon'
+import Cursor02Icon from '@hugeicons/core-free-icons/Cursor02Icon'
 import DashboardSquare02Icon from '@hugeicons/core-free-icons/DashboardSquare02Icon'
 import Delete02Icon from '@hugeicons/core-free-icons/Delete02Icon'
 import Download04Icon from '@hugeicons/core-free-icons/Download04Icon'
@@ -67,6 +69,7 @@ import LicenseIcon from '@hugeicons/core-free-icons/LicenseIcon'
 import LinkSquare02Icon from '@hugeicons/core-free-icons/LinkSquare02Icon'
 import Loading03Icon from '@hugeicons/core-free-icons/Loading03Icon'
 import LogsIcon from '@hugeicons/core-free-icons/LogsIcon'
+import Moon02Icon from '@hugeicons/core-free-icons/Moon02Icon'
 import MoreHorizontalIcon from '@hugeicons/core-free-icons/MoreHorizontalIcon'
 import NoteEditIcon from '@hugeicons/core-free-icons/NoteEditIcon'
 import Notification01Icon from '@hugeicons/core-free-icons/Notification01Icon'
@@ -89,6 +92,7 @@ import Rows4Icon from '@hugeicons/core-free-icons/Rows4Icon'
 import Search01Icon from '@hugeicons/core-free-icons/Search01Icon'
 import SecurityCheckIcon from '@hugeicons/core-free-icons/SecurityCheckIcon'
 import SentIcon from '@hugeicons/core-free-icons/SentIcon'
+import SmartPhone01Icon from '@hugeicons/core-free-icons/SmartPhone01Icon'
 import Settings01Icon from '@hugeicons/core-free-icons/Settings01Icon'
 import ShieldAlertIcon from '@hugeicons/core-free-icons/ShieldAlertIcon'
 import ShieldQuestionMarkIcon from '@hugeicons/core-free-icons/ShieldQuestionMarkIcon'
@@ -99,6 +103,8 @@ import SquareDashedIcon from '@hugeicons/core-free-icons/SquareDashedIcon'
 import SquareIcon from '@hugeicons/core-free-icons/SquareIcon'
 import StarIcon from '@hugeicons/core-free-icons/StarIcon'
 import StopIcon from '@hugeicons/core-free-icons/StopIcon'
+import Sun03Icon from '@hugeicons/core-free-icons/Sun03Icon'
+import Tablet01Icon from '@hugeicons/core-free-icons/Tablet01Icon'
 import Tick02Icon from '@hugeicons/core-free-icons/Tick02Icon'
 import Typescript01Icon from '@hugeicons/core-free-icons/Typescript01Icon'
 import UnavailableIcon from '@hugeicons/core-free-icons/UnavailableIcon'
@@ -137,6 +143,7 @@ export const Archive = icon(Archive02Icon)
 export const ArrangeAZ = icon(ArrangeByLettersAZIcon)
 export const ArrowDown = icon(ArrowDown02Icon)
 export const ArrowLeft = icon(ArrowLeft02Icon)
+export const ArrowRight = icon(ArrowRight02Icon)
 export const ArrowUp = icon(ArrowUp02Icon)
 export const AtSign = icon(AtSignIcon)
 export const Ban = icon(UnavailableIcon)
@@ -208,6 +215,8 @@ export const Logs = icon(LogsIcon)
 export const MessageQuestion = icon(BubbleChatQuestionIcon)
 export const MessageSquarePlus = icon(CommentAdd01Icon)
 export const Minimize2 = icon(ArrowShrink02Icon)
+export const Moon = icon(Moon02Icon)
+export const MousePointer = icon(Cursor02Icon)
 // « Cet ordinateur » (choix de Jérémy).
 export const NoProject = icon(LaptopIcon)
 export const NotebookPen = icon(NoteEditIcon)
@@ -235,6 +244,7 @@ export const ShieldAlert = icon(ShieldAlertIcon)
 export const ShieldCheck = icon(SecurityCheckIcon)
 export const ShieldQuestion = icon(ShieldQuestionMarkIcon)
 export const SlidersHorizontal = icon(FilterHorizontalIcon)
+export const Smartphone = icon(SmartPhone01Icon)
 export const Sparkles = icon(SparklesIcon)
 export const Square = icon(SquareIcon)
 export const SquareDashed = icon(SquareDashedIcon)
@@ -242,6 +252,8 @@ export const SquarePen = icon(PencilEdit01Icon)
 export const SquareTerminal = icon(ComputerTerminal01Icon)
 export const Star = icon(StarIcon)
 export const Stop = icon(StopIcon)
+export const Sun = icon(Sun03Icon)
+export const Tablet = icon(Tablet01Icon)
 export const Trash2 = icon(Delete02Icon)
 export const Undo = icon(ArrowTurnBackwardIcon)
 export const Usage = icon(ChartColumnIcon)

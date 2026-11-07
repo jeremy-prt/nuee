@@ -61,10 +61,13 @@ export const defaultShortcuts = {
   deny: { group: 'message', key: 'Escape', mod: false, when: 'approval' },
   favoriteModel: { group: 'message', key: 'f', when: 'modelPicker' },
   toggleRail: { group: 'interface', key: 'b' },
-  togglePanel: { group: 'interface', key: 'b', shift: true },
+  // ⌘⇧B revient au navigateur, comme dans l'app Claude.
+  togglePanel: { group: 'interface', key: 'b', shift: true, alt: true },
   toggleRightDock: { group: 'interface', key: 'b', alt: true },
   // ⌘J comme T3 Code (choix de Jérémy) : ⌃` demandait une touche morte en AZERTY Mac.
   toggleTerminal: { group: 'interface', key: 'j' },
+  toggleBrowser: { group: 'interface', key: 'b', shift: true },
+  browserAddress: { group: 'interface', key: 'l' },
   zoomIn: { group: 'interface', key: '=', shift: 'any', also: ['+'], codes: ['NumpadAdd'], label: '+' },
   zoomOut: { group: 'interface', key: '-', shift: 'any', codes: ['NumpadSubtract'], label: '−' },
   zoomReset: { group: 'interface', key: '0', shift: 'any', codes: ['Digit0', 'Numpad0'] },

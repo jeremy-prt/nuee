@@ -2,10 +2,12 @@
 import { Plus } from '@/components/ui/icons'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import BrowserMenu from '@/components/browser/BrowserMenu.vue'
+import BrowserPane from '@/components/browser/BrowserPane.vue'
+import BrowserTabs from '@/components/browser/BrowserTabs.vue'
 import ChatChangesPanel from '@/components/chat/ChatChangesPanel.vue'
 import ChatSessionPanel from '@/components/chat/ChatSessionPanel.vue'
 import ChatTasks from '@/components/chat/ChatTasks.vue'
-import ServerCards from '@/components/server/ServerCards.vue'
 import ServerLogs from '@/components/server/ServerLogs.vue'
 import ServerMenu from '@/components/server/ServerMenu.vue'
 import TerminalPanel from '@/components/terminal/TerminalPanel.vue'
@@ -44,18 +46,22 @@ function newTerminal() {
     <!-- Le nom du volet est dans son onglet, au-dessus : l'en-tête ne garde que les outils du terminal et du navigateur. -->
     <div v-if="view === 'terminal' || view === 'browser'" class="flex h-9 shrink-0 items-center gap-0.5 border-b border-stroke ps-2 pe-3.5">
       <TerminalTabs v-if="view === 'terminal' && shells > 0" />
+      <BrowserTabs v-if="view === 'browser'" />
       <UiIconButton v-if="view === 'terminal' && chat" :label="t('dock.terminal.new')" @click="newTerminal">
         <Plus class="size-4" aria-hidden="true" />
       </UiIconButton>
       <span class="flex-1" />
-      <ServerMenu v-if="view === 'browser'" />
+      <template v-if="view === 'browser'">
+        <ServerMenu />
+        <BrowserMenu />
+      </template>
     </div>
     <ChatSessionPanel v-if="view === 'session'" />
     <ChatTasks v-else-if="view === 'tasks'" />
     <ChatChangesPanel v-else-if="view === 'changes'" />
     <TerminalPanel v-else-if="view === 'terminal'" />
     <ServerLogs v-else-if="view === 'browser' && logs" :root="logs.root" :name="logs.name" />
-    <ServerCards v-else-if="view === 'browser' && chat" />
+    <BrowserPane v-else-if="view === 'browser' && chat" />
     <div v-else class="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
       <component :is="dockIcons[view]" class="size-6 text-muted" aria-hidden="true" />
       <p class="text-sm text-muted">{{ t(`dock.${view}.empty`) }}</p>

@@ -11,6 +11,7 @@ import { useConversationsStore } from '@/stores/conversations'
 import { useGeneralStore } from '@/stores/general'
 import { useNavigationStore } from '@/stores/navigation'
 import { useProjectsStore } from '@/stores/projects'
+import { useBrowserStore } from '@/stores/browser'
 import { useTerminalsStore } from '@/stores/terminals'
 import { useToastsStore } from '@/stores/toasts'
 import { useWorktreesStore } from '@/stores/worktrees'
@@ -267,7 +268,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (index === -1) return
     if (tabs.value.some((tab) => tab.id === id && tab.started)) closed.set(layout, [...(closed.get(layout) ?? []), id].slice(-10))
     layout.tabs.splice(index, 1)
-    if (!Object.values(layouts).some((other) => other.tabs.includes(id))) useTerminalsStore().closeChat(id)
+    if (!Object.values(layouts).some((other) => other.tabs.includes(id))) {
+      useTerminalsStore().closeChat(id)
+      useBrowserStore().closeChat(id)
+    }
     // Fermé sans message, il ne serait plus visible nulle part : on ne le garde pas.
     if (tabs.value.some((tab) => tab.id === id && !tab.started)) deleteChat(id)
     else if (!Object.values(layouts).some((other) => other.tabs.includes(id))) {

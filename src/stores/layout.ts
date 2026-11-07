@@ -155,6 +155,12 @@ export const useLayoutStore = defineStore('layout', () => {
     dock.open = true
   }
 
+  // Volet ouvert pour une session qui n'est pas à l'écran : on le retrouve en revenant sur elle.
+  function addView(chatId: string, view: DockView) {
+    const saved = state.right.sessions[chatId] ?? { open: true, tabs: ['session'] as DockView[] }
+    state.right.sessions[chatId] = { open: true, tabs: tabsOf([...saved.tabs, view]) }
+  }
+
   // Session reste : c'est l'onglet de départ du panneau.
   function closeView(view: DockView) {
     const dock = state.right
@@ -193,6 +199,7 @@ export const useLayoutStore = defineStore('layout', () => {
     restore,
     forget,
     showView,
+    addView,
     showChanges,
     closeView,
     toggleView,

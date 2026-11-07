@@ -63,6 +63,7 @@ pub(super) struct Launch<'a> {
     pub id: u64,
     pub key: SessionKey,
     pub sessions: Sessions,
+    pub tools: Option<super::ToolHost>,
 }
 
 /// Process d'un chat : on lui écrit les messages sur stdin, sa sortie part sur le canal du tour en cours.
@@ -87,6 +88,7 @@ impl Session {
             id,
             key,
             sessions,
+            tools,
         } = launch;
         let mut child = spawn(program, args, driver.session_env(), cwd)?;
         let pid = child.id().unwrap_or_default();
@@ -127,10 +129,23 @@ impl Session {
         let (reader_slot, reader_alive) = (slot.clone(), alive.clone());
         // Faible : la session abandonnée doit pouvoir fermer stdin pendant que la lecture continue.
         let reader_input = input.downgrade();
+        let (tool_chat, tool_cwd) = (chat_id.clone(), key.cwd.clone());
         tauri::async_runtime::spawn(async move {
             if let Some(stdout) = stdout {
                 let mut lines = BufReader::new(stdout).lines();
                 while let Ok(Some(line)) = lines.next_line().await {
+                    // Appel d'un outil de Nuée : traité à part, la lecture continue pendant ce temps.
+                    if let Some((request, message)) = driver.tool_request(&line) {
+                        if let (Some(tools), Some(input)) = (&tools, reader_input.upgrade()) {
+                            let (tools, reply) = (tools.clone(), driver.tool_reply());
+                            let (chat, cwd) = (tool_chat.clone(), tool_cwd.clone());
+                            tauri::async_runtime::spawn(async move {
+                                let response = tools(chat, cwd, message).await;
+                                let _ = input.send(reply(&request, response));
+                            });
+                        }
+                        continue;
+                    }
                     if let Some((id, response)) = driver.control_response(&line) {
                         let waiter = lock(&reader_slot).waiting.remove(&id);
                         if let Some(waiter) = waiter {
@@ -713,6 +728,7 @@ mod tests {
                 id: 1,
                 key,
                 sessions: sessions.clone(),
+                tools: None,
             })
             .expect("sh");
             let pid = session.pid;

@@ -4,12 +4,24 @@ import { computed, h, type VNodeChild } from 'vue'
 import ChatCopyButton from '@/components/chat/ChatCopyButton.vue'
 import ChatSkillResult from '@/components/chat/ChatSkillResult.vue'
 import { i18nGlobal } from '@/i18n'
+import { useBrowserStore } from '@/stores/browser'
 import { parseSkillResult } from '@/utils/skillResult'
 
 // Markdown d'agent rendu en nœuds Vue, jamais en HTML brut : le HTML du texte reste du texte.
-// Les liens ne sont pas cliquables : un clic ferait naviguer la webview elle-même.
+// Les liens ne sont pas cliquables (un clic ferait naviguer la webview elle-même), sauf ceux du poste
+// (localhost, *.test) : ils s'ouvrent dans le volet Navigateur de la session.
 
 const CODE_BLOCK = 'overflow-x-auto rounded-md bg-selection/60 p-3 font-mono text-xs leading-relaxed'
+
+function isLocal(href: string) {
+  try {
+    const url = new URL(href)
+    const host = url.hostname
+    return /^https?:$/.test(url.protocol) && (host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host.endsWith('.localhost') || host.endsWith('.test'))
+  } catch {
+    return false
+  }
+}
 
 function blocks(tokens: Token[]): VNodeChild[] {
   return tokens.map(block)
@@ -85,6 +97,21 @@ function inline(tokens: Token[] = []): VNodeChild[] {
         return h('br')
       case 'link': {
         const link = token as Tokens.Link
+        if (isLocal(link.href)) {
+          return h(
+            'a',
+            {
+              href: link.href,
+              class: 'text-accent underline underline-offset-2 hover:text-content',
+              title: link.href,
+              onClick: (event: MouseEvent) => {
+                event.preventDefault()
+                useBrowserStore().openLink(link.href)
+              },
+            },
+            inline(link.tokens),
+          )
+        }
         return h('span', { class: 'text-accent underline underline-offset-2', title: link.href }, inline(link.tokens))
       }
       case 'image':

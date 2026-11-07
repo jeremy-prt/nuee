@@ -76,7 +76,8 @@ export const useServersStore = defineStore('servers', () => {
     return root ? (lists[root] ?? null) : null
   }
 
-  async function start(chatId: string, place: Place, name: string) {
+  // `logs` : montrer ses logs une fois lancé (le ▶ du navigateur ouvre sa page à la place). Rend vrai s'il démarre.
+  async function start(chatId: string, place: Place, name: string, logs = true) {
     const { t } = i18nGlobal()
     const toasts = useToastsStore()
     try {
@@ -92,12 +93,14 @@ export const useServersStore = defineStore('servers', () => {
         if (activePort !== null && activePort !== port) {
           toasts.push({ kind: 'info', title: t('dock.servers.moved', { name, port: activePort }), body: t('dock.servers.movedHelp', { port }) })
         }
-        if (root) show(root, name)
+        if (root && logs) show(root, name)
+        return true
       }
     } catch (error) {
       const message = (error as { message?: string })?.message ?? String(error)
       toasts.push({ kind: 'error', title: t('dock.servers.failed', { name }), body: message })
     }
+    return false
   }
 
   function stop(root: string, name: string) {

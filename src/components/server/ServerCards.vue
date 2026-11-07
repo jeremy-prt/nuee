@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Logs, Play, Plus, Server, Stop, Wrench } from '@/components/ui/icons'
+import { Globe, Logs, Play, Plus, Server, Stop, Wrench } from '@/components/ui/icons'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ServerStatusDot from '@/components/server/ServerStatusDot.vue'
@@ -8,11 +8,14 @@ import UiIconButton from '@/components/ui/UiIconButton.vue'
 import { useServerSetup } from '@/composables/useServerSetup'
 import { useTerminalChat } from '@/composables/useTerminalChat'
 import type { ServerInfo } from '@/ipc/bindings/ServerInfo'
+import { useBrowserStore } from '@/stores/browser'
 import { useServersStore } from '@/stores/servers'
 
-// Volet Navigateur sans page : une carte par serveur du projet, comme l'app Claude, ou de quoi en ajouter.
+// Volet Navigateur sans page : une carte par serveur du projet, comme l'app Claude, ou de quoi en ajouter. ▶ lance le
+// serveur et ouvre sa page.
 const { t } = useI18n()
 const servers = useServersStore()
+const browser = useBrowserStore()
 const { chat, place } = useTerminalChat()
 const { list, ask } = useServerSetup()
 
@@ -22,7 +25,11 @@ const alive = (server: ServerInfo) => server.status === 'starting' || server.sta
 function toggle(server: ServerInfo) {
   if (!list.value) return
   if (alive(server)) servers.stop(list.value.root, server.name)
-  else if (chat.value && place.value) servers.start(chat.value.id, place.value, server.name)
+  else if (chat.value && place.value) browser.openServer(chat.value.id, place.value, server)
+}
+
+function openPage(server: ServerInfo) {
+  if (chat.value && place.value) browser.openServer(chat.value.id, place.value, server)
 }
 </script>
 
@@ -39,6 +46,9 @@ function toggle(server: ServerInfo) {
           <ServerStatusDot v-else :status="server.status" class="size-4 shrink-0" />
           <span class="min-w-0 flex-1 truncate text-content/85">{{ server.name }}</span>
           <span class="shrink-0 text-muted">:{{ server.activePort ?? server.port }}</span>
+          <UiIconButton v-if="server.status === 'running'" :label="t('dock.servers.openNamed', { name: server.name })" @click="openPage(server)">
+            <Globe class="size-3.5" aria-hidden="true" />
+          </UiIconButton>
           <UiIconButton v-if="server.status !== 'stopped'" :label="t('dock.servers.logs')" @click="list && servers.show(list.root, server.name)">
             <Logs class="size-3.5" aria-hidden="true" />
           </UiIconButton>

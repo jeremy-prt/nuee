@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Logs, Play, Plus, Server, Stop, Wrench } from '@/components/ui/icons'
+import { Globe, Logs, Play, Plus, Server, Stop, Wrench } from '@/components/ui/icons'
 import { DropdownMenuContent, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuTrigger } from 'reka-ui'
 import { type Component, computed, h, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -13,6 +13,7 @@ import { useServerSetup } from '@/composables/useServerSetup'
 import { useTerminalChat } from '@/composables/useTerminalChat'
 import type { ServerInfo } from '@/ipc/bindings/ServerInfo'
 import type { ServerStatus } from '@/ipc/bindings/ServerStatus'
+import { useBrowserStore } from '@/stores/browser'
 import { useConversationsStore } from '@/stores/conversations'
 import { useServersStore } from '@/stores/servers'
 
@@ -20,6 +21,7 @@ import { useServersStore } from '@/stores/servers'
 const { t } = useI18n()
 const servers = useServersStore()
 const conversations = useConversationsStore()
+const browser = useBrowserStore()
 const { chat, place } = useTerminalChat()
 const { list, ask } = useServerSetup()
 
@@ -55,8 +57,9 @@ function onOpen(open: boolean) {
   if (open) refresh()
 }
 
-function start(name: string) {
-  if (chat.value && place.value) servers.start(chat.value.id, place.value, name)
+// Comme ▶ dans le volet : le serveur démarre et sa page s'ouvre.
+function start(server: ServerInfo) {
+  if (chat.value && place.value) browser.openServer(chat.value.id, place.value, server)
 }
 
 let byPointer = false
@@ -96,8 +99,9 @@ function onCloseAutoFocus(event: Event) {
             <template v-for="server in list?.servers ?? []" :key="server.name">
               <UiMenuItem v-if="server.external" :label="t('dock.servers.external', { name: server.name })" :icon="dot('stopped')" disabled />
               <UiMenuSub v-else :label="server.name" :icon="dot(server.status)" :value="state(server)">
+                <UiMenuItem v-if="alive(server)" :label="t('dock.servers.open')" :icon="Globe" @select="start(server)" />
                 <UiMenuItem v-if="alive(server)" :label="t('dock.servers.stop')" :icon="Stop" @select="servers.stop(list!.root, server.name)" />
-                <UiMenuItem v-else :label="t('dock.servers.start')" :icon="Play" @select="start(server.name)" />
+                <UiMenuItem v-else :label="t('dock.servers.start')" :icon="Play" @select="start(server)" />
                 <UiMenuItem :label="t('dock.servers.logs')" :icon="Logs" @select="servers.show(list!.root, server.name)" />
               </UiMenuSub>
             </template>

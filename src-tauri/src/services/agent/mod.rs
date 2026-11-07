@@ -7,9 +7,11 @@ mod session;
 pub mod settings;
 
 use std::collections::{BTreeMap, HashMap};
+use std::future::Future;
 use std::path::{Path, PathBuf};
+use std::pin::Pin;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
@@ -566,7 +568,27 @@ trait Driver: Send + Sync {
     fn approval_message(&self, id: &str, input: &serde_json::Value, reply: &Reply) -> String;
     /// Traduit une ligne de sortie ; renvoie `TurnEnd` quand l'agent clôt le tour.
     fn parse_line(&mut self, line: &str) -> Vec<AgentEvent>;
+    /// Message de l'agent pour un serveur MCP tenu par Nuée : identifiant de la requête et message JSON-RPC.
+    fn tool_request(&self, _line: &str) -> Option<(String, serde_json::Value)> {
+        None
+    }
+    /// Ligne qui rend à l'agent la réponse de Nuée à `tool_request`.
+    fn tool_reply(&self) -> fn(&str, serde_json::Value) -> String {
+        |_, _| String::new()
+    }
 }
+
+/// Outils que Nuée donne à chaque session (navigateur) : session, dossier de travail et message JSON-RPC
+/// du serveur MCP, la réponse à rendre à l'agent.
+pub type ToolHost = Arc<
+    dyn Fn(
+            String,
+            PathBuf,
+            serde_json::Value,
+        ) -> Pin<Box<dyn Future<Output = serde_json::Value> + Send>>
+        + Send
+        + Sync,
+>;
 
 const CONTEXT_EVENT: &str = "nuee-context";
 /// Un process qui vient de démarrer charge encore ses serveurs MCP avant de répondre.
@@ -602,6 +624,7 @@ pub struct AgentService {
     logins: Mutex<HashMap<String, u32>>,
     /// Connexion du compte de l'agent en cours (`login.rs`).
     login: Mutex<Option<login::Login>>,
+    tools: OnceLock<ToolHost>,
 }
 
 impl AgentService {
@@ -617,7 +640,13 @@ impl AgentService {
             paths: Mutex::default(),
             logins: Mutex::default(),
             login: Mutex::default(),
+            tools: OnceLock::new(),
         }
+    }
+
+    /// Branché au démarrage de l'app, avant le premier chat.
+    pub fn set_tools(&self, host: ToolHost) {
+        let _ = self.tools.set(host);
     }
 
     /// `recap` : réponse coupée par un arrêt au tour précédent. Un process neuf ne l'a pas en mémoire,
@@ -1026,6 +1055,7 @@ impl AgentService {
             id,
             key,
             sessions: self.sessions.clone(),
+            tools: self.tools.get().cloned(),
         })?)
     }
 
