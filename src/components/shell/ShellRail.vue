@@ -2,7 +2,6 @@
 import {
   ArrowLeft,
   FolderPlus,
-  Gauge,
   Github,
   NoProject,
   NotebookPen,
@@ -10,6 +9,7 @@ import {
   RefreshCw,
   Search,
   Settings,
+  Usage,
 } from '@/components/ui/icons'
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -95,7 +95,7 @@ const pages = [
 // Mises à jour n'est pas une vue : le bouton mène à Réglages > Général.
 const footer = [
   { id: 'settings', icon: Settings, shortcut: 'settings', open: () => navigation.go('settings') },
-  { id: 'usage', icon: Gauge, open: () => navigation.go('usage') },
+  { id: 'usage', icon: Usage, open: () => navigation.go('usage') },
   { id: 'updates', icon: RefreshCw, open: () => navigation.openSettings('general') },
 ] as const
 

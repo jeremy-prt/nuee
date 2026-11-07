@@ -240,6 +240,13 @@ export default {
       remove: 'Retirer de la file',
       steered: 'Ajouté pendant la réponse',
     },
+    limitSoon: {
+      weekly: "Limite d'utilisation hebdomadaire bientôt atteinte",
+      session: "Limite d'utilisation de la session bientôt atteinte",
+      model: "Limite hebdomadaire de {model} bientôt atteinte",
+      resets: "Réinitialisation le {date}",
+      dismiss: "Masquer jusqu'à la réinitialisation",
+    },
     limit: {
       title: 'Limite d\'utilisation atteinte',
       resuming: 'Reprise automatique à {time}.',
@@ -391,6 +398,14 @@ export default {
     title: 'Autoriser {agent} à utiliser {tool} ?',
     allow: 'Autoriser une fois',
     deny: 'Refuser',
+  },
+  agentUpdate: {
+    done: "Mis à jour vers la {version}",
+    retry: "Réessayer",
+    close: "Fermer",
+    title: "Nouvelle version de {agent}",
+    action: "Mettre à jour",
+    dismiss: "Masquer pour cette version",
   },
   agentLogin: {
     browserTitle: 'Connexion par le navigateur',

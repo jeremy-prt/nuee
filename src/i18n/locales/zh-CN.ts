@@ -240,6 +240,13 @@ export default {
       remove: '从队列中移除',
       steered: '回答期间添加',
     },
+    limitSoon: {
+      weekly: "每周使用上限即将用尽",
+      session: "本次会话使用上限即将用尽",
+      model: "{model} 每周上限即将用尽",
+      resets: "{date} 重置",
+      dismiss: "重置前不再显示",
+    },
     limit: {
       title: '已达到使用上限',
       resuming: '将于 {time} 自动恢复。',
@@ -391,6 +398,14 @@ export default {
     title: '允许 {agent} 使用 {tool} 吗？',
     allow: '允许一次',
     deny: '拒绝',
+  },
+  agentUpdate: {
+    done: "已更新到 {version}",
+    retry: "重试",
+    close: "关闭",
+    title: "{agent} 有新版本",
+    action: "更新",
+    dismiss: "此版本不再提示",
   },
   agentLogin: {
     browserTitle: '通过浏览器登录',

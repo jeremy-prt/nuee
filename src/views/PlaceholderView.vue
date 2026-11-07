@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Gauge, Github, NotebookPen } from '@/components/ui/icons'
+import { Github, NotebookPen, Usage } from '@/components/ui/icons'
 import { useI18n } from 'vue-i18n'
 
 // Écrans pas encore construits : chacun aura sa propre vue quand il aura du contenu.
@@ -9,7 +9,7 @@ const props = defineProps<{ view: 'github' | 'notes' | 'usage' }>()
 const hasList = ['github', 'notes'].includes(props.view)
 
 const { t } = useI18n()
-const icons = { github: Github, notes: NotebookPen, usage: Gauge }
+const icons = { github: Github, notes: NotebookPen, usage: Usage }
 </script>
 
 <template>

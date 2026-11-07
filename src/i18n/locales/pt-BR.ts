@@ -240,6 +240,13 @@ export default {
       remove: 'Remover da fila',
       steered: 'Adicionada durante a resposta',
     },
+    limitSoon: {
+      weekly: "Limite de uso semanal quase atingido",
+      session: "Limite de uso da sessão quase atingido",
+      model: "Limite semanal do {model} quase atingido",
+      resets: "Reinicia em {date}",
+      dismiss: "Ocultar até reiniciar",
+    },
     limit: {
       title: 'Limite de uso atingido',
       resuming: 'Retomada automática às {time}.',
@@ -391,6 +398,14 @@ export default {
     title: 'Permitir que {agent} use {tool}?',
     allow: 'Permitir uma vez',
     deny: 'Recusar',
+  },
+  agentUpdate: {
+    done: "Atualizado para a {version}",
+    retry: "Tentar de novo",
+    close: "Fechar",
+    title: "Nova versão de {agent}",
+    action: "Atualizar",
+    dismiss: "Ocultar para esta versão",
   },
   agentLogin: {
     browserTitle: 'Login pelo navegador',

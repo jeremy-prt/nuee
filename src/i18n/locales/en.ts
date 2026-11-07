@@ -238,6 +238,13 @@ export default {
       remove: 'Remove from the queue',
       steered: 'Added during the answer',
     },
+    limitSoon: {
+      weekly: "Weekly usage limit almost reached",
+      session: "Session usage limit almost reached",
+      model: "{model} weekly limit almost reached",
+      resets: "Resets {date}",
+      dismiss: "Hide until the next reset",
+    },
     limit: {
       title: 'Usage limit reached',
       resuming: 'Resumes automatically at {time}.',
@@ -389,6 +396,14 @@ export default {
     title: 'Allow {agent} to use {tool}?',
     allow: 'Allow once',
     deny: 'Deny',
+  },
+  agentUpdate: {
+    done: "Updated to {version}",
+    retry: "Retry",
+    close: "Close",
+    title: "New version of {agent}",
+    action: "Update",
+    dismiss: "Hide for this version",
   },
   agentLogin: {
     browserTitle: 'Sign in with the browser',

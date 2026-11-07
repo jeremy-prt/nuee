@@ -53,16 +53,19 @@ const statusIcons = { approval: ShieldQuestion, question: MessageQuestion, done:
     >
       <!-- Une seule icône (choix de Jérémy) : l'état de la session s'il y en a un, sinon le point du non-lu, sinon le
            logo de l'agent. Mêmes icônes et couleurs que les cartes de la liste. -->
-      <kbd v-if="rank" class="grid size-3.5 shrink-0 place-items-center font-sans text-[11px] text-muted tabular-nums">{{ rank }}</kbd>
-      <template v-else-if="status">
-        <ChatSpinner v-if="status === 'working'" :agent="tab.agent" class="size-3.5 text-xs" />
-        <component :is="statusIcons[status as keyof typeof statusIcons]" v-else class="size-3.5 shrink-0" :class="sessionStatusColor[status]" aria-hidden="true" />
-        <span class="sr-only">{{ t(`chats.status.${status}`) }}</span>
-      </template>
-      <span v-else-if="attention.isUnseen(tab.id)" class="size-1.5 shrink-0 rounded-full bg-signal">
-        <span class="sr-only">{{ t('attention.unseen') }}</span>
+      <!-- Case fixe : le chiffre affiché sous ⌘ prend la place de l'icône sans décaler le titre. -->
+      <span class="-my-0.5 grid size-5 shrink-0 place-items-center">
+        <kbd v-if="rank" class="grid size-3.5 shrink-0 place-items-center font-sans text-[11px] text-muted tabular-nums">{{ rank }}</kbd>
+        <template v-else-if="status">
+          <ChatSpinner v-if="status === 'working'" :agent="tab.agent" class="size-3.5 text-xs" />
+          <component :is="statusIcons[status as keyof typeof statusIcons]" v-else class="size-3.5 shrink-0" :class="sessionStatusColor[status]" aria-hidden="true" />
+          <span class="sr-only">{{ t(`chats.status.${status}`) }}</span>
+        </template>
+        <span v-else-if="attention.isUnseen(tab.id)" class="size-1.5 shrink-0 rounded-full bg-signal">
+          <span class="sr-only">{{ t('attention.unseen') }}</span>
+        </span>
+        <SettingsAgentLogo v-else :id="tab.agent" small />
       </span>
-      <SettingsAgentLogo v-else :id="tab.agent" small class="-my-0.5" />
       <!-- Comme les sessions : la croix n'occupe pas de place, elle se pose au survol sur la fin du titre, qui s'estompe. -->
       <span class="truncate group-focus-within:fade-under-one group-hover:fade-under-one">{{ tabTitle(tab) }}</span>
       <UiTooltip :label="t('workspace.closeTab')" :shortcut="shortcuts.label('closeTab')">

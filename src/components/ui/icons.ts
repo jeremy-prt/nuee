@@ -17,6 +17,7 @@ import BrainIcon from '@hugeicons/core-free-icons/BrainIcon'
 import BubbleChatQuestionIcon from '@hugeicons/core-free-icons/BubbleChatQuestionIcon'
 import CalendarAdd01Icon from '@hugeicons/core-free-icons/CalendarAdd01Icon'
 import Cancel01Icon from '@hugeicons/core-free-icons/Cancel01Icon'
+import ChartColumnIcon from '@hugeicons/core-free-icons/ChartColumnIcon'
 import CheckmarkCircle02Icon from '@hugeicons/core-free-icons/CheckmarkCircle02Icon'
 import Clock01Icon from '@hugeicons/core-free-icons/Clock01Icon'
 import Coffee02Icon from '@hugeicons/core-free-icons/Coffee02Icon'
@@ -24,7 +25,6 @@ import CommentAdd01Icon from '@hugeicons/core-free-icons/CommentAdd01Icon'
 import ComputerTerminal01Icon from '@hugeicons/core-free-icons/ComputerTerminal01Icon'
 import Copy01Icon from '@hugeicons/core-free-icons/Copy01Icon'
 import Css3Icon from '@hugeicons/core-free-icons/Css3Icon'
-import DashboardSpeed01Icon from '@hugeicons/core-free-icons/DashboardSpeed01Icon'
 import DashboardSquare02Icon from '@hugeicons/core-free-icons/DashboardSquare02Icon'
 import Delete02Icon from '@hugeicons/core-free-icons/Delete02Icon'
 import Download04Icon from '@hugeicons/core-free-icons/Download04Icon'
@@ -189,7 +189,6 @@ export const FolderInput = icon(FolderTransferIcon)
 export const FolderOpen = icon(FolderOpenIcon)
 export const FolderPlus = icon(FolderAddIcon)
 export const FolderTree = icon(FolderTreeIcon)
-export const Gauge = icon(DashboardSpeed01Icon)
 export const GitBranch = icon(GitBranchIcon)
 export const GitBranchPlus = icon(GitForkIcon)
 export const GitCompare = icon(GitCompareIcon)
@@ -244,6 +243,7 @@ export const Star = icon(StarIcon)
 export const Stop = icon(StopIcon)
 export const Trash2 = icon(Delete02Icon)
 export const Undo = icon(ArrowTurnBackwardIcon)
+export const Usage = icon(ChartColumnIcon)
 export const Volume2 = icon(VolumeHighIcon)
 export const Wrench = icon(Wrench01Icon)
 export const X = icon(Cancel01Icon)

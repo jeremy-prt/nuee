@@ -240,6 +240,13 @@ export default {
       remove: 'キューから削除',
       steered: '回答中に追加',
     },
+    limitSoon: {
+      weekly: "週間の使用上限に近づいています",
+      session: "セッションの使用上限に近づいています",
+      model: "{model} の週間上限に近づいています",
+      resets: "{date} にリセット",
+      dismiss: "リセットまで非表示",
+    },
     limit: {
       title: '使用上限に達しました',
       resuming: '{time} に自動で再開します。',
@@ -391,6 +398,14 @@ export default {
     title: '{agent} に {tool} の使用を許可しますか？',
     allow: '今回だけ許可',
     deny: '拒否',
+  },
+  agentUpdate: {
+    done: "{version} にアップデートしました",
+    retry: "再試行",
+    close: "閉じる",
+    title: "{agent} の新しいバージョン",
+    action: "アップデート",
+    dismiss: "このバージョンでは非表示",
   },
   agentLogin: {
     browserTitle: 'ブラウザーでサインイン',

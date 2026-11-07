@@ -11,6 +11,7 @@ import ShellSidePanel from '@/components/shell/ShellSidePanel.vue'
 import ShellTitleBar from '@/components/shell/ShellTitleBar.vue'
 import UiConfirmDialog from '@/components/ui/UiConfirmDialog.vue'
 import UiToasts from '@/components/ui/UiToasts.vue'
+import AgentUpdateNotice from '@/components/agent/AgentUpdateNotice.vue'
 import { useNewChat } from '@/composables/useNewChat'
 import { appQuit, onQuitRequested } from '@/ipc/app'
 import { isTauriApp } from '@/ipc/system'
@@ -288,6 +289,7 @@ onUnmounted(() => {
       }"
       aria-hidden="true"
     />
+    <AgentUpdateNotice />
     <UiConfirmDialog />
     <UiToasts />
   </TooltipProvider>

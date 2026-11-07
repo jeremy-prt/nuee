@@ -100,9 +100,10 @@ export const useAgentsStore = defineStore('agents', () => {
     }
   }
 
-  async function update(kind: AgentKind) {
+  // `notify` faux : l'appelant montre lui-même le résultat (carte de mise à jour). Rend ce qui s'est passé.
+  async function update(kind: AgentKind, notify = true): Promise<{ updated: boolean; message: string | null }> {
     const current = status[kind]
-    if (!current.latest || current.updating) return
+    if (!current.latest || current.updating) return { updated: false, message: null }
     const target = current.latest
     current.updating = true
     const { t } = i18nGlobal()
@@ -112,10 +113,14 @@ export const useAgentsStore = defineStore('agents', () => {
       const message = await agentUpdate(kind)
       await detect(kind, true)
       // La CLI peut réussir sans rien installer (Homebrew, canal stable) : sa phrase dit pourquoi.
-      if (current.latest) toasts.push({ title: t('settings.agents.notUpdatedTitle', { agent: name }), body: message })
-      else toasts.push({ kind: 'success', title: t('settings.agents.updatedTitle', { agent: name }), body: t('settings.agents.updatedBody', { version: current.version ?? target }) })
+      const updated = !current.latest
+      if (notify && !updated) toasts.push({ title: t('settings.agents.notUpdatedTitle', { agent: name }), body: message })
+      else if (notify) toasts.push({ kind: 'success', title: t('settings.agents.updatedTitle', { agent: name }), body: t('settings.agents.updatedBody', { version: current.version ?? target }) })
+      return { updated, message: updated ? null : message }
     } catch (error) {
-      toasts.push({ kind: 'error', title: t('settings.agents.notUpdatedTitle', { agent: name }), body: isAppError(error) ? error.message : String(error) })
+      const message = isAppError(error) ? error.message : String(error)
+      if (notify) toasts.push({ kind: 'error', title: t('settings.agents.notUpdatedTitle', { agent: name }), body: message })
+      return { updated: false, message }
     } finally {
       current.updating = false
     }

@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import ChatApproval from '@/components/chat/ChatApproval.vue'
 import ChatComposer from '@/components/chat/ChatComposer.vue'
 import ChatLimit from '@/components/chat/ChatLimit.vue'
+import ChatLimitSoon from '@/components/chat/ChatLimitSoon.vue'
 import ChatPlaceInfo from '@/components/chat/ChatPlaceInfo.vue'
 import ChatPlaceRow from '@/components/chat/ChatPlaceRow.vue'
 import type { WorktreeChoice } from '@/components/chat/ChatWorktreePicker.vue'
@@ -262,6 +263,7 @@ onMounted(() => {
         @schedule="conversations.scheduleResume(tab.id)"
         @cancel="conversations.cancelResume(tab.id)"
       />
+      <ChatLimitSoon v-if="!limit && items.length" class="w-full max-w-(--chat-width)" :agent="agent" />
       <ChatQueue
         v-if="conversation?.queue.length"
         class="w-full max-w-(--chat-width)"
