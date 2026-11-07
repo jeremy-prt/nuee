@@ -361,8 +361,6 @@ export default {
     end: {
       done: '已完成',
       completed: '用时 {duration}',
-      details: '回答详情',
-      answeredAt: '收到于 {date}',
       stopped: '已停止',
       stoppedKept: '已停止。{agent} 会保留已写出的内容。',
       failed: '{agent} 因错误而停止。',
@@ -410,6 +408,10 @@ export default {
     steer: '添加到当前回答',
     label: '消息',
     placeholder: '描述要构建的内容…',
+    placeholderBusy: {
+      queue: "向队列添加消息…",
+      steer: "为当前轮次添加指示…",
+    },
     send: '发送',
     stop: '停止',
     attach: '附加文件',

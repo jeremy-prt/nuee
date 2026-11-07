@@ -359,8 +359,6 @@ export default {
     end: {
       done: 'Done',
       completed: 'Done in {duration}',
-      details: 'Answer details',
-      answeredAt: 'Received {date}',
       stopped: 'Stopped',
       stoppedKept: 'Stopped. {agent} keeps what it had written.',
       failed: '{agent} stopped on an error.',
@@ -408,6 +406,10 @@ export default {
     steer: 'Add to the current answer',
     label: 'Message',
     placeholder: 'Describe what to build…',
+    placeholderBusy: {
+      queue: "Add a message to the queue…",
+      steer: "Add an instruction to the current turn…",
+    },
     send: 'Send',
     stop: 'Stop',
     attach: 'Attach files',

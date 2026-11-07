@@ -361,8 +361,6 @@ export default {
     end: {
       done: 'Concluído',
       completed: 'Concluído em {duration}',
-      details: 'Detalhes da resposta',
-      answeredAt: 'Recebida em {date}',
       stopped: 'Interrompido',
       stoppedKept: 'Interrompido. {agent} mantém o que já tinha escrito.',
       failed: '{agent} parou por causa de um erro.',
@@ -410,6 +408,10 @@ export default {
     steer: 'Adicionar à resposta em andamento',
     label: 'Mensagem',
     placeholder: 'Descrever o que construir…',
+    placeholderBusy: {
+      queue: "Adicionar uma mensagem à fila…",
+      steer: "Adicionar uma instrução ao turno em andamento…",
+    },
     send: 'Enviar',
     stop: 'Parar',
     attach: 'Anexar arquivos',

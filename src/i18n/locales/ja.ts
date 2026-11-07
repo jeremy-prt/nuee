@@ -361,8 +361,6 @@ export default {
     end: {
       done: '完了',
       completed: '{duration} で完了',
-      details: '回答の詳細',
-      answeredAt: '{date} に受信',
       stopped: '停止しました',
       stoppedKept: '停止しました。{agent} はそれまでに書いた内容を覚えています。',
       failed: '{agent} はエラーで停止しました。',
@@ -410,6 +408,10 @@ export default {
     steer: '進行中の回答に追加',
     label: 'メッセージ',
     placeholder: '作るものを説明…',
+    placeholderBusy: {
+      queue: "キューにメッセージを追加…",
+      steer: "実行中のターンに指示を追加…",
+    },
     send: '送信',
     stop: '停止',
     attach: 'ファイルを添付',

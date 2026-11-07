@@ -361,8 +361,6 @@ export default {
     end: {
       done: 'Hecho',
       completed: 'Hecho en {duration}',
-      details: 'Detalles de la respuesta',
-      answeredAt: 'Recibida el {date}',
       stopped: 'Detenido',
       stoppedKept: 'Detenido. {agent} conserva lo que ya había escrito.',
       failed: '{agent} se detuvo por un error.',
@@ -410,6 +408,10 @@ export default {
     steer: 'Añadir a la respuesta en curso',
     label: 'Mensaje',
     placeholder: 'Describir lo que hay que construir…',
+    placeholderBusy: {
+      queue: "Añadir un mensaje a la cola…",
+      steer: "Añadir una indicación al turno en curso…",
+    },
     send: 'Enviar',
     stop: 'Detener',
     attach: 'Adjuntar archivos',

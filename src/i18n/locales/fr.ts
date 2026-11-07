@@ -361,8 +361,6 @@ export default {
     end: {
       done: 'Terminé',
       completed: 'Terminé en {duration}',
-      details: 'Détails de la réponse',
-      answeredAt: 'Reçue le {date}',
       stopped: 'Arrêté',
       stoppedKept: 'Arrêté. {agent} garde ce qu\'il avait déjà écrit.',
       failed: '{agent} s\'est arrêté sur une erreur.',
@@ -410,6 +408,10 @@ export default {
     steer: 'Ajouter à la réponse en cours',
     label: 'Message',
     placeholder: 'Décrire ce qu\'il faut construire…',
+    placeholderBusy: {
+      queue: "Ajouter un message à la file d'attente…",
+      steer: "Ajouter une consigne au tour en cours…",
+    },
     send: 'Envoyer',
     stop: 'Arrêter',
     attach: 'Joindre des fichiers',
