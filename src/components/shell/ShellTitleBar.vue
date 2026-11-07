@@ -78,7 +78,7 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
       </UiIconButton>
     </div>
 
-    <div class="flex h-full min-w-0 flex-1 items-center gap-1 ps-2 pe-2" data-tauri-drag-region>
+    <div class="flex h-full min-w-0 flex-1 items-center gap-1 pe-2" data-tauri-drag-region>
       <UiIconButton
         v-if="!menu && navigation.hasPanel && !layout.panel.open"
         :label="t('chats.toggle')"
