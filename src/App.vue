@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { TooltipProvider } from 'reka-ui'
-import { computed, onMounted, onUnmounted } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsSkillPanel from '@/components/settings/SettingsSkillPanel.vue'
 import ShellBackground from '@/components/shell/ShellBackground.vue'
@@ -37,6 +37,16 @@ import WorkspaceView from '@/views/WorkspaceView.vue'
 // ===== Initialisation =====
 const { t } = useI18n()
 const layout = useLayoutStore()
+// Deux volets empilés s'ouvrent à parts égales ; la poignée garde ensuite la taille choisie tant qu'ils restent deux.
+const dock = useTemplateRef('dock')
+watch(
+  () => layout.right.panes.length,
+  async (count, before) => {
+    if (count !== 2 || before === 2) return
+    await nextTick()
+    if (dock.value) layout.right.split = Math.round(dock.value.clientHeight / 2)
+  },
+)
 const navigation = useNavigationStore()
 const workspace = useWorkspaceStore()
 const drag = useDragStore()
@@ -219,7 +229,7 @@ onUnmounted(() => {
                   :label="t('dock.resize')"
                 />
                 <!-- Un ou deux volets empilés ; celui du haut cède de la place si la fenêtre est trop basse. -->
-                <div class="flex min-h-0 flex-col bg-chrome" :style="{ width: `${layout.right.size}px` }" :aria-label="t('dock.right')" role="region">
+                <div ref="dock" class="flex min-h-0 flex-col bg-chrome" :style="{ width: `${layout.right.size}px` }" :aria-label="t('dock.right')" role="region">
                   <ShellDock
                     :key="layout.right.panes[0]"
                     :view="layout.right.panes[0]!"
