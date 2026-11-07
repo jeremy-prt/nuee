@@ -45,9 +45,10 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
 </script>
 
 <template>
-  <!-- Jamais moins de 40 pt de haut : les boutons macOS, fixes, doivent y tenir quel que soit le zoom. -->
+  <!-- Jamais moins de 40 pt de haut : les boutons macOS, fixes, doivent y tenir quel que soit le zoom. Pas de trait sous
+       la barre latérale (choix de Jérémy) : seules les zones à sa droite en portent un. -->
   <header
-    class="flex shrink-0 items-center border-b border-stroke bg-frame"
+    class="flex shrink-0 items-center bg-frame"
     :style="{ height: 'max(2.5rem, calc(2.5rem / var(--ui-zoom, 1)))' }"
     data-tauri-drag-region
   >
@@ -63,7 +64,7 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
     <!-- Au-dessus du panneau latéral : son bouton de fermeture, calé sur son bord droit. -->
     <div
       v-if="!menu"
-      class="flex shrink-0 items-center justify-end self-stretch pe-2"
+      class="flex shrink-0 items-center justify-end self-stretch border-b border-stroke pe-2"
       :class="{ 'border-e border-stroke': panelOpen && spacer > 0 }"
       data-title-edge="panel"
       :style="{ width: `${spacer}px` }"
@@ -81,7 +82,7 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
       </UiIconButton>
     </div>
 
-    <div class="flex h-full min-w-0 flex-1 items-center gap-1 ps-2 pe-2" data-tauri-drag-region>
+    <div class="flex h-full min-w-0 flex-1 items-center gap-1 border-b border-stroke ps-2 pe-2" data-tauri-drag-region>
       <UiIconButton
         v-if="!menu && navigation.hasPanel && !layout.panel.open"
         :label="t('chats.toggle')"

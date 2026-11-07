@@ -95,7 +95,7 @@ watch(signedIn, async (now) => {
   <ChatCompact v-else-if="item.kind === 'compact'" :item="item" :agent="agent" />
   <p v-else-if="item.kind === 'resume'" class="flex items-center gap-1.5 text-xs text-muted">
     <CornerDownRight class="size-3.5 shrink-0" aria-hidden="true" />
-    <span class="min-w-0 truncate">{{ item.task ? t('chat.resumed.task', { task: item.task }) : t('chat.resumed.any') }}</span>
+    <span class="min-w-0 truncate">{{ item.task ? t('chat.resumed.task', { ...agentParams, task: item.task }) : t('chat.resumed.any', agentParams) }}</span>
   </p>
   <template v-else-if="item.kind === 'end'">
     <!-- Toujours affichée (choix de Jérémy) : copier, puis la durée du tour (pas sous une seconde, elle ne dit rien),

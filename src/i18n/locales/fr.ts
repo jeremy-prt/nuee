@@ -322,8 +322,8 @@ export default {
     },
     dropFiles: 'Déposer pour joindre',
     resumed: {
-      task: "Fin de la tâche de fond « {task} »",
-      any: "Fin d'une tâche de fond",
+      task: "« {task} » est terminée en arrière-plan, {agent} en rend compte",
+      any: "Une tâche en arrière-plan est terminée, {agent} en rend compte",
     },
     subagent: {
       steps: "1 étape | {n} étapes",
