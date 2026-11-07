@@ -12,7 +12,8 @@ const appearance = useAppearanceStore()
 <template>
   <section class="pt-8" role="radiogroup" aria-labelledby="layout-title">
     <SettingsHeading id="layout-title" :title="t('settings.appearance.layout.title')" />
-    <div data-setting="layout" class="grid grid-cols-2 gap-3">
+    <!-- Trois colonnes pour deux cartes : même taille que les choix de Mode et de Transparence. -->
+    <div data-setting="layout" class="grid grid-cols-3 gap-3">
       <UiChoiceCard
         v-for="layout in appLayouts"
         :key="layout"
