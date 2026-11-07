@@ -84,7 +84,6 @@ const formats = computed(() => contextFormats(locale.value))
 const ratio = computed(() => (context.value ? contextRatio(context.value) : 0))
 const percent = computed(() => formats.value.percent.format(ratio.value))
 const tone = computed(() => (ratio.value >= 0.9 ? 'bg-danger' : ratio.value >= 0.75 ? 'bg-warning' : 'bg-info'))
-const contextOpen = ref(false)
 const categories = computed(() => {
   if (!context.value) return []
   const rows = contextRows(context.value, formats.value)
@@ -234,27 +233,25 @@ const empty = `${row} text-muted`
 
     <section class="flex flex-col gap-0.5 border-t border-stroke pt-2">
       <h3>
+        <!-- Comme l'app Claude : la jauge reste sur la ligne du titre, dépliée on voit directement le détail. -->
         <button type="button" :class="title" :aria-expanded="!collapsed.context" @click="collapsed.context = !collapsed.context">
           {{ t('dock.session.context') }}<ChevronRight class="size-3" :class="{ 'rotate-90': !collapsed.context }" aria-hidden="true" />
+          <template v-if="context">
+            <span class="ms-auto font-normal tabular-nums">{{ percent }}</span>
+            <span class="h-1.5 w-10 overflow-hidden rounded-full bg-content/10" aria-hidden="true">
+              <span class="block h-full rounded-full" :class="tone" :style="{ width: `${ratio * 100}%` }" />
+            </span>
+          </template>
         </button>
       </h3>
-      <template v-if="!collapsed.context && context">
-        <button type="button" :class="action" :aria-expanded="contextOpen" @click="contextOpen = !contextOpen">
-          <span class="flex-1 tabular-nums">{{ t('composer.context.used', { percent }) }}</span>
-          <span class="h-1.5 w-16 overflow-hidden rounded-full bg-content/10" aria-hidden="true">
-            <span class="block h-full rounded-full" :class="tone" :style="{ width: `${ratio * 100}%` }" />
-          </span>
-          <ChevronRight class="size-3.5 shrink-0 text-muted" :class="{ 'rotate-90': contextOpen }" aria-hidden="true" />
-        </button>
-        <ul v-if="contextOpen" class="flex flex-col gap-1.5 px-2 pt-1 pb-1 text-xs">
-          <li v-for="item in categories" :key="item.name" class="flex items-center gap-2" :class="{ 'text-muted': item.kind === 'deferred' }">
-            <span class="size-2.5 shrink-0 rounded-sm" :class="item.color" aria-hidden="true" />
-            <span class="min-w-0 flex-1 truncate">{{ item.name }}</span>
-            <span class="text-muted tabular-nums">{{ formats.tokens.format(item.tokens) }}</span>
-            <span class="w-12 text-end tabular-nums">{{ item.share }}</span>
-          </li>
-        </ul>
-      </template>
+      <ul v-if="!collapsed.context && context" class="flex flex-col gap-1.5 px-2 pt-1 pb-1 text-xs">
+        <li v-for="item in categories" :key="item.name" class="flex items-center gap-2" :class="{ 'text-muted': item.kind === 'deferred' }">
+          <span class="size-2.5 shrink-0 rounded-sm" :class="item.color" aria-hidden="true" />
+          <span class="min-w-0 flex-1 truncate">{{ item.name }}</span>
+          <span class="text-muted tabular-nums">{{ formats.tokens.format(item.tokens) }}</span>
+          <span class="w-12 text-end tabular-nums">{{ item.share }}</span>
+        </li>
+      </ul>
       <p v-else-if="!collapsed.context" :class="empty">{{ t('dock.session.noContext') }}</p>
     </section>
 
