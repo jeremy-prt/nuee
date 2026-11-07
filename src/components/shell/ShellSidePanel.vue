@@ -23,7 +23,7 @@ const title = computed(() => {
 </script>
 
 <template>
-  <aside id="shell-panel" class="flex shrink-0 flex-col bg-frame" :aria-label="title">
+  <aside id="shell-panel" class="flex shrink-0 flex-col bg-chrome" :aria-label="title">
     <div class="flex h-10 shrink-0 items-center gap-1 ps-2 pe-0.5">
       <p class="min-w-0 flex-1 truncate px-2 text-sm font-medium">{{ title }}</p>
       <ShellChatSort v-if="navigation.view === 'chats'" />

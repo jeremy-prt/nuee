@@ -45,9 +45,9 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
 
 <template>
   <!-- Jamais moins de 40 pt de haut : les boutons macOS, fixes, doivent y tenir quel que soit le zoom. Pas de trait sous
-       la barre latérale (choix de Jérémy) : seules les zones à sa droite en portent un. -->
+       la barre (choix de Jérémy), sauf au-dessus du panneau latéral : le centre trace le sien. -->
   <header
-    class="flex shrink-0 items-center bg-frame"
+    class="flex shrink-0 items-center bg-chrome"
     :style="{ height: 'max(2.5rem, calc(2.5rem / var(--ui-zoom, 1)))' }"
     data-tauri-drag-region
   >
@@ -77,7 +77,7 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
       </UiIconButton>
     </div>
 
-    <div class="flex h-full min-w-0 flex-1 items-center gap-1 border-b border-stroke ps-2 pe-2" data-tauri-drag-region>
+    <div class="flex h-full min-w-0 flex-1 items-center gap-1 ps-2 pe-2" data-tauri-drag-region>
       <UiIconButton
         v-if="!menu && navigation.hasPanel && !layout.panel.open"
         :label="t('chats.toggle')"

@@ -41,8 +41,6 @@
   /* Fonds des barres et panneaux (chrome) et de la zone centrale (surface) : voir le style de fenêtre plus bas. */
   --color-chrome: var(--color-canvas);
   --color-surface: var(--color-canvas);
-  /* Cadre autour de la carte en « Projets en menu » : un cran au-dessus du chrome, la carte se détache. */
-  --color-frame: var(--color-canvas);
   /* Menus, infobulles, confirmations et messages : plein en Opaque, translucide sinon (voir plus bas). */
   --color-popover: var(--color-overlay);
 }
@@ -122,7 +120,6 @@ html {
   --color-veil: color-mix(in srgb, var(--color-accent) var(--veil-tint, 0%), hsl(240 0% var(--veil-lightness, 10%)));
   --color-chrome: var(--color-veil);
   --color-surface: var(--color-veil);
-  --color-frame: color-mix(in srgb, var(--color-content) 3%, var(--color-chrome));
   --color-popover: color-mix(in srgb, var(--color-accent) var(--veil-tint, 0%), var(--color-overlay));
 }
 
@@ -149,6 +146,38 @@ html.is-macos:not([data-window='opaque']) {
 @utility separator {
   background-color: var(--color-chrome);
   background-image: linear-gradient(var(--color-stroke), var(--color-stroke));
+}
+
+/* Centre arrondi en haut, du côté où une colonne le borde (choix de Jérémy). L'ombre pleine peint le cadre hors de
+   l'arrondi (l'enveloppe la coupe). Le centre trace lui-même ses traits, courbe comprise : le séparateur voisin
+   (`separator-notch`) n'en trace plus, sinon il serait décalé d'un pixel à côté de la courbe. */
+@utility center-card {
+  overflow: hidden;
+  box-shadow: 0 0 0 100vmax var(--color-chrome);
+  &[data-round-start] {
+    border-start-start-radius: 10px;
+  }
+  &[data-round-end] {
+    border-start-end-radius: 10px;
+  }
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    pointer-events: none;
+    border-top: 1px solid var(--color-stroke);
+    border-radius: inherit;
+  }
+  &[data-round-start]::after {
+    border-inline-start: 1px solid var(--color-stroke);
+  }
+  &[data-round-end]::after {
+    border-inline-end: 1px solid var(--color-stroke);
+  }
+}
+@utility separator-notch {
+  background-image: none;
 }
 
 /* Verre des menus et listes (.ui-pop), confirmations (UiConfirmDialog) et messages (UiToasts). Le verre est sur un

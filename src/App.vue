@@ -78,6 +78,8 @@ const showRightDock = computed(() => layout.right.open)
 const skills = useSkillsStore()
 // Hors des chats, le panneau de droite ne sert qu'à l'aperçu d'un skill dans les réglages.
 const previewedSkill = computed(() => (navigation.view === 'settings' ? skills.previewed : null))
+// Une colonne borde le centre à gauche (barre latérale ou panneau) : son coin s'arrondit.
+const roundStart = computed(() => !menu.value || layout.rail.expanded)
 
 // Raccourcis propres aux chats : sans effet sur les autres vues.
 function inChatsOnly(action: () => void) {
@@ -185,6 +187,7 @@ onUnmounted(() => {
               v-model="layout.rail.width"
               v-bind="SIZES.rail"
               orientation="vertical"
+              class="separator-notch"
               :label="t('rail.resize')"
             />
           </template>
@@ -196,9 +199,10 @@ onUnmounted(() => {
             v-model="layout.rail.width"
             v-bind="SIZES.rail"
             orientation="vertical"
+            :class="{ 'separator-notch': !panelShown }"
             :label="t('rail.resize')"
           />
-          <div v-else class="separator w-px shrink-0" />
+          <div v-else class="separator w-px shrink-0" :class="{ 'separator-notch': !panelShown }" />
         </template>
 
         <template v-if="panelShown">
@@ -207,6 +211,7 @@ onUnmounted(() => {
             v-model="layout.panel.width"
             v-bind="SIZES.panel"
             orientation="vertical"
+            class="separator-notch"
             :label="t('chats.resize')"
           />
         </template>
@@ -216,9 +221,13 @@ onUnmounted(() => {
               v-if="navigation.view === 'chats'"
               class="flex min-w-0 flex-1"
             >
-              <div class="flex min-w-0 flex-1 flex-col">
+              <div class="flex min-w-0 flex-1 flex-col overflow-hidden">
                 <!-- Seul le chat prend le fond de la zone centrale : terminal et panneau de droite font partie du cadre. -->
-                <main class="relative isolate min-h-0 flex-1 bg-surface">
+                <main
+                  class="center-card relative isolate min-h-0 flex-1 bg-surface"
+                  :data-round-start="roundStart || undefined"
+                  :data-round-end="showRightDock || undefined"
+                >
                   <ShellBackground />
                   <WorkspaceView />
                 </main>
@@ -229,6 +238,7 @@ onUnmounted(() => {
                   v-bind="SIZES.right"
                   orientation="vertical"
                   invert
+                  class="separator-notch"
                   :label="t('dock.resize')"
                 />
                 <div class="flex min-h-0 flex-col bg-chrome" :style="{ width: `${layout.right.size}px` }" :aria-label="t('dock.right')" role="region">
@@ -237,19 +247,27 @@ onUnmounted(() => {
               </template>
             </div>
 
-            <main v-else id="view-area" class="relative isolate min-w-0 flex-1 bg-surface">
-              <ShellBackground />
-              <NewWorkspaceView v-if="navigation.view === 'new'" />
-              <SearchView v-else-if="navigation.view === 'search'" />
-              <SettingsView v-else-if="navigation.view === 'settings'" />
-              <PlaceholderView v-else :view="navigation.view" />
-            </main>
+            <div v-else class="flex min-w-0 flex-1 overflow-hidden">
+              <main
+                id="view-area"
+                class="center-card relative isolate min-w-0 flex-1 bg-surface"
+                :data-round-start="roundStart || undefined"
+                :data-round-end="previewedSkill ? true : undefined"
+              >
+                <ShellBackground />
+                <NewWorkspaceView v-if="navigation.view === 'new'" />
+                <SearchView v-else-if="navigation.view === 'search'" />
+                <SettingsView v-else-if="navigation.view === 'settings'" />
+                <PlaceholderView v-else :view="navigation.view" />
+              </main>
+            </div>
             <template v-if="previewedSkill">
               <ShellResizeHandle
                 v-model="layout.right.size"
                 v-bind="SIZES.right"
                 orientation="vertical"
                 invert
+                class="separator-notch"
                 :label="t('dock.resize')"
               />
               <SettingsSkillPanel :skill="previewedSkill" :style="{ width: `${layout.right.size}px` }" />
