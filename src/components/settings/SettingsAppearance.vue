@@ -5,7 +5,7 @@ import SettingsHeading from '@/components/settings/SettingsHeading.vue'
 import SettingsWindowPreview from '@/components/settings/SettingsWindowPreview.vue'
 import UiChoiceCard from '@/components/ui/UiChoiceCard.vue'
 import { isMacosApp } from '@/ipc/system'
-import { type GlassValues, useAppearanceStore, veilTint, type WindowStyle, windowStyles } from '@/stores/appearance'
+import { type GlassValues, useAppearanceStore, type WindowStyle, windowStyles } from '@/stores/appearance'
 import { useNavigationStore } from '@/stores/navigation'
 
 const { t } = useI18n()
@@ -20,14 +20,10 @@ function customize(style: WindowStyle) {
 }
 
 // Écarts plus marqués que les vrais dosages : à cette taille, Mixte et Transparent se confondraient.
-const OPACITIES: Record<WindowStyle, { chrome: number; surface: number }> = {
+const OPACITIES: Record<WindowStyle, GlassValues> = {
   transparent: { chrome: 45, surface: 45 },
   mixed: { chrome: 45, surface: 90 },
   opaque: { chrome: 100, surface: 100 },
-}
-
-function preview(style: WindowStyle): GlassValues {
-  return { ...OPACITIES[style], lightness: 10, tint: veilTint(appearance.themeScope, appearance.themeIntensity) }
 }
 </script>
 
@@ -52,7 +48,7 @@ function preview(style: WindowStyle): GlassValues {
           :checked="appearance.effectiveStyle === style"
           class="flex flex-col gap-2 p-2"
         >
-          <SettingsWindowPreview :values="preview(style)" />
+          <SettingsWindowPreview :values="OPACITIES[style]" />
           <span class="px-1 pb-0.5 text-sm font-medium">{{ t(`settings.appearance.styles.${style}`) }}</span>
         </UiChoiceCard>
         <SettingsCustomizeButton

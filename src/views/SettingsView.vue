@@ -3,6 +3,7 @@ import { ArrowLeft, Plus, Sparkles } from '@/components/ui/icons'
 import { nextTick, onMounted, onUnmounted, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsAbout from '@/components/settings/SettingsAbout.vue'
+import SettingsAccent from '@/components/settings/SettingsAccent.vue'
 import SettingsAgent from '@/components/settings/SettingsAgent.vue'
 import SettingsAgents from '@/components/settings/SettingsAgents.vue'
 import SettingsAppearance from '@/components/settings/SettingsAppearance.vue'
@@ -15,6 +16,7 @@ import SettingsGlass from '@/components/settings/SettingsGlass.vue'
 import SettingsInterface from '@/components/settings/SettingsInterface.vue'
 import SettingsLayout from '@/components/settings/SettingsLayout.vue'
 import SettingsResetButton from '@/components/settings/SettingsResetButton.vue'
+import SettingsMode from '@/components/settings/SettingsMode.vue'
 import SettingsMcpServer from '@/components/settings/SettingsMcpServer.vue'
 import ProjectPicker from '@/components/project/ProjectPicker.vue'
 import SettingsProject from '@/components/settings/SettingsProject.vue'
@@ -25,7 +27,6 @@ import SettingsSkill from '@/components/settings/SettingsSkill.vue'
 import SettingsSkills from '@/components/settings/SettingsSkills.vue'
 import SettingsNotifications from '@/components/settings/SettingsNotifications.vue'
 import SettingsSystem from '@/components/settings/SettingsSystem.vue'
-import SettingsThemeOptions from '@/components/settings/SettingsThemeOptions.vue'
 import SettingsThemes from '@/components/settings/SettingsThemes.vue'
 import SettingsUpdates from '@/components/settings/SettingsUpdates.vue'
 import SettingsWorktrees from '@/components/settings/SettingsWorktrees.vue'
@@ -184,8 +185,7 @@ onUnmounted(() => {
             <Plus class="size-4" aria-hidden="true" />{{ t('settings.projects.worktrees.create') }}
           </UiButton>
         </div>
-        <SettingsThemeOptions v-if="navigation.settingsDetail === 'theme'" />
-        <SettingsBackgroundOptions v-else-if="navigation.settingsDetail === 'background'" />
+        <SettingsBackgroundOptions v-if="navigation.settingsDetail === 'background'" />
         <SettingsAgent v-else-if="isAgentDetail(navigation.settingsDetail)" :kind="navigation.settingsDetail" />
         <SettingsSkill v-else-if="isSkillDetail(navigation.settingsDetail)" :id="skillOfDetail(navigation.settingsDetail)" />
         <SettingsMcpServer v-else-if="isServerDetail(navigation.settingsDetail)" :name="serverOfDetail(navigation.settingsDetail)" />
@@ -218,7 +218,9 @@ onUnmounted(() => {
           <SettingsAbout />
         </template>
         <template v-else-if="navigation.settingsSection === 'appearance'">
+          <SettingsMode />
           <SettingsThemes />
+          <SettingsAccent />
           <SettingsLayout />
           <SettingsAppearance />
           <SettingsBackground />

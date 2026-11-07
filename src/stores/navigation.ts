@@ -8,13 +8,12 @@ import { useSkillsStore } from '@/stores/skills'
 import { agents } from '@/utils/agents'
 import type { SettingsSection } from '@/utils/settings'
 
-// Sous-page d'une section : réglages du thème, de l'image de fond, d'un style de fenêtre, d'un agent, d'un
+// Sous-page d'une section : réglages de l'image de fond, d'un style de fenêtre, d'un agent, d'un
 // skill (`skill:` suivi du nom de son dossier), d'un serveur MCP (`mcp:` suivi de son nom), d'un service relié
 // d'un projet (`project:` suivi de son id) ou des worktrees d'un projet (`worktrees:` suivi de son id), sous-page
 // de celle du projet.
 export type SettingsDetail =
   | WindowStyle
-  | 'theme'
   | 'background'
   | AgentKind
   | `skill:${string}`
@@ -75,7 +74,6 @@ export function settingsDetailTitle(detail: SettingsDetail, t: (key: string) => 
   if (isProjectDetail(detail)) return useProjectsStore().byId(projectOfDetail(detail))?.name ?? ''
   if (isWorktreesDetail(detail)) return t('settings.projects.worktrees.title')
   if (detail === 'github') return 'GitHub'
-  if (detail === 'theme') return t('settings.themes.title')
   if (detail === 'background') return t('settings.background.title')
   return t(`settings.appearance.styles.${detail}`)
 }

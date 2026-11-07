@@ -1,25 +1,23 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import SettingsCustomizeButton from '@/components/settings/SettingsCustomizeButton.vue'
 import SettingsHeading from '@/components/settings/SettingsHeading.vue'
 import UiChoiceCard from '@/components/ui/UiChoiceCard.vue'
 import { useAppearanceStore } from '@/stores/appearance'
-import { useNavigationStore } from '@/stores/navigation'
-import { type ThemeId, themeIds, themes } from '@/utils/themes'
+import { accentColor, type ThemeId, themeIds, themes } from '@/utils/themes'
 
 const { t } = useI18n()
 const appearance = useAppearanceStore()
-const navigation = useNavigationStore()
 
-// Un nuage de la couleur éclairé en haut à gauche, et une teinte voisine en bas à droite pour la profondeur.
-function orb(id: ThemeId) {
-  const { hue, saturation, lightness } = themes[id]
+// La teinte des fonds du thème, forcée : à sa vraie dose, toutes les pastilles paraissaient grises. Avec la pastille
+// de l'accent qu'il propose.
+function swatch(id: ThemeId) {
+  const mode = appearance.resolvedMode
+  const { hue, [mode]: saturation } = themes[id]
+  const dark = mode === 'dark'
+  const lightness = dark ? 20 - ('shift' in themes[id] ? 16 : 0) : 88 + ('shift' in themes[id] ? 12 : 0)
   return {
-    background: [
-      `radial-gradient(circle at 30% 25%, hsl(${hue} ${saturation}% ${Math.min(lightness + 24, 94)}%) 0%, transparent 45%)`,
-      `radial-gradient(circle at 72% 75%, hsl(${hue + 24} ${saturation}% ${lightness - 6}%) 0%, transparent 55%)`,
-      `radial-gradient(circle at 50% 45%, hsl(${hue} ${saturation}% ${lightness}%) 0%, hsl(${hue} ${Math.round(saturation * 0.6)}% 16%) 100%)`,
-    ].join(', '),
+    background: `hsl(${hue} ${Math.min(saturation * 1.6, 60)}% ${lightness}%)`,
+    dot: accentColor(themes[id].accent, mode),
   }
 }
 </script>
@@ -28,25 +26,20 @@ function orb(id: ThemeId) {
   <section class="pt-8" role="radiogroup" aria-labelledby="theme-title">
     <SettingsHeading id="theme-title" :title="t('settings.themes.title')" />
     <div data-setting="theme" class="grid grid-cols-2 gap-2 @xl:grid-cols-4">
-      <div v-for="id in themeIds" :key="id" class="relative">
-        <UiChoiceCard
-          v-model="appearance.theme"
-          name="theme"
-          :value="id"
-          class="flex items-center gap-3 p-2.5"
-          :class="{ 'pe-11': appearance.theme === id }"
-        >
-          <span class="size-7 shrink-0 rounded-full shadow-md ring-1 ring-content/10 ring-inset" :style="orb(id)" aria-hidden="true" />
-          <span class="truncate text-sm font-medium">{{ t(`settings.themes.names.${id}`) }}</span>
-        </UiChoiceCard>
-        <SettingsCustomizeButton
-          :show="appearance.theme === id"
-          data-customize="theme"
-          class="end-2.5 top-1/2 -translate-y-1/2"
-          :label="t('settings.themes.customize')"
-          @click="navigation.showSettingsDetail('theme')"
-        />
-      </div>
+      <UiChoiceCard
+        v-for="id in themeIds"
+        :key="id"
+        :model-value="appearance.theme"
+        name="theme"
+        :value="id"
+        class="flex items-center gap-3 p-2.5"
+        @update:model-value="appearance.applyTheme"
+      >
+        <span class="grid size-7 shrink-0 place-items-center rounded-lg border border-content/15" :style="{ background: swatch(id).background }" aria-hidden="true">
+          <span class="size-2.5 rounded-full" :style="{ background: swatch(id).dot }" />
+        </span>
+        <span class="truncate text-sm font-medium">{{ t(`settings.themes.names.${id}`) }}</span>
+      </UiChoiceCard>
     </div>
   </section>
 </template>

@@ -9,7 +9,7 @@ import { type SettingsSection, settingsGroups } from '@/utils/settings'
 import { matchScore, normalize, searchField } from '@/utils/search'
 import { agents } from '@/utils/agents'
 import { shortcutIds } from '@/utils/shortcuts'
-import { themeIds } from '@/utils/themes'
+import { accentIds, colorModes, themeIds } from '@/utils/themes'
 
 // Un réglage qu'on retrouve par la recherche. `id` est l'attribut `data-setting` posé sur sa ligne :
 // SettingsView y fait défiler. Vide pour une page entière. Textes = clés i18n.
@@ -114,6 +114,13 @@ const entries: SettingEntry[] = [
   },
   { id: 'resetAll', section: 'general', label: 'settings.general.reset.label', hint: 'settings.general.reset.hint', keywords: ['reset'] },
   {
+    id: 'mode',
+    section: 'appearance',
+    label: 'settings.mode.title',
+    terms: options('settings.mode', colorModes),
+    keywords: ['mode'],
+  },
+  {
     id: 'theme',
     section: 'appearance',
     label: 'settings.themes.title',
@@ -121,19 +128,10 @@ const entries: SettingEntry[] = [
     keywords: ['theme'],
   },
   {
-    id: 'themeScope',
+    id: 'accent',
     section: 'appearance',
-    detail: 'theme',
-    label: 'settings.themes.scope.label',
-    terms: options('settings.themes.scope', ['accent', 'full']),
-    keywords: ['theme'],
-  },
-  {
-    id: 'themeIntensity',
-    section: 'appearance',
-    detail: 'theme',
-    label: 'settings.themes.intensity.label',
-    hint: 'settings.themes.intensity.hint',
+    label: 'settings.accent.title',
+    terms: options('settings.accent.names', accentIds),
     keywords: ['theme'],
   },
   {

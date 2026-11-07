@@ -21,10 +21,10 @@
      et la barre de titre se chevauchent, un gris transparent s'additionnerait en point clair. */
   /* Survol d'une poignée : un trait d'un pixel à peine éclairci, comme l'app Divin (choix de Jérémy). */
   --color-edge-hover: color-mix(in srgb, var(--color-content) 22%, var(--color-canvas));
+  /* Accent (bouton principal, liens) et signal (interrupteur allumé, non lu, actif) : la même couleur, posée par
+     stores/appearance.ts. Deux noms pour garder la porte ouverte à un signal distinct. */
   --color-accent: hsl(240 0% 92%);
-  /* Ce qui signale un état (interrupteur allumé, non lu, actif) : l'accent d'un thème coloré, ce bleu dans un
-     thème neutre (#0A7AF2), où l'accent est la couleur du texte (choix de Jérémy). Posé par stores/appearance.ts. */
-  --color-signal: hsl(211 92% 49%);
+  --color-signal: var(--color-accent);
   /* Le signal en texte (badge, « mise à jour disponible ») : éclairci pour rester lisible en petit. */
   --color-signal-text: color-mix(in srgb, var(--color-signal) 70%, white);
   --color-on-signal: hsl(0 0% 100%);
@@ -85,6 +85,40 @@ body,
   -webkit-font-smoothing: antialiased;
 }
 
+/* Mode clair (data-mode posé par stores/appearance.ts) : couleurs d'état assombries pour garder leur contraste sur
+   un fond clair, survols plus légers (le noir se voit plus que le blanc à dose égale). */
+html[data-mode='light'] {
+  color-scheme: light;
+  --color-muted: color-mix(in srgb, var(--color-content) 58%, transparent);
+  --color-stroke: color-mix(in srgb, var(--color-content) 10%, transparent);
+  --color-selection: color-mix(in srgb, var(--color-content) 9%, transparent);
+  --color-selection-hover: color-mix(in srgb, var(--color-content) 4.5%, transparent);
+  --color-selection-inner: color-mix(in srgb, var(--color-content) 7%, transparent);
+  --color-stroke-focus: color-mix(in srgb, var(--color-content) 26%, transparent);
+  --color-edge-hover: color-mix(in srgb, var(--color-content) 26%, var(--color-canvas));
+  --color-signal-text: color-mix(in srgb, var(--color-signal) 80%, black);
+  --color-danger: hsl(0 68% 48%);
+  --color-success: hsl(145 63% 32%);
+  --color-warning: hsl(32 92% 38%);
+  --color-info: hsl(210 80% 44%);
+  --color-orange: hsl(16 72% 46%);
+  --color-violet: hsl(262 58% 54%);
+  --color-skill: hsl(40 88% 36%);
+  --color-mention: hsl(199 86% 38%);
+  --project-slate: oklch(0.55 0.03 260);
+  --project-blue: oklch(0.55 0.15 250);
+  --project-teal: oklch(0.56 0.1 195);
+  --project-green: oklch(0.56 0.13 150);
+  --project-amber: oklch(0.62 0.14 75);
+  --project-orange: oklch(0.6 0.15 50);
+  --project-red: oklch(0.56 0.17 25);
+  --project-pink: oklch(0.58 0.15 350);
+  --project-violet: oklch(0.55 0.15 300);
+  --control-highlight: rgb(255 255 255 / 0.7);
+  --control-shadow: rgb(0 0 0 / 0.08);
+  --popover-shadow: rgb(0 0 0 / 0.12);
+}
+
 /* Texte sélectionné (chat, code) à la couleur du thème plutôt qu'à celle de macOS. */
 ::selection {
   background-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
@@ -115,30 +149,25 @@ html.is-macos:not([data-window='opaque']) #app {
   background: transparent;
 }
 
-/* Dosages posés par stores/appearance.ts selon les réglages du style en vigueur. Opaque garde le voile plein. */
+/* Voile (fond teinté par le thème) et dosages posés par stores/appearance.ts. Opaque garde le voile plein. */
 html {
-  --color-veil: color-mix(in srgb, var(--color-accent) var(--veil-tint, 0%), hsl(240 0% var(--veil-lightness, 10%)));
+  --color-veil: hsl(240 0% 10%);
   --color-chrome: var(--color-veil);
   --color-surface: var(--color-veil);
-  --color-popover: color-mix(in srgb, var(--color-accent) var(--veil-tint, 0%), var(--color-overlay));
-}
-
-/* Thème sur toute l'interface : les fonds d'éléments actifs ou survolés prennent l'accent. */
-html[data-theme-scope='full'] {
-  --color-selection: color-mix(in srgb, var(--color-accent) var(--selection-tint, 20%), transparent);
-  --color-selection-hover: color-mix(in srgb, var(--color-accent) var(--selection-hover-tint, 8%), transparent);
-  --color-selection-inner: color-mix(in srgb, var(--color-accent) var(--selection-inner-tint, 16%), transparent);
 }
 
 html.is-macos:not([data-window='opaque']) {
   --color-chrome: color-mix(in srgb, var(--color-veil) var(--chrome-alpha, 72%), transparent);
   --color-surface: color-mix(in srgb, var(--color-veil) var(--surface-alpha, 92%), transparent);
   /* Presque pas de voile : le menu laisse voir, floutés, l'app et le bureau derrière lui. */
-  --color-popover: color-mix(
-    in srgb,
-    color-mix(in srgb, var(--color-accent) var(--veil-tint, 0%), var(--color-overlay)) 8%,
-    transparent
-  );
+  --color-popover: color-mix(in srgb, var(--color-overlay) var(--popover-alpha, 8%), transparent);
+}
+
+/* Sur un fond clair, un menu presque vide se lit mal : il garde plus de blanc, et son texte reste sombre. */
+html[data-mode='light'] {
+  --popover-alpha: 72%;
+  --glass-content: var(--color-content);
+  --raised-shadow: rgb(0 0 0 / 0.22);
 }
 
 /* Trait entre deux colonnes : rien n'est dessous, il pose son propre fond de barre, sinon il laisserait
@@ -188,14 +217,14 @@ html.is-macos:not([data-window='opaque']) {
   overflow: hidden;
   /* Réglages de monocode, bien plus lisibles : flou de 24 px (à 10 px le fond restait net sous le texte), bord à
      10 %, ombre en deux couches et texte en blanc presque pur. */
-  --color-content: hsl(0 0% 98%);
-  --color-muted: color-mix(in srgb, hsl(0 0% 98%) 60%, transparent);
+  --color-content: var(--glass-content, hsl(0 0% 98%));
+  --color-muted: color-mix(in srgb, var(--color-content) 60%, transparent);
   border: 1px solid color-mix(in srgb, var(--color-content) 10%, transparent);
   background: var(--color-popover);
   color: var(--color-content);
   box-shadow:
-    0 20px 25px -5px rgb(0 0 0 / 0.25),
-    0 8px 10px -6px rgb(0 0 0 / 0.25);
+    0 20px 25px -5px var(--popover-shadow, rgb(0 0 0 / 0.25)),
+    0 8px 10px -6px var(--popover-shadow, rgb(0 0 0 / 0.25));
   -webkit-backdrop-filter: blur(24px) saturate(1.4);
   backdrop-filter: blur(24px) saturate(1.4);
 }
@@ -290,7 +319,7 @@ html.is-macos:not([data-window='opaque']) {
      En opaque, popover vaut déjà overlay et rien ne change. */
   background-color: color-mix(in srgb, var(--color-overlay) 55%, var(--color-popover));
   background-image: linear-gradient(var(--raised), var(--raised));
-  box-shadow: 0 24px 64px -12px rgb(0 0 0 / 0.6);
+  box-shadow: 0 24px 64px -12px var(--raised-shadow, rgb(0 0 0 / 0.6));
 }
 
 /* Contenu des confirmations et des messages, dans leur cadre de verre : même courbe que les menus. */
@@ -537,8 +566,8 @@ html.is-macos:not([data-window='opaque']) {
   [data-control] {
     background-color: color-mix(in srgb, var(--color-content) 4%, transparent);
     box-shadow:
-      inset 0 1px 0 color-mix(in srgb, var(--color-content) 7%, transparent),
-      0 1px 2px rgb(0 0 0 / 0.2);
+      inset 0 1px 0 var(--control-highlight, color-mix(in srgb, var(--color-content) 7%, transparent)),
+      0 1px 2px var(--control-shadow, rgb(0 0 0 / 0.2));
     transition:
       scale 120ms ease-out,
       var(--hover-transition);

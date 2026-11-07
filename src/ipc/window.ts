@@ -20,3 +20,8 @@ export function windowRequestAttention() {
 export function onWindowFocus(handler: (focused: boolean) => void) {
   return getCurrentWindow().onFocusChanged((event) => handler(event.payload))
 }
+
+// null : la fenêtre suit le thème du système (boutons de fenêtre, menus natifs, prefers-color-scheme).
+export function windowSetTheme(theme: 'light' | 'dark' | null) {
+  return getCurrentWindow().setTheme(theme)
+}

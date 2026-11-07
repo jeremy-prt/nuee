@@ -1,8 +1,20 @@
 import { defineStore } from 'pinia'
 import { computed, reactive, ref, watch, watchEffect } from 'vue'
 import { isMacosApp, isTauriApp } from '@/ipc/system'
-import { windowSetBlur, windowSetZoom } from '@/ipc/window'
-import { type ThemeId, themeAccent, themeIds, themeOnSignal, themeSignal } from '@/utils/themes'
+import { windowSetBlur, windowSetTheme, windowSetZoom } from '@/ipc/window'
+import {
+  type AccentId,
+  accentColor,
+  accentIds,
+  type ColorMode,
+  colorModes,
+  onSignalColor,
+  palette,
+  type ResolvedMode,
+  type ThemeId,
+  themeIds,
+  themes,
+} from '@/utils/themes'
 
 export const windowStyles = ['transparent', 'mixed', 'opaque'] as const
 export type WindowStyle = (typeof windowStyles)[number]
@@ -30,34 +42,20 @@ export function glassSettings(style: WindowStyle): GlassSetting[] {
 const BARS_OPACITY: Record<Glass['opacity'], number> = { low: 45, medium: 72, high: 82 }
 const CENTER_OPACITY: Record<Glass['centerOpacity'], number> = { low: 80, medium: 88, high: 94 }
 const BLUR: Record<Glass['blur'], number> = { none: 0, low: 24, medium: 48, high: 72 }
-const LIGHTNESS: Record<Glass['lightness'], number> = { dark: 5, medium: 10, light: 14 }
-
-// Le thème colore l'accent seul, ou toute l'interface : le voile du fond et les éléments actifs ou survolés.
-export const themeScopes = ['accent', 'full'] as const
-export type ThemeScope = (typeof themeScopes)[number]
-export const themeIntensities = ['light', 'strong'] as const
-export type ThemeIntensity = (typeof themeIntensities)[number]
-// Part de l'accent dans le voile du fond et dans les fonds d'éléments actifs (survol un cran en dessous).
-const THEME_TINT: Record<ThemeIntensity, { veil: number; selection: number; hover: number; inner: number }> = {
-  light: { veil: 8, selection: 20, hover: 8, inner: 16 },
-  strong: { veil: 16, selection: 30, hover: 12, inner: 24 },
-}
-
-export function veilTint(scope: ThemeScope, intensity: ThemeIntensity) {
-  return scope === 'full' ? THEME_TINT[intensity].veil : 0
+const LIGHTNESS: Record<ResolvedMode, Record<Glass['lightness'], number>> = {
+  dark: { dark: 5, medium: 10, light: 14 },
+  light: { dark: 92, medium: 96, light: 99 },
 }
 
 export interface GlassValues {
   chrome: number
   surface: number
-  lightness: number
-  tint: number
 }
 
-function glassValues(style: WindowStyle, glass: Glass, tint: number): GlassValues {
+function glassValues(style: WindowStyle, glass: Glass): GlassValues {
   const chrome = style === 'opaque' ? 100 : BARS_OPACITY[glass.opacity]
   const surface = style === 'mixed' ? CENTER_OPACITY[glass.centerOpacity] : chrome
-  return { chrome, surface, lightness: LIGHTNESS[glass.lightness], tint }
+  return { chrome, surface }
 }
 
 function blurRadius(glass: Glass) {
@@ -110,16 +108,18 @@ const CHAT_WIDTH: Record<ChatWidth, string> = {
 export const appLayouts = ['columns', 'menu'] as const
 export type AppLayout = (typeof appLayouts)[number]
 
-const STORAGE_KEY = 'nuee.appearance.v8'
+const STORAGE_KEY = 'nuee.appearance.v9'
+// Avant la v9, le thème n'était qu'un accent : il devient le choix d'accent.
+const LEGACY_KEY = 'nuee.appearance.v8'
 
 function defaultGlass(): Glass {
   return { opacity: 'medium', centerOpacity: 'medium', blur: 'medium', lightness: 'medium' }
 }
 
 interface AppearanceState {
+  mode: ColorMode
   theme: ThemeId
-  themeScope: ThemeScope
-  themeIntensity: ThemeIntensity
+  accent: AccentId
   windowStyle: WindowStyle
   glass: Record<WindowStyle, Glass>
   background: Background
@@ -130,9 +130,9 @@ interface AppearanceState {
 
 function defaults(): AppearanceState {
   return {
+    mode: 'dark',
     theme: 'nuee',
-    themeScope: 'accent',
-    themeIntensity: 'light',
+    accent: 'nuee',
     windowStyle: 'mixed',
     glass: { transparent: defaultGlass(), mixed: defaultGlass(), opaque: defaultGlass() },
     background: defaultBackground(null),
@@ -144,12 +144,16 @@ function defaults(): AppearanceState {
 
 function load(): AppearanceState {
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null')
+    let saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null')
+    if (!saved) {
+      saved = JSON.parse(localStorage.getItem(LEGACY_KEY) ?? 'null')
+      if (saved) saved = { ...saved, theme: 'nuee', accent: saved.theme }
+    }
     if (!saved) return defaults()
     const state = defaults()
+    if (colorModes.includes(saved.mode)) state.mode = saved.mode
     if (themeIds.includes(saved.theme)) state.theme = saved.theme
-    if (themeScopes.includes(saved.themeScope)) state.themeScope = saved.themeScope
-    if (themeIntensities.includes(saved.themeIntensity)) state.themeIntensity = saved.themeIntensity
+    if (accentIds.includes(saved.accent)) state.accent = saved.accent
     if (windowStyles.includes(saved.windowStyle)) state.windowStyle = saved.windowStyle
     if (zoomLevels.includes(saved.zoom)) state.zoom = saved.zoom
     if (chatWidths.includes(saved.chatWidth)) state.chatWidth = saved.chatWidth
@@ -177,9 +181,9 @@ function load(): AppearanceState {
 
 export const useAppearanceStore = defineStore('appearance', () => {
   const state = load()
+  const mode = ref<ColorMode>(state.mode)
   const theme = ref<ThemeId>(state.theme)
-  const themeScope = ref<ThemeScope>(state.themeScope)
-  const themeIntensity = ref<ThemeIntensity>(state.themeIntensity)
+  const accent = ref<AccentId>(state.accent)
   const windowStyle = ref<WindowStyle>(state.windowStyle)
   const glass = reactive(state.glass)
   const background = reactive(state.background)
@@ -200,25 +204,39 @@ export const useAppearanceStore = defineStore('appearance', () => {
     { immediate: true },
   )
 
+  // En mode Système, la fenêtre suit macOS (thème natif à null) et la webview le reflète dans prefers-color-scheme.
+  const systemDark = matchMedia('(prefers-color-scheme: dark)')
+  const prefersDark = ref(systemDark.matches)
+  systemDark.addEventListener('change', (event) => (prefersDark.value = event.matches))
+  const resolvedMode = computed<ResolvedMode>(() => (mode.value === 'system' ? (prefersDark.value ? 'dark' : 'light') : mode.value))
+
+  watch(
+    mode,
+    (value) => {
+      if (isTauriApp()) windowSetTheme(value === 'system' ? null : value).catch(() => {})
+    },
+    { immediate: true },
+  )
+
   // Hors macOS, la fenêtre est toujours opaque : c'est le seul style qui s'applique.
   const effectiveStyle = computed<WindowStyle>(() => (isMacosApp() ? windowStyle.value : 'opaque'))
   const active = computed(() => glass[effectiveStyle.value])
 
   watchEffect(() => {
     const root = document.documentElement
+    const resolved = resolvedMode.value
     root.dataset.window = effectiveStyle.value
-    root.dataset.themeScope = themeScope.value
-    root.style.setProperty('--color-accent', themeAccent(theme.value))
-    root.style.setProperty('--color-signal', themeSignal(theme.value))
-    root.style.setProperty('--color-on-signal', themeOnSignal(theme.value))
-    root.style.setProperty('--selection-tint', `${THEME_TINT[themeIntensity.value].selection}%`)
-    root.style.setProperty('--selection-hover-tint', `${THEME_TINT[themeIntensity.value].hover}%`)
-    root.style.setProperty('--selection-inner-tint', `${THEME_TINT[themeIntensity.value].inner}%`)
-    const values = glassValues(effectiveStyle.value, active.value, veilTint(themeScope.value, themeIntensity.value))
+    root.dataset.mode = resolved
+    const colors = palette(theme.value, resolved, LIGHTNESS[resolved][active.value.lightness])
+    root.style.setProperty('--color-canvas', colors.canvas)
+    root.style.setProperty('--color-overlay', colors.overlay)
+    root.style.setProperty('--color-content', colors.content)
+    root.style.setProperty('--color-veil', colors.veil)
+    root.style.setProperty('--color-accent', accentColor(accent.value, resolved))
+    root.style.setProperty('--color-on-signal', onSignalColor(accent.value, resolved))
+    const values = glassValues(effectiveStyle.value, active.value)
     root.style.setProperty('--chrome-alpha', `${values.chrome}%`)
     root.style.setProperty('--surface-alpha', `${values.surface}%`)
-    root.style.setProperty('--veil-lightness', `${values.lightness}%`)
-    root.style.setProperty('--veil-tint', `${values.tint}%`)
   })
 
   watch(
@@ -230,12 +248,12 @@ export const useAppearanceStore = defineStore('appearance', () => {
   )
 
   watch(
-    [theme, themeScope, themeIntensity, windowStyle, glass, background, zoom, chatWidth, layout],
+    [mode, theme, accent, windowStyle, glass, background, zoom, chatWidth, layout],
     () => {
       const saved = {
+        mode: mode.value,
         theme: theme.value,
-        themeScope: themeScope.value,
-        themeIntensity: themeIntensity.value,
+        accent: accent.value,
         windowStyle: windowStyle.value,
         glass,
         background,
@@ -271,10 +289,10 @@ export const useAppearanceStore = defineStore('appearance', () => {
     else background.path = path
   }
 
-  function resetTheme() {
-    const initial = defaults()
-    themeScope.value = initial.themeScope
-    themeIntensity.value = initial.themeIntensity
+  // Un thème pose l'accent qu'il propose, que l'on peut ensuite changer.
+  function applyTheme(id: ThemeId) {
+    theme.value = id
+    accent.value = themes[id].accent
   }
 
   function resetZoom() {
@@ -284,9 +302,9 @@ export const useAppearanceStore = defineStore('appearance', () => {
   // Le fichier de l'image de fond reste à supprimer par l'appelant (commande background_remove).
   function resetAll() {
     const initial = defaults()
+    mode.value = initial.mode
     theme.value = initial.theme
-    themeScope.value = initial.themeScope
-    themeIntensity.value = initial.themeIntensity
+    accent.value = initial.accent
     windowStyle.value = initial.windowStyle
     Object.assign(glass, initial.glass)
     Object.assign(background, initial.background)
@@ -296,9 +314,10 @@ export const useAppearanceStore = defineStore('appearance', () => {
   }
 
   return {
+    mode,
     theme,
-    themeScope,
-    themeIntensity,
+    accent,
+    resolvedMode,
     windowStyle,
     effectiveStyle,
     glass,
@@ -307,10 +326,10 @@ export const useAppearanceStore = defineStore('appearance', () => {
     zoomFactor,
     chatWidth,
     layout,
+    applyTheme,
     stepZoom,
     resetZoom,
     resetGlass,
-    resetTheme,
     resetBackground,
     resetAll,
     setBackground,

@@ -46,7 +46,10 @@ const fit = new FitAddon()
 term.loadAddon(fit)
 
 watch(
-  () => useAppearanceStore().theme,
+  () => {
+    const appearance = useAppearanceStore()
+    return [appearance.theme, appearance.accent, appearance.resolvedMode]
+  },
   () => requestAnimationFrame(() => (term.options.theme = theme())),
 )
 

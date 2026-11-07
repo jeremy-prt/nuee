@@ -4,10 +4,7 @@ import type { GlassValues } from '@/stores/appearance'
 
 const props = defineProps<{ values: GlassValues }>()
 
-function veil(alpha: number) {
-  const { tint, lightness } = props.values
-  return `color-mix(in srgb, color-mix(in srgb, var(--color-accent) ${tint}%, hsl(240 0% ${lightness}%)) ${alpha}%, transparent)`
-}
+const veil = (alpha: number) => `color-mix(in srgb, var(--color-veil) ${alpha}%, transparent)`
 
 const chrome = computed(() => ({ background: veil(props.values.chrome), backdropFilter: 'blur(2px)' }))
 const surface = computed(() => ({ background: veil(props.values.surface), backdropFilter: 'blur(2px)' }))

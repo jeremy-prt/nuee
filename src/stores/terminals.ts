@@ -40,7 +40,10 @@ export const useTerminalsStore = defineStore('terminals', () => {
 
   // Le curseur et la sélection suivent l'accent du thème.
   watch(
-    () => useAppearanceStore().theme,
+    () => {
+      const appearance = useAppearanceStore()
+      return [appearance.theme, appearance.accent, appearance.resolvedMode]
+    },
     () => requestAnimationFrame(() => {
       const next = theme()
       for (const instance of instances.values()) instance.term.options.theme = next
@@ -193,11 +196,18 @@ export const useTerminalsStore = defineStore('terminals', () => {
   return { tabs, active, wantsFocus, tabsOf, setHost, releaseHost, create, attach, fit, focus, close, closeChat, command, requestFocus }
 })
 
-// Palette ANSI de Brume (et de monocode) : ces couleurs viennent des programmes, pas de l'interface.
-const ANSI = [
-  '#1f2a3f', '#f87171', '#4ade80', '#fbbf24', '#60a5fa', '#c084fc', '#22d3ee', '#dce3ee',
-  '#64748b', '#fca5a5', '#86efac', '#fde68a', '#93c5fd', '#d8b4fe', '#67e8f9', '#f8fafc',
-] as const
+// Palette ANSI de Brume (et de monocode) : ces couleurs viennent des programmes, pas de l'interface. En clair,
+// celle de GitHub Light : les couleurs vives du sombre ne se lisent pas sur du blanc.
+const ANSI = {
+  dark: [
+    '#1f2a3f', '#f87171', '#4ade80', '#fbbf24', '#60a5fa', '#c084fc', '#22d3ee', '#dce3ee',
+    '#64748b', '#fca5a5', '#86efac', '#fde68a', '#93c5fd', '#d8b4fe', '#67e8f9', '#f8fafc',
+  ],
+  light: [
+    '#24292f', '#cf222e', '#116329', '#4d2d00', '#0969da', '#8250df', '#1b7c83', '#6e7781',
+    '#57606a', '#a40e26', '#1a7f37', '#633c01', '#218bff', '#a475f9', '#3192aa', '#8c959f',
+  ],
+} as const
 
 // Le reste comme Brume, en jetons de main.css ramenés en rgba : xterm ne lit ni color-mix ni var().
 export function theme(): ITheme {
@@ -213,15 +223,16 @@ export function theme(): ITheme {
     const [r, g, b, a] = canvas.getImageData(0, 0, 1, 1).data
     return `rgba(${r}, ${g}, ${b}, ${((a ?? 255) / 255).toFixed(3)})`
   }
-  const [black, red, green, yellow, blue, magenta, cyan, white] = ANSI
-  const [brightBlack, brightRed, brightGreen, brightYellow, brightBlue, brightMagenta, brightCyan, brightWhite] = ANSI.slice(8)
+  const ansi = ANSI[useAppearanceStore().resolvedMode]
+  const [black, red, green, yellow, blue, magenta, cyan, white] = ansi
+  const [brightBlack, brightRed, brightGreen, brightYellow, brightBlue, brightMagenta, brightCyan, brightWhite] = ansi.slice(8)
   const result: ITheme = {
     background: 'rgba(0, 0, 0, 0)',
     foreground: color('var(--color-content)'),
     cursor: color('var(--color-accent)'),
     cursorAccent: color('var(--color-canvas)'),
     selectionBackground: color('color-mix(in srgb, var(--color-accent) 28%, transparent)'),
-    selectionForeground: ANSI[15],
+    selectionForeground: color('var(--color-content)'),
     black, red, green, yellow, blue, magenta, cyan, white,
     brightBlack, brightRed, brightGreen, brightYellow, brightBlue, brightMagenta, brightCyan, brightWhite,
   }
