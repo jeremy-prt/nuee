@@ -89,9 +89,16 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       tabs.value = [...chats.map((chat) => ({ ...chat, kind: 'chat' as const })), ...tabs.value.filter((tab) => !known.has(tab.id))]
       useDraftsStore().prune(new Set(tabs.value.map((tab) => tab.id)))
       for (const [key, saved] of Object.entries(loadLayouts())) {
-        if (layouts[key] || !Array.isArray(saved.tabs) || !Array.isArray(saved.panes)) continue
+        if (!Array.isArray(saved.tabs) || !Array.isArray(saved.panes)) continue
         const open = saved.tabs.filter((id) => known.has(id))
         const panes = saved.panes.filter((id) => open.includes(id))
+        // La session vierge du lancement a pu créer la disposition avant ce chargement : on y ajoute les onglets
+        // enregistrés au lieu de les perdre, ce qu'elle affiche déjà reste affiché.
+        const present = layouts[key]
+        if (present) {
+          present.tabs = [...open.filter((id) => !present.tabs.includes(id) && !isBlank(id)), ...present.tabs]
+          continue
+        }
         layouts[key] = { tabs: open, panes, focused: Math.min(saved.focused ?? 0, Math.max(0, panes.length - 1)) }
       }
     })

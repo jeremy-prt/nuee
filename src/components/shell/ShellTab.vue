@@ -34,7 +34,7 @@ const statusIcons = { approval: ShieldQuestion, question: MessageQuestion, done:
 
 <template>
   <!-- Rétrécit jusqu'à 120 px (l'actif garde son titre lisible), au-delà la bande défile (ShellTabs). -->
-  <UiContextMenu class="flex min-w-30 flex-[0_1_13rem]">
+  <UiContextMenu class="flex max-w-52 min-w-30 flex-[0_1_13rem]">
     <div
       role="tab"
       tabindex="0"
