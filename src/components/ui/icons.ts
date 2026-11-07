@@ -92,8 +92,6 @@ import Settings01Icon from '@hugeicons/core-free-icons/Settings01Icon'
 import ShieldAlertIcon from '@hugeicons/core-free-icons/ShieldAlertIcon'
 import ShieldQuestionMarkIcon from '@hugeicons/core-free-icons/ShieldQuestionMarkIcon'
 import ServerStack01Icon from '@hugeicons/core-free-icons/ServerStack01Icon'
-import SidebarLeft01Icon from '@hugeicons/core-free-icons/SidebarLeft01Icon'
-import SidebarRight01Icon from '@hugeicons/core-free-icons/SidebarRight01Icon'
 import SparklesIcon from '@hugeicons/core-free-icons/SparklesIcon'
 import SqlIcon from '@hugeicons/core-free-icons/SqlIcon'
 import SquareDashedIcon from '@hugeicons/core-free-icons/SquareDashedIcon'
@@ -118,12 +116,14 @@ function icon(glyph: Glyph): FunctionalComponent {
   return (_, { attrs }) => h(HugeiconsIcon, { icon: glyph, strokeWidth: 1.75, ...attrs })
 }
 
-// La barre latérale repliée montre l'action : le panneau de SidebarLeft01, chevron tourné vers la droite.
-const SidebarOpenIcon = SidebarLeft01Icon.map(([tag, attrs]) =>
-  attrs.d === 'M17 10L15.7735 11.0572C15.2578 11.5016 15 11.7239 15 12C15 12.2761 15.2578 12.4984 15.7735 12.9428L17 14'
-    ? [tag, { ...attrs, d: 'M15 10L16.2265 11.0572C16.7422 11.5016 17 11.7239 17 12C17 12.2761 16.7422 12.4984 16.2265 12.9428L15 14' }]
-    : [tag, attrs],
-) as Glyph
+// Panneaux comme Devin (choix de Jérémy) : un cadre et sa séparation, sans flèche ni tirets. Même dessin ouvert ou fermé.
+const panel = (x: number) =>
+  [
+    ['rect', { x: '3', y: '4', width: '18', height: '16', rx: '3.5', stroke: 'currentColor', strokeWidth: '1.5', key: '0' }],
+    ['path', { d: `M${x} 4V20`, stroke: 'currentColor', strokeWidth: '1.5', key: '1' }],
+  ] as Glyph
+const PanelLeftGlyph = panel(9)
+const PanelRightGlyph = panel(15)
 
 // Chevrons tracés à la main, en angle net : ceux de Hugeicons sont des courbes molles (choix de Jérémy).
 const chevron = (d: string) => [['path', { d, stroke: 'currentColor', strokeLinecap: 'round', strokeLinejoin: 'round', strokeWidth: '1.5', key: '0' }]] as Glyph
@@ -213,9 +213,8 @@ export const NotebookPen = icon(NoteEditIcon)
 export const PaintBucket = icon(PaintBucketIcon)
 export const Palette = icon(PaintBoardIcon)
 export const PanelBottom = icon(LayoutBottomIcon)
-export const PanelLeftClose = icon(SidebarLeft01Icon)
-export const PanelLeftOpen = icon(SidebarOpenIcon)
-export const PanelRight = icon(SidebarRight01Icon)
+export const PanelLeft = icon(PanelLeftGlyph)
+export const PanelRight = icon(PanelRightGlyph)
 export const Paperclip = icon(Attachment02Icon)
 export const Pencil = icon(PencilEdit02Icon)
 export const Pin = icon(PinIcon)

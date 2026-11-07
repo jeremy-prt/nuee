@@ -100,12 +100,14 @@ export default {
     closePane: 'Cerrar panel',
   },
   dock: {
+    add: "Abrir un panel",
     right: 'Panel derecho',
     toggle: 'Mostrar u ocultar el panel derecho',
     close: 'Ocultar panel',
     resize: 'Cambiar el tamaño del panel',
     session: {
       title: 'Sesión',
+      open: "Abrir",
       environment: 'Entorno',
       context: 'Contexto',
       empty: 'Iniciar la conversación para ver dónde trabaja el agente.',
@@ -1122,7 +1124,6 @@ export default {
       failedRemove: 'No se pudo quitar la imagen: {detail}',
       where: {
         label: "Dónde mostrar la imagen",
-        hint: "Nunca detrás de los Ajustes.",
         chats: "Solo sesiones",
         everywhere: "Todas las páginas",
       },
@@ -1134,7 +1135,6 @@ export default {
       },
       intensity: {
         label: 'Intensidad del efecto',
-        hint: 'Solo cuando hay un efecto elegido.',
         low: 'Ligera',
         medium: 'Media',
         high: 'Fuerte',

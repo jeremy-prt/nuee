@@ -19,6 +19,7 @@ import type { WorktreeChanges } from '@/ipc/bindings/WorktreeChanges'
 import { projectReveal } from '@/ipc/project'
 import { worktreeChanges } from '@/ipc/worktree'
 import { type TaskState, type ToolItem, useConversationsStore } from '@/stores/conversations'
+import { useShortcutsStore } from '@/stores/shortcuts'
 import { useGeneralStore } from '@/stores/general'
 import { useLayoutStore } from '@/stores/layout'
 import { useProjectsStore } from '@/stores/projects'
@@ -30,6 +31,8 @@ import { mcpLabel, mcpStatus } from '@/utils/mcp'
 import { contextFormats, contextRatio, contextRows } from '@/utils/context'
 import { formatDuration } from '@/utils/duration'
 import { tasksOf } from '@/utils/tasks'
+import { dockIcons } from '@/components/shell/dockIcons'
+import type { DockView } from '@/stores/layout'
 
 // Résumé de la session active, comme le volet Environnement de Claude Code : où travaille l'agent, son contexte,
 // ses tâches et ce qu'il a produit.
@@ -189,6 +192,8 @@ const row = 'flex h-8 w-full min-w-0 items-center gap-2.5 rounded-lg px-2 text-s
 const action = `${row} hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring`
 const title = 'flex h-7 w-full items-center gap-1 rounded-lg px-2 text-start text-xs font-medium text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-ring'
 const empty = `${row} text-muted`
+const shortcuts = useShortcutsStore()
+const quickViews: DockView[] = ['terminal', 'changes', 'browser', 'files', 'tasks']
 </script>
 
 <template>
@@ -356,6 +361,16 @@ const empty = `${row} text-muted`
         </template>
         <p v-else :class="empty">{{ t('dock.session.noChanges') }}</p>
       </template>
+    </section>
+
+    <!-- Comme Devin : de quoi ouvrir les autres volets sans chercher leur icône. -->
+    <section class="flex flex-col gap-0.5 border-t border-stroke pt-2">
+      <h3 class="flex h-7 items-center px-2 text-xs font-medium text-muted">{{ t('dock.session.open') }}</h3>
+      <button v-for="view in quickViews" :key="view" type="button" :class="action" @click="layout.showView(view)">
+        <component :is="dockIcons[view]" class="size-4 shrink-0 text-muted" aria-hidden="true" />
+        <span class="flex-1 truncate">{{ t(`dock.${view}.title`) }}</span>
+        <kbd v-if="view === 'terminal' && shortcuts.label('toggleTerminal')" class="font-sans text-xs text-muted">{{ shortcuts.label('toggleTerminal') }}</kbd>
+      </button>
     </section>
   </div>
   <p v-else class="flex flex-1 items-center justify-center p-6 text-center text-sm text-muted">{{ t('dock.session.empty') }}</p>

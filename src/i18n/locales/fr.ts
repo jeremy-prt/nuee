@@ -100,12 +100,14 @@ export default {
     closePane: 'Fermer le panneau',
   },
   dock: {
+    add: "Ouvrir un volet",
     right: 'Panneau de droite',
     toggle: 'Afficher ou masquer le panneau de droite',
     close: 'Masquer le volet',
     resize: 'Redimensionner le panneau',
     session: {
       title: 'Session',
+      open: "Ouvrir",
       environment: 'Environnement',
       context: 'Contexte',
       empty: 'Lancer la conversation pour voir où travaille l\'agent.',
@@ -1122,7 +1124,6 @@ export default {
       failedRemove: 'Impossible de retirer l\'image : {detail}',
       where: {
         label: "Où afficher l'image",
-        hint: "Jamais derrière les Réglages.",
         chats: "Sessions seulement",
         everywhere: "Toutes les pages",
       },
@@ -1134,7 +1135,6 @@ export default {
       },
       intensity: {
         label: 'Intensité de l\'effet',
-        hint: 'Seulement quand un effet est choisi.',
         low: 'Légère',
         medium: 'Moyenne',
         high: 'Forte',

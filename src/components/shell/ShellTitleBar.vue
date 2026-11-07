@@ -3,7 +3,7 @@ import { LayoutList, PanelRight, Plus } from '@/components/ui/icons'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsSearch from '@/components/settings/SettingsSearch.vue'
-import { dockIcons } from '@/components/shell/dockIcons'
+import ShellDockMenu from '@/components/shell/ShellDockMenu.vue'
 import ShellRailToggle from '@/components/shell/ShellRailToggle.vue'
 import ShellTabs from '@/components/shell/ShellTabs.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
@@ -11,7 +11,7 @@ import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { useNewChat } from '@/composables/useNewChat'
 import { isMacosApp } from '@/ipc/system'
 import { useAppearanceStore } from '@/stores/appearance'
-import { RAIL_COLLAPSED_WIDTH, TITLE_BAR_VIEWS, useLayoutStore } from '@/stores/layout'
+import { RAIL_COLLAPSED_WIDTH, useLayoutStore } from '@/stores/layout'
 import { parentDetail, settingsDetailTitle, useNavigationStore } from '@/stores/navigation'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { useWorkspaceStore } from '@/stores/workspace'
@@ -143,17 +143,8 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
           data-tauri-drag-region
         >
           <template v-if="layout.right.open">
-            <UiIconButton
-              v-for="view in TITLE_BAR_VIEWS"
-              :key="view"
-              :label="t(`dock.${view}.title`)"
-              :shortcut="view === 'terminal' ? shortcuts.label('toggleTerminal') : undefined"
-              :active="layout.isShown(view)"
-              :aria-pressed="layout.isShown(view)"
-              @click="layout.toggleView(view)"
-            >
-              <component :is="dockIcons[view]" class="size-4" aria-hidden="true" />
-            </UiIconButton>
+            <!-- Comme Devin : un « + » ouvre la liste des volets, au lieu d'une icône par volet. -->
+            <ShellDockMenu />
             <span class="flex-1 self-stretch" data-tauri-drag-region />
           </template>
           <UiIconButton

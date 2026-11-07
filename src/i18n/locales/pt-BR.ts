@@ -100,12 +100,14 @@ export default {
     closePane: 'Fechar painel',
   },
   dock: {
+    add: "Abrir um painel",
     right: 'Painel direito',
     toggle: 'Mostrar ou ocultar o painel direito',
     close: 'Ocultar painel',
     resize: 'Redimensionar o painel',
     session: {
       title: 'Sessão',
+      open: "Abrir",
       environment: 'Ambiente',
       context: 'Contexto',
       empty: 'Iniciar a conversa para ver onde o agente trabalha.',
@@ -1122,7 +1124,6 @@ export default {
       failedRemove: 'Não foi possível remover a imagem: {detail}',
       where: {
         label: "Onde mostrar a imagem",
-        hint: "Nunca atrás dos Ajustes.",
         chats: "Somente sessões",
         everywhere: "Todas as páginas",
       },
@@ -1134,7 +1135,6 @@ export default {
       },
       intensity: {
         label: 'Intensidade do efeito',
-        hint: 'Só quando um efeito está escolhido.',
         low: 'Leve',
         medium: 'Média',
         high: 'Forte',

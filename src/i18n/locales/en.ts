@@ -98,12 +98,14 @@ export default {
     closePane: 'Close pane',
   },
   dock: {
+    add: "Open a pane",
     right: 'Right panel',
     toggle: 'Show or hide the right panel',
     close: 'Hide pane',
     resize: 'Resize panel',
     session: {
       title: 'Session',
+      open: "Open",
       environment: 'Environment',
       context: 'Context',
       empty: 'Start the conversation to see where the agent works.',
@@ -1120,7 +1122,6 @@ export default {
       failedRemove: 'Couldn\'t remove the image: {detail}',
       where: {
         label: "Where to show the image",
-        hint: "Never behind Settings.",
         chats: "Sessions only",
         everywhere: "All pages",
       },
@@ -1132,7 +1133,6 @@ export default {
       },
       intensity: {
         label: 'Effect intensity',
-        hint: 'Only when an effect is chosen.',
         low: 'Light',
         medium: 'Medium',
         high: 'Strong',

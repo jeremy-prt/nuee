@@ -355,6 +355,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (!tab) return null
     const layout = layouts[tab.projectId ?? '']
     if (layout) closeTab(id, layout)
+    useLayoutStore().forget(id)
     tabs.value = tabs.value.filter((item) => item.id !== id)
     useDraftsStore().set(id, '', [])
     useWorktreesStore().setBase(id, null)

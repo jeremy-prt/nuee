@@ -5,8 +5,6 @@ export type DockView = 'session' | 'tasks' | 'terminal' | 'changes' | 'browser' 
 
 export const DOCK_VIEWS: DockView[] = ['session', 'tasks', 'terminal', 'changes', 'browser', 'files']
 
-// Icônes de la barre de titre, cinq comme l'app Claude Code : Tâches s'ouvre depuis le volet Session.
-export const TITLE_BAR_VIEWS = DOCK_VIEWS.filter((view) => view !== 'tasks')
 
 export type SessionSort = 'activity' | 'created' | 'name'
 
@@ -17,7 +15,13 @@ interface Dock {
   panes: DockView[]
   // Hauteur du volet du haut quand il y en a deux.
   split: number
+  // Dernier choix de l'utilisateur (panneau ouvert ou fermé de sa main) : sert aux sessions jamais vues.
+  preferOpen: boolean
+  // Panneau de chaque session, comme T3 Code : on le retrouve en revenant sur elle, même après un redémarrage.
+  sessions: Record<string, { open: boolean; panes: DockView[] }>
 }
+
+const MAX_SESSIONS = 300
 
 interface LayoutState {
   rail: { expanded: boolean; width: number }
@@ -44,7 +48,7 @@ function defaults(): LayoutState {
   return {
     rail: { expanded: true, width: SIZES.rail.defaultSize },
     panel: { open: true, width: SIZES.panel.defaultSize },
-    right: { open: false, size: SIZES.right.defaultSize, panes: ['session'], split: SIZES.split.defaultSize },
+    right: { open: false, size: SIZES.right.defaultSize, panes: ['session'], split: SIZES.split.defaultSize, preferOpen: true, sessions: {} },
     sessionSort: 'activity',
     sessionGroups: false,
   }
@@ -56,6 +60,7 @@ function load(): LayoutState {
     const state: LayoutState = saved ? { ...defaults(), ...JSON.parse(saved) } : defaults()
     // Disposition d'avant les volets empilés (volet du bas, onglets) : on garde la largeur.
     if (!Array.isArray(state.right.panes)) state.right = { ...defaults().right, size: state.right.size }
+    state.right = { ...defaults().right, ...state.right }
     state.right.panes = state.right.panes.filter((view) => DOCK_VIEWS.includes(view))
     if (state.right.panes.includes('session')) state.right.panes = ['session']
     const legacy = state as LayoutState & { bottom?: unknown; views?: unknown }
@@ -99,6 +104,35 @@ export const useLayoutStore = defineStore('layout', () => {
   function toggleRight() {
     if (!state.right.panes.length) state.right.panes = ['session']
     state.right.open = !state.right.open
+    state.right.preferOpen = state.right.open
+  }
+
+  function remember(chatId: string) {
+    const sessions = state.right.sessions
+    delete sessions[chatId]
+    sessions[chatId] = { open: state.right.open, panes: [...state.right.panes] }
+    const ids = Object.keys(sessions)
+    for (const id of ids.slice(0, Math.max(0, ids.length - MAX_SESSIONS))) delete sessions[id]
+  }
+
+  // Une session vierge démarre panneau fermé (il s'ouvre au premier message) ; une session jamais vue suit le dernier
+  // choix, sur le volet Session.
+  function restore(chatId: string, blank: boolean) {
+    const saved = state.right.sessions[chatId]
+    const dock = state.right
+    if (blank) dock.open = false
+    else if (saved) {
+      dock.panes = saved.panes.filter((view) => DOCK_VIEWS.includes(view))
+      dock.open = saved.open && dock.panes.length > 0
+    } else {
+      dock.panes = ['session']
+      dock.open = dock.preferOpen
+    }
+    if (!dock.panes.length) dock.panes = ['session']
+  }
+
+  function forget(chatId: string) {
+    delete state.right.sessions[chatId]
   }
 
   // Ouvre le volet sous celui déjà affiché ; avec deux volets, il remplace celui du bas. Session ne s'empile jamais :
@@ -115,7 +149,10 @@ export const useLayoutStore = defineStore('layout', () => {
   function hideView(view: DockView) {
     const dock = state.right
     dock.panes = dock.panes.filter((item) => item !== view)
-    if (!dock.panes.length) dock.open = false
+    if (!dock.panes.length) {
+      dock.open = false
+      dock.preferOpen = false
+    }
   }
 
   function toggleView(view: DockView) {
@@ -142,6 +179,9 @@ export const useLayoutStore = defineStore('layout', () => {
     togglePanel,
     isShown,
     toggleRight,
+    remember,
+    restore,
+    forget,
     showView,
     showChanges,
     hideView,

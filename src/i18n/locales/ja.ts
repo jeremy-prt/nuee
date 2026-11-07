@@ -100,12 +100,14 @@ export default {
     closePane: 'パネルを閉じる',
   },
   dock: {
+    add: "パネルを開く",
     right: '右パネル',
     toggle: '右パネルの表示を切り替え',
     close: 'パネルを隠す',
     resize: 'パネルのサイズを変更',
     session: {
       title: 'セッション',
+      open: "開く",
       environment: '環境',
       context: 'コンテキスト',
       empty: '会話を始めると、エージェントの作業場所が表示されます。',
@@ -1122,7 +1124,6 @@ export default {
       failedRemove: '画像を削除できませんでした: {detail}',
       where: {
         label: "画像を表示する場所",
-        hint: "設定画面の背景には表示しません。",
         chats: "セッションのみ",
         everywhere: "すべてのページ",
       },
@@ -1134,7 +1135,6 @@ export default {
       },
       intensity: {
         label: 'エフェクトの強さ',
-        hint: 'エフェクト選択時のみ。',
         low: '弱',
         medium: '中',
         high: '強',

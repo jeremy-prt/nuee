@@ -100,12 +100,14 @@ export default {
     closePane: '关闭面板',
   },
   dock: {
+    add: "打开面板",
     right: '右侧面板',
     toggle: '显示或隐藏右侧面板',
     close: '隐藏面板',
     resize: '调整面板大小',
     session: {
       title: '会话',
+      open: "打开",
       environment: '环境',
       context: '上下文',
       empty: '开始对话后可查看智能体的工作位置。',
@@ -1122,7 +1124,6 @@ export default {
       failedRemove: '无法移除图片：{detail}',
       where: {
         label: "图片显示位置",
-        hint: "不会显示在设置页面后面。",
         chats: "仅会话",
         everywhere: "所有页面",
       },
@@ -1134,7 +1135,6 @@ export default {
       },
       intensity: {
         label: '效果强度',
-        hint: '仅在选择了效果时。',
         low: '弱',
         medium: '中',
         high: '强',

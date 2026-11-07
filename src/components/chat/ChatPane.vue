@@ -137,8 +137,9 @@ function send(prompt: string, attachments: Attachment[], other = false) {
   conversations.send(props.tab.id, place.value, prompt, attachments, other)
   if (first) {
     worktrees.setBase(props.tab.id, null)
-    // Comme Claude Code et T3 Code : le résumé de la session s'ouvre à droite dès le premier message.
-    if (!layout.right.open) layout.showView('session')
+    // Comme Claude Code : le résumé de la session s'ouvre à droite dès le premier message, sauf si le panneau a été
+    // fermé de la main de l'utilisateur.
+    if (!layout.right.open && layout.right.preferOpen) layout.showView('session')
   }
 }
 

@@ -50,6 +50,22 @@ watch(
 )
 const navigation = useNavigationStore()
 const workspace = useWorkspaceStore()
+// Le panneau de droite suit la session affichée : on retrouve le sien en revenant, et chaque changement s'enregistre.
+watch(
+  () => workspace.activeTabId,
+  (id) => {
+    if (!id) return
+    const tab = workspace.tabs.find((item) => item.id === id)
+    layout.restore(id, !tab?.started)
+  },
+  { immediate: true },
+)
+watch(
+  () => [layout.right.open, [...layout.right.panes]],
+  () => {
+    if (workspace.activeTabId) layout.remember(workspace.activeTabId)
+  },
+)
 const drag = useDragStore()
 const newChat = useNewChat()
 const shortcuts = useShortcutsStore()
