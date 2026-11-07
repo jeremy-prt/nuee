@@ -92,6 +92,8 @@ export default {
     closeRight: '关闭右侧标签页',
     closeLeft: '关闭左侧标签页',
     closeAll: '关闭所有标签页',
+    pinTab: '固定标签页',
+    unpinTab: '取消固定标签页',
     scrollLeft: '上一组标签页',
     scrollRight: '下一组标签页',
     allTabs: '所有标签页',

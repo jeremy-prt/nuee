@@ -92,6 +92,8 @@ export default {
     closeRight: 'Fermer les onglets à droite',
     closeLeft: 'Fermer les onglets à gauche',
     closeAll: 'Fermer tous les onglets',
+    pinTab: 'Épingler l\'onglet',
+    unpinTab: 'Désépingler l\'onglet',
     scrollLeft: 'Onglets précédents',
     scrollRight: 'Onglets suivants',
     allTabs: 'Tous les onglets',

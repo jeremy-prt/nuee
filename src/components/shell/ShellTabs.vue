@@ -35,7 +35,7 @@ function measure() {
 const observer = new ResizeObserver(measure)
 onMounted(() => strip.value && observer.observe(strip.value))
 onBeforeUnmount(() => observer.disconnect())
-watch(() => workspace.contextTabs.length, () => nextTick(measure))
+watch(() => workspace.stripTabs.length, () => nextTick(measure))
 
 function page(direction: 1 | -1) {
   const el = strip.value
@@ -78,7 +78,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('blur', hideNumbers)
 })
 function rank(index: number) {
-  const count = workspace.contextTabs.length
+  const count = workspace.stripTabs.length
   if (index === count - 1 && count > 8) return 9
   return index < 8 ? index + 1 : null
 }
@@ -90,12 +90,12 @@ watch(listOpen, (open) => {
 })
 const listed = computed(() => {
   const needle = normalize(query.value.trim())
-  const tabs = workspace.contextTabs
+  const tabs = workspace.stripTabs
   return needle ? tabs.filter((tab) => normalize(tabTitle(tab)).includes(needle)) : tabs
 })
 
 function pick(value: unknown) {
-  if (typeof value === 'string') workspace.show(value)
+  if (typeof value === 'string') workspace.openTab(value)
   listOpen.value = false
 }
 
@@ -118,12 +118,13 @@ const item =
       @scroll.passive="measure"
       @wheel="wheel"
     >
+      <!-- `index` et `count` ne comptent que les onglets non épinglés : ce sont eux que « Fermer à droite »… parcourt. -->
       <ShellTab
-        v-for="(tab, index) in workspace.contextTabs"
+        v-for="(tab, index) in workspace.stripTabs"
         :key="tab.id"
         :tab="tab"
-        :index="index"
-        :count="workspace.contextTabs.length"
+        :index="index - workspace.pinnedTabs.length"
+        :count="workspace.stripTabs.length - workspace.pinnedTabs.length"
         :rank="numbered ? rank(index) : null"
       />
     </div>
@@ -138,7 +139,7 @@ const item =
               class="group flex h-7 shrink-0 items-center gap-1 rounded-md px-1.5 text-xs text-muted tabular-nums hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-ring data-[state=open]:bg-selection-hover data-[state=open]:text-content"
               :aria-label="t('workspace.allTabs')"
             >
-              {{ workspace.contextTabs.length }}
+              {{ workspace.stripTabs.length }}
               <ChevronDown class="size-3 transition-transform duration-150 group-data-[state=open]:rotate-180 motion-reduce:transition-none" aria-hidden="true" />
             </PopoverTrigger>
             <PopoverPortal>

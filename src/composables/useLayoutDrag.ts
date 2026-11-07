@@ -67,7 +67,8 @@ export function useLayoutDrag() {
   }
 
   function reorderTab(id: string, x: number) {
-    const others = [...document.querySelectorAll<HTMLElement>('[data-tab-id]')].filter((el) => el.dataset.tabId !== id)
+    // Les épinglés restent en tête : on ne range qu'entre les autres.
+    const others = [...document.querySelectorAll<HTMLElement>('[data-tab-id]:not([data-tab-pinned])')].filter((el) => el.dataset.tabId !== id)
     const before = others.find((el) => {
       const r = el.getBoundingClientRect()
       return x < r.left + r.width / 2

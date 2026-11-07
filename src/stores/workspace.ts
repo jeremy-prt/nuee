@@ -123,6 +123,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const contextTabs = computed(() =>
     (layouts[contextKey.value]?.tabs ?? []).flatMap((id) => tabs.value.find((tab) => tab.id === id) ?? []),
   )
+  const pinnedTabs = computed(() =>
+    useLayoutStore().pinnedTabs.flatMap((id) => tabs.value.find((tab) => tab.id === id && tab.started && !tab.archived) ?? []),
+  )
+  // Bande d'onglets : les épinglés, quel que soit leur projet, puis ceux du contexte.
+  const stripTabs = computed(() => [...pinnedTabs.value, ...contextTabs.value.filter((tab) => !isTabPinned(tab.id))])
   const startedChats = computed(() => tabs.value.filter((tab) => tab.started && !tab.archived))
   const archivedChats = computed(() =>
     tabs.value.filter((tab) => tab.archived).sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0)),
@@ -279,9 +284,25 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     else closePane(paneIndex, layout)
   }
 
-  // Menu d'un onglet, comme monocode : les autres, ceux d'un côté, ou tous.
+  function isTabPinned(id: string) {
+    return useLayoutStore().pinnedTabs.includes(id)
+  }
+
+  function togglePinTab(id: string) {
+    const layout = useLayoutStore()
+    layout.pinnedTabs = isTabPinned(id) ? layout.pinnedTabs.filter((other) => other !== id) : [...layout.pinnedTabs, id]
+  }
+
+  // Un onglet épinglé peut venir d'un autre projet, ou d'une autre vue : on bascule d'abord sur sa session.
+  function openTab(id: string) {
+    const tab = tabs.value.find((item) => item.id === id)
+    if (tab && (tab.projectId !== navigation.projectId || navigation.view !== 'chats')) navigation.openChats(tab.projectId)
+    show(id)
+  }
+
+  // Menu d'un onglet, comme monocode : les autres, ceux d'un côté, ou tous. Jamais les épinglés.
   function closeTabs(id: string, which: 'others' | 'right' | 'left' | 'all') {
-    const open = [...current().tabs]
+    const open = current().tabs.filter((other) => !isTabPinned(other))
     const index = open.indexOf(id)
     const targets = open.filter((other, i) =>
       which === 'all' ? true : which === 'others' ? other !== id : which === 'right' ? i > index : i < index,
@@ -299,17 +320,17 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   // `step` : suivant (1) ou précédent (-1), en boucle.
   function stepTab(step: 1 | -1) {
-    const layout = current()
-    if (!layout.tabs.length) return
-    const at = layout.tabs.indexOf(activeTabId.value ?? '')
-    show(layout.tabs[(at + step + layout.tabs.length) % layout.tabs.length]!)
+    const open = stripTabs.value.map((tab) => tab.id)
+    if (!open.length) return
+    const at = open.indexOf(activeTabId.value ?? '')
+    openTab(open[(at + step + open.length) % open.length]!)
   }
 
   // ⌘1…8 : l'onglet de ce rang ; ⌘9 : le dernier, comme les navigateurs.
   function goToTab(rank: number) {
-    const open = current().tabs
+    const open = stripTabs.value.map((tab) => tab.id)
     const id = rank === 9 ? open.at(-1) : open[rank - 1]
-    if (id) show(id)
+    if (id) openTab(id)
   }
 
   function closeActiveTab() {
@@ -529,6 +550,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     focusedPane,
     activeTabId,
     contextTabs,
+    stripTabs,
+    pinnedTabs,
+    isTabPinned,
+    togglePinTab,
+    openTab,
     contextChats,
     pinnedChats,
     recentChats,

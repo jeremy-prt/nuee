@@ -92,6 +92,8 @@ export default {
     closeRight: 'Fechar as abas à direita',
     closeLeft: 'Fechar as abas à esquerda',
     closeAll: 'Fechar todas as abas',
+    pinTab: 'Fixar aba',
+    unpinTab: 'Desafixar aba',
     scrollLeft: 'Abas anteriores',
     scrollRight: 'Próximas abas',
     allTabs: 'Todas as abas',

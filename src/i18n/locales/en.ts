@@ -90,6 +90,8 @@ export default {
     closeRight: 'Close tabs to the right',
     closeLeft: 'Close tabs to the left',
     closeAll: 'Close all tabs',
+    pinTab: 'Pin tab',
+    unpinTab: 'Unpin tab',
     scrollLeft: 'Previous tabs',
     scrollRight: 'Next tabs',
     allTabs: 'All tabs',

@@ -34,6 +34,8 @@ interface LayoutState {
   sessionCompact: boolean
   // Ordre des épinglées, choisi en les glissant ; une épinglée absente se range après, selon le tri.
   pinnedOrder: string[]
+  // Onglets épinglés : en tête de la bande dans tous les projets, gardés au redémarrage (choix de Jérémy).
+  pinnedTabs: string[]
 }
 
 const STORAGE_KEY = 'nuee.layout.v5'
@@ -59,8 +61,9 @@ function defaults(): LayoutState {
     right: { open: false, size: SIZES.right.defaultSize, tabs: ['session'], active: 'session', preferOpen: true, sessions: {} },
     sessionSort: 'activity',
     sessionGroups: false,
-    sessionCompact: false,
+    sessionCompact: true,
     pinnedOrder: [],
+    pinnedTabs: [],
   }
 }
 

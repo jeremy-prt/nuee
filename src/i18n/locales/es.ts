@@ -92,6 +92,8 @@ export default {
     closeRight: 'Cerrar las pestañas a la derecha',
     closeLeft: 'Cerrar las pestañas a la izquierda',
     closeAll: 'Cerrar todas las pestañas',
+    pinTab: 'Fijar pestaña',
+    unpinTab: 'Desfijar pestaña',
     scrollLeft: 'Pestañas anteriores',
     scrollRight: 'Pestañas siguientes',
     allTabs: 'Todas las pestañas',

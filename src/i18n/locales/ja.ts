@@ -92,6 +92,8 @@ export default {
     closeRight: '右側のタブを閉じる',
     closeLeft: '左側のタブを閉じる',
     closeAll: 'すべてのタブを閉じる',
+    pinTab: 'タブを固定',
+    unpinTab: 'タブの固定を解除',
     scrollLeft: '前のタブ',
     scrollRight: '次のタブ',
     allTabs: 'すべてのタブ',

@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import SettingsSearch from '@/components/settings/SettingsSearch.vue'
 import ShellDockTabs from '@/components/shell/ShellDockTabs.vue'
 import ShellRailToggle from '@/components/shell/ShellRailToggle.vue'
+import ShellTab from '@/components/shell/ShellTab.vue'
 import ShellTabs from '@/components/shell/ShellTabs.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
@@ -45,7 +46,7 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
 
 <template>
   <!-- Jamais moins de 40 pt de haut : les boutons macOS, fixes, doivent y tenir quel que soit le zoom. Pas de trait sous
-       la barre (choix de Jérémy), sauf au-dessus du panneau latéral : le centre trace le sien. -->
+       la barre (choix de Jérémy) : le centre trace le sien. -->
   <header
     class="flex shrink-0 items-center bg-chrome"
     :style="{ height: 'max(2.5rem, calc(2.5rem / var(--ui-zoom, 1)))' }"
@@ -61,7 +62,7 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
     <!-- Au-dessus du panneau latéral : son bouton de fermeture, calé sur son bord droit. -->
     <div
       v-if="!menu"
-      class="flex shrink-0 items-center justify-end self-stretch border-b border-stroke pe-2"
+      class="flex shrink-0 items-center justify-end self-stretch pe-2"
       :style="{ width: `${spacer}px` }"
       data-tauri-drag-region
     >
@@ -121,6 +122,16 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
         <SettingsSearch />
       </template>
 
+      <!-- Hors des sessions, les onglets épinglés restent là (choix de Jérémy) : un clic ramène à la session. -->
+      <div
+        v-if="navigation.view !== 'chats' && navigation.view !== 'settings' && workspace.pinnedTabs.length"
+        role="tablist"
+        :aria-label="t('workspace.tabs')"
+        class="flex h-full items-center gap-0.5"
+        data-tauri-drag-region
+      >
+        <ShellTab v-for="tab in workspace.pinnedTabs" :key="tab.id" :tab="tab" :index="-1" :count="0" :rank="null" />
+      </div>
       <template v-if="navigation.view === 'chats'">
         <ShellTabs />
 
