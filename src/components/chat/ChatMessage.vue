@@ -93,9 +93,11 @@ watch(signedIn, async (now) => {
   <ChatSubagent v-else-if="item.kind === 'tool' && item.tool === 'agent'" class="-mx-2 text-sm" :item="item" />
   <ChatTool v-else-if="item.kind === 'tool'" class="-mx-2 text-sm" :item="item" />
   <ChatCompact v-else-if="item.kind === 'compact'" :item="item" :agent="agent" />
-  <p v-else-if="item.kind === 'resume'" class="flex items-center gap-1.5 text-xs text-muted">
-    <CornerDownRight class="size-3.5 shrink-0" aria-hidden="true" />
-    <span class="min-w-0 truncate">{{ item.task ? t('chat.resumed.task', { ...agentParams, task: item.task }) : t('chat.resumed.any', agentParams) }}</span>
+  <!-- Séparateur entre deux tours : celui-ci, l'agent l'a ouvert seul quand sa tâche de fond a fini. -->
+  <p v-else-if="item.kind === 'resume'" class="my-1 flex items-center gap-3 text-xs text-muted">
+    <span class="h-px flex-1 bg-stroke" aria-hidden="true" />
+    <span class="max-w-[70%] truncate">{{ item.task ? t('chat.resumed.task', { task: item.task }) : t('chat.resumed.any') }}</span>
+    <span class="h-px flex-1 bg-stroke" aria-hidden="true" />
   </p>
   <template v-else-if="item.kind === 'end'">
     <!-- Toujours affichée (choix de Jérémy) : copier, puis la durée du tour (pas sous une seconde, elle ne dit rien),

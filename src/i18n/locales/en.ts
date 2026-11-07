@@ -320,8 +320,8 @@ export default {
     },
     dropFiles: 'Drop to attach',
     resumed: {
-      task: "« {task} » finished in the background, {agent} reports back",
-      any: "A background task finished, {agent} reports back",
+      task: "« {task} » finished in the background",
+      any: "Background task finished",
     },
     subagent: {
       steps: "1 step | {n} steps",

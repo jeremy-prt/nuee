@@ -322,8 +322,8 @@ export default {
     },
     dropFiles: 'Soltar para adjuntar',
     resumed: {
-      task: "« {task} » terminó en segundo plano, {agent} informa",
-      any: "Una tarea en segundo plano terminó, {agent} informa",
+      task: "« {task} » terminó en segundo plano",
+      any: "Tarea en segundo plano terminada",
     },
     subagent: {
       steps: "1 paso | {n} pasos",

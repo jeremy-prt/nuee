@@ -322,8 +322,8 @@ export default {
     },
     dropFiles: 'ドロップで添付',
     resumed: {
-      task: "「{task}」がバックグラウンドで完了し、{agent} が報告します",
-      any: "バックグラウンドタスクが完了し、{agent} が報告します",
+      task: "「{task}」がバックグラウンドで完了",
+      any: "バックグラウンドタスクが完了",
     },
     subagent: {
       steps: "{n} ステップ",

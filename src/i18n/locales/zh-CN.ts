@@ -322,8 +322,8 @@ export default {
     },
     dropFiles: '拖放以附加',
     resumed: {
-      task: "“{task}”已在后台完成,{agent} 进行汇报",
-      any: "一个后台任务已完成,{agent} 进行汇报",
+      task: "“{task}”已在后台完成",
+      any: "后台任务已完成",
     },
     subagent: {
       steps: "{n} 个步骤",
