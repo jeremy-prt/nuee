@@ -19,7 +19,8 @@
   --color-stroke-focus: color-mix(in srgb, var(--color-content) 20%, transparent);
   /* Bord de colonne survolé pour l'élargir : un gris, pas le signal (choix de Jérémy). Opaque : là où la poignée
      et la barre de titre se chevauchent, un gris transparent s'additionnerait en point clair. */
-  --color-edge-hover: color-mix(in srgb, var(--color-content) 35%, var(--color-canvas));
+  /* Survol d'une poignée : un trait d'un pixel à peine éclairci, comme l'app Divin (choix de Jérémy). */
+  --color-edge-hover: color-mix(in srgb, var(--color-content) 22%, var(--color-canvas));
   --color-accent: hsl(240 0% 92%);
   /* Ce qui signale un état (interrupteur allumé, non lu, actif) : l'accent d'un thème coloré, ce bleu dans un
      thème neutre (#0A7AF2), où l'accent est la couleur du texte (choix de Jérémy). Posé par stores/appearance.ts. */
@@ -157,15 +158,15 @@ html:has([data-edge='panel']:is(:hover, :active, :focus-visible)) [data-title-ed
   --edge: var(--color-edge-hover);
   margin-bottom: -1px;
   border-color: var(--edge);
-  /* Même épaisseur que la poignée (3 px, centrés sur le trait). */
-  box-shadow: inset -1px 0 0 0 var(--edge), 1px 0 0 0 var(--edge);
+  /* Même épaisseur que la poignée : son trait, plus un pixel à sa droite. */
+  box-shadow: 1px 0 0 0 var(--edge);
 }
 /* Le panneau de droite porte son trait à gauche : même lueur, de l'autre côté. */
 html:has([data-edge='right']:is(:hover, :active, :focus-visible)) [data-title-edge='right'] {
   --edge: var(--color-edge-hover);
   margin-bottom: -1px;
   border-color: var(--edge);
-  box-shadow: inset 1px 0 0 0 var(--edge), -1px 0 0 0 var(--edge);
+  box-shadow: inset 1px 0 0 0 var(--edge);
 }
 html:has([data-edge='rail']:focus-visible) [data-title-edge='rail'],
 html:has([data-edge='panel']:focus-visible) [data-title-edge='panel'],

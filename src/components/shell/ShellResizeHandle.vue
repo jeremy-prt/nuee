@@ -52,8 +52,11 @@ function onKeydown(event: KeyboardEvent) {
     :aria-valuemax="max"
     class="relative z-10 shrink-0 outline-none"
     :class="[
-      'separator hover:bg-edge-hover hover:bg-none hover:shadow-[0_0_0_1px_var(--color-edge-hover)] active:bg-edge-hover active:bg-none active:shadow-[0_0_0_1px_var(--color-edge-hover)] focus-visible:bg-ring focus-visible:bg-none focus-visible:shadow-[0_0_0_1px_var(--color-ring)]',
-      { 'w-px': orientation === 'vertical', 'h-px': orientation === 'horizontal' },
+      'separator hover:bg-edge-hover hover:bg-none active:bg-edge-hover active:bg-none focus-visible:bg-ring focus-visible:bg-none focus-visible:shadow-[0_0_0_1px_var(--color-ring)]',
+      // Allumée, la poignée fait 2 px : le trait plus un pixel à sa droite (ou dessous), que la barre de titre reprend.
+      orientation === 'vertical'
+        ? 'w-px hover:shadow-[1px_0_0_0_var(--color-edge-hover)] active:shadow-[1px_0_0_0_var(--color-edge-hover)] focus-visible:shadow-[1px_0_0_0_var(--color-ring)]'
+        : 'h-px hover:shadow-[0_1px_0_0_var(--color-edge-hover)] active:shadow-[0_1px_0_0_var(--color-edge-hover)] focus-visible:shadow-[0_1px_0_0_var(--color-ring)]',
     ]"
     @pointerdown="onPointerDown"
     @keydown="onKeydown"

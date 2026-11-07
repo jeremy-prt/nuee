@@ -32,7 +32,7 @@ function options(setting: (typeof rows)[number]) {
       v-slot="{ hintId }"
       :data-setting="`background-${setting}`"
       :label="t(`settings.background.${setting}.label`)"
-      :hint="setting === 'intensity' || setting === 'blur' ? t(`settings.background.${setting}.hint`) : undefined"
+      :hint="setting === 'visibility' ? undefined : t(`settings.background.${setting}.hint`)"
       :disabled="setting === 'intensity' && appearance.background.effect === 'none'"
     >
       <UiSegmented

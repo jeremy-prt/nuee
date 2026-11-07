@@ -96,7 +96,6 @@ export default {
     searchTabs: 'Search tabs',
     split: 'Split right',
     closePane: 'Close pane',
-    empty: 'No open tab',
   },
   dock: {
     right: 'Right panel',
@@ -1120,12 +1119,13 @@ export default {
       failed: 'Couldn\'t add the image: {detail}',
       failedRemove: 'Couldn\'t remove the image: {detail}',
       where: {
-        label: 'Show the image',
-        chats: 'In sessions',
-        everywhere: 'Across the whole center area',
+        label: "Where to show the image",
+        hint: "Never behind Settings.",
+        chats: "Sessions only",
+        everywhere: "All pages",
       },
       visibility: {
-        label: 'Visibility',
+        label: "Image opacity",
         low: 'Subtle',
         medium: 'Medium',
         high: 'Strong',

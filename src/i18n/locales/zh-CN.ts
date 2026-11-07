@@ -98,7 +98,6 @@ export default {
     searchTabs: '搜索标签页',
     split: '向右拆分',
     closePane: '关闭面板',
-    empty: '没有打开的标签页',
   },
   dock: {
     right: '右侧面板',
@@ -1122,12 +1121,13 @@ export default {
       failed: '无法添加图片：{detail}',
       failedRemove: '无法移除图片：{detail}',
       where: {
-        label: '显示图片',
-        chats: '仅在会话中',
-        everywhere: '整个中央区域',
+        label: "图片显示位置",
+        hint: "不会显示在设置页面后面。",
+        chats: "仅会话",
+        everywhere: "所有页面",
       },
       visibility: {
-        label: '可见度',
+        label: "图片不透明度",
         low: '淡',
         medium: '中',
         high: '强',

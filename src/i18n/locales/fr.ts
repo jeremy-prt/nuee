@@ -98,7 +98,6 @@ export default {
     searchTabs: 'Rechercher un onglet',
     split: 'Diviser à droite',
     closePane: 'Fermer le panneau',
-    empty: 'Aucun onglet ouvert',
   },
   dock: {
     right: 'Panneau de droite',
@@ -1122,12 +1121,13 @@ export default {
       failed: 'Impossible d\'ajouter l\'image : {detail}',
       failedRemove: 'Impossible de retirer l\'image : {detail}',
       where: {
-        label: 'Afficher l\'image',
-        chats: 'Dans les sessions',
-        everywhere: 'Dans toute la zone centrale',
+        label: "Où afficher l'image",
+        hint: "Jamais derrière les Réglages.",
+        chats: "Sessions seulement",
+        everywhere: "Toutes les pages",
       },
       visibility: {
-        label: 'Visibilité',
+        label: "Opacité de l'image",
         low: 'Discrète',
         medium: 'Moyenne',
         high: 'Marquée',

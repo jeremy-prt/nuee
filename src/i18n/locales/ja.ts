@@ -98,7 +98,6 @@ export default {
     searchTabs: 'タブを検索',
     split: '右に分割',
     closePane: 'パネルを閉じる',
-    empty: '開いているタブはありません',
   },
   dock: {
     right: '右パネル',
@@ -1122,12 +1121,13 @@ export default {
       failed: '画像を追加できませんでした: {detail}',
       failedRemove: '画像を削除できませんでした: {detail}',
       where: {
-        label: '画像を表示',
-        chats: 'セッションのみ',
-        everywhere: '中央エリア全体',
+        label: "画像を表示する場所",
+        hint: "設定画面の背景には表示しません。",
+        chats: "セッションのみ",
+        everywhere: "すべてのページ",
       },
       visibility: {
-        label: '見え方',
+        label: "画像の不透明度",
         low: '控えめ',
         medium: '中',
         high: '強め',

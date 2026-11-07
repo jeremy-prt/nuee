@@ -98,7 +98,6 @@ export default {
     searchTabs: 'Buscar una pestaña',
     split: 'Dividir a la derecha',
     closePane: 'Cerrar panel',
-    empty: 'Ninguna pestaña abierta',
   },
   dock: {
     right: 'Panel derecho',
@@ -1122,12 +1121,13 @@ export default {
       failed: 'No se pudo añadir la imagen: {detail}',
       failedRemove: 'No se pudo quitar la imagen: {detail}',
       where: {
-        label: 'Mostrar la imagen',
-        chats: 'En las sesiones',
-        everywhere: 'En toda la zona central',
+        label: "Dónde mostrar la imagen",
+        hint: "Nunca detrás de los Ajustes.",
+        chats: "Solo sesiones",
+        everywhere: "Todas las páginas",
       },
       visibility: {
-        label: 'Visibilidad',
+        label: "Opacidad de la imagen",
         low: 'Discreta',
         medium: 'Media',
         high: 'Marcada',
