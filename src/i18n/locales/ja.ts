@@ -100,13 +100,14 @@ export default {
     closePane: 'パネルを閉じる',
   },
   dock: {
+    close: 'パネルを隠す',
+    closeTab: "タブを閉じる",
     add: "パネルを開く",
     right: '右パネル',
     toggle: '右パネルの表示を切り替え',
-    close: 'パネルを隠す',
     resize: 'パネルのサイズを変更',
     session: {
-      title: 'セッション',
+      title: '環境',
       open: "開く",
       environment: '環境',
       context: 'コンテキスト',
@@ -213,6 +214,10 @@ export default {
     },
     tasks: {
       title: 'タスク',
+      groups: {
+        running: "実行中",
+        done: "完了",
+      },
       empty: 'このセッションのサブエージェントとバックグラウンドのコマンドがここに表示されます。',
       stop: 'タスクを停止',
       noOutput: 'まだ出力はありません。',
@@ -467,7 +472,6 @@ export default {
     plus: {
       label: 'メッセージに追加',
       attach: 'ファイルを添付',
-      capture: 'スクリーンショット',
       mention: 'ファイルをメンション',
       skill: 'スキルを使う',
     },

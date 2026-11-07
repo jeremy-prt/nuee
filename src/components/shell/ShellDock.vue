@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Plus, X } from '@/components/ui/icons'
+import { Plus } from '@/components/ui/icons'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatChangesPanel from '@/components/chat/ChatChangesPanel.vue'
@@ -13,15 +13,14 @@ import TerminalTabs from '@/components/terminal/TerminalTabs.vue'
 import { dockIcons } from '@/components/shell/dockIcons'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import { useTerminalChat } from '@/composables/useTerminalChat'
-import { type DockView, useLayoutStore } from '@/stores/layout'
+import type { DockView } from '@/stores/layout'
 import { useServersStore } from '@/stores/servers'
 import { useTerminalsStore } from '@/stores/terminals'
 
-// Un volet du panneau de droite : son titre (les onglets des shells pour le terminal), puis son contenu.
-const props = defineProps<{ view: DockView }>()
+// Le volet affiché du panneau de droite : ses outils (shells du terminal, serveurs du navigateur), puis son contenu.
+defineProps<{ view: DockView }>()
 
 const { t } = useI18n()
-const layout = useLayoutStore()
 const terminals = useTerminalsStore()
 const servers = useServersStore()
 const { chat, place } = useTerminalChat()
@@ -42,23 +41,14 @@ function newTerminal() {
 
 <template>
   <section class="flex min-h-0 min-w-0 flex-col" :aria-label="t(`dock.${view}.title`)">
-    <!-- Marges calées sur la zone du panneau dans la barre de titre : icônes et boutons tombent sous les siens. -->
-    <!-- Session n'a rien à mettre dans un en-tête : son icône dans la barre de titre suffit (choix de Jérémy). -->
-    <div v-if="view !== 'session' || layout.right.panes.length > 1" class="flex h-9 shrink-0 items-center gap-0.5 border-b border-stroke ps-4 pe-3.5">
-      <TerminalTabs v-if="view === 'terminal' && shells > 1" class="-ms-1" />
-      <h2 v-else class="flex min-w-0 items-center gap-1.5 text-xs text-content">
-        <component :is="dockIcons[view]" class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
-        <span class="truncate">{{ t(`dock.${view}.title`) }}</span>
-      </h2>
+    <!-- Le nom du volet est dans son onglet, au-dessus : l'en-tête ne garde que les outils du terminal et du navigateur. -->
+    <div v-if="view === 'terminal' || view === 'browser'" class="flex h-9 shrink-0 items-center gap-0.5 border-b border-stroke ps-2 pe-3.5">
+      <TerminalTabs v-if="view === 'terminal' && shells > 0" />
       <UiIconButton v-if="view === 'terminal' && chat" :label="t('dock.terminal.new')" @click="newTerminal">
         <Plus class="size-4" aria-hidden="true" />
       </UiIconButton>
       <span class="flex-1" />
       <ServerMenu v-if="view === 'browser'" />
-      <!-- Seul, le volet se ferme avec le bouton du panneau : la croix ne sert qu'à retirer l'un de deux volets empilés. -->
-      <UiIconButton v-if="layout.right.panes.length > 1" :label="t('dock.close')" @click="layout.hideView(props.view)">
-        <X class="size-4" aria-hidden="true" />
-      </UiIconButton>
     </div>
     <ChatSessionPanel v-if="view === 'session'" />
     <ChatTasks v-else-if="view === 'tasks'" />

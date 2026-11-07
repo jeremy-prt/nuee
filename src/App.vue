@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { TooltipProvider } from 'reka-ui'
-import { computed, nextTick, onMounted, onUnmounted, useTemplateRef, watch } from 'vue'
+import { computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsSkillPanel from '@/components/settings/SettingsSkillPanel.vue'
 import ShellBackground from '@/components/shell/ShellBackground.vue'
@@ -38,16 +38,6 @@ import WorkspaceView from '@/views/WorkspaceView.vue'
 // ===== Initialisation =====
 const { t } = useI18n()
 const layout = useLayoutStore()
-// Deux volets empilés s'ouvrent à parts égales ; la poignée garde ensuite la taille choisie tant qu'ils restent deux.
-const dock = useTemplateRef('dock')
-watch(
-  () => layout.right.panes.length,
-  async (count, before) => {
-    if (count !== 2 || before === 2) return
-    await nextTick()
-    if (dock.value) layout.right.split = Math.round(dock.value.clientHeight / 2)
-  },
-)
 const navigation = useNavigationStore()
 const workspace = useWorkspaceStore()
 // Le panneau de droite suit la session affichée : on retrouve le sien en revenant, et chaque changement s'enregistre.
@@ -61,7 +51,7 @@ watch(
   { immediate: true },
 )
 watch(
-  () => [layout.right.open, [...layout.right.panes]],
+  () => [layout.right.open, [...layout.right.tabs]],
   () => {
     if (workspace.activeTabId) layout.remember(workspace.activeTabId)
   },
@@ -84,7 +74,7 @@ const inChats = computed(() => navigation.view === 'chats')
 // « Projets en menu » : pas de panneau latéral, les sessions sont dans la barre latérale ; le centre est une carte.
 const menu = computed(() => appearance.layout === 'menu')
 const panelShown = computed(() => !menu.value && navigation.hasPanel && layout.panel.open)
-const showRightDock = computed(() => layout.right.open && layout.right.panes.length > 0)
+const showRightDock = computed(() => layout.right.open)
 const skills = useSkillsStore()
 // Hors des chats, le panneau de droite ne sert qu'à l'aperçu d'un skill dans les réglages.
 const previewedSkill = computed(() => (navigation.view === 'settings' ? skills.previewed : null))
@@ -245,24 +235,8 @@ onUnmounted(() => {
                   invert
                   :label="t('dock.resize')"
                 />
-                <!-- Un ou deux volets empilés ; celui du haut cède de la place si la fenêtre est trop basse. -->
-                <div ref="dock" class="flex min-h-0 flex-col bg-chrome" :style="{ width: `${layout.right.size}px` }" :aria-label="t('dock.right')" role="region">
-                  <ShellDock
-                    :key="layout.right.panes[0]"
-                    :view="layout.right.panes[0]!"
-                    class="min-h-30"
-                    :class="layout.right.panes.length > 1 ? 'shrink' : 'flex-1'"
-                    :style="layout.right.panes.length > 1 ? { flexBasis: `${layout.right.split}px` } : undefined"
-                  />
-                  <template v-if="layout.right.panes[1]">
-                    <ShellResizeHandle
-                      v-model="layout.right.split"
-                      v-bind="SIZES.split"
-                      orientation="horizontal"
-                      :label="t('dock.resize')"
-                    />
-                    <ShellDock :key="layout.right.panes[1]" :view="layout.right.panes[1]" class="min-h-30 flex-1" />
-                  </template>
+                <div class="flex min-h-0 flex-col bg-chrome" :style="{ width: `${layout.right.size}px` }" :aria-label="t('dock.right')" role="region">
+                  <ShellDock :key="layout.right.active" :view="layout.right.active" class="min-h-0 flex-1" />
                 </div>
               </template>
             </div>

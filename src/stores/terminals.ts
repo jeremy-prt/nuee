@@ -180,11 +180,17 @@ export const useTerminalsStore = defineStore('terminals', () => {
     }
   }
 
+  // Commande au premier plan du shell, null à son invite (ou pas encore démarré).
+  async function command(key: string) {
+    const instance = instances.get(key)
+    return instance?.id == null ? null : await terminalBusy(instance.id).catch(() => null)
+  }
+
   function requestFocus() {
     wantsFocus.value = true
   }
 
-  return { tabs, active, wantsFocus, tabsOf, setHost, releaseHost, create, attach, fit, focus, close, closeChat, requestFocus }
+  return { tabs, active, wantsFocus, tabsOf, setHost, releaseHost, create, attach, fit, focus, close, closeChat, command, requestFocus }
 })
 
 // Palette ANSI de Brume (et de monocode) : ces couleurs viennent des programmes, pas de l'interface.

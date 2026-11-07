@@ -98,13 +98,14 @@ export default {
     closePane: 'Close pane',
   },
   dock: {
+    close: 'Hide pane',
+    closeTab: "Close tab",
     add: "Open a pane",
     right: 'Right panel',
     toggle: 'Show or hide the right panel',
-    close: 'Hide pane',
     resize: 'Resize panel',
     session: {
-      title: 'Session',
+      title: 'Environment',
       open: "Open",
       environment: 'Environment',
       context: 'Context',
@@ -211,6 +212,10 @@ export default {
     },
     tasks: {
       title: 'Tasks',
+      groups: {
+        running: "Running",
+        done: "Done",
+      },
       empty: 'Subagents and background commands of this session will show up here.',
       stop: 'Stop the task',
       noOutput: 'Nothing written yet.',
@@ -465,7 +470,6 @@ export default {
     plus: {
       label: 'Add to message',
       attach: 'Attach files',
-      capture: 'Screenshot',
       mention: 'Mention a file',
       skill: 'Use a skill',
     },

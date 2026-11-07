@@ -100,13 +100,14 @@ export default {
     closePane: '关闭面板',
   },
   dock: {
+    close: '隐藏面板',
+    closeTab: "关闭标签页",
     add: "打开面板",
     right: '右侧面板',
     toggle: '显示或隐藏右侧面板',
-    close: '隐藏面板',
     resize: '调整面板大小',
     session: {
-      title: '会话',
+      title: '环境',
       open: "打开",
       environment: '环境',
       context: '上下文',
@@ -213,6 +214,10 @@ export default {
     },
     tasks: {
       title: '任务',
+      groups: {
+        running: "进行中",
+        done: "已完成",
+      },
       empty: '此会话的子代理和后台命令会显示在这里。',
       stop: '停止任务',
       noOutput: '暂无输出。',
@@ -467,7 +472,6 @@ export default {
     plus: {
       label: '添加到消息',
       attach: '附加文件',
-      capture: '截图',
       mention: '提及文件',
       skill: '使用技能',
     },

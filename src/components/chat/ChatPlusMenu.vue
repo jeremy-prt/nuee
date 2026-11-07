@@ -1,16 +1,15 @@
 <script setup lang="ts">
-import { AtSign, LoaderCircle, Paperclip, Plus, Sparkles, SquareDashed } from '@/components/ui/icons'
+import { AtSign, LoaderCircle, Paperclip, Plus, Sparkles } from '@/components/ui/icons'
 import { DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuTrigger } from 'reka-ui'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { menuIcon, menuLabel, menuPanel, menuRow, menuTitle } from '@/components/ui/menuRow'
-import { isMac } from '@/utils/shortcuts'
 
 // Bouton « + » du champ de saisie. `mention` : seulement dans un projet, le menu « @ » cherche dans son dossier.
 // Le choix fait, le focus va au champ (`focusAfter`), jamais au bouton.
 const props = defineProps<{ disabled: boolean; loading: boolean; mention: boolean; focusAfter: () => void }>()
-const emit = defineEmits<{ attach: []; capture: []; mention: []; skill: [] }>()
+const emit = defineEmits<{ attach: []; mention: []; skill: [] }>()
 
 const { t } = useI18n()
 
@@ -18,7 +17,6 @@ const { t } = useI18n()
 const entries = computed(() =>
   [
     { id: 'attach', icon: Paperclip, tint: 'rotate-45 text-info', run: () => emit('attach') },
-    isMac && { id: 'capture', icon: SquareDashed, tint: 'text-orange', run: () => emit('capture') },
     props.mention && { id: 'mention', icon: AtSign, tint: 'text-mention', run: () => emit('mention') },
     { id: 'skill', icon: Sparkles, tint: 'text-skill', run: () => emit('skill') },
   ].filter((entry) => !!entry),

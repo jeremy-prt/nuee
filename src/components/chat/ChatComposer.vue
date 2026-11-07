@@ -12,7 +12,7 @@ import UiFileIcon from '@/components/ui/UiFileIcon.vue'
 import UiImagePreview from '@/components/ui/UiImagePreview.vue'
 import UiMenu, { type UiMenuSection } from '@/components/ui/UiMenu.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
-import { attachmentCapture, attachmentImport, attachmentSave, previewSrc } from '@/ipc/attachment'
+import { attachmentImport, attachmentSave, previewSrc } from '@/ipc/attachment'
 import { isAppError } from '@/ipc/agent'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { Attachment } from '@/ipc/bindings/Attachment'
@@ -202,13 +202,6 @@ async function pick() {
   input.value?.focus()
 }
 
-function capture() {
-  return attachWith(async () => {
-    const shot = await attachmentCapture(props.chatId)
-    return shot ? [shot] : []
-  })
-}
-
 // Depuis le menu « + » : le déclencheur tapé à la place de l'utilisateur, menu ouvert au curseur.
 // Le focus d'abord : son écouteur relit la sélection, qui serait encore en fin de texte.
 async function placeCaret(position: number) {
@@ -378,7 +371,6 @@ function onKeydown(event: KeyboardEvent) {
           :mention="!!project"
           :focus-after="focusInput"
           @attach="pick"
-          @capture="capture"
           @mention="startMention"
           @skill="startSkill"
         />

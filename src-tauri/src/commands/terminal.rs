@@ -78,6 +78,18 @@ pub fn terminal_busy(id: u32, terminals: State<'_, TerminalService>) -> Option<S
     terminals.busy(id)
 }
 
+/// Nom du shell de l'utilisateur (`zsh`), titre d'un terminal à son invite quand le dossier ne dit rien.
+#[tauri::command]
+pub fn terminal_shell() -> Option<String> {
+    let shell = std::env::var_os("SHELL")?;
+    Some(
+        Path::new(&shell)
+            .file_name()?
+            .to_string_lossy()
+            .into_owned(),
+    )
+}
+
 #[tauri::command]
 pub fn terminal_close(id: u32, terminals: State<'_, TerminalService>) {
     terminals.close(id);

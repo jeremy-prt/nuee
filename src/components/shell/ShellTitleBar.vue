@@ -3,7 +3,7 @@ import { LayoutList, PanelRight, Plus } from '@/components/ui/icons'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsSearch from '@/components/settings/SettingsSearch.vue'
-import ShellDockMenu from '@/components/shell/ShellDockMenu.vue'
+import ShellDockTabs from '@/components/shell/ShellDockTabs.vue'
 import ShellRailToggle from '@/components/shell/ShellRailToggle.vue'
 import ShellTabs from '@/components/shell/ShellTabs.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
@@ -143,8 +143,8 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
           data-tauri-drag-region
         >
           <template v-if="layout.right.open">
-            <!-- Comme Devin : un « + » ouvre la liste des volets, au lieu d'une icône par volet. -->
-            <ShellDockMenu />
+            <!-- Comme Devin : les onglets des volets ouverts, puis un « + » pour en ouvrir d'autres. -->
+            <ShellDockTabs class="min-w-0" />
             <span class="flex-1 self-stretch" data-tauri-drag-region />
           </template>
           <UiIconButton

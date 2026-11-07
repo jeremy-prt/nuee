@@ -100,13 +100,14 @@ export default {
     closePane: 'Fechar painel',
   },
   dock: {
+    close: 'Ocultar painel',
+    closeTab: "Fechar aba",
     add: "Abrir um painel",
     right: 'Painel direito',
     toggle: 'Mostrar ou ocultar o painel direito',
-    close: 'Ocultar painel',
     resize: 'Redimensionar o painel',
     session: {
-      title: 'Sessão',
+      title: 'Ambiente',
       open: "Abrir",
       environment: 'Ambiente',
       context: 'Contexto',
@@ -213,6 +214,10 @@ export default {
     },
     tasks: {
       title: 'Tarefas',
+      groups: {
+        running: "Em andamento",
+        done: "Concluídas",
+      },
       empty: 'Os subagentes e comandos em segundo plano desta sessão aparecem aqui.',
       stop: 'Parar a tarefa',
       noOutput: 'Nada escrito ainda.',
@@ -467,7 +472,6 @@ export default {
     plus: {
       label: 'Adicionar à mensagem',
       attach: 'Anexar arquivos',
-      capture: 'Captura de tela',
       mention: 'Mencionar um arquivo',
       skill: 'Usar um skill',
     },

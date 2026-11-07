@@ -8,17 +8,17 @@ export const DOCK_VIEWS: DockView[] = ['session', 'tasks', 'terminal', 'changes'
 
 export type SessionSort = 'activity' | 'created' | 'name'
 
-// Panneau de droite, comme l'app Claude : un ou deux volets empilés, celui du haut en premier.
+// Panneau de droite en onglets, comme Devin : Session (Environnement) toujours en premier, les volets ouverts ensuite,
+// un seul visible.
 interface Dock {
   open: boolean
   size: number
-  panes: DockView[]
-  // Hauteur du volet du haut quand il y en a deux.
-  split: number
+  tabs: DockView[]
+  active: DockView
   // Dernier choix de l'utilisateur (panneau ouvert ou fermé de sa main) : sert aux sessions jamais vues.
   preferOpen: boolean
-  // Panneau de chaque session, comme T3 Code : on le retrouve en revenant sur elle, même après un redémarrage.
-  sessions: Record<string, { open: boolean; panes: DockView[] }>
+  // Onglets de chaque session, comme T3 Code : on les retrouve en revenant sur elle, même après un redémarrage.
+  sessions: Record<string, { open: boolean; tabs: DockView[] }>
 }
 
 const MAX_SESSIONS = 300
@@ -41,14 +41,18 @@ export const SIZES = {
   rail: { min: 180, max: 420, defaultSize: 240 },
   panel: { min: 200, max: 420, defaultSize: 240 },
   right: { min: 280, max: 800, defaultSize: 420 },
-  split: { min: 120, max: 1200, defaultSize: 320 },
+}
+
+// Session en premier, sans doublon ni volet inconnu.
+function tabsOf(views: readonly DockView[]): DockView[] {
+  return ['session', ...new Set(views.filter((view) => DOCK_VIEWS.includes(view) && view !== 'session'))]
 }
 
 function defaults(): LayoutState {
   return {
     rail: { expanded: true, width: SIZES.rail.defaultSize },
     panel: { open: true, width: SIZES.panel.defaultSize },
-    right: { open: false, size: SIZES.right.defaultSize, panes: ['session'], split: SIZES.split.defaultSize, preferOpen: true, sessions: {} },
+    right: { open: false, size: SIZES.right.defaultSize, tabs: ['session'], active: 'session', preferOpen: true, sessions: {} },
     sessionSort: 'activity',
     sessionGroups: false,
   }
@@ -58,11 +62,18 @@ function load(): LayoutState {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
     const state: LayoutState = saved ? { ...defaults(), ...JSON.parse(saved) } : defaults()
-    // Disposition d'avant les volets empilés (volet du bas, onglets) : on garde la largeur.
-    if (!Array.isArray(state.right.panes)) state.right = { ...defaults().right, size: state.right.size }
-    state.right = { ...defaults().right, ...state.right }
-    state.right.panes = state.right.panes.filter((view) => DOCK_VIEWS.includes(view))
-    if (state.right.panes.includes('session')) state.right.panes = ['session']
+    // Disposition d'avant les onglets (volets empilés) : ses volets deviennent des onglets.
+    const old = state.right as Partial<Dock> & { panes?: DockView[]; split?: number }
+    state.right = { ...defaults().right, ...old }
+    if (!Array.isArray(old.tabs)) state.right.tabs = Array.isArray(old.panes) ? old.panes : ['session']
+    state.right.tabs = tabsOf(state.right.tabs)
+    if (!state.right.tabs.includes(state.right.active)) state.right.active = 'session'
+    for (const [id, saved] of Object.entries(state.right.sessions)) {
+      const legacy = saved as { open: boolean; tabs?: DockView[]; panes?: DockView[] }
+      state.right.sessions[id] = { open: !!legacy.open, tabs: tabsOf(legacy.tabs ?? legacy.panes ?? []) }
+    }
+    delete (state.right as { panes?: unknown }).panes
+    delete (state.right as { split?: unknown }).split
     const legacy = state as LayoutState & { bottom?: unknown; views?: unknown }
     delete legacy.bottom
     delete legacy.views
@@ -98,11 +109,10 @@ export const useLayoutStore = defineStore('layout', () => {
   }
 
   function isShown(view: DockView) {
-    return state.right.open && state.right.panes.includes(view)
+    return state.right.open && state.right.active === view
   }
 
   function toggleRight() {
-    if (!state.right.panes.length) state.right.panes = ['session']
     state.right.open = !state.right.open
     state.right.preferOpen = state.right.open
   }
@@ -110,53 +120,44 @@ export const useLayoutStore = defineStore('layout', () => {
   function remember(chatId: string) {
     const sessions = state.right.sessions
     delete sessions[chatId]
-    sessions[chatId] = { open: state.right.open, panes: [...state.right.panes] }
+    sessions[chatId] = { open: state.right.open, tabs: [...state.right.tabs] }
     const ids = Object.keys(sessions)
     for (const id of ids.slice(0, Math.max(0, ids.length - MAX_SESSIONS))) delete sessions[id]
   }
 
-  // Une session vierge démarre panneau fermé (il s'ouvre au premier message) ; une session jamais vue suit le dernier
-  // choix, sur le volet Session.
+  // Une conversation s'ouvre toujours sur Environnement (choix de Jérémy), ses autres onglets à côté. Vierge, le
+  // panneau est fermé (il s'ouvre au premier message) ; jamais vue, elle suit le dernier choix.
   function restore(chatId: string, blank: boolean) {
     const saved = state.right.sessions[chatId]
     const dock = state.right
-    if (blank) dock.open = false
-    else if (saved) {
-      dock.panes = saved.panes.filter((view) => DOCK_VIEWS.includes(view))
-      dock.open = saved.open && dock.panes.length > 0
-    } else {
-      dock.panes = ['session']
-      dock.open = dock.preferOpen
-    }
-    if (!dock.panes.length) dock.panes = ['session']
+    dock.tabs = tabsOf(saved?.tabs ?? [])
+    dock.active = 'session'
+    dock.open = blank ? false : saved ? saved.open : dock.preferOpen
   }
 
   function forget(chatId: string) {
     delete state.right.sessions[chatId]
   }
 
-  // Ouvre le volet sous celui déjà affiché ; avec deux volets, il remplace celui du bas. Session ne s'empile jamais :
-  // il prend tout le panneau, et le volet ouvert ensuite le remplace.
   function showView(view: DockView) {
     const dock = state.right
-    if (!dock.open || view === 'session' || dock.panes.includes('session')) dock.panes = []
+    if (!dock.tabs.includes(view)) dock.tabs.push(view)
+    dock.active = view
     dock.open = true
-    if (dock.panes.includes(view)) return
-    if (dock.panes.length < 2) dock.panes.push(view)
-    else dock.panes[1] = view
   }
 
-  function hideView(view: DockView) {
+  // Session reste : c'est l'onglet de départ du panneau.
+  function closeView(view: DockView) {
     const dock = state.right
-    dock.panes = dock.panes.filter((item) => item !== view)
-    if (!dock.panes.length) {
-      dock.open = false
-      dock.preferOpen = false
-    }
+    const index = dock.tabs.indexOf(view)
+    if (view === 'session' || index === -1) return
+    dock.tabs.splice(index, 1)
+    if (dock.active === view) dock.active = dock.tabs[index] ?? dock.tabs[index - 1] ?? 'session'
   }
 
+  // ⌘J pour le terminal : l'affiche, ou referme le panneau s'il est déjà devant.
   function toggleView(view: DockView) {
-    if (isShown(view)) hideView(view)
+    if (isShown(view)) state.right.open = false
     else showView(view)
   }
 
@@ -184,7 +185,7 @@ export const useLayoutStore = defineStore('layout', () => {
     forget,
     showView,
     showChanges,
-    hideView,
+    closeView,
     toggleView,
     reset,
   }

@@ -100,13 +100,14 @@ export default {
     closePane: 'Fermer le panneau',
   },
   dock: {
+    close: 'Masquer le volet',
+    closeTab: "Fermer l'onglet",
     add: "Ouvrir un volet",
     right: 'Panneau de droite',
     toggle: 'Afficher ou masquer le panneau de droite',
-    close: 'Masquer le volet',
     resize: 'Redimensionner le panneau',
     session: {
-      title: 'Session',
+      title: 'Environnement',
       open: "Ouvrir",
       environment: 'Environnement',
       context: 'Contexte',
@@ -213,6 +214,10 @@ export default {
     },
     tasks: {
       title: 'Tâches',
+      groups: {
+        running: "En cours",
+        done: "Terminées",
+      },
       empty: 'Les sous-agents et commandes en arrière-plan de cette session s\'affichent ici.',
       stop: 'Arrêter la tâche',
       noOutput: 'Rien d\'écrit pour l\'instant.',
@@ -467,7 +472,6 @@ export default {
     plus: {
       label: 'Ajouter au message',
       attach: 'Joindre des fichiers',
-      capture: 'Capture d\'écran',
       mention: 'Mentionner un fichier',
       skill: 'Utiliser un skill',
     },

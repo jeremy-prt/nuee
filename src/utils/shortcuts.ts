@@ -63,8 +63,8 @@ export const defaultShortcuts = {
   toggleRail: { group: 'interface', key: 'b' },
   togglePanel: { group: 'interface', key: 'b', shift: true },
   toggleRightDock: { group: 'interface', key: 'b', alt: true },
-  // ⌃` comme l'app Claude et VS Code. En AZERTY Mac, ` est une touche morte (`Dead`), et `Backquote` la touche @.
-  toggleTerminal: { group: 'interface', key: '`', mod: false, ctrl: true, also: ['Dead'], codes: ['Backquote'] },
+  // ⌘J comme T3 Code (choix de Jérémy) : ⌃` demandait une touche morte en AZERTY Mac.
+  toggleTerminal: { group: 'interface', key: 'j' },
   zoomIn: { group: 'interface', key: '=', shift: 'any', also: ['+'], codes: ['NumpadAdd'], label: '+' },
   zoomOut: { group: 'interface', key: '-', shift: 'any', codes: ['NumpadSubtract'], label: '−' },
   zoomReset: { group: 'interface', key: '0', shift: 'any', codes: ['Digit0', 'Numpad0'] },

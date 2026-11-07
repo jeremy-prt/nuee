@@ -21,6 +21,11 @@ export function terminalBusy(id: number) {
   return invoke<string | null>('terminal_busy', { id })
 }
 
+// Nom du shell de l'utilisateur (`zsh`).
+export function terminalShell() {
+  return invoke<string | null>('terminal_shell')
+}
+
 export function terminalClose(id: number) {
   return invoke<void>('terminal_close', { id })
 }

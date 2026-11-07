@@ -67,7 +67,8 @@ const statusIcons = { approval: ShieldQuestion, question: MessageQuestion, done:
         <SettingsAgentLogo v-else :id="tab.agent" small />
       </span>
       <!-- Comme les sessions : la croix n'occupe pas de place, elle se pose au survol sur la fin du titre, qui s'estompe. -->
-      <span class="truncate group-focus-within:fade-under-one group-hover:fade-under-one">{{ tabTitle(tab) }}</span>
+      <!-- Fondu calé sur la croix (20 px à 4 px du bord, le titre finit à 8 px) : le texte reste lisible jusqu'à elle. -->
+      <span class="truncate group-focus-within:[mask-image:linear-gradient(to_left,transparent_1rem,black_1.75rem)] group-hover:[mask-image:linear-gradient(to_left,transparent_1rem,black_1.75rem)]">{{ tabTitle(tab) }}</span>
       <UiTooltip :label="t('workspace.closeTab')" :shortcut="shortcuts.label('closeTab')">
         <button
           type="button"
