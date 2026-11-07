@@ -86,6 +86,8 @@ export interface TaskState {
   steps?: TaskStep[]
   // Identifiant donné par l'agent (`claude-haiku-5-5`).
   model?: string | null
+  // Lancement (Date.now()), pour la durée qui défile ; absent des sessions enregistrées avant lui.
+  startedAt?: number
 }
 
 export interface TaskStep {
@@ -205,7 +207,7 @@ function endThinking(conversation: Conversation, items: ChatItem[]) {
 }
 
 function emptyTask(id: string): TaskState {
-  return { id, kind: 'other', status: 'running', description: null, progress: null, background: false, toolUses: null, durationMs: null }
+  return { id, kind: 'other', status: 'running', description: null, progress: null, background: false, toolUses: null, durationMs: null, startedAt: Date.now() }
 }
 
 function lastIndexOfTask(items: ChatItem[], id: string, toolId: string | null) {

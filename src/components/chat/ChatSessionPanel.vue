@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { ChevronRight, Coffee, Folder, FolderOpen, FolderTree, GitBranch, NoProject, RemoteControl, X } from '@/components/ui/icons'
-import { computed, reactive, ref, watch } from 'vue'
+import { Bot, ChevronRight, Coffee, Folder, FolderOpen, FolderTree, GitBranch, Layers, NoProject, RemoteControl, Square, SquareTerminal, X } from '@/components/ui/icons'
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatDiffStat from '@/components/chat/ChatDiffStat.vue'
-import ChatSpinner from '@/components/chat/ChatSpinner.vue'
 import ProjectIcon from '@/components/project/ProjectIcon.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiFileIcon from '@/components/ui/UiFileIcon.vue'
@@ -19,7 +18,7 @@ import { isAppError } from '@/ipc/agent'
 import type { WorktreeChanges } from '@/ipc/bindings/WorktreeChanges'
 import { projectReveal } from '@/ipc/project'
 import { worktreeChanges } from '@/ipc/worktree'
-import { useConversationsStore } from '@/stores/conversations'
+import { type TaskState, type ToolItem, useConversationsStore } from '@/stores/conversations'
 import { useGeneralStore } from '@/stores/general'
 import { useLayoutStore } from '@/stores/layout'
 import { useProjectsStore } from '@/stores/projects'
@@ -29,6 +28,7 @@ import { useWorktreesStore } from '@/stores/worktrees'
 import { fileName, fileVerb } from '@/utils/activity'
 import { mcpLabel, mcpStatus } from '@/utils/mcp'
 import { contextFormats, contextRatio, contextRows } from '@/utils/context'
+import { formatDuration } from '@/utils/duration'
 import { tasksOf } from '@/utils/tasks'
 
 // Résumé de la session active, comme le volet Environnement de Claude Code : où travaille l'agent, son contexte,
@@ -93,6 +93,19 @@ const categories = computed(() => {
 const tasks = computed(() => tasksOf(items.value))
 const running = computed(() => tasks.value.filter(({ task }) => task.status === 'running'))
 const finished = computed(() => tasks.value.length - running.value.length)
+const taskName = (tool: ToolItem, task: TaskState) => task.description ?? tool.detail?.description ?? tool.summary ?? tool.name
+// Durée des tâches en cours : l'horloge ne tourne que s'il y en a une.
+const now = ref(Date.now())
+let ticker: ReturnType<typeof setInterval> | undefined
+watch(
+  () => running.value.length > 0,
+  (active) => {
+    clearInterval(ticker)
+    if (active) ticker = setInterval(() => (now.value = Date.now()), 1000)
+  },
+  { immediate: true },
+)
+onBeforeUnmount(() => clearInterval(ticker))
 
 // Un fichier par ligne, dans l'ordre où l'agent l'a touché la première fois.
 const results = computed(() => {
@@ -290,11 +303,21 @@ const empty = `${row} text-muted`
         </button>
       </h3>
       <template v-if="!collapsed.tasks">
-        <p v-for="{ tool, task } in running" :key="task.id" :class="row">
-          <ChatSpinner :agent="chat.agent" class="text-sm" />
-          <span class="truncate">{{ task.description ?? tool.detail?.description ?? tool.summary ?? tool.name }}</span>
-        </p>
-        <p v-if="finished" :class="empty">{{ t('dock.session.finished', { n: finished }, finished) }}</p>
+        <!-- Comme l'app Claude : les tâches en cours avec leur durée et ■, un clic mène au volet Tâches. -->
+        <div v-for="{ tool, task } in running" :key="task.id" class="flex items-center gap-1">
+          <button type="button" :class="[action, 'min-w-0 flex-1']" :title="taskName(tool, task)" @click="layout.showView('tasks')">
+            <component :is="task.kind === 'command' ? SquareTerminal : Bot" class="size-4 shrink-0 text-muted" aria-hidden="true" />
+            <span class="min-w-0 flex-1 truncate">{{ taskName(tool, task) }}</span>
+            <span v-if="task.startedAt" class="shrink-0 text-muted tabular-nums">{{ formatDuration(now - task.startedAt, locale) }}</span>
+          </button>
+          <UiIconButton v-if="chat" :label="t('dock.tasks.stop')" class="size-6!" @click="conversations.stopTask(chat.id, task.id)">
+            <Square class="size-3" aria-hidden="true" />
+          </UiIconButton>
+        </div>
+        <button v-if="finished" type="button" :class="[action, 'text-muted']" @click="layout.showView('tasks')">
+          <Layers class="size-4 shrink-0" aria-hidden="true" />
+          <span class="flex-1">{{ t('dock.session.finished', { n: finished }, finished) }}</span>
+        </button>
         <p v-if="!tasks.length" :class="empty">{{ t('dock.session.noTasks') }}</p>
       </template>
     </section>
