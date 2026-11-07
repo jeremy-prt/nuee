@@ -61,7 +61,8 @@ export type ChatItem =
   | { kind: 'end'; id: string; status: TurnStatus; error: string | null; durationMs: number | null; at?: number }
   | { kind: 'error'; id: string; error: AppError }
   // L'agent reprend de lui-même (tâche de fond finie) : repère posé avant sa réponse, qui sinon suit la précédente.
-  | { kind: 'resume'; id: string; at: number }
+  // `task` : description de la dernière tâche de fond finie, quand elle est connue.
+  | { kind: 'resume'; id: string; at: number; task?: string | null }
   // Conversation résumée pour libérer du contexte : demandée par `/compact` (à la place de sa bulle, elle clôt le
   // tour) ou lancée par l'agent en plein tour (`auto`). before/after : tokens occupés, absents si l'agent ne les a
   // pas donnés.
@@ -384,7 +385,9 @@ function apply(conversation: Conversation, events: AgentEvent[]) {
         conversation.activeAt = conversation.startedAt
         conversation.pausedMs = 0
         conversation.pausedAt = null
-        items.push({ kind: 'resume', id: crypto.randomUUID(), at: Date.now() })
+        const done = items[lastIndex(items, (item) => item.kind === 'tool' && !!item.task?.background && item.task.status !== 'running')]
+        const task = done?.kind === 'tool' ? (done.task?.description ?? null) : null
+        items.push({ kind: 'resume', id: crypto.randomUUID(), at: Date.now(), task })
         break
       case 'answered': {
         if (conversation.phase !== 'answering') break

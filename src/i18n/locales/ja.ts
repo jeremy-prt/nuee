@@ -321,7 +321,10 @@ export default {
       user: 'ユーザー',
     },
     dropFiles: 'ドロップで添付',
-    resumed: "バックグラウンドタスクの完了後に再開",
+    resumed: {
+      task: "バックグラウンドタスク「{task}」が完了",
+      any: "バックグラウンドタスクが完了",
+    },
     subagent: {
       steps: "{n} ステップ",
     },

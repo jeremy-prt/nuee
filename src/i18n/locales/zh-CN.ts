@@ -321,7 +321,10 @@ export default {
       user: '用户',
     },
     dropFiles: '拖放以附加',
-    resumed: "后台任务完成后继续",
+    resumed: {
+      task: "后台任务“{task}”已完成",
+      any: "一个后台任务已完成",
+    },
     subagent: {
       steps: "{n} 个步骤",
     },

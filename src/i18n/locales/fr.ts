@@ -321,7 +321,10 @@ export default {
       user: 'Utilisateur',
     },
     dropFiles: 'Déposer pour joindre',
-    resumed: "Reprise après une tâche de fond",
+    resumed: {
+      task: "Fin de la tâche de fond « {task} »",
+      any: "Fin d'une tâche de fond",
+    },
     subagent: {
       steps: "1 étape | {n} étapes",
     },

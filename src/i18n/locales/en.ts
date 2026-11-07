@@ -319,7 +319,10 @@ export default {
       user: 'User',
     },
     dropFiles: 'Drop to attach',
-    resumed: "Resumed after a background task",
+    resumed: {
+      task: "Background task « {task} » finished",
+      any: "A background task finished",
+    },
     subagent: {
       steps: "1 step | {n} steps",
     },

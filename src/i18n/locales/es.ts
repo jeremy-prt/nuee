@@ -321,7 +321,10 @@ export default {
       user: 'Usuario',
     },
     dropFiles: 'Soltar para adjuntar',
-    resumed: "Reanudado tras una tarea en segundo plano",
+    resumed: {
+      task: "Terminó la tarea en segundo plano « {task} »",
+      any: "Terminó una tarea en segundo plano",
+    },
     subagent: {
       steps: "1 paso | {n} pasos",
     },

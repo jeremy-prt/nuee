@@ -95,14 +95,14 @@ watch(signedIn, async (now) => {
   <ChatCompact v-else-if="item.kind === 'compact'" :item="item" :agent="agent" />
   <p v-else-if="item.kind === 'resume'" class="flex items-center gap-1.5 text-xs text-muted">
     <CornerDownRight class="size-3.5 shrink-0" aria-hidden="true" />
-    {{ t('chat.resumed') }}
+    <span class="min-w-0 truncate">{{ item.task ? t('chat.resumed.task', { task: item.task }) : t('chat.resumed.any') }}</span>
   </p>
   <template v-else-if="item.kind === 'end'">
-    <!-- Toujours affichée (choix de Jérémy) : copier, puis la durée du tour, remplacée par l'heure au survol. Les deux
-         occupent la même case : la ligne ne change pas de largeur. -->
+    <!-- Toujours affichée (choix de Jérémy) : copier, puis la durée du tour (pas sous une seconde, elle ne dit rien),
+         remplacée par l'heure au survol. Les deux occupent la même case : la ligne ne change pas de largeur. -->
     <div v-if="item.status === 'completed'" class="-ms-1 -mt-1.5 flex items-center gap-0.5 text-xs text-muted">
       <ChatCopyButton v-if="answer && afterText" :text="answer" :label="t('chat.copy.answer')" />
-      <span v-if="item.durationMs !== null && item.at" class="grid px-1 text-[11px] tabular-nums">
+      <span v-if="item.durationMs !== null && item.durationMs >= 1000 && item.at" class="grid px-1 text-[11px] tabular-nums">
         <span class="col-start-1 row-start-1 transition-opacity duration-(--hover-duration) group-hover/end:opacity-0 group-focus-within/end:opacity-0 motion-reduce:transition-none">
           {{ t('chat.end.completed', { duration: formatDuration(item.durationMs, locale, true) }) }}
         </span>
@@ -114,7 +114,7 @@ watch(signedIn, async (now) => {
           {{ formatClock(item.at, locale) }}
         </time>
       </span>
-      <time v-else-if="item.at" :datetime="new Date(item.at).toISOString()" :title="formatClock(item.at, locale, true)" class="px-1 text-[11px] tabular-nums">
+      <time v-else-if="item.at && item.durationMs === null" :datetime="new Date(item.at).toISOString()" :title="formatClock(item.at, locale, true)" class="px-1 text-[11px] tabular-nums">
         {{ formatClock(item.at, locale) }}
       </time>
       <p v-else-if="!afterText" class="px-1">{{ t('chat.end.done') }}</p>
