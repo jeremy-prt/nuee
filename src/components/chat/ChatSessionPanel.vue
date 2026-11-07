@@ -50,7 +50,7 @@ const skills = useSkillsStore()
 
 // Sections repliées, mémorisées en local : simple confort, rien de grave si la lecture échoue.
 const COLLAPSED_KEY = 'nuee.sessionPanel.v3'
-const sections = ['environment', 'context', 'connectors', 'tasks', 'results', 'changes'] as const
+const sections = ['environment', 'context', 'connectors', 'tasks', 'results', 'changes', 'quick'] as const
 type Section = (typeof sections)[number]
 // Repliées par défaut : les sections qu'on consulte rarement (choix de Jérémy). Un choix enregistré l'emporte.
 const FOLDED: readonly Section[] = ['connectors', 'results']
@@ -365,8 +365,12 @@ const quickViews: DockView[] = ['terminal', 'changes', 'browser', 'files', 'task
 
     <!-- Comme Devin : de quoi ouvrir les autres volets sans chercher leur icône. -->
     <section class="flex flex-col gap-0.5 border-t border-stroke pt-2">
-      <h3 class="flex h-7 items-center px-2 text-xs font-medium text-muted">{{ t('dock.session.open') }}</h3>
-      <button v-for="view in quickViews" :key="view" type="button" :class="action" @click="layout.showView(view)">
+      <h3>
+        <button type="button" :class="title" :aria-expanded="!collapsed.quick" @click="collapsed.quick = !collapsed.quick">
+          {{ t('dock.session.open') }}<ChevronRight class="size-3" :class="{ 'rotate-90': !collapsed.quick }" aria-hidden="true" />
+        </button>
+      </h3>
+      <button v-for="view in collapsed.quick ? [] : quickViews" :key="view" type="button" :class="action" @click="layout.showView(view)">
         <component :is="dockIcons[view]" class="size-4 shrink-0 text-muted" aria-hidden="true" />
         <span class="flex-1 truncate">{{ t(`dock.${view}.title`) }}</span>
         <kbd v-if="view === 'terminal' && shortcuts.label('toggleTerminal')" class="font-sans text-xs text-muted">{{ shortcuts.label('toggleTerminal') }}</kbd>

@@ -106,7 +106,7 @@ export default {
     resize: 'Resize panel',
     session: {
       title: 'Environment',
-      open: "Open",
+      open: "Quick access",
       environment: 'Environment',
       context: 'Context',
       empty: 'Start the conversation to see where the agent works.',

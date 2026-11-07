@@ -108,7 +108,7 @@ export default {
     resize: 'Redimensionar o painel',
     session: {
       title: 'Ambiente',
-      open: "Abrir",
+      open: "Acesso rápido",
       environment: 'Ambiente',
       context: 'Contexto',
       empty: 'Iniciar a conversa para ver onde o agente trabalha.',

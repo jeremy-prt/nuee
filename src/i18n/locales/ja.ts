@@ -108,7 +108,7 @@ export default {
     resize: 'パネルのサイズを変更',
     session: {
       title: '環境',
-      open: "開く",
+      open: "クイックアクセス",
       environment: '環境',
       context: 'コンテキスト',
       empty: '会話を始めると、エージェントの作業場所が表示されます。',

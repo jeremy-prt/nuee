@@ -108,7 +108,7 @@ export default {
     resize: '调整面板大小',
     session: {
       title: '环境',
-      open: "打开",
+      open: "快速访问",
       environment: '环境',
       context: '上下文',
       empty: '开始对话后可查看智能体的工作位置。',
