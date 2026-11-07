@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronRight } from '@/components/ui/icons'
+import { Bot, ChevronRight } from '@/components/ui/icons'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatMarkdown from '@/components/chat/ChatMarkdown.vue'
@@ -10,7 +10,7 @@ import { modelName, toolName } from '@/utils/activity'
 import { formatDuration } from '@/utils/duration'
 
 // Sous-agent lancé par l'agent, d'après monocode : sa mission, son modèle, ses étapes ; déplié, chaque outil qu'il
-// appelle, reliés par un trait, puis son rapport. Pastille d'état et durée comme T3 Code.
+// appelle, reliés par un trait, puis son rapport. Durée comme T3 Code.
 const props = defineProps<{ item: ToolItem }>()
 
 const { t, locale } = useI18n()
@@ -50,9 +50,10 @@ const rail =
         :aria-expanded="expandable ? open : undefined"
         @click="expandable && (open = !open)"
       >
-        <span
-          class="size-2 shrink-0 rounded-full"
-          :class="running ? 'animate-pulse bg-signal motion-reduce:animate-none' : failed ? 'bg-danger' : 'bg-success'"
+        <!-- L'icône dit « sous-agent » ; sa couleur seulement ce qui demande l'œil (en cours, échec), fini il reste neutre. -->
+        <Bot
+          class="size-3.5 shrink-0"
+          :class="running ? 'animate-pulse text-signal-text motion-reduce:animate-none' : failed ? 'text-danger' : 'text-muted'"
           aria-hidden="true"
         />
         <span class="min-w-0 truncate text-content/85" :class="{ 'text-shimmer': running }" :title="title">{{ title }}</span>
