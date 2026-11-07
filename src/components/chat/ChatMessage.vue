@@ -100,12 +100,12 @@ watch(signedIn, async (now) => {
     <span class="h-px flex-1 bg-stroke" aria-hidden="true" />
   </p>
   <template v-else-if="item.kind === 'end'">
-    <!-- Toujours affichée (choix de Jérémy) : copier, puis la durée du tour (pas sous une seconde, elle ne dit rien),
-         remplacée par l'heure au survol. Les deux occupent la même case : la ligne ne change pas de largeur. -->
+    <!-- Toujours affichée (choix de Jérémy) : copier, puis la durée du tour, remplacée par l'heure au survol. Sous une
+         seconde, la durée ne dit rien : seule l'heure, au survol. Même case pour les deux, la ligne garde sa largeur. -->
     <div v-if="item.status === 'completed'" class="-ms-1 -mt-1.5 flex items-center gap-0.5 text-xs text-muted">
       <ChatCopyButton v-if="answer && afterText" :text="answer" :label="t('chat.copy.answer')" />
-      <span v-if="item.durationMs !== null && item.durationMs >= 1000 && item.at" class="grid px-1 text-[11px] tabular-nums">
-        <span class="col-start-1 row-start-1 transition-opacity duration-(--hover-duration) group-hover/end:opacity-0 group-focus-within/end:opacity-0 motion-reduce:transition-none">
+      <span v-if="item.durationMs !== null && item.at" class="grid px-1 text-[11px] tabular-nums">
+        <span v-if="item.durationMs >= 1000" class="col-start-1 row-start-1 transition-opacity duration-(--hover-duration) group-hover/end:opacity-0 group-focus-within/end:opacity-0 motion-reduce:transition-none">
           {{ t('chat.end.completed', { duration: formatDuration(item.durationMs, locale, true) }) }}
         </span>
         <time
