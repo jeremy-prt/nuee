@@ -497,6 +497,11 @@ pub enum AgentEvent {
     TurnStart,
     /// La réponse est complète. L'agent range encore son tour (résumé, hooks) avant `turnEnd`.
     Answered,
+    /// Durée de vie, en secondes, du cache de prompt que le tour vient d'écrire : 1 h sur abonnement, 5 min avec une
+    /// clé d'API. Absent quand le tour n'a rien écrit en cache.
+    Cache {
+        ttl: u32,
+    },
     /// Toujours le dernier événement d'un tour.
     TurnEnd {
         status: TurnStatus,

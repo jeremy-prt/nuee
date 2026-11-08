@@ -1099,6 +1099,8 @@ export default {
         },
         autoResume: 'Reanudación tras un límite de uso',
         autoResumeHint: 'Una sesión detenida por un límite de uso se reanuda sola cuando la cuota se restablece.',
+        idleCompaction: 'Resumir las sesiones largas inactivas',
+        idleCompactionHint: 'Una sesión larga sin actividad se resume antes de que caduque su caché, para que el siguiente mensaje no vuelva a leerlo todo.',
         mentionIgnored: "Archivos ignorados por git en las menciones {'@'}",
         mentionIgnoredHint: 'Las notas fuera del repositorio se pueden mencionar. Las carpetas de dependencias y de build nunca se proponen.',
       },

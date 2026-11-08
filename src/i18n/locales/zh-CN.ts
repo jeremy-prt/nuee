@@ -1099,6 +1099,8 @@ export default {
         },
         autoResume: '达到使用上限后恢复',
         autoResumeHint: '因使用上限而停止的会话会在配额恢复后自动继续。',
+        idleCompaction: '总结长时间闲置的会话',
+        idleCompactionHint: '闲置的长会话会在缓存过期前被总结，下一条消息就不必重新读取全部内容。',
         mentionIgnored: "{'@'} 提及中包含被 git 忽略的文件",
         mentionIgnoredHint: '仓库之外的笔记也可以提及。依赖和构建文件夹不会列出。',
       },

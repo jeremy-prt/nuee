@@ -1097,6 +1097,8 @@ export default {
         },
         autoResume: 'Resume after a usage limit',
         autoResumeHint: 'A session stopped by a usage limit resumes on its own when the quota is back.',
+        idleCompaction: 'Summarize long idle sessions',
+        idleCompactionHint: 'A long session left idle is summarized before its cache expires, so the next message does not reread everything.',
         mentionIgnored: "Files ignored by git in {'@'} mentions",
         mentionIgnoredHint: 'Notes kept out of the repository can be mentioned. Dependency and build folders are never listed.',
       },

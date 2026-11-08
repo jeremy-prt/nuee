@@ -302,6 +302,12 @@ impl Claude {
         let duration_ms = line["duration_ms"]
             .as_u64()
             .and_then(|ms| u32::try_from(ms).ok());
+        let written = |key: &str| line["usage"]["cache_creation"][key].as_u64().unwrap_or(0) > 0;
+        if written("ephemeral_1h_input_tokens") {
+            events.push(AgentEvent::Cache { ttl: 3600 });
+        } else if written("ephemeral_5m_input_tokens") {
+            events.push(AgentEvent::Cache { ttl: 300 });
+        }
         events.push(AgentEvent::TurnEnd {
             status,
             error,
@@ -2244,6 +2250,21 @@ mod tests {
         );
         let error = r#"{"type":"control_response","response":{"subtype":"error","request_id":"nuee-mcp-auth","error":"Server type \"stdio\" does not support OAuth authentication"}}"#;
         assert!(claude.parse_mcp_auth(error).unwrap().is_err());
+    }
+
+    #[test]
+    fn result_reports_the_prompt_cache_lifetime() {
+        let (_, events) = parse(&[
+            r#"{"type":"result","subtype":"success","is_error":false,"usage":{"cache_creation":{"ephemeral_1h_input_tokens":2576,"ephemeral_5m_input_tokens":0}}}"#,
+        ]);
+        assert!(matches!(
+            events.as_slice(),
+            [AgentEvent::Cache { ttl: 3600 }, AgentEvent::TurnEnd { .. }]
+        ));
+        let (_, events) = parse(&[
+            r#"{"type":"result","subtype":"success","is_error":false,"usage":{"cache_creation":{"ephemeral_1h_input_tokens":0,"ephemeral_5m_input_tokens":0}}}"#,
+        ]);
+        assert!(matches!(events.as_slice(), [AgentEvent::TurnEnd { .. }]));
     }
 
     #[test]

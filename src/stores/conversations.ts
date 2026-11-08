@@ -142,6 +142,8 @@ export interface Conversation {
   resumeAt: number | null
   // Dossier du dernier tour : la reprise automatique repart au même endroit.
   lastPlace: Place | null
+  // Fin du cache de prompt écrit par le dernier tour (ms). Non enregistrée.
+  cacheUntil: number | null
   // Demandes d'autorisation (mode Auto) en attente de réponse, la plus ancienne d'abord. Non enregistrées.
   approvals: readonly Approval[]
   // Dernier relevé de la fenêtre de contexte, null tant que l'agent n'en a pas donné pour ce modèle.
@@ -153,6 +155,10 @@ export interface Conversation {
 }
 
 const SAVE_DELAY = 600
+// Comme T3 Code et le terminal de Claude Code : une longue session laissée de côté est résumée peu avant la fin de son
+// cache. Après, le message suivant relirait toute la conversation au prix fort ; le résumé, lui, lit encore le cache.
+const IDLE_COMPACT_MIN_TOKENS = 200_000
+const IDLE_COMPACT_LEAD = 2 * 60_000
 // Chaque écriture resérialise tout l'historique (plusieurs Mo avec des sorties d'outils) : espacées pendant une réponse.
 const STREAM_SAVE_DELAY = 5000
 const RESUME_MARGIN = 5000
@@ -393,6 +399,9 @@ function apply(conversation: Conversation, events: AgentEvent[]) {
         const task = done?.kind === 'tool' ? (done.task?.description ?? null) : null
         items.push({ kind: 'resume', id: crypto.randomUUID(), at: Date.now(), task })
         break
+      case 'cache':
+        conversation.cacheUntil = Date.now() + event.ttl * 1000
+        break
       case 'answered': {
         if (conversation.phase !== 'answering') break
         settleTools(items, 'done')
@@ -462,6 +471,7 @@ export const useConversationsStore = defineStore('conversations', () => {
   const timers = new Map<string, number>()
   const streamSaves = new Set<string>()
   const resumeTimers = new Map<string, number>()
+  const compactTimers = new Map<string, number>()
   const writes = new Map<string, Promise<void>>()
   let frame = 0
 
@@ -481,6 +491,7 @@ export const useConversationsStore = defineStore('conversations', () => {
       limited: null,
       resumeAt: null,
       lastPlace: null,
+      cacheUntil: null,
       approvals: [],
       context: null,
       loaded,
@@ -587,6 +598,7 @@ export const useConversationsStore = defineStore('conversations', () => {
       if (ended) {
         useWorkspaceStore().touch(chatId)
         afterTurn(chatId, conversation)
+        scheduleCompaction(chatId)
       }
     }
     pending.clear()
@@ -746,6 +758,34 @@ export const useConversationsStore = defineStore('conversations', () => {
     if (conversation) conversation.resumeAt = null
   }
 
+  function scheduleCompaction(chatId: string) {
+    cancelCompaction(chatId)
+    const until = conversations.get(chatId)?.cacheUntil
+    // Comme Claude Code, seulement avec le cache d'une heure : avec celui de 5 min (clé d'API), le résumé tomberait
+    // pendant qu'on lit encore la réponse.
+    if (!until || until - Date.now() < 10 * 60_000) return
+    compactTimers.set(chatId, window.setTimeout(() => compactIdle(chatId), Math.max(0, until - IDLE_COMPACT_LEAD - Date.now())))
+  }
+
+  function cancelCompaction(chatId: string) {
+    clearTimeout(compactTimers.get(chatId))
+    compactTimers.delete(chatId)
+  }
+
+  function compactIdle(chatId: string) {
+    compactTimers.delete(chatId)
+    const conversation = conversations.get(chatId)
+    const place = conversation?.lastPlace
+    if (!conversation || !place || !useGeneralStore().idleCompaction) return
+    if (conversation.phase !== 'idle' || conversation.queue.length || conversation.approvals.length || conversation.limited || conversation.resumeAt) return
+    if ((conversation.context?.used ?? 0) < IDLE_COMPACT_MIN_TOKENS || !conversation.cacheUntil || Date.now() >= conversation.cacheUntil) return
+    // Après un résumé ou un tour arrêté, rien à refaire. Une tâche de fond finira dans le tour suivant, pas dans le résumé.
+    const last = conversation.items.at(-1)
+    if (last?.kind !== 'end' || last.status !== 'completed') return
+    if (conversation.items.some((item) => item.kind === 'tool' && item.task?.status === 'running')) return
+    start(chatId, conversation, { place, prompt: '/compact', attachments: [] })
+  }
+
   function resume(chatId: string) {
     const conversation = conversations.get(chatId)
     cancelResume(chatId)
@@ -826,6 +866,7 @@ export const useConversationsStore = defineStore('conversations', () => {
     clearTimeout(timers.get(chatId))
     timers.delete(chatId)
     streamSaves.delete(chatId)
+    cancelCompaction(chatId)
     conversations.delete(chatId)
     pending.delete(chatId)
     let kept: string | null = null
@@ -844,6 +885,7 @@ export const useConversationsStore = defineStore('conversations', () => {
     if (conversation.queue.length || conversation.approvals.length || conversation.limited || conversation.resumeAt) return
     if (conversation.items.some((item) => item.kind === 'tool' && item.task?.status === 'running')) return
     if (timers.has(chatId) || pending.has(chatId) || resumeTimers.has(chatId)) return
+    cancelCompaction(chatId)
     conversations.delete(chatId)
   }
 

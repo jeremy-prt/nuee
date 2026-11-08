@@ -1099,6 +1099,8 @@ export default {
         },
         autoResume: 'Retomada após um limite de uso',
         autoResumeHint: 'Uma sessão interrompida por um limite de uso retoma sozinha quando a cota é restabelecida.',
+        idleCompaction: 'Resumir sessões longas inativas',
+        idleCompactionHint: 'Uma sessão longa deixada de lado é resumida antes que seu cache expire, para que a próxima mensagem não releia tudo.',
         mentionIgnored: "Arquivos ignorados pelo git nas menções {'@'}",
         mentionIgnoredHint: 'As notas fora do repositório podem ser mencionadas. As pastas de dependências e de build nunca são sugeridas.',
       },

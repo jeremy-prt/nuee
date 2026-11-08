@@ -1099,6 +1099,8 @@ export default {
         },
         autoResume: 'Reprise après une limite d\'utilisation',
         autoResumeHint: 'Une session arrêtée par une limite d\'utilisation reprend seule quand le quota se rétablit.',
+        idleCompaction: 'Résumer les longues sessions inactives',
+        idleCompactionHint: 'Une longue session laissée de côté est résumée avant l\'expiration de son cache, pour que le message suivant ne relise pas tout.',
         mentionIgnored: "Fichiers ignorés par git dans les mentions {'@'}",
         mentionIgnoredHint: 'Les notes gardées hors du dépôt restent mentionnables. Les dossiers de dépendances et de build ne sont jamais proposés.',
       },

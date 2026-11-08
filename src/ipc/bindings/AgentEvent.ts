@@ -37,4 +37,4 @@ questions: Array<Question> | null, } | { "type": "approvalCancelled", id: string
 /**
  * Quota du modèle à part ; l'agent ne le nomme pas ici, la sonde l'a déjà fait.
  */
-model: Quota | null, } | { "type": "limited", resetsAt: number | null, } | { "type": "userMessage", id: string, text: string, } | { "type": "turnStart" } | { "type": "answered" } | { "type": "turnEnd", status: TurnStatus, error: string | null, durationMs: number | null, };
+model: Quota | null, } | { "type": "limited", resetsAt: number | null, } | { "type": "userMessage", id: string, text: string, } | { "type": "turnStart" } | { "type": "answered" } | { "type": "cache", ttl: number, } | { "type": "turnEnd", status: TurnStatus, error: string | null, durationMs: number | null, };

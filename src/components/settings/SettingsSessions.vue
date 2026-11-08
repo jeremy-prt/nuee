@@ -30,6 +30,9 @@ const followUp = computed({
     <SettingsRow v-slot="{ hintId }" data-setting="autoResume" :label="t('settings.general.sessions.autoResume')" :hint="t('settings.general.sessions.autoResumeHint')">
       <UiSwitch v-model="general.autoResume" :label="t('settings.general.sessions.autoResume')" :aria-describedby="hintId" />
     </SettingsRow>
+    <SettingsRow v-slot="{ hintId }" data-setting="idleCompaction" :label="t('settings.general.sessions.idleCompaction')" :hint="t('settings.general.sessions.idleCompactionHint')">
+      <UiSwitch v-model="general.idleCompaction" :label="t('settings.general.sessions.idleCompaction')" :aria-describedby="hintId" />
+    </SettingsRow>
     <SettingsRow v-slot="{ hintId }" data-setting="mentionIgnored" :label="t('settings.general.sessions.mentionIgnored')" :hint="t('settings.general.sessions.mentionIgnoredHint')">
       <UiSwitch v-model="general.mentionIgnored" :label="t('settings.general.sessions.mentionIgnored')" :aria-describedby="hintId" />
     </SettingsRow>

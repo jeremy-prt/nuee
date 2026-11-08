@@ -275,6 +275,13 @@ const entries: SettingEntry[] = [
     hint: 'settings.general.sessions.autoResumeHint',
   },
   {
+    id: 'idleCompaction',
+    section: 'general',
+    label: 'settings.general.sessions.idleCompaction',
+    hint: 'settings.general.sessions.idleCompactionHint',
+    keywords: ['compact', 'cache', 'tokens'],
+  },
+  {
     id: 'mentionIgnored',
     section: 'general',
     label: 'settings.general.sessions.mentionIgnored',

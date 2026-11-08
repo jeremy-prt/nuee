@@ -1099,6 +1099,8 @@ export default {
         },
         autoResume: '使用上限後の再開',
         autoResumeHint: '使用上限で止まったセッションは、クォータが回復すると自動で再開します。',
+        idleCompaction: '長い非アクティブなセッションを要約',
+        idleCompactionHint: '放置された長いセッションはキャッシュの期限が切れる前に要約され、次のメッセージで全体を読み直さずに済みます。',
         mentionIgnored: "{'@'} メンションに git で無視されたファイルを含める",
         mentionIgnoredHint: 'リポジトリ外に置いたメモもメンションできます。依存関係やビルドのフォルダーは表示されません。',
       },

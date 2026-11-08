@@ -35,6 +35,7 @@ interface GeneralState {
   autoArchiveDays: AutoArchiveDays
   followUp: FollowUp
   autoResume: boolean
+  idleCompaction: boolean
   mentionIgnored: boolean
 }
 
@@ -56,6 +57,7 @@ function defaults(): GeneralState {
     autoArchiveDays: 30,
     followUp: 'queue',
     autoResume: true,
+    idleCompaction: true,
     mentionIgnored: true,
   }
 }
