@@ -1022,8 +1022,9 @@ fn strip_ansi(text: &str) -> String {
 fn instructions(cwd: &Path) -> String {
     let mut text = String::from(BROWSER_INSTRUCTIONS);
     text.push_str(SESSIONS_INSTRUCTIONS);
+    text.push_str(VERIFY_INSTRUCTIONS);
     if server::auto_verify(cwd) {
-        text.push_str(VERIFY_INSTRUCTIONS);
+        text.push_str(AUTO_VERIFY_INSTRUCTIONS);
     }
     text
 }
@@ -1038,13 +1039,15 @@ const SESSIONS_INSTRUCTIONS: &str = "\n\nOther sessions: Nuée runs several agen
 (this project by default) for independent work, with a self-contained prompt; list_sessions, read_session and send_message reach the others. \
 A session you started reports back here when it finishes a turn: do not poll it.";
 
-const VERIFY_INSTRUCTIONS: &str = "\n\nWhen to verify: once the project has a dev server in .claude/launch.json (preview_list shows it), after editing code \
-whose result the browser can show (something the dev server renders, serves or logs), verify it yourself before you reply and share proof; \
-never ask the user to check manually, and never end with \"I did not check\". Skip it for changes the preview can't exercise \
-(tests, types, tooling, another runtime). Workflow: 1. preview_start with the server name (reuses the running one). \
-2. navigate \"reload\" if there is no hot reload. 3. read_console_messages (onlyErrors) and read_network_requests, preview_logs for the server. \
-4. read_page for content and structure. 5. inspect for computed CSS and sizes. 6. computer clicks/type or form_input, then read_page. \
-7. resize_window for responsive or dark mode, back to \"desktop\" after. 8. Proof: computer screenshot for visual changes, network or logs otherwise.";
+const VERIFY_INSTRUCTIONS: &str = "\n\nChecking a change in the browser: only when the user asks for it (check, test, prove it works, \
+or a skill that asks for proof). Do not verify on your own otherwise: it costs the user tokens. Workflow: 1. preview_start with the server \
+name (reuses the running one). 2. navigate \"reload\" if there is no hot reload. 3. read_console_messages (onlyErrors) and read_network_requests, \
+preview_logs for the server. 4. read_page for content and structure. 5. inspect for computed CSS and sizes. 6. computer clicks/type or \
+form_input, then read_page. 7. resize_window for responsive or dark mode, back to \"desktop\" after. 8. Proof: computer screenshot for \
+visual changes, network or logs otherwise.";
+
+const AUTO_VERIFY_INSTRUCTIONS: &str = "\n\nThis project's .claude/launch.json sets autoVerify: after editing code whose result the browser \
+can show (something the dev server renders, serves or logs), verify it yourself with that workflow before you reply, and share proof.";
 
 fn tool_list() -> Vec<Value> {
     let tab = json!({ "type": "string", "description": "Tab to act on. Omit for the tab shown in the pane." });
