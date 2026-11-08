@@ -24,8 +24,7 @@ watch(
 
 const opacity = computed(() => (shown.value ? BACKGROUND_OPACITY[appearance.background.visibility] / 100 : 0))
 
-// Un changement de vue a déjà son fondu enchaîné (View Transitions) : un second fondu sur l'opacité finirait après
-// lui, et le fond remonterait d'un coup à la fin de la capture (clignotement). Seuls les réglages d'Apparence l'animent.
+// Un changement de vue reste instantané : le fond n'y fait pas de fondu. Seuls les réglages d'Apparence l'animent.
 const animated = ref(true)
 watch(
   () => navigation.view,
