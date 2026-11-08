@@ -10,7 +10,6 @@ import { useDragStore } from '@/stores/drag'
 import { useLayoutStore } from '@/stores/layout'
 import { useNavigationStore } from '@/stores/navigation'
 import { useProjectsStore } from '@/stores/projects'
-import { useShortcutsStore } from '@/stores/shortcuts'
 import { type Tab, useWorkspaceStore } from '@/stores/workspace'
 import { useWorktreesStore } from '@/stores/worktrees'
 import { type DateGroup, dateGroup } from '@/utils/duration'
@@ -18,7 +17,6 @@ import { type DateGroup, dateGroup } from '@/utils/duration'
 // Sessions du projet en cours (ou du Chat sans projet) : panneau latéral, ou barre latérale en « Projets en menu ».
 
 const { t, locale } = useI18n()
-const shortcuts = useShortcutsStore()
 const clock = useClockStore()
 const drag = useDragStore()
 const layout = useLayoutStore()
@@ -106,6 +104,6 @@ watch(
     <div v-if="more" :key="limit" ref="sentinel" class="h-px" aria-hidden="true" />
   </div>
   <p v-else class="px-2 text-sm text-muted">
-    {{ shortcuts.label('newChat') ? t('chats.empty', { shortcut: shortcuts.label('newChat') }) : t('chats.emptyNoShortcut') }}
+    {{ t('chats.empty') }}
   </p>
 </template>

@@ -25,7 +25,7 @@ import { useToastsStore } from '@/stores/toasts'
 import { useWorkspaceStore } from '@/stores/workspace'
 
 // Le libellé de l'agent reste un moment après son action : sinon il clignote d'un outil à l'autre.
-const AGENT_LINGER = 1500
+const AGENT_LINGER = 3000
 const SERVER_TIMEOUT = 60_000
 
 // Onglets du volet Navigateur, rangés par session. Les pages vivent côté Rust (une WKWebView chacune).
@@ -136,12 +136,18 @@ export const useBrowserStore = defineStore('browser', () => {
     }
   }
 
-  // Onglet choisi par l'agent : le volet s'ouvre dessus si sa session est à l'écran, sinon au retour sur elle.
+  // Onglet choisi par l'agent : il entre dans les onglets du panneau sans l'ouvrir ni passer devant, comme T3 Code.
+  // Une pastille sur l'onglet (et sur le bouton du panneau fermé) dit que l'agent agit ; on regarde si on veut.
   function reveal(chatId: string, tabId: string) {
     active[chatId] = tabId
     const layout = useLayoutStore()
-    if (useWorkspaceStore().activeTabId === chatId) layout.showView('browser')
+    if (useWorkspaceStore().activeTabId === chatId) layout.addTab('browser')
     else layout.addView(chatId, 'browser')
+  }
+
+  // L'agent agit dans une page de cette session.
+  function agentActs(chatId: string) {
+    return tabsOf(chatId).some((tab) => !!agent[tab.id])
   }
 
   function showAgent(tabId: string, action: string | null) {
@@ -247,6 +253,7 @@ export const useBrowserStore = defineStore('browser', () => {
     clearData,
     openServer,
     openLink,
+    agentActs,
   }
 })
 

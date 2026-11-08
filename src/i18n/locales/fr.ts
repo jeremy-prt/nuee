@@ -47,8 +47,7 @@ export default {
     deleteConfirm: 'Supprimer',
     toggle: 'Afficher ou masquer le panneau latéral',
     resize: 'Redimensionner le panneau latéral',
-    empty: 'Aucune session pour le moment. Nouvelle session avec {shortcut}.',
-    emptyNoShortcut: 'Aucune session pour le moment.',
+    empty: 'Aucune session pour le moment.',
     worktreeKept: 'Worktree gardé | {n} worktrees gardés',
     worktreeKeptBody: 'Il contient des changements pas encore commités. Il reste dans {paths} | Ils contiennent des changements pas encore commités. Ils restent dans {paths}',
     status: {
@@ -189,6 +188,7 @@ export default {
       address: "Saisir une adresse",
       addressLabel: "Adresse de la page",
       agentActs: "{agent} · {action}",
+      agentBusy: "L'agent se sert de cette page",
       loadFailed: "La page ne s'est pas chargée",
       failed: "Le navigateur n'a pas pu ouvrir la page",
       cleared: "Données du navigateur effacées",

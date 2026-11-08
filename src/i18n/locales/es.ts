@@ -47,8 +47,7 @@ export default {
     deleteConfirm: 'Eliminar',
     toggle: 'Mostrar u ocultar el panel lateral',
     resize: 'Cambiar el tamaño del panel lateral',
-    empty: 'Aún no hay sesiones. Nueva sesión con {shortcut}.',
-    emptyNoShortcut: 'Aún no hay sesiones.',
+    empty: 'Aún no hay sesiones.',
     worktreeKept: 'Worktree conservado | {n} worktrees conservados',
     worktreeKeptBody: 'Tiene cambios sin confirmar. Sigue en {paths} | Tienen cambios sin confirmar. Siguen en {paths}',
     status: {
@@ -189,6 +188,7 @@ export default {
       address: "Escribir una dirección",
       addressLabel: "Dirección de la página",
       agentActs: "{agent} · {action}",
+      agentBusy: "El agente está usando esta página",
       loadFailed: "La página no se cargó",
       failed: "El navegador no pudo abrir la página",
       cleared: "Datos del navegador borrados",

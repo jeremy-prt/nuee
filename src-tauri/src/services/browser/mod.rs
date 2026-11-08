@@ -176,6 +176,8 @@ struct Tab {
     network: VecDeque<NetworkEntry>,
     /// Zone du volet donnée par le front ; `None` : la page n'est pas à l'écran.
     pane: Option<PaneRect>,
+    /// Numéro de la dernière pose demandée par le front (voir `place`).
+    order: u64,
 }
 
 #[derive(Default)]
@@ -197,9 +199,21 @@ pub struct BrowserService {
 
 impl BrowserService {
     /// Le front s'abonne ; renvoie les onglets ouverts (après un rechargement de la page, ils sont toujours là).
-    pub fn watch(&self, channel: Channel<BrowserEvent>) -> Vec<BrowserTab> {
+    /// Une page rechargée ne sait plus où étaient les pages ni leurs numéros de pose : elles sont cachées et
+    /// repartent de zéro, sinon une page posée avant le rechargement resterait par-dessus Nuée.
+    pub fn watch(&self, app: &AppHandle, channel: Channel<BrowserEvent>) -> Vec<BrowserTab> {
         let mut state = lock(&self.state);
         state.channel = Some(channel);
+        let ids: Vec<String> = state.tabs.iter().map(|tab| tab.info.id.clone()).collect();
+        for tab in &mut state.tabs {
+            tab.pane = None;
+            tab.order = 0;
+        }
+        let _ = app.run_on_main_thread(move || {
+            for id in ids {
+                native::place(&id, None, 0, true);
+            }
+        });
         state.tabs.iter().map(|tab| tab.info.clone()).collect()
     }
 
@@ -284,6 +298,7 @@ impl BrowserService {
                 console: VecDeque::new(),
                 network: VecDeque::new(),
                 pane: None,
+                order: 0,
             });
             state.active.insert(chat_id.to_owned(), info.id.clone());
             info
@@ -340,24 +355,36 @@ impl BrowserService {
         on_main(app, move |_| native::history(&tab, step)).await
     }
 
-    /// Le front donne la zone du volet, ou `None` quand la page n'est plus à l'écran.
+    /// Le front donne la zone du volet, ou `None` quand la page n'est plus à l'écran. Les commandes async
+    /// peuvent atteindre le thread principal dans le désordre : `order` (croissant côté front) fait ignorer une
+    /// pose dépassée, sinon « montrer » arrivé après « cacher » laisse la page par-dessus Nuée.
     pub async fn place(
         &self,
         app: &AppHandle,
         id: &str,
         pane: Option<PaneRect>,
+        order: u64,
     ) -> Result<(), AppError> {
         let viewport = {
             let mut state = lock(&self.state);
             let Some(tab) = state.tabs.iter_mut().find(|tab| tab.info.id == id) else {
                 return Ok(());
             };
+            if order < tab.order {
+                return Ok(());
+            }
+            tab.order = order;
             tab.pane = pane;
             tab.info.viewport
         };
         let tab = id.to_owned();
         on_main(app, move |_| {
-            native::place(&tab, pane.map(|pane| frame_in(pane, viewport)))
+            native::place(
+                &tab,
+                pane.map(|pane| frame_in(pane, viewport)),
+                order,
+                false,
+            )
         })
         .await
     }
@@ -365,14 +392,14 @@ impl BrowserService {
     /// Une page hors de l'écran est posée hors de la fenêtre le temps que l'agent agisse : cachée,
     /// WebKit ne la dessine plus et les captures reviennent vides.
     async fn wake(&self, app: &AppHandle, id: &str) -> Result<(), AppError> {
-        let (shown, viewport) = {
+        let (shown, viewport, order) = {
             let state = lock(&self.state);
             let tab = state
                 .tabs
                 .iter()
                 .find(|tab| tab.info.id == id)
                 .ok_or_else(|| AppError::Browser(format!("onglet introuvable : {id}")))?;
-            (tab.pane.is_some(), tab.info.viewport)
+            (tab.pane.is_some(), tab.info.viewport, tab.order)
         };
         if shown {
             return Ok(());
@@ -389,6 +416,8 @@ impl BrowserService {
                     height: f64::from(size.height),
                     zoom: 1.0,
                 }),
+                order,
+                false,
             )
         })
         .await
@@ -402,7 +431,7 @@ impl BrowserService {
         scheme: Option<Option<ColorScheme>>,
         mobile: bool,
     ) -> Result<(), AppError> {
-        let mut pane = None;
+        let (mut pane, mut order) = (None, 0);
         self.update(id, |info| {
             info.viewport = viewport;
             if let Some(scheme) = scheme {
@@ -410,7 +439,7 @@ impl BrowserService {
             }
         });
         if let Some(tab) = lock(&self.state).tabs.iter().find(|tab| tab.info.id == id) {
-            pane = tab.pane;
+            (pane, order) = (tab.pane, tab.order);
         }
         let tab = id.to_owned();
         on_main(app, move |_| {
@@ -419,7 +448,7 @@ impl BrowserService {
                 native::appearance(&tab, scheme);
             }
             if let Some(pane) = pane {
-                native::place(&tab, Some(frame_in(pane, viewport)));
+                native::place(&tab, Some(frame_in(pane, viewport)), order, false);
             }
         })
         .await?;
@@ -915,7 +944,7 @@ mod native {
     pub fn close(_: &str) {}
     pub fn load(_: &str, _: &str) {}
     pub fn history(_: &str, _: History) {}
-    pub fn place(_: &str, _: Option<Frame>) {}
+    pub fn place(_: &str, _: Option<Frame>, _: u64, _: bool) {}
     pub fn user_agent(_: &str, _: Option<&str>) {}
     pub fn appearance(_: &str, _: Option<ColorScheme>) {}
     pub fn script(

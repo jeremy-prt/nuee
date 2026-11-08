@@ -16,8 +16,8 @@ import { type DockView, useLayoutStore } from '@/stores/layout'
 import { useTerminalsStore } from '@/stores/terminals'
 
 // Onglets du panneau de droite, comme T3 Code : un par volet ouvert, un par page pour le navigateur et un par groupe de
-// shells pour le terminal (pas de seconde barre dans le volet). L'icône laisse place à la croix au survol ; au clavier,
-// Suppr ferme l'onglet qui a le focus ; clic droit pour fermer, ou diviser un terminal.
+// shells pour le terminal (pas de seconde barre dans le volet). La croix au survol, à droite comme les onglets de
+// session ; au clavier, Suppr ferme l'onglet qui a le focus ; clic droit pour fermer, ou diviser un terminal.
 interface Item {
   key: string
   view: DockView
@@ -127,22 +127,29 @@ async function close(item: Item) {
         role="tab"
         :aria-selected="isActive(item)"
         :title="item.page?.url ?? item.label"
-        class="flex h-full min-w-0 items-center gap-1.5 rounded-md ps-7 pe-2 focus-visible:outline-2 focus-visible:outline-ring"
+        class="flex h-full min-w-0 items-center gap-1.5 rounded-md px-2 focus-visible:outline-2 focus-visible:outline-ring"
         @click="select(item)"
         @auxclick.middle="close(item)"
         @keydown.delete="close(item)"
         @keydown.backspace="close(item)"
       >
-        <span class="truncate">{{ item.label }}</span>
+        <span class="relative grid size-3.5 shrink-0 place-items-center" aria-hidden="true">
+          <LoaderCircle v-if="item.loading" class="size-3.5 animate-spin motion-reduce:animate-none" />
+          <component :is="item.icon" v-else class="size-3.5" />
+          <!-- L'agent agit dans cette page : on peut venir regarder, rien ne s'ouvre tout seul. -->
+          <span
+            v-if="item.page && browser.agent[item.page.id]"
+            class="absolute -end-0.5 -top-0.5 size-1.5 rounded-full bg-signal ring-2 ring-chrome motion-safe:animate-pulse"
+          />
+        </span>
+        <span v-if="item.page && browser.agent[item.page.id]" class="sr-only">{{ t('dock.browser.agentBusy') }}</span>
+        <!-- Comme les onglets de session : la croix se pose au survol sur la fin du titre, qui s'estompe. -->
+        <span class="truncate group-focus-within/tab:[mask-image:linear-gradient(to_left,transparent_1rem,black_1.75rem)] group-hover/tab:[mask-image:linear-gradient(to_left,transparent_1rem,black_1.75rem)]">{{ item.label }}</span>
       </button>
-      <span class="pointer-events-none absolute start-2 grid size-3.5 place-items-center group-hover/tab:invisible" aria-hidden="true">
-        <LoaderCircle v-if="item.loading" class="size-3.5 animate-spin motion-reduce:animate-none" />
-        <component :is="item.icon" v-else class="size-3.5" />
-      </span>
       <button
         type="button"
         tabindex="-1"
-        class="invisible absolute start-1 grid size-5 place-items-center rounded-md text-muted group-hover/tab:visible hover:bg-selection-inner hover:text-content"
+        class="absolute end-1 top-1/2 grid size-5 -translate-y-1/2 place-items-center rounded-md text-muted opacity-0 transition-opacity duration-(--hover-duration) group-focus-within/tab:opacity-100 group-hover/tab:opacity-100 hover:bg-selection-inner hover:text-content motion-reduce:transition-none"
         :aria-label="t('dock.closeTab')"
         :title="t('dock.closeTab')"
         @click="close(item)"

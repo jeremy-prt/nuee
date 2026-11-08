@@ -9,9 +9,10 @@ use crate::services::browser::{
 #[tauri::command]
 pub fn browser_watch(
     on_event: Channel<BrowserEvent>,
+    app: AppHandle,
     browser: State<'_, BrowserService>,
 ) -> Vec<BrowserTab> {
-    browser.watch(on_event)
+    browser.watch(&app, on_event)
 }
 
 /// `project` : dossier du projet de la session, qui choisit le stockage (cookies) de la page.
@@ -83,10 +84,11 @@ pub async fn browser_history(
 pub async fn browser_place(
     id: String,
     rect: Option<PaneRect>,
+    order: u64,
     app: AppHandle,
     browser: State<'_, BrowserService>,
 ) -> Result<(), AppError> {
-    browser.place(&app, &id, rect).await
+    browser.place(&app, &id, rect, order).await
 }
 
 #[tauri::command]

@@ -234,6 +234,12 @@ html[data-mode='light'] {
   border-radius: 0.75rem;
 }
 
+/* Dans un verre, une ligne dont le fond s'anime passe sur son propre calque, que WebKit ne floute plus : le texte de
+   derrière apparaît, net, au survol. Le survol d'un menu change donc de fond d'un coup, comme les menus de macOS. */
+.ui-pop :is([role='menuitem'], [role='menuitemradio'], [role='menuitemcheckbox'], [role='option']) {
+  transition: none;
+}
+
 /* Un menu ou une liste grandit depuis son ancrage (curseur, bouton), comme monocode : choix de Jérémy. */
 @keyframes ui-pop-in {
   from {

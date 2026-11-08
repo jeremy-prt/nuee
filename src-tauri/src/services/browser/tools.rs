@@ -1018,10 +1018,10 @@ fn instructions(cwd: &Path) -> String {
     text
 }
 
-const BROWSER_INSTRUCTIONS: &str = "Nuée, the app running this session, has a built-in browser pane that the user sees beside the chat. \
+const BROWSER_INSTRUCTIONS: &str = "Nuée, the app running this session, has a built-in browser pane beside the chat. \
 Its tools (mcp__nuee__*) drive real web pages: open the project's dev server, click, type, read the page, take screenshots, \
-read the console and network requests, measure elements, change the viewport size and color scheme. The user watches what you do \
-and can take over at any time. Use these tools, never Bash, to run the dev servers of .claude/launch.json (preview_start) and to \
+read the console and network requests, measure elements, change the viewport size and color scheme. The pane does not pop open: \
+the user sees an activity dot and can open it to watch or take over at any time. Use these tools, never Bash, to run the dev servers of .claude/launch.json (preview_start) and to \
 check web pages. Prefer read_page/find refs over coordinates; coordinates are CSS pixels of the last screenshot.";
 
 const VERIFY_INSTRUCTIONS: &str = "\n\nWhen to verify: after editing code whose result the browser can show (something the dev server renders, serves \

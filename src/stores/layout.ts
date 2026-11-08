@@ -160,10 +160,16 @@ export const useLayoutStore = defineStore('layout', () => {
     dock.open = true
   }
 
-  // Volet ouvert pour une session qui n'est pas à l'écran : on le retrouve en revenant sur elle.
+  // Onglet ajouté sans être montré ni ouvrir le panneau (l'agent s'est servi du volet).
+  function addTab(view: DockView) {
+    const dock = state.right
+    if (!dock.tabs.includes(view)) dock.tabs.push(view)
+  }
+
+  // Même chose pour une session qui n'est pas à l'écran : on le retrouve en revenant sur elle.
   function addView(chatId: string, view: DockView) {
-    const saved = state.right.sessions[chatId] ?? { open: true, tabs: [] as DockView[] }
-    state.right.sessions[chatId] = { open: true, tabs: tabsOf([...saved.tabs, view]), active: view }
+    const saved = state.right.sessions[chatId] ?? { open: false, tabs: [] as DockView[], active: null }
+    state.right.sessions[chatId] = { ...saved, tabs: tabsOf([...saved.tabs, view]) }
   }
 
   // Le dernier volet fermé laisse le lanceur.
@@ -211,6 +217,7 @@ export const useLayoutStore = defineStore('layout', () => {
     forget,
     showView,
     showLauncher,
+    addTab,
     addView,
     showChanges,
     closeView,

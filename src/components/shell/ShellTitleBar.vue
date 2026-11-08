@@ -13,6 +13,7 @@ import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { useNewChat } from '@/composables/useNewChat'
 import { isMacosApp } from '@/ipc/system'
 import { useAppearanceStore } from '@/stores/appearance'
+import { useBrowserStore } from '@/stores/browser'
 import { RAIL_COLLAPSED_WIDTH, useLayoutStore } from '@/stores/layout'
 import { parentDetail, settingsDetailTitle, useNavigationStore } from '@/stores/navigation'
 import { useShortcutsStore } from '@/stores/shortcuts'
@@ -25,6 +26,9 @@ const navigation = useNavigationStore()
 const appearance = useAppearanceStore()
 const workspace = useWorkspaceStore()
 const newChat = useNewChat()
+const browser = useBrowserStore()
+// Panneau fermé pendant que l'agent se sert du navigateur : une pastille sur son bouton.
+const agentActs = computed(() => !!workspace.activeTabId && browser.agentActs(workspace.activeTabId))
 
 // Le bouton de la barre latérale reste juste après les boutons de fenêtre macOS (fin à 76 pt, `trafficLightPosition`),
 // ouverte ou repliée, comme monocode (choix de Jérémy). Ces boutons ne suivent pas le zoom : leur place, en points,
@@ -161,7 +165,14 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
             :aria-expanded="layout.right.open"
             @click="layout.toggleRight()"
           >
-            <PanelRight class="size-4" aria-hidden="true" />
+            <span class="relative grid place-items-center">
+              <PanelRight class="size-4" aria-hidden="true" />
+              <span
+                v-if="!layout.right.open && agentActs"
+                class="absolute -end-0.5 -top-0.5 size-1.5 rounded-full bg-signal ring-2 ring-chrome motion-safe:animate-pulse"
+                aria-hidden="true"
+              />
+            </span>
           </UiIconButton>
         </div>
       </template>

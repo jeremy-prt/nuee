@@ -47,8 +47,7 @@ export default {
     deleteConfirm: '削除',
     toggle: 'サイドパネルの表示を切り替え',
     resize: 'サイドパネルのサイズを変更',
-    empty: 'まだセッションはありません。{shortcut} で新しいセッションを作成できます。',
-    emptyNoShortcut: 'まだセッションはありません。',
+    empty: 'まだセッションはありません。',
     worktreeKept: 'worktree を残しました | {n} 件の worktree を残しました',
     worktreeKeptBody: 'コミットされていない変更があるため、{paths} に残しています。 | コミットされていない変更があるため、{paths} に残しています。',
     status: {
@@ -189,6 +188,7 @@ export default {
       address: "アドレスを入力",
       addressLabel: "ページのアドレス",
       agentActs: "{agent} · {action}",
+      agentBusy: "エージェントがこのページを操作中",
       loadFailed: "ページを読み込めませんでした",
       failed: "ブラウザでページを開けませんでした",
       cleared: "ブラウザのデータを消去しました",

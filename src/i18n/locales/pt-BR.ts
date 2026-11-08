@@ -47,8 +47,7 @@ export default {
     deleteConfirm: 'Excluir',
     toggle: 'Mostrar ou ocultar o painel lateral',
     resize: 'Redimensionar o painel lateral',
-    empty: 'Nenhuma sessão ainda. Nova sessão com {shortcut}.',
-    emptyNoShortcut: 'Nenhuma sessão ainda.',
+    empty: 'Nenhuma sessão ainda.',
     worktreeKept: 'Worktree mantido | {n} worktrees mantidos',
     worktreeKeptBody: 'Ele tem alterações ainda não commitadas. Continua em {paths} | Eles têm alterações ainda não commitadas. Continuam em {paths}',
     status: {
@@ -189,6 +188,7 @@ export default {
       address: "Digitar um endereço",
       addressLabel: "Endereço da página",
       agentActs: "{agent} · {action}",
+      agentBusy: "O agente está usando esta página",
       loadFailed: "A página não carregou",
       failed: "O navegador não conseguiu abrir a página",
       cleared: "Dados do navegador apagados",

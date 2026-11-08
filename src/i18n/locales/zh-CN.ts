@@ -47,8 +47,7 @@ export default {
     deleteConfirm: '删除',
     toggle: '显示或隐藏侧面板',
     resize: '调整侧面板大小',
-    empty: '暂无会话。按 {shortcut} 新建会话。',
-    emptyNoShortcut: '暂无会话。',
+    empty: '暂无会话。',
     worktreeKept: '已保留 worktree | 已保留 {n} 个 worktree',
     worktreeKeptBody: '它有尚未提交的更改，因此保留在 {paths} | 它们有尚未提交的更改，因此保留在 {paths}',
     status: {
@@ -189,6 +188,7 @@ export default {
       address: "输入地址",
       addressLabel: "页面地址",
       agentActs: "{agent} · {action}",
+      agentBusy: "智能体正在使用此页面",
       loadFailed: "页面未能加载",
       failed: "浏览器无法打开该页面",
       cleared: "已清除浏览器数据",

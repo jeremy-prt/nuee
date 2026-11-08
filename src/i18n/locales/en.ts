@@ -45,8 +45,7 @@ export default {
     deleteConfirm: 'Delete',
     toggle: 'Toggle side panel',
     resize: 'Resize side panel',
-    empty: 'No sessions yet. New session with {shortcut}.',
-    emptyNoShortcut: 'No sessions yet.',
+    empty: 'No sessions yet.',
     worktreeKept: 'Worktree kept | {n} worktrees kept',
     worktreeKeptBody: 'It has changes that are not committed yet. It stays in {paths} | They have changes that are not committed yet. They stay in {paths}',
     status: {
@@ -187,6 +186,7 @@ export default {
       address: "Enter an address",
       addressLabel: "Page address",
       agentActs: "{agent} · {action}",
+      agentBusy: "The agent is using this page",
       loadFailed: "The page didn't load",
       failed: "The browser could not open the page",
       cleared: "Browser data cleared",

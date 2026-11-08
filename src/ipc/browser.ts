@@ -35,9 +35,12 @@ export function browserHistory(id: string, step: 'back' | 'forward' | 'reload' |
   return invoke<void>('browser_history', { id, step })
 }
 
+// Numéro croissant de chaque pose : Rust ignore une pose arrivée après une plus récente (commandes async).
+let placeOrder = 0
+
 // Zone du volet en points de la fenêtre ; null retire la page de l'écran.
 export function browserPlace(id: string, rect: PaneRect | null) {
-  return invoke<void>('browser_place', { id, rect })
+  return invoke<void>('browser_place', { id, rect, order: ++placeOrder })
 }
 
 export function browserEmulate(id: string, viewport: Viewport | null, colorScheme: ColorScheme | null) {

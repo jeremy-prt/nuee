@@ -39,6 +39,8 @@ struct View {
     webview: Retained<WKWebView>,
     // Retenu pour la vie de l'onglet : WebKit détruit un monde qu'on lâche, et les refs de l'agent avec.
     world: Retained<WKContentWorld>,
+    /// Numéro de la dernière pose appliquée : une pose plus ancienne, arrivée en retard, est ignorée.
+    order: u64,
     // Gardé en vie : la WKWebView ne retient ses délégués que faiblement.
     _delegate: Retained<Delegate>,
     zoom: f64,
@@ -352,6 +354,7 @@ pub fn create(
                 world: unsafe { WKContentWorld::worldWithName(&NSString::from_str("nuee"), mtm) },
                 _delegate: delegate,
                 zoom: 1.0,
+                order: 0,
             },
         )
     });
@@ -395,13 +398,20 @@ pub fn history(tab: &str, step: History) {
     });
 }
 
-/// `None` cache la page. Les coordonnées partent du coin haut gauche de la fenêtre.
-pub fn place(tab: &str, frame: Option<Frame>) {
+/// `None` cache la page. Les coordonnées partent du coin haut gauche de la fenêtre. `reset` : le front a
+/// rechargé, ses numéros repartent de zéro.
+pub fn place(tab: &str, frame: Option<Frame>, order: u64, reset: bool) {
     VIEWS.with(|views| {
         let mut views = views.borrow_mut();
         let Some(view) = views.get_mut(tab) else {
             return;
         };
+        if reset {
+            view.order = 0;
+        } else if order < view.order {
+            return;
+        }
+        view.order = order;
         let Some(frame) = frame else {
             view.webview.setHidden(true);
             return;

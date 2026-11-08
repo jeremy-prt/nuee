@@ -17,18 +17,30 @@ function clamp(value: number) {
 }
 
 function onPointerDown(event: PointerEvent) {
+  // Sans ça, tirer la poignée étend une sélection de texte dans la conversation voisine.
+  event.preventDefault()
+  window.getSelection()?.removeAllRanges()
   const handle = event.currentTarget as HTMLElement
   const axis = props.orientation === 'vertical' ? 'clientX' : 'clientY'
   const start = event[axis]
   const startSize = size.value
   handle.setPointerCapture(event.pointerId)
+  document.documentElement.style.userSelect = 'none'
 
   const onMove = (move: PointerEvent) => {
     const delta = move[axis] - start
     size.value = clamp(startSize + (props.invert ? -delta : delta))
   }
   handle.addEventListener('pointermove', onMove)
-  handle.addEventListener('pointerup', () => handle.removeEventListener('pointermove', onMove), { once: true })
+  // Relâchée ou interrompue (Échap, perte de focus) : la sélection revient toujours.
+  handle.addEventListener(
+    'lostpointercapture',
+    () => {
+      handle.removeEventListener('pointermove', onMove)
+      document.documentElement.style.userSelect = ''
+    },
+    { once: true },
+  )
 }
 
 function onKeydown(event: KeyboardEvent) {

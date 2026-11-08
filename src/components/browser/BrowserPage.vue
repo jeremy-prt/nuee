@@ -71,11 +71,19 @@ function isCovered() {
   return false
 }
 
-// La capture d'abord, page encore visible ; puis la page s'efface derrière elle.
+const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+
+// La capture d'abord, page encore visible ; la page ne s'efface qu'une fois la capture décodée et peinte, sinon le
+// fond du volet se voit une image entre les deux (clignotement noir).
 watch(covered, async (now) => {
   if (now) {
     try {
-      frozen.value = await browserSnapshot(props.tab.id)
+      const data = await browserSnapshot(props.tab.id)
+      const image = new Image()
+      image.src = data
+      await image.decode()
+      frozen.value = data
+      await nextFrame()
     } catch {
       frozen.value = null
     }

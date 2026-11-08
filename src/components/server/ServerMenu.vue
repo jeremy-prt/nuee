@@ -100,16 +100,16 @@ function onCloseAutoFocus(event: Event) {
               <UiMenuItem v-if="server.external" :label="t('dock.servers.external', { name: server.name })" :icon="dot('stopped')" disabled />
               <UiMenuSub v-else :label="server.name" :icon="dot(server.status)" :value="state(server)">
                 <UiMenuItem v-if="alive(server)" :label="t('dock.servers.open')" :icon="Globe" @select="start(server)" />
-                <UiMenuItem v-if="alive(server)" :label="t('dock.servers.stop')" :icon="Stop" @select="servers.stop(list!.root, server.name)" />
-                <UiMenuItem v-else :label="t('dock.servers.start')" :icon="Play" @select="start(server)" />
+                <UiMenuItem v-if="!alive(server)" :label="t('dock.servers.start')" :icon="Play" @select="start(server)" />
                 <UiMenuItem :label="t('dock.servers.logs')" :icon="Logs" @select="servers.show(list!.root, server.name)" />
+                <UiMenuItem v-if="alive(server)" :label="t('dock.servers.stop')" :icon="Stop" danger @select="servers.stop(list!.root, server.name)" />
               </UiMenuSub>
             </template>
             <template v-if="list">
               <UiMenuSeparator />
               <UiMenuItem v-if="list.problem" :label="t('dock.servers.fix')" :icon="Wrench" @select="ask" />
               <UiMenuItem v-else :label="t('dock.servers.add')" :icon="Plus" @select="ask" />
-              <UiMenuItem v-if="list.servers.length" :label="t('dock.servers.stopAll')" :icon="Stop" :disabled="!running" @select="servers.stopAll(list.root)" />
+              <UiMenuItem v-if="list.servers.length" :label="t('dock.servers.stopAll')" :icon="Stop" danger :disabled="!running" @select="servers.stopAll(list.root)" />
             </template>
           </DropdownMenuContent>
         </DropdownMenuPortal>
