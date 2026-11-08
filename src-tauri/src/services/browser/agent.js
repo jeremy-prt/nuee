@@ -196,7 +196,7 @@ globalThis.__nuee = (() => {
 
   // ===== Ce que l'agent appelle =====
 
-  function read_page({ filter = 'all', depth = 40, ref_id, max_chars = 50000 } = {}) {
+  function read_page({ filter = 'all', depth = 40, ref_id, max_chars = 20000 } = {}) {
     const root = ref_id ? byRef(ref_id) : document.body || document.documentElement
     const lines = tree(root, { filter, depth })
     let text = `${header()}\n\n${lines.join('\n') || '(rien à afficher)'}`
@@ -352,7 +352,7 @@ globalThis.__nuee = (() => {
     return `${label(el)} à l'écran`
   }
 
-  function get_page_text({ max_chars = 50000 } = {}) {
+  function get_page_text({ max_chars = 20000 } = {}) {
     const main = document.querySelector('main, article, [role=main]')
     const text = (main && clean(main.innerText).length > 200 ? main : document.body)?.innerText ?? ''
     const out = `${header()}\n\n${text.replace(/\n{3,}/g, '\n\n').trim()}`

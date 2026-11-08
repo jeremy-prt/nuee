@@ -57,6 +57,7 @@ struct Slot {
 pub(super) struct Launch<'a> {
     pub program: &'a Path,
     pub args: Vec<String>,
+    pub env: Vec<(&'static str, &'static str)>,
     pub cwd: &'a Path,
     pub driver: Box<dyn Driver>,
     pub chat_id: String,
@@ -82,6 +83,7 @@ impl Session {
         let Launch {
             program,
             args,
+            env,
             cwd,
             mut driver,
             chat_id,
@@ -90,7 +92,7 @@ impl Session {
             sessions,
             tools,
         } = launch;
-        let mut child = spawn(program, args, driver.session_env(), cwd)?;
+        let mut child = spawn(program, args, &env, cwd)?;
         let pid = child.id().unwrap_or_default();
         let interrupt = driver.interrupt_message();
 
@@ -555,8 +557,8 @@ mod tests {
         fn release(&self, _: &Path) -> (&'static str, &'static str) {
             ("sh", "latest")
         }
-        fn session_env(&self) -> &'static [(&'static str, &'static str)] {
-            &[]
+        fn session_env(&self, _: &SessionSpec) -> Vec<(&'static str, &'static str)> {
+            Vec::new()
         }
         fn stop_task_message(&self, _: &str) -> String {
             String::new()
@@ -722,6 +724,7 @@ mod tests {
             let session = Session::start(Launch {
                 program: Path::new("/bin/sh"),
                 args: vec!["-c".into(), "sleep 30 & sleep 30".into()],
+                env: Vec::new(),
                 cwd: Path::new("/"),
                 driver: Box::new(Silent),
                 chat_id: "c1".into(),

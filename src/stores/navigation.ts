@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { WindowStyle } from '@/stores/appearance'
 import { useLayoutStore } from '@/stores/layout'
@@ -99,12 +99,11 @@ export const useNavigationStore = defineStore('navigation', () => {
 
   const hasPanel = computed(() => PANEL_VIEWS.includes(view.value))
 
-  // Fondu enchaîné à l'entrée, à la sortie et à l'intérieur des réglages : l'ancienne page s'efface pendant
-  // que la nouvelle apparaît (API View Transitions), sans instant vide entre les deux.
-  // La promesse se résout une fois la nouvelle page en place.
-  async function crossfade(update: () => void) {
-    if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) return update()
-    await document.startViewTransition(update).updateCallbackDone
+  // Pas de View Transitions : WebKit capturait toute la fenêtre transparente et bloquait les clics pendant le
+  // fondu. SettingsView fait apparaître la nouvelle page. La promesse se résout une fois la page en place.
+  function showPage(update: () => void) {
+    update()
+    return nextTick()
   }
 
   // Arriver sur une vue à liste rouvre toujours le panneau latéral, même s'il avait été fermé ailleurs. Changer de
@@ -116,7 +115,7 @@ export const useNavigationStore = defineStore('navigation', () => {
       view.value = target
       if (PANEL_VIEWS.includes(target)) layout.panel.open = true
     }
-    if (target === 'settings' || view.value === 'settings') crossfade(update)
+    if (target === 'settings' || view.value === 'settings') showPage(update)
     else update()
   }
 
@@ -153,14 +152,14 @@ export const useNavigationStore = defineStore('navigation', () => {
       settingsSection.value = section
       settingsDetail.value = detail
     }
-    if (view.value === 'settings') return crossfade(update)
+    if (view.value === 'settings') return showPage(update)
     update()
     go('settings')
   }
 
   // Recliquer sur la section dans la barre latérale ramène aussi de sa sous-page.
   function showSettingsSection(section: SettingsSection) {
-    crossfade(() => {
+    showPage(() => {
       settingsSection.value = section
       settingsDetail.value = null
     })
@@ -168,7 +167,7 @@ export const useNavigationStore = defineStore('navigation', () => {
 
   function showSettingsDetail(detail: SettingsDetail | null) {
     if (detail && isProjectDetail(detail)) settingsProjectId.value = projectOfDetail(detail)
-    return crossfade(() => {
+    return showPage(() => {
       settingsDetail.value = detail
     })
   }
@@ -186,7 +185,7 @@ export const useNavigationStore = defineStore('navigation', () => {
       revealed.value = { id, focus }
     }
     if (settingsSection.value === section && settingsDetail.value === detail) update()
-    else crossfade(update)
+    else showPage(update)
   }
 
   return {

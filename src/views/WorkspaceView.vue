@@ -8,10 +8,11 @@ const workspace = useWorkspaceStore()
 const navigation = useNavigationStore()
 
 // Dernier onglet fermé : pas d'écran vide, on revient au « Nouvel espace de travail » (choix de Jérémy).
+// La vue reste montée hors des chats (App.vue) : sans ce test, elle ferait quitter les réglages.
 watch(
-  () => workspace.panes.length,
-  (count) => {
-    if (!count) navigation.go('new')
+  () => !workspace.panes.length && navigation.view === 'chats',
+  (empty) => {
+    if (empty) navigation.go('new')
   },
   { immediate: true },
 )

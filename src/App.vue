@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { TooltipProvider } from 'reka-ui'
-import { computed, onMounted, onUnmounted, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsSkillPanel from '@/components/settings/SettingsSkillPanel.vue'
 import ShellBackground from '@/components/shell/ShellBackground.vue'
@@ -74,6 +74,9 @@ useAttentionStore()
 useAgentsStore()
 
 const inChats = computed(() => navigation.view === 'chats')
+// Montées à la première visite puis gardées : revenir des réglages ne reconstruit pas chaque chat.
+const chatsVisited = ref(false)
+watch(inChats, (now) => now && (chatsVisited.value = true), { immediate: true })
 // « Projets en menu » : pas de panneau latéral, les sessions sont dans la barre latérale ; le centre est une carte.
 const menu = computed(() => appearance.layout === 'menu')
 const panelShown = computed(() => !menu.value && navigation.hasPanel && layout.panel.open)
@@ -229,8 +232,10 @@ onUnmounted(() => {
 
         <div class="relative flex min-w-0 flex-1 overflow-hidden">
             <div
-              v-if="navigation.view === 'chats'"
+              v-if="chatsVisited"
               class="flex min-w-0 flex-1"
+              :class="{ 'view-parked': !inChats }"
+              :inert="!inChats"
             >
               <div class="flex min-w-0 flex-1 flex-col overflow-hidden">
                 <!-- Seul le chat prend le fond de la zone centrale : terminal et panneau de droite font partie du cadre. -->
@@ -243,7 +248,7 @@ onUnmounted(() => {
                   <WorkspaceView />
                 </main>
               </div>
-              <template v-if="showRightDock">
+              <template v-if="showRightDock && inChats">
                 <ShellResizeHandle
                   v-model="layout.right.size"
                   v-bind="SIZES.right"
@@ -258,7 +263,7 @@ onUnmounted(() => {
               </template>
             </div>
 
-            <div v-else class="flex min-w-0 flex-1 overflow-hidden">
+            <div v-if="navigation.view !== 'chats'" class="flex min-w-0 flex-1 overflow-hidden">
               <main
                 id="view-area"
                 class="center-card relative isolate min-w-0 flex-1 bg-surface"

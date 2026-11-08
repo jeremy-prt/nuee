@@ -153,6 +153,8 @@ export interface Conversation {
 }
 
 const SAVE_DELAY = 600
+// Chaque écriture resérialise tout l'historique (plusieurs Mo avec des sorties d'outils) : espacées pendant une réponse.
+const STREAM_SAVE_DELAY = 5000
 const RESUME_MARGIN = 5000
 
 // findLastIndex n'est pas dans la lib TS du projet (ES2022).
@@ -458,6 +460,7 @@ export const useConversationsStore = defineStore('conversations', () => {
   const busy = computed(() => [...conversations.values()].some((conversation) => conversation.phase !== 'idle'))
   const pending = new Map<string, AgentEvent[]>()
   const timers = new Map<string, number>()
+  const streamSaves = new Set<string>()
   const resumeTimers = new Map<string, number>()
   const writes = new Map<string, Promise<void>>()
   let frame = 0
@@ -494,16 +497,25 @@ export const useConversationsStore = defineStore('conversations', () => {
   // Une écriture au plus par SAVE_DELAY : pendant une réponse en flux, chaque image redemandait la sauvegarde et
   // repoussait le délai, rien n'était écrit avant la fin. La conversation est lue au moment d'écrire.
   function save(chatId: string) {
-    if (timers.has(chatId)) return
+    const answering = conversations.get(chatId)?.phase === 'answering'
+    const scheduled = timers.get(chatId)
+    if (scheduled !== undefined) {
+      // Réponse finie : la sauvegarde espacée du flux part sans attendre.
+      if (answering || !streamSaves.has(chatId)) return
+      clearTimeout(scheduled)
+    }
+    if (answering) streamSaves.add(chatId)
+    else streamSaves.delete(chatId)
     const timer = window.setTimeout(() => {
       timers.delete(chatId)
+      streamSaves.delete(chatId)
       const conversation = conversations.get(chatId)
       if (!conversation?.loaded) return
       const { sessionId, options, items, context } = conversation
       const diff = sessionDiff(items)
       useWorkspaceStore().setSummary(chatId, { model: options.model, ...diff })
       write(chatId, () => chatSave(chatId, { sessionId, options, items: [...items], context, ...diff }))
-    }, SAVE_DELAY)
+    }, answering ? STREAM_SAVE_DELAY : SAVE_DELAY)
     timers.set(chatId, timer)
   }
 
@@ -813,6 +825,7 @@ export const useConversationsStore = defineStore('conversations', () => {
     cancelResume(chatId)
     clearTimeout(timers.get(chatId))
     timers.delete(chatId)
+    streamSaves.delete(chatId)
     conversations.delete(chatId)
     pending.delete(chatId)
     let kept: string | null = null

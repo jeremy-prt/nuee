@@ -602,9 +602,17 @@ impl Driver for Claude {
         }
     }
 
-    fn session_env(&self) -> &'static [(&'static str, &'static str)] {
+    fn session_env(&self, spec: &SessionSpec) -> Vec<(&'static str, &'static str)> {
         // Points de retour des fichiers, pour `rewind_files`.
-        &[("CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING", "1")]
+        let mut env = vec![("CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING", "1")];
+        // Sans lui, les sous-agents qui ne nomment pas de modèle héritent d'Opus ou Fable : Sonnet suffit à chercher
+        // et lire, pour bien moins de quota. Une valeur posée par l'utilisateur dans son env reste prioritaire.
+        if subagents_downgrade(spec.options.model.as_deref())
+            && std::env::var_os("CLAUDE_CODE_SUBAGENT_MODEL").is_none()
+        {
+            env.push(("CLAUDE_CODE_SUBAGENT_MODEL", "sonnet"));
+        }
+        env
     }
 
     fn user_message(&self, prompt: &str, attachments: &[Attached]) -> String {
@@ -885,6 +893,15 @@ impl Driver for Claude {
         }
         events
     }
+}
+
+/// Chat sur un modèle plus cher que Sonnet, ou sur celui par défaut de la CLI (Opus).
+fn subagents_downgrade(model: Option<&str>) -> bool {
+    model.is_none_or(|model| {
+        !["sonnet", "haiku"]
+            .iter()
+            .any(|cheap| model.contains(cheap))
+    })
 }
 
 /// Réglages propres aux chats de Nuée. Ils priment sur la config de l'utilisateur sans la modifier :
@@ -2227,5 +2244,14 @@ mod tests {
         );
         let error = r#"{"type":"control_response","response":{"subtype":"error","request_id":"nuee-mcp-auth","error":"Server type \"stdio\" does not support OAuth authentication"}}"#;
         assert!(claude.parse_mcp_auth(error).unwrap().is_err());
+    }
+
+    #[test]
+    fn subagents_move_to_sonnet_only_from_a_costlier_model() {
+        assert!(subagents_downgrade(None));
+        assert!(subagents_downgrade(Some("opus")));
+        assert!(subagents_downgrade(Some("claude-fable-5-1")));
+        assert!(!subagents_downgrade(Some("sonnet")));
+        assert!(!subagents_downgrade(Some("claude-haiku-5-5")));
     }
 }

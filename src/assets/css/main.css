@@ -234,9 +234,12 @@ html[data-mode='light'] {
   border-radius: 0.75rem;
 }
 
-/* Dans un verre, une ligne dont le fond s'anime passe sur son propre calque, que WebKit ne floute plus : le texte de
-   derrière apparaît, net, au survol. Le survol d'un menu change donc de fond d'un coup, comme les menus de macOS. */
-.ui-pop :is([role='menuitem'], [role='menuitemradio'], [role='menuitemcheckbox'], [role='option']) {
+/* Dans un verre, tout élément dont le fond, la couleur ou l'opacité s'anime passe sur son propre calque, que WebKit
+   ne floute plus : le texte de derrière apparaît, net, au survol (lignes, mais aussi boutons posés dessus comme la
+   roue d'un projet). Tout change donc d'un coup dans un verre, comme les menus de macOS. Les lignes des messages
+   (UiToasts) gardent leur transition de hauteur. */
+[data-reka-popper-content-wrapper]:has(> .ui-pop) *,
+.ui-glass :is(a, button, input, [role='button'], [role='option'], [role^='menuitem']) {
   transition: none;
 }
 
@@ -374,16 +377,29 @@ html[data-mode='light'] {
 @media (prefers-reduced-motion: reduce) {
   .ui-overlay[data-state],
   [data-state] > .ui-dialog-body,
-  [data-state] > .ui-toast-body {
+  [data-state] > .ui-toast-body,
+  .page-in {
     animation: none;
   }
 }
 
-/* Fondu enchaîné des réglages (crossfade dans stores/navigation.ts). */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation-duration: 170ms;
-  animation-timing-function: ease-out;
+/* Page des réglages qui apparaît (SettingsView) : opacité seule, rien à capturer ni à reflouter. */
+.page-in {
+  animation: page-in 140ms ease-out;
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Sessions gardées montées hors de leur vue (App.vue) : ni peinte ni mise en page, défilement conservé. */
+.view-parked {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+  content-visibility: hidden;
 }
 
 /* Réglage trouvé par la recherche : une ligne s'allume puis s'éteint, un bloc de cartes s'entoure d'un anneau. */

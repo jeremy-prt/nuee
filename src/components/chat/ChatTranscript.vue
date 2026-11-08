@@ -26,7 +26,10 @@ const emit = defineEmits<{ rewind: [itemId: string]; resend: [] }>()
 const { t } = useI18n()
 const layout = useLayoutStore()
 const scroller = useTemplateRef('scroller')
-const lastUser = computed(() => props.items.map((item) => item.kind).lastIndexOf('user'))
+const lastUser = computed(() => {
+  for (let i = props.items.length - 1; i >= 0; i--) if (props.items[i]?.kind === 'user') return i
+  return -1
+})
 
 // Une longue conversation ne monte que ses derniers messages ; les plus anciens viennent en remontant, comme dans
 // une messagerie. `start` est l'indice du premier affiché, les indices du modèle restent absolus.

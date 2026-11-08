@@ -72,7 +72,7 @@ function onCloseAutoFocus(event: Event) {
   <!-- L'infobulle enveloppe tout le menu : placée entre les deux, reka y rattacherait la position du menu. -->
   <UiTooltip :label="label" :side="side">
     <span class="flex min-w-0">
-      <DropdownMenuRoot>
+      <DropdownMenuRoot :modal="false">
         <DropdownMenuTrigger
           :disabled="disabled"
           class="group flex min-w-0 items-center gap-1.5 rounded-md text-xs whitespace-nowrap focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-40"

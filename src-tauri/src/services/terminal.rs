@@ -126,9 +126,13 @@ impl TerminalService {
     }
 
     /// La commande qui tient le terminal, `None` quand le shell attend à son invite.
-    pub fn busy(&self, id: u32) -> Option<String> {
+    /// Lance `ps` : hors du thread principal, sinon chaque relevé (toutes les 1,5 s) fige un instant la fenêtre.
+    pub async fn busy(&self, id: u32) -> Option<String> {
         let terminal = self.get(id).ok()?;
-        foreground(&terminal)
+        tauri::async_runtime::spawn_blocking(move || foreground(&terminal))
+            .await
+            .ok()
+            .flatten()
     }
 
     pub fn close(&self, id: u32) {
@@ -306,6 +310,7 @@ mod tests {
 
     #[test]
     fn a_shell_runs_reports_its_command_and_dies_with_its_tab() {
+        use tauri::async_runtime::block_on;
         let service = TerminalService::default();
         let (channel, rx) = collect();
         let mut command = CommandBuilder::new("/bin/sh");
@@ -315,14 +320,14 @@ mod tests {
 
         service.write(id, "echo nuee-$((40+2))\n").unwrap();
         assert!(wait_for(&rx, &mut seen, "nuee-42"));
-        assert_eq!(service.busy(id), None);
+        assert_eq!(block_on(service.busy(id)), None);
 
         service.write(id, "sleep 30\n").unwrap();
         let deadline = Instant::now() + Duration::from_secs(5);
-        while service.busy(id).is_none() && Instant::now() < deadline {
+        while block_on(service.busy(id)).is_none() && Instant::now() < deadline {
             std::thread::sleep(Duration::from_millis(50));
         }
-        assert_eq!(service.busy(id).as_deref(), Some("sleep"));
+        assert_eq!(block_on(service.busy(id)).as_deref(), Some("sleep"));
 
         service.close_chat("chat");
         assert!(wait_for(&rx, &mut seen, "\"exit\""));

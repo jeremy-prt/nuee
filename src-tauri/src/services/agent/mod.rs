@@ -539,7 +539,7 @@ trait Driver: Send + Sync {
     fn parse_title(&self, output: &str) -> Option<String>;
     fn args(&self, spec: &SessionSpec) -> Vec<String>;
     /// Variables ajoutées au process d'un chat.
-    fn session_env(&self) -> &'static [(&'static str, &'static str)];
+    fn session_env(&self, spec: &SessionSpec) -> Vec<(&'static str, &'static str)>;
     /// Ligne à écrire sur stdin pour lancer un tour.
     fn user_message(&self, prompt: &str, attachments: &[Attached]) -> String;
     /// Ligne qui interrompt le tour en cours sans arrêter le process.
@@ -1045,10 +1045,12 @@ impl AgentService {
         let driver = spec.agent.driver(cwd);
         let program = self.program(spec.agent)?;
         let args = driver.args(spec);
+        let env = driver.session_env(spec);
         let id = self.next_session.fetch_add(1, Ordering::Relaxed);
         Ok(Session::start(session::Launch {
             program: &program,
             args,
+            env,
             cwd,
             driver,
             chat_id: spec.chat_id.clone(),

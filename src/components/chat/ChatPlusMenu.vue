@@ -31,7 +31,7 @@ function onCloseAutoFocus(event: Event) {
 <template>
   <UiTooltip :label="t('composer.plus.label')" side="top">
     <span class="flex">
-      <DropdownMenuRoot>
+      <DropdownMenuRoot :modal="false">
         <DropdownMenuTrigger
           :disabled="disabled || loading"
           class="grid size-7 shrink-0 place-items-center rounded-md text-content/85 hover:bg-selection-inner hover:text-content focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none aria-expanded:bg-selection-inner aria-expanded:text-content"

@@ -98,7 +98,7 @@ function chooseStart(branch: string) {
 <template>
   <UiTooltip :label="worktree.blocked ? t(`settings.projects.worktreeSupport.${worktree.blocked}`) : t('composer.worktree.menu')">
     <span class="flex min-w-0">
-      <DropdownMenuRoot @update:open="loadBranches">
+      <DropdownMenuRoot :modal="false" @update:open="loadBranches">
         <DropdownMenuTrigger :disabled="!!worktree.blocked || disabled" v-bind="$attrs">
           <span class="sr-only">{{ t('composer.worktree.menu') }}</span>
           <component :is="choice === 'project' ? Folder : FolderTree" class="size-3.5 shrink-0" aria-hidden="true" />

@@ -27,7 +27,7 @@ const section = computed<UiMenuSection>(() => ({
 <template>
   <UiTooltip :label="t('composer.machine')">
     <span class="flex min-w-0">
-      <DropdownMenuRoot>
+      <DropdownMenuRoot :modal="false">
         <DropdownMenuTrigger v-bind="$attrs">
           <span class="size-2 shrink-0 rounded-full bg-success" aria-hidden="true" />
           <span class="sr-only">{{ t('composer.machine') }}</span>

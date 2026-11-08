@@ -74,8 +74,11 @@ pub fn terminal_resize(
 }
 
 #[tauri::command]
-pub fn terminal_busy(id: u32, terminals: State<'_, TerminalService>) -> Option<String> {
-    terminals.busy(id)
+pub async fn terminal_busy(
+    id: u32,
+    terminals: State<'_, TerminalService>,
+) -> Result<Option<String>, AppError> {
+    Ok(terminals.busy(id).await)
 }
 
 #[tauri::command]

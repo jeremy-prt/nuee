@@ -66,15 +66,19 @@ const projects = useProjectsStore()
 const worktrees = useWorktreesStore()
 const addProject = useAddProject()
 const root = useTemplateRef('root')
+const page = useTemplateRef('page')
 const heading = useTemplateRef('heading')
 
-// Nouvelle section ou sous-page : on repart du haut (le fondu enchaîné est dans stores/navigation.ts).
+// Nouvelle section ou sous-page : on repart du haut, et la page réapparaît en fondu.
 // Un skill en cours de modification reste ouvert : ses changements ne se perdent pas en chemin.
 watch(
   () => [navigation.settingsSection, navigation.settingsDetail],
   () => {
     root.value?.scrollTo({ top: 0 })
     skills.close()
+    page.value?.classList.remove('page-in')
+    void page.value?.offsetWidth
+    page.value?.classList.add('page-in')
   },
 )
 
@@ -161,7 +165,7 @@ onUnmounted(() => {
 
 <template>
   <div ref="root" class="@container h-full overflow-y-auto">
-    <div class="mx-auto w-full max-w-4xl px-6 py-8 pb-16 @2xl:px-10 @4xl:px-14">
+    <div ref="page" class="page-in mx-auto w-full max-w-4xl px-6 py-8 pb-16 @2xl:px-10 @4xl:px-14">
       <template v-if="navigation.settingsDetail">
         <div class="-ms-1.5 flex items-center gap-1.5">
           <UiIconButton :label="backLabel()" @click="back($event)">

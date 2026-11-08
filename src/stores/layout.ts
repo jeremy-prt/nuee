@@ -102,14 +102,19 @@ function load(): LayoutState {
 export const useLayoutStore = defineStore('layout', () => {
   const state = reactive(load())
 
+  // Regroupé : pendant un redimensionnement, chaque mouvement de souris réécrivait tout le JSON.
+  let timer = 0
   watch(
     state,
     (value) => {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(value))
-      } catch {
-        // Stockage indisponible : la disposition reste valable pour la session.
-      }
+      clearTimeout(timer)
+      timer = window.setTimeout(() => {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(value))
+        } catch {
+          // Stockage indisponible : la disposition reste valable pour la session.
+        }
+      }, 300)
     },
     { deep: true },
   )
