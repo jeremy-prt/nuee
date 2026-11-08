@@ -152,7 +152,7 @@ onMounted(() => {
 <template>
   <!-- Le bas s'estompe sous le champ de saisie au lieu d'être coupé net. -->
   <div ref="scroller" class="overflow-y-auto mask-b-from-[calc(100%-1.5rem)]" @scroll.passive="onScroll">
-    <ol class="mx-auto flex max-w-(--chat-width) flex-col gap-3 px-6 py-6" role="log" :aria-busy="running" :aria-label="t('chat.transcript')">
+    <ol class="mx-auto flex max-w-(--chat-width) flex-col gap-3 px-6 py-6" role="log" :aria-busy="running || limit < PAGE" :aria-label="t('chat.transcript')">
       <li v-if="start" class="flex justify-center">
         <button
           type="button"
