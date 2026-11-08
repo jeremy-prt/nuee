@@ -618,6 +618,14 @@ impl Driver for Claude {
         {
             env.push(("CLAUDE_CODE_SUBAGENT_MODEL", "sonnet"));
         }
+        // Les sous-agents cherchent et lisent : un effort moyen leur suffit, au lieu d'hériter de l'effort élevé du chat.
+        if matches!(
+            spec.options.effort,
+            Some(Effort::High | Effort::Xhigh | Effort::Max)
+        ) && std::env::var_os("CLAUDE_CODE_SUBAGENT_EFFORT").is_none()
+        {
+            env.push(("CLAUDE_CODE_SUBAGENT_EFFORT", "medium"));
+        }
         env
     }
 
@@ -2265,6 +2273,37 @@ mod tests {
             r#"{"type":"result","subtype":"success","is_error":false,"usage":{"cache_creation":{"ephemeral_1h_input_tokens":0,"ephemeral_5m_input_tokens":0}}}"#,
         ]);
         assert!(matches!(events.as_slice(), [AgentEvent::TurnEnd { .. }]));
+    }
+
+    #[test]
+    fn subagents_lower_only_a_high_effort() {
+        let spec = |effort| SessionSpec {
+            chat_id: "c".into(),
+            agent: super::super::AgentKind::Claude,
+            cwd: None,
+            session_id: None,
+            options: super::super::TurnOptions {
+                mode: PermissionMode::Auto,
+                model: Some("sonnet".into()),
+                effort,
+                fast: false,
+            },
+            hooks: true,
+            skills: Default::default(),
+            servers_off: Vec::new(),
+            worktree: false,
+            worktree_path: None,
+            worktree_base: None,
+        };
+        let claude = Claude::new(Path::new("/projet"));
+        let lowered = |effort| {
+            claude
+                .session_env(&spec(effort))
+                .contains(&("CLAUDE_CODE_SUBAGENT_EFFORT", "medium"))
+        };
+        assert!(lowered(Some(Effort::Xhigh)));
+        assert!(!lowered(Some(Effort::Low)));
+        assert!(!lowered(None));
     }
 
     #[test]
