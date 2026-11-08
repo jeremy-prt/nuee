@@ -4,6 +4,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatSpinner from '@/components/chat/ChatSpinner.vue'
 import ChatTaskOutput from '@/components/chat/ChatTaskOutput.vue'
+import UiEmpty from '@/components/ui/UiEmpty.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import { type TaskState, useConversationsStore } from '@/stores/conversations'
 import { useWorkspaceStore } from '@/stores/workspace'
@@ -123,9 +124,6 @@ function duration(task: TaskState) {
         </section>
       </template>
     </div>
-    <div v-else class="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
-      <Layers class="size-6 text-muted" aria-hidden="true" />
-      <p class="text-sm text-muted">{{ t('dock.tasks.empty') }}</p>
-    </div>
+    <UiEmpty v-else :icon="Layers" :title="t('dock.tasks.emptyTitle')" :description="t('dock.tasks.empty')" />
   </div>
 </template>

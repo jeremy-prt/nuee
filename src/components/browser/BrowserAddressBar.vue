@@ -2,13 +2,16 @@
 import { ChevronLeft, ChevronRight, MousePointer, RefreshCw, X } from '@/components/ui/icons'
 import { computed, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import BrowserMenu from '@/components/browser/BrowserMenu.vue'
+import ServerMenu from '@/components/server/ServerMenu.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import type { BrowserTab } from '@/ipc/bindings/BrowserTab'
 import { useBrowserStore } from '@/stores/browser'
 import { useConversationsStore } from '@/stores/conversations'
 import { agents } from '@/utils/agents'
 
-// Précédent, suivant, recharger et l'adresse de l'onglet ; sans onglet, l'adresse tapée en ouvre un.
+// Précédent, suivant, recharger, l'adresse de l'onglet (sans onglet, l'adresse tapée en ouvre un), puis les serveurs du
+// projet et le menu du navigateur. Pas de bordure : la barre se fond dans le panneau, comme dans T3 Code.
 const props = defineProps<{ chatId: string; tab: BrowserTab | null }>()
 
 const { t } = useI18n()
@@ -55,7 +58,7 @@ function reload() {
 </script>
 
 <template>
-  <div class="flex h-10 shrink-0 items-center gap-0.5 border-b border-stroke ps-2 pe-3.5">
+  <div class="flex h-10 shrink-0 items-center gap-0.5 ps-2 pe-2">
     <UiIconButton :label="t('dock.browser.back')" :disabled="!tab?.canBack" @click="tab && browser.history(tab.id, 'back')">
       <ChevronLeft class="size-4 rtl:rotate-180" aria-hidden="true" />
     </UiIconButton>
@@ -70,14 +73,13 @@ function reload() {
       <input
         ref="input"
         v-model="draft"
-        data-control
         type="text"
         inputmode="url"
         autocomplete="off"
         autocorrect="off"
         autocapitalize="off"
         spellcheck="false"
-        class="h-7 min-w-24 flex-1 rounded-md border border-stroke bg-selection/50 px-2.5 text-xs text-content outline-none placeholder:text-muted focus:border-stroke-focus"
+        class="h-7 min-w-24 flex-1 rounded-md border border-transparent bg-transparent px-2 text-[13px] text-content outline-none placeholder:text-muted hover:bg-selection-hover focus:border-stroke-focus focus:bg-selection-hover"
         :placeholder="t('dock.browser.address')"
         :aria-label="t('dock.browser.addressLabel')"
         @focus="editing = true; input?.select()"
@@ -96,5 +98,7 @@ function reload() {
       <span class="truncate">{{ action }}</span>
       <span class="sr-only">{{ agentName }}</span>
     </span>
+    <ServerMenu />
+    <BrowserMenu />
   </div>
 </template>

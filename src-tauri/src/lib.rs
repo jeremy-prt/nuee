@@ -182,7 +182,6 @@ pub fn run() {
             commands::terminal::terminal_write,
             commands::terminal::terminal_resize,
             commands::terminal::terminal_busy,
-            commands::terminal::terminal_shell,
             commands::terminal::terminal_close,
             commands::terminal::terminal_close_chat,
             commands::window::window_set_blur,

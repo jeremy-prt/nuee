@@ -4,6 +4,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsSearch from '@/components/settings/SettingsSearch.vue'
 import ShellDockTabs from '@/components/shell/ShellDockTabs.vue'
+import ShellEnvironment from '@/components/shell/ShellEnvironment.vue'
 import ShellRailToggle from '@/components/shell/ShellRailToggle.vue'
 import ShellTab from '@/components/shell/ShellTab.vue'
 import ShellTabs from '@/components/shell/ShellTabs.vue'
@@ -148,10 +149,12 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
           data-tauri-drag-region
         >
           <template v-if="layout.right.open">
-            <!-- Comme Devin : les onglets des volets ouverts, puis un « + » pour en ouvrir d'autres. -->
+            <!-- Comme T3 Code : les onglets des volets ouverts, puis un « + » pour en ouvrir d'autres. -->
             <ShellDockTabs class="min-w-0" />
             <span class="flex-1 self-stretch" data-tauri-drag-region />
           </template>
+          <!-- Environnement n'est pas un volet : un panneau flottant, ouvert depuis ce bouton (choix de Jérémy). -->
+          <ShellEnvironment />
           <UiIconButton
             :label="t('dock.toggle')"
             :shortcut="shortcuts.label('toggleRightDock')"

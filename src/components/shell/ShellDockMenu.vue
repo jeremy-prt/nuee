@@ -6,13 +6,14 @@ import { dockIcons } from '@/components/shell/dockIcons'
 import UiMenuItem from '@/components/ui/UiMenuItem.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { menuPanel } from '@/components/ui/menuRow'
-import { DOCK_VIEWS, useLayoutStore } from '@/stores/layout'
+import { useDockOpener } from '@/composables/useDockOpener'
+import { DOCK_VIEWS } from '@/stores/layout'
 import { useShortcutsStore } from '@/stores/shortcuts'
 
-// « + » au-dessus du panneau de droite, comme Devin : ouvre un volet (sous celui affiché) ou y ramène s'il l'est déjà.
+// « + » au-dessus du panneau de droite : ouvre un volet ou y ramène ; le navigateur reçoit un onglet de plus.
 const { t } = useI18n()
-const layout = useLayoutStore()
 const shortcuts = useShortcutsStore()
+const open = useDockOpener()
 
 let byPointer = false
 const openedBy = (pointer: boolean) => {
@@ -42,8 +43,8 @@ function onCloseAutoFocus(event: Event) {
               :key="view"
               :label="t(`dock.${view}.title`)"
               :icon="dockIcons[view]"
-              :shortcut="view === 'terminal' ? shortcuts.label('toggleTerminal') : undefined"
-              @select="layout.showView(view)"
+              :shortcut="view === 'terminal' ? shortcuts.label('toggleTerminal') : view === 'browser' ? shortcuts.label('toggleBrowser') : undefined"
+              @select="open(view)"
             />
           </DropdownMenuContent>
         </DropdownMenuPortal>

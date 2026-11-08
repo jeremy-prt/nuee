@@ -102,6 +102,7 @@ export default {
     closePane: '关闭面板',
   },
   dock: {
+    launcher: "打开面板",
     close: '隐藏面板',
     closeTab: "关闭标签页",
     add: "打开面板",
@@ -110,7 +111,6 @@ export default {
     resize: '调整面板大小',
     session: {
       title: '环境',
-      open: "快速访问",
       environment: '环境',
       context: '上下文',
       empty: '开始对话后可查看智能体的工作位置。',
@@ -129,17 +129,20 @@ export default {
       commitPrompt: '提交当前的更改。',
       noChanges: '无更改',
       keepAwake: '防止休眠',
+      keepAwakeHelp: "在智能体工作期间，对所有会话生效。",
       remoteControl: 'Remote Control',
       soon: '即将推出',
     },
     terminal: {
       title: '终端',
-      empty: '没有打开的终端。',
+      splitRight: "向右拆分",
+      splitDown: "向下拆分",
+      closePane: "关闭此终端",
+      emptyTitle: "没有终端",
+      empty: "终端会在会话的文件夹中打开。",
       noSession: '打开一个会话即可启动终端。',
       new: '新建终端',
       tab: '终端 {n}',
-      close: '关闭终端',
-      list: '终端列表',
       failed: '终端无法启动',
       running: {
         title: '关闭此终端？',
@@ -149,6 +152,10 @@ export default {
     },
     changes: {
       title: '更改',
+      emptyTitle: "没有更改",
+      noProjectTitle: "没有仓库",
+      notRepoTitle: "不是 git 仓库",
+      failedTitle: "无法读取 git 状态",
       empty: '智能体所做的更改将显示在这里。',
       noProject: '没有项目的会话没有可跟踪的仓库。',
       notRepo: '项目文件夹不是 git 仓库。',
@@ -172,8 +179,6 @@ export default {
     },
     browser: {
       title: '浏览器',
-      empty: '项目的页面将显示在这里。',
-      tabs: "浏览器标签页",
       newTab: "新标签页",
       closeTab: "关闭标签页",
       menu: "浏览器选项",
@@ -187,6 +192,8 @@ export default {
       loadFailed: "页面未能加载",
       failed: "浏览器无法打开该页面",
       cleared: "已清除浏览器数据",
+      emptyTitle: "暂无预览",
+      emptyHelp: "在上方输入地址，或启动项目的服务器。",
       size: {
         title: "屏幕尺寸",
         pane: "整个面板",
@@ -216,7 +223,6 @@ export default {
       heading: "项目服务器",
       invalid: "无法读取 launch.json",
       none: "没有服务器",
-      empty: "此项目没有服务器",
       add: "添加服务器",
       fix: "修复文件",
       addPrompt: "找出此项目的开发服务器,并在 .claude/launch.json 中描述它们(name、runtimeExecutable、runtimeArgs、port)。",
@@ -246,10 +252,12 @@ export default {
     },
     files: {
       title: '文件',
+      emptyTitle: "没有文件",
       empty: '已打开项目的文件将显示在这里。',
     },
     tasks: {
       title: '任务',
+      emptyTitle: "没有任务",
       groups: {
         running: "进行中",
         done: "已完成",
@@ -1069,6 +1077,8 @@ export default {
         toggleRightDock: '显示或隐藏右侧面板',
         toggleTerminal: '显示或隐藏终端',
         toggleBrowser: "显示或隐藏浏览器",
+        splitTerminal: "向右拆分终端",
+        splitTerminalDown: "向下拆分终端",
         browserAddress: "转到地址栏",
         zoomIn: '放大界面',
         zoomOut: '缩小界面',

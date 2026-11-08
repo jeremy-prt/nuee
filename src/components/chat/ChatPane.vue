@@ -21,7 +21,6 @@ import { mentionPlaceKey } from '@/stores/mentions'
 import { useToastsStore } from '@/stores/toasts'
 import { type Place, useConversationsStore } from '@/stores/conversations'
 import type { Attachment } from '@/ipc/bindings/Attachment'
-import { useLayoutStore } from '@/stores/layout'
 import { useProjectsStore } from '@/stores/projects'
 import { type Tab, useWorkspaceStore } from '@/stores/workspace'
 import { useWorktreesStore } from '@/stores/worktrees'
@@ -41,7 +40,6 @@ function pick(key: string) {
   return `${key}.${seed.value % count}`
 }
 const projects = useProjectsStore()
-const layout = useLayoutStore()
 const conversations = useConversationsStore()
 const catalog = useCatalogStore()
 const workspace = useWorkspaceStore()
@@ -137,9 +135,6 @@ function send(prompt: string, attachments: Attachment[], other = false) {
   conversations.send(props.tab.id, place.value, prompt, attachments, other)
   if (first) {
     worktrees.setBase(props.tab.id, null)
-    // Comme Claude Code : le résumé de la session s'ouvre à droite dès le premier message, sauf si le panneau a été
-    // fermé de la main de l'utilisateur.
-    if (!layout.right.open && layout.right.preferOpen) layout.showView('session')
   }
 }
 

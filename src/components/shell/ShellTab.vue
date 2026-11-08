@@ -61,7 +61,7 @@ const statusIcons = { approval: ShieldQuestion, question: MessageQuestion, done:
              logo de l'agent. Mêmes icônes et couleurs que les cartes de la liste. -->
         <!-- Case fixe : le chiffre affiché sous ⌘ prend la place de l'icône sans décaler le titre. -->
         <span class="-my-0.5 grid size-5 shrink-0 place-items-center">
-          <kbd v-if="rank" class="grid size-3.5 shrink-0 place-items-center font-sans text-[11px] text-muted tabular-nums">{{ rank }}</kbd>
+          <kbd v-if="rank" class="grid size-4 shrink-0 place-items-center rounded-[4px] border border-content/25 bg-content/8 font-sans text-[10px] text-content/80 tabular-nums">{{ rank }}</kbd>
           <template v-else-if="status">
             <ChatSpinner v-if="status === 'working'" :agent="tab.agent" class="size-3.5 text-xs" />
             <component :is="statusIcons[status as keyof typeof statusIcons]" v-else class="size-3.5 shrink-0" :class="sessionStatusColor[status]" aria-hidden="true" />

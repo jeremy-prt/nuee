@@ -102,6 +102,7 @@ export default {
     closePane: 'パネルを閉じる',
   },
   dock: {
+    launcher: "パネルを開く",
     close: 'パネルを隠す',
     closeTab: "タブを閉じる",
     add: "パネルを開く",
@@ -110,7 +111,6 @@ export default {
     resize: 'パネルのサイズを変更',
     session: {
       title: '環境',
-      open: "クイックアクセス",
       environment: '環境',
       context: 'コンテキスト',
       empty: '会話を始めると、エージェントの作業場所が表示されます。',
@@ -129,17 +129,20 @@ export default {
       commitPrompt: '現在の変更をコミットする。',
       noChanges: '変更なし',
       keepAwake: 'スリープを防止',
+      keepAwakeHelp: "エージェントが作業している間、すべてのセッションに適用されます。",
       remoteControl: 'Remote Control',
       soon: '近日対応',
     },
     terminal: {
       title: 'ターミナル',
-      empty: '開いているターミナルはありません。',
+      splitRight: "右に分割",
+      splitDown: "下に分割",
+      closePane: "このターミナルを閉じる",
+      emptyTitle: "ターミナルなし",
+      empty: "ターミナルはセッションのフォルダで開きます。",
       noSession: 'セッションを開くとターミナルを起動できます。',
       new: '新しいターミナル',
       tab: 'ターミナル {n}',
-      close: 'ターミナルを閉じる',
-      list: 'ターミナル一覧',
       failed: 'ターミナルを起動できませんでした',
       running: {
         title: 'このターミナルを閉じますか？',
@@ -149,6 +152,10 @@ export default {
     },
     changes: {
       title: '変更',
+      emptyTitle: "変更なし",
+      noProjectTitle: "リポジトリなし",
+      notRepoTitle: "git リポジトリではありません",
+      failedTitle: "git の状態を読み取れません",
       empty: 'エージェントによる変更はここに表示されます。',
       noProject: 'プロジェクトのないセッションには追跡するリポジトリがありません。',
       notRepo: 'プロジェクトのフォルダは git リポジトリではありません。',
@@ -172,8 +179,6 @@ export default {
     },
     browser: {
       title: 'ブラウザ',
-      empty: 'プロジェクトのページがここに表示されます。',
-      tabs: "ブラウザのタブ",
       newTab: "新しいタブ",
       closeTab: "タブを閉じる",
       menu: "ブラウザのオプション",
@@ -187,6 +192,8 @@ export default {
       loadFailed: "ページを読み込めませんでした",
       failed: "ブラウザでページを開けませんでした",
       cleared: "ブラウザのデータを消去しました",
+      emptyTitle: "プレビューはまだありません",
+      emptyHelp: "上にアドレスを入力するか、プロジェクトのサーバーを起動します。",
       size: {
         title: "画面サイズ",
         pane: "パネル全体",
@@ -216,7 +223,6 @@ export default {
       heading: "プロジェクトのサーバー",
       invalid: "launch.json を読み込めません",
       none: "サーバーなし",
-      empty: "このプロジェクトのサーバーはありません",
       add: "サーバーを追加",
       fix: "ファイルを修正",
       addPrompt: "このプロジェクトの開発サーバーを見つけて .claude/launch.json に記述する(name、runtimeExecutable、runtimeArgs、port)。",
@@ -246,10 +252,12 @@ export default {
     },
     files: {
       title: 'ファイル',
+      emptyTitle: "ファイルなし",
       empty: '開いているプロジェクトのファイルがここに表示されます。',
     },
     tasks: {
       title: 'タスク',
+      emptyTitle: "タスクなし",
       groups: {
         running: "実行中",
         done: "完了",
@@ -1069,6 +1077,8 @@ export default {
         toggleRightDock: '右パネルの表示を切り替え',
         toggleTerminal: 'ターミナルの表示を切り替え',
         toggleBrowser: "ブラウザの表示を切り替え",
+        splitTerminal: "ターミナルを右に分割",
+        splitTerminalDown: "ターミナルを下に分割",
         browserAddress: "アドレスバーへ移動",
         zoomIn: 'インターフェースを拡大',
         zoomOut: 'インターフェースを縮小',

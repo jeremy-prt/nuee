@@ -102,6 +102,7 @@ export default {
     closePane: 'Fechar painel',
   },
   dock: {
+    launcher: "Abrir um painel",
     close: 'Ocultar painel',
     closeTab: "Fechar aba",
     add: "Abrir um painel",
@@ -110,7 +111,6 @@ export default {
     resize: 'Redimensionar o painel',
     session: {
       title: 'Ambiente',
-      open: "Acesso rápido",
       environment: 'Ambiente',
       context: 'Contexto',
       empty: 'Iniciar a conversa para ver onde o agente trabalha.',
@@ -129,17 +129,20 @@ export default {
       commitPrompt: 'Fazer commit das alterações em andamento.',
       noChanges: 'Nenhuma alteração',
       keepAwake: 'Evitar o modo de repouso',
+      keepAwakeHelp: "Vale para todas as sessões enquanto um agente trabalha.",
       remoteControl: 'Remote Control',
       soon: 'Em breve',
     },
     terminal: {
       title: 'Terminal',
-      empty: 'Nenhum terminal aberto.',
+      splitRight: "Dividir à direita",
+      splitDown: "Dividir para baixo",
+      closePane: "Fechar este terminal",
+      emptyTitle: "Nenhum terminal",
+      empty: "O terminal abre na pasta da sessão.",
       noSession: 'Abrir uma sessão para iniciar um terminal.',
       new: 'Novo terminal',
       tab: 'Terminal {n}',
-      close: 'Fechar o terminal',
-      list: 'Terminais',
       failed: 'Não foi possível iniciar o terminal',
       running: {
         title: 'Fechar este terminal?',
@@ -149,6 +152,10 @@ export default {
     },
     changes: {
       title: 'Alterações',
+      emptyTitle: "Nenhuma alteração",
+      noProjectTitle: "Sem repositório",
+      notRepoTitle: "Não é um repositório git",
+      failedTitle: "Estado do git ilegível",
       empty: 'As alterações feitas pelos agentes aparecerão aqui.',
       noProject: 'Uma sessão sem projeto não tem repositório para acompanhar.',
       notRepo: 'A pasta do projeto não é um repositório git.',
@@ -172,8 +179,6 @@ export default {
     },
     browser: {
       title: 'Navegador',
-      empty: 'As páginas do projeto aparecerão aqui.',
-      tabs: "Abas do navegador",
       newTab: "Nova aba",
       closeTab: "Fechar aba",
       menu: "Opções do navegador",
@@ -187,6 +192,8 @@ export default {
       loadFailed: "A página não carregou",
       failed: "O navegador não conseguiu abrir a página",
       cleared: "Dados do navegador apagados",
+      emptyTitle: "Nenhuma prévia ainda",
+      emptyHelp: "Digitar um endereço acima, ou iniciar um servidor do projeto.",
       size: {
         title: "Tamanho da tela",
         pane: "Painel inteiro",
@@ -216,7 +223,6 @@ export default {
       heading: "Servidores do projeto",
       invalid: "Não foi possível ler launch.json",
       none: "Nenhum servidor",
-      empty: "Nenhum servidor para este projeto",
       add: "Adicionar um servidor",
       fix: "Corrigir o arquivo",
       addPrompt: "Encontrar os servidores de desenvolvimento deste projeto e descrevê-los em .claude/launch.json (name, runtimeExecutable, runtimeArgs, port).",
@@ -246,10 +252,12 @@ export default {
     },
     files: {
       title: 'Arquivos',
+      emptyTitle: "Nenhum arquivo",
       empty: 'Os arquivos do projeto aberto aparecerão aqui.',
     },
     tasks: {
       title: 'Tarefas',
+      emptyTitle: "Nenhuma tarefa",
       groups: {
         running: "Em andamento",
         done: "Concluídas",
@@ -1069,6 +1077,8 @@ export default {
         toggleRightDock: 'Mostrar ou ocultar o painel direito',
         toggleTerminal: 'Mostrar ou ocultar o terminal',
         toggleBrowser: "Mostrar ou ocultar o navegador",
+        splitTerminal: "Dividir o terminal à direita",
+        splitTerminalDown: "Dividir o terminal para baixo",
         browserAddress: "Ir para a barra de endereço",
         zoomIn: 'Aumentar a interface',
         zoomOut: 'Diminuir a interface',

@@ -19,7 +19,6 @@ import type { WorktreeChanges } from '@/ipc/bindings/WorktreeChanges'
 import { projectReveal } from '@/ipc/project'
 import { worktreeChanges } from '@/ipc/worktree'
 import { type TaskState, type ToolItem, useConversationsStore } from '@/stores/conversations'
-import { useShortcutsStore } from '@/stores/shortcuts'
 import { useGeneralStore } from '@/stores/general'
 import { useLayoutStore } from '@/stores/layout'
 import { useProjectsStore } from '@/stores/projects'
@@ -31,8 +30,6 @@ import { mcpLabel, mcpStatus } from '@/utils/mcp'
 import { contextFormats, contextRatio, contextRows } from '@/utils/context'
 import { formatDuration } from '@/utils/duration'
 import { tasksOf } from '@/utils/tasks'
-import { dockIcons } from '@/components/shell/dockIcons'
-import type { DockView } from '@/stores/layout'
 
 // Résumé de la session active, comme le volet Environnement de Claude Code : où travaille l'agent, son contexte,
 // ses tâches et ce qu'il a produit.
@@ -50,7 +47,7 @@ const skills = useSkillsStore()
 
 // Sections repliées, mémorisées en local : simple confort, rien de grave si la lecture échoue.
 const COLLAPSED_KEY = 'nuee.sessionPanel.v3'
-const sections = ['environment', 'context', 'connectors', 'tasks', 'results', 'changes', 'quick'] as const
+const sections = ['environment', 'context', 'connectors', 'tasks', 'results', 'changes'] as const
 type Section = (typeof sections)[number]
 // Repliées par défaut : les sections qu'on consulte rarement (choix de Jérémy). Un choix enregistré l'emporte.
 const FOLDED: readonly Section[] = ['connectors', 'results']
@@ -192,8 +189,6 @@ const row = 'flex h-8 w-full min-w-0 items-center gap-2.5 rounded-lg px-2 text-s
 const action = `${row} hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring`
 const title = 'flex h-7 w-full items-center gap-1 rounded-lg px-2 text-start text-xs font-medium text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-ring'
 const empty = `${row} text-muted`
-const shortcuts = useShortcutsStore()
-const quickViews: DockView[] = ['terminal', 'changes', 'browser', 'files', 'tasks']
 </script>
 
 <template>
@@ -231,14 +226,17 @@ const quickViews: DockView[] = ['terminal', 'changes', 'browser', 'files', 'task
           <GitBranch class="size-4 shrink-0" aria-hidden="true" />
           {{ t('dock.session.noBranch') }}
         </p>
-        <!-- Le même réglage que Réglages › Général, raccourci ici comme dans l'app Claude. -->
-        <UiTooltip :label="t('settings.general.system.keepAwake')" side="bottom">
-          <div :class="row">
-            <Coffee class="size-4 shrink-0 text-muted" aria-hidden="true" />
-            <span class="min-w-0 flex-1 truncate" aria-hidden="true">{{ t('dock.session.keepAwake') }}</span>
-            <UiSwitch v-model="general.keepAwake" :label="t('settings.general.system.keepAwake')" />
-          </div>
-        </UiTooltip>
+        <!-- Le même réglage que Réglages › Général, raccourci ici comme dans l'app Claude : il vaut pour toute l'app.
+             L'infobulle sur l'interrupteur seul, posée sur une enveloppe : elle écraserait son `data-state`. -->
+        <div :class="row">
+          <Coffee class="size-4 shrink-0 text-muted" aria-hidden="true" />
+          <span class="min-w-0 flex-1 truncate" aria-hidden="true">{{ t('dock.session.keepAwake') }}</span>
+          <UiTooltip :label="t('dock.session.keepAwakeHelp')" side="bottom">
+            <span class="flex">
+              <UiSwitch v-model="general.keepAwake" :label="t('settings.general.system.keepAwake')" />
+            </span>
+          </UiTooltip>
+        </div>
         <UiTooltip :label="t('dock.session.soon')" side="bottom">
           <div :class="row">
             <RemoteControl class="size-4 shrink-0 text-muted" aria-hidden="true" />
@@ -363,19 +361,6 @@ const quickViews: DockView[] = ['terminal', 'changes', 'browser', 'files', 'task
       </template>
     </section>
 
-    <!-- Comme Devin : de quoi ouvrir les autres volets sans chercher leur icône. -->
-    <section class="flex flex-col gap-0.5 border-t border-stroke pt-2">
-      <h3>
-        <button type="button" :class="title" :aria-expanded="!collapsed.quick" @click="collapsed.quick = !collapsed.quick">
-          {{ t('dock.session.open') }}<ChevronRight class="size-3" :class="{ 'rotate-90': !collapsed.quick }" aria-hidden="true" />
-        </button>
-      </h3>
-      <button v-for="view in collapsed.quick ? [] : quickViews" :key="view" type="button" :class="action" @click="layout.showView(view)">
-        <component :is="dockIcons[view]" class="size-4 shrink-0 text-muted" aria-hidden="true" />
-        <span class="flex-1 truncate">{{ t(`dock.${view}.title`) }}</span>
-        <kbd v-if="view === 'terminal' && shortcuts.label('toggleTerminal')" class="font-sans text-xs text-muted">{{ shortcuts.label('toggleTerminal') }}</kbd>
-      </button>
-    </section>
   </div>
   <p v-else class="flex flex-1 items-center justify-center p-6 text-center text-sm text-muted">{{ t('dock.session.empty') }}</p>
 </template>

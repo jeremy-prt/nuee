@@ -27,7 +27,6 @@ import ComputerTerminal01Icon from '@hugeicons/core-free-icons/ComputerTerminal0
 import Copy01Icon from '@hugeicons/core-free-icons/Copy01Icon'
 import Css3Icon from '@hugeicons/core-free-icons/Css3Icon'
 import Cursor02Icon from '@hugeicons/core-free-icons/Cursor02Icon'
-import DashboardSquare02Icon from '@hugeicons/core-free-icons/DashboardSquare02Icon'
 import Delete02Icon from '@hugeicons/core-free-icons/Delete02Icon'
 import Download04Icon from '@hugeicons/core-free-icons/Download04Icon'
 import File01Icon from '@hugeicons/core-free-icons/File01Icon'
@@ -62,8 +61,9 @@ import JavaScriptIcon from '@hugeicons/core-free-icons/JavaScriptIcon'
 import KeyboardIcon from '@hugeicons/core-free-icons/KeyboardIcon'
 import LaptopIcon from '@hugeicons/core-free-icons/LaptopIcon'
 import LayerIcon from '@hugeicons/core-free-icons/LayerIcon'
-import LayoutBottomIcon from '@hugeicons/core-free-icons/LayoutBottomIcon'
 import LayoutTwoColumnIcon from '@hugeicons/core-free-icons/LayoutTwoColumnIcon'
+import LayoutTwoRowIcon from '@hugeicons/core-free-icons/LayoutTwoRowIcon'
+import LayoutBottomIcon from '@hugeicons/core-free-icons/LayoutBottomIcon'
 import LeftToRightListBulletIcon from '@hugeicons/core-free-icons/LeftToRightListBulletIcon'
 import LicenseIcon from '@hugeicons/core-free-icons/LicenseIcon'
 import LinkSquare02Icon from '@hugeicons/core-free-icons/LinkSquare02Icon'
@@ -129,6 +129,11 @@ const panel = (x: number) =>
     ['rect', { x: '3', y: '4', width: '18', height: '16', rx: '3.5', stroke: 'currentColor', strokeWidth: '1.5', key: '0' }],
     ['path', { d: `M${x} 4V20`, stroke: 'currentColor', strokeWidth: '1.5', key: '1' }],
   ] as Glyph
+// Environnement, comme le « SquareMenu » de T3 Code : Hugeicons n'a pas de carré à lignes.
+const SquareMenuGlyph = [
+  ['rect', { x: '3', y: '3', width: '18', height: '18', rx: '4', stroke: 'currentColor', strokeWidth: '1.5', key: '0' }],
+  ['path', { d: 'M8 8.5H16M8 12H16M8 15.5H13', stroke: 'currentColor', strokeLinecap: 'round', strokeWidth: '1.5', key: '1' }],
+] as Glyph
 const PanelLeftGlyph = panel(9)
 const PanelRightGlyph = panel(15)
 
@@ -208,8 +213,8 @@ export const ImageUp = icon(ImageUpload01Icon)
 export const Info = icon(InformationCircleIcon)
 export const Keyboard = icon(KeyboardIcon)
 export const Layers = icon(LayerIcon)
-export const LayoutDashboard = icon(DashboardSquare02Icon)
 export const LayoutList = icon(LeftToRightListBulletIcon)
+export const SplitDown = icon(LayoutTwoRowIcon)
 export const LoaderCircle = icon(Loading03Icon)
 export const Logs = icon(LogsIcon)
 export const MessageQuestion = icon(BubbleChatQuestionIcon)
@@ -246,6 +251,7 @@ export const ShieldQuestion = icon(ShieldQuestionMarkIcon)
 export const SlidersHorizontal = icon(FilterHorizontalIcon)
 export const Smartphone = icon(SmartPhone01Icon)
 export const Sparkles = icon(SparklesIcon)
+export const SquareMenu = icon(SquareMenuGlyph)
 export const Square = icon(SquareIcon)
 export const SquareDashed = icon(SquareDashedIcon)
 export const SquarePen = icon(PencilEdit01Icon)

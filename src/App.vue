@@ -52,7 +52,7 @@ watch(
   { immediate: true },
 )
 watch(
-  () => [layout.right.open, [...layout.right.tabs]],
+  () => [layout.right.open, layout.right.active, [...layout.right.tabs]],
   () => {
     if (workspace.activeTabId) layout.remember(workspace.activeTabId)
   },
@@ -253,7 +253,7 @@ onUnmounted(() => {
                   :label="t('dock.resize')"
                 />
                 <div class="flex min-h-0 flex-col bg-chrome" :style="{ width: `${layout.right.size}px` }" :aria-label="t('dock.right')" role="region">
-                  <ShellDock :key="layout.right.active" :view="layout.right.active" class="min-h-0 flex-1" />
+                  <ShellDock :key="layout.right.active ?? 'launcher'" :view="layout.right.active" class="min-h-0 flex-1" />
                 </div>
               </template>
             </div>

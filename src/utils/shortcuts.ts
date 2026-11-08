@@ -22,7 +22,7 @@ export interface Shortcut extends Combo {
   // Rubrique de Réglages > Raccourcis clavier ; les rubriques s'affichent dans l'ordre de cette liste.
   group: keyof Labels['groups']
   // Écouté seulement là, sinon sur toute la fenêtre : deux contextes différents peuvent partager une touche.
-  when?: 'composer' | 'approval' | 'settings' | 'modelPicker'
+  when?: 'composer' | 'approval' | 'settings' | 'modelPicker' | 'terminal'
   fixed?: boolean
 }
 
@@ -67,6 +67,9 @@ export const defaultShortcuts = {
   // ⌘J comme T3 Code (choix de Jérémy) : ⌃` demandait une touche morte en AZERTY Mac.
   toggleTerminal: { group: 'interface', key: 'j' },
   toggleBrowser: { group: 'interface', key: 'b', shift: true },
+  // Comme iTerm, Ghostty et T3 Code, quand le terminal a le focus : ils passent avant le ⌘D de la vue partagée.
+  splitTerminal: { group: 'interface', key: 'd', when: 'terminal' },
+  splitTerminalDown: { group: 'interface', key: 'd', shift: true, when: 'terminal' },
   browserAddress: { group: 'interface', key: 'l' },
   zoomIn: { group: 'interface', key: '=', shift: 'any', also: ['+'], codes: ['NumpadAdd'], label: '+' },
   zoomOut: { group: 'interface', key: '-', shift: 'any', codes: ['NumpadSubtract'], label: '−' },

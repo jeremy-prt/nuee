@@ -14,7 +14,14 @@ import { defaultShortcuts, shortcutIds } from '@/utils/shortcuts'
 export interface TerminalTab {
   key: string
   number: number
+  // Onglet du panneau où il s'affiche : plusieurs shells d'un même groupe se partagent l'onglet (split).
+  group: string
 }
+
+export type SplitDirection = 'right' | 'down'
+
+// Comme iTerm et T3 Code : au-delà, les volets deviennent trop étroits pour servir.
+const MAX_SPLIT = 4
 
 interface Instance {
   term: Terminal
@@ -34,9 +41,10 @@ export const useTerminalsStore = defineStore('terminals', () => {
   const active = reactive<Record<string, string>>({})
   // Demande de focus servie par le volet une fois le terminal affiché, même s'il vient de s'ouvrir.
   const wantsFocus = ref(false)
+  const splits = reactive<Record<string, SplitDirection>>({})
   const instances = new Map<string, Instance>()
-  // Zone du volet où se pose le terminal affiché, null volet fermé.
-  let host: HTMLElement | null = null
+  // Shells créés mais pas encore posés à l'écran : leur pty attend de connaître la taille de leur zone.
+  const pending = new Map<string, { chatId: string; place: Place }>()
 
   // Le curseur et la sélection suivent l'accent du thème.
   watch(
@@ -50,30 +58,43 @@ export const useTerminalsStore = defineStore('terminals', () => {
     }),
   )
 
-  function setHost(element: HTMLElement | null) {
-    host = element
-  }
-
-  // Le volet qui se démonte peut le faire après celui qui le remplace : il ne retire que sa propre zone.
-  function releaseHost(element: HTMLElement | null) {
-    if (host === element) host = null
-  }
-
   function tabsOf(chatId: string) {
     return tabs[chatId] ?? []
   }
 
-  function create(chatId: string, place: Place) {
-    if (!host) return
-    const list = (tabs[chatId] ??= [])
-    const tab = { key: crypto.randomUUID(), number: Math.max(0, ...list.map((item) => item.number)) + 1 }
-    const instance = build()
-    instances.set(tab.key, instance)
-    list.push(tab)
-    active[chatId] = tab.key
-    attach(tab.key)
-    wantsFocus.value = true
+  // Les onglets du terminal : un par groupe, dans l'ordre de création.
+  function groupsOf(chatId: string) {
+    const groups = new Map<string, TerminalTab[]>()
+    for (const tab of tabsOf(chatId)) groups.set(tab.group, [...(groups.get(tab.group) ?? []), tab])
+    return [...groups.entries()].map(([group, shells]) => ({ group, shells, direction: splits[group] ?? 'right' }))
+  }
 
+  // `group` : partage l'onglet de ce groupe (split) ; sinon un nouvel onglet.
+  function create(chatId: string, place: Place, group?: string) {
+    const list = (tabs[chatId] ??= [])
+    const key = crypto.randomUUID()
+    list.push({ key, number: Math.max(0, ...list.map((item) => item.number)) + 1, group: group ?? key })
+    instances.set(key, build())
+    pending.set(key, { chatId, place })
+    active[chatId] = key
+    wantsFocus.value = true
+  }
+
+  // Partage l'onglet du shell actif : un shell de plus, à droite ou en bas.
+  function split(chatId: string, place: Place, direction: SplitDirection) {
+    const current = tabsOf(chatId).find((tab) => tab.key === active[chatId])
+    if (!current) return create(chatId, place)
+    if (tabsOf(chatId).filter((tab) => tab.group === current.group).length >= MAX_SPLIT) return
+    if (tabsOf(chatId).filter((tab) => tab.group === current.group).length === 1) splits[current.group] = direction
+    create(chatId, place, current.group)
+  }
+
+  function start(key: string) {
+    const instance = instances.get(key)
+    const waiting = pending.get(key)
+    if (!instance || !waiting) return
+    pending.delete(key)
+    const { chatId, place } = waiting
     const { term } = instance
     term.onData((data) => {
       if (instance.id !== null) terminalWrite(instance.id, data).catch(() => {})
@@ -83,14 +104,16 @@ export const useTerminalsStore = defineStore('terminals', () => {
     })
     terminalOpen(chatId, place, term.cols, term.rows, (event) => {
       if (event.type === 'output') term.write(event.data)
-      else discard(chatId, tab.key)
+      else discard(chatId, key)
     })
       .then((id) => {
-        if (instances.get(tab.key) === instance) instance.id = id
-        else terminalClose(id)
+        if (instances.get(key) !== instance) return terminalClose(id)
+        instance.id = id
+        // Une mise à la taille faite pendant que le pty démarrait n'a pas pu lui parvenir.
+        terminalResize(id, term.cols, term.rows).catch(() => {})
       })
       .catch((error) => {
-        discard(chatId, tab.key)
+        discard(chatId, key)
         const { t } = i18nGlobal()
         useToastsStore().push({ kind: 'error', title: t('dock.terminal.failed'), body: error?.message ?? String(error) })
       })
@@ -119,16 +142,23 @@ export const useTerminalsStore = defineStore('terminals', () => {
     return { term, fit, element, opened: false, id: null }
   }
 
-  // xterm mesure ses caractères à l'ouverture : il ne s'ouvre qu'une fois posé dans la page.
-  function attach(key: string) {
+  // xterm mesure ses caractères à l'ouverture : il ne s'ouvre qu'une fois posé dans la page, et son pty démarre
+  // alors à la bonne taille.
+  function attach(key: string, host: HTMLElement) {
     const instance = instances.get(key)
-    if (!instance || !host) return
+    if (!instance) return
     if (instance.element.parentElement !== host) host.replaceChildren(instance.element)
     if (!instance.opened) {
       instance.term.open(instance.element)
       instance.opened = true
     }
     fit(key)
+    // Juste après `open`, xterm n'a pas encore mesuré ses caractères : la mise à la taille ne prend qu'à l'image
+    // suivante, sinon le shell garde ses 80 colonnes et les lignes dépassent sans revenir à la ligne.
+    requestAnimationFrame(() => {
+      fit(key)
+      start(key)
+    })
   }
 
   function fit(key: string) {
@@ -171,11 +201,14 @@ export const useTerminalsStore = defineStore('terminals', () => {
     const instance = instances.get(key)
     if (!instance) return
     instances.delete(key)
+    pending.delete(key)
     instance.term.dispose()
     instance.element.remove()
     const list = tabs[chatId] ?? []
     const index = list.findIndex((tab) => tab.key === key)
+    const group = list[index]?.group
     if (index !== -1) list.splice(index, 1)
+    if (group && !list.some((tab) => tab.group === group)) delete splits[group]
     if (active[chatId] === key) {
       const next = list[index] ?? list[index - 1]
       if (next) active[chatId] = next.key
@@ -193,7 +226,7 @@ export const useTerminalsStore = defineStore('terminals', () => {
     wantsFocus.value = true
   }
 
-  return { tabs, active, wantsFocus, tabsOf, setHost, releaseHost, create, attach, fit, focus, close, closeChat, command, requestFocus }
+  return { tabs, active, splits, wantsFocus, tabsOf, groupsOf, create, split, attach, fit, focus, close, closeChat, command, requestFocus }
 })
 
 // Palette ANSI de Brume (et de monocode) : ces couleurs viennent des programmes, pas de l'interface. En clair,

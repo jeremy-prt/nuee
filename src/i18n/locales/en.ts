@@ -100,6 +100,7 @@ export default {
     closePane: 'Close pane',
   },
   dock: {
+    launcher: "Open a pane",
     close: 'Hide pane',
     closeTab: "Close tab",
     add: "Open a pane",
@@ -108,7 +109,6 @@ export default {
     resize: 'Resize panel',
     session: {
       title: 'Environment',
-      open: "Quick access",
       environment: 'Environment',
       context: 'Context',
       empty: 'Start the conversation to see where the agent works.',
@@ -127,17 +127,20 @@ export default {
       commitPrompt: 'Commit the current changes.',
       noChanges: 'No change',
       keepAwake: 'Keep awake',
+      keepAwakeHelp: "Applies to all sessions, while an agent is working.",
       remoteControl: 'Remote Control',
       soon: 'Coming soon',
     },
     terminal: {
       title: 'Terminal',
-      empty: 'No terminal open.',
+      splitRight: "Split right",
+      splitDown: "Split down",
+      closePane: "Close this terminal",
+      emptyTitle: "No terminal",
+      empty: "A terminal opens in the session's folder.",
       noSession: 'Open a session to start a terminal.',
       new: 'New terminal',
       tab: 'Terminal {n}',
-      close: 'Close terminal',
-      list: 'Terminals',
       failed: 'The terminal could not start',
       running: {
         title: 'Close this terminal?',
@@ -147,6 +150,10 @@ export default {
     },
     changes: {
       title: 'Changes',
+      emptyTitle: "No changes",
+      noProjectTitle: "No repository",
+      notRepoTitle: "Not a git repository",
+      failedTitle: "Unreadable git status",
       empty: 'Changes made by agents will show up here.',
       noProject: 'A session without a project has no repository to track.',
       notRepo: 'The project folder is not a git repository.',
@@ -170,8 +177,6 @@ export default {
     },
     browser: {
       title: 'Browser',
-      empty: "The project's pages will show up here.",
-      tabs: "Browser tabs",
       newTab: "New tab",
       closeTab: "Close tab",
       menu: "Browser options",
@@ -185,6 +190,8 @@ export default {
       loadFailed: "The page didn't load",
       failed: "The browser could not open the page",
       cleared: "Browser data cleared",
+      emptyTitle: "No preview yet",
+      emptyHelp: "Enter an address above, or start one of the project's servers.",
       size: {
         title: "Screen size",
         pane: "Whole pane",
@@ -214,7 +221,6 @@ export default {
       heading: "Project servers",
       invalid: "launch.json could not be read",
       none: "No server",
-      empty: "No server for this project",
       add: "Add a server",
       fix: "Fix the file",
       addPrompt: "Find this project's dev servers and describe them in .claude/launch.json (name, runtimeExecutable, runtimeArgs, port).",
@@ -244,10 +250,12 @@ export default {
     },
     files: {
       title: 'Files',
+      emptyTitle: "No files yet",
       empty: 'Files of the open project will show up here.',
     },
     tasks: {
       title: 'Tasks',
+      emptyTitle: "No task",
       groups: {
         running: "Running",
         done: "Done",
@@ -1067,6 +1075,8 @@ export default {
         toggleRightDock: 'Show or hide the right panel',
         toggleTerminal: 'Show or hide the terminal',
         toggleBrowser: "Show or hide the browser",
+        splitTerminal: "Split the terminal right",
+        splitTerminalDown: "Split the terminal down",
         browserAddress: "Go to the address bar",
         zoomIn: 'Make the interface bigger',
         zoomOut: 'Make the interface smaller',

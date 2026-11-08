@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ChevronRight, LoaderCircle, RefreshCw } from '@/components/ui/icons'
+import { ChevronRight, CircleAlert, GitCompare, LoaderCircle, RefreshCw } from '@/components/ui/icons'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatDiff from '@/components/chat/ChatDiff.vue'
 import ChatDiffStat from '@/components/chat/ChatDiffStat.vue'
 import UiButton from '@/components/ui/UiButton.vue'
+import UiEmpty from '@/components/ui/UiEmpty.vue'
 import UiFileIcon from '@/components/ui/UiFileIcon.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import { useCommitRequest } from '@/composables/useCommitRequest'
@@ -164,14 +165,13 @@ const note = 'px-2 py-1 text-xs text-muted'
 </script>
 
 <template>
-  <p v-if="!chat?.started" class="flex flex-1 items-center justify-center p-6 text-center text-sm text-muted">{{ t('dock.changes.empty') }}</p>
-  <p v-else-if="!project" class="flex flex-1 items-center justify-center p-6 text-center text-sm text-muted">{{ t('dock.changes.noProject') }}</p>
+  <UiEmpty v-if="!chat?.started" :icon="GitCompare" :title="t('dock.changes.emptyTitle')" :description="t('dock.changes.empty')" />
+  <UiEmpty v-else-if="!project" :icon="GitCompare" :title="t('dock.changes.noProjectTitle')" :description="t('dock.changes.noProject')" />
   <div v-else class="flex min-h-0 flex-1 flex-col">
     <div class="flex flex-col gap-1 border-b border-stroke p-2">
       <div class="flex h-7 items-center gap-2 ps-2">
         <span class="min-w-0 flex-1 truncate text-xs" :class="{ 'text-muted': !files.length }">
           <template v-if="files.length">{{ t('dock.session.files', { n: files.length }, files.length) }}</template>
-          <template v-else-if="status === 'ready'">{{ t('dock.changes.clean') }}</template>
         </span>
         <ChatDiffStat v-if="files.length" :added="added" :removed="removed" plain class="text-xs" />
         <UiIconButton :label="t('dock.changes.refresh')" :loading="loading" @click="load(true)">
@@ -181,8 +181,9 @@ const note = 'px-2 py-1 text-xs text-muted'
       <UiButton v-if="files.length" size="sm" :disabled="phase !== 'idle'" @click="commit">{{ t('dock.session.commit') }}</UiButton>
     </div>
 
-    <p v-if="status === 'notRepo'" class="flex flex-1 items-center justify-center p-6 text-center text-sm text-muted">{{ t('dock.changes.notRepo') }}</p>
-    <p v-else-if="status === 'failed'" class="flex flex-1 items-center justify-center p-6 text-center text-sm text-muted">{{ t('dock.changes.failed') }}</p>
+    <UiEmpty v-if="status === 'notRepo'" :icon="GitCompare" :title="t('dock.changes.notRepoTitle')" :description="t('dock.changes.notRepo')" />
+    <UiEmpty v-else-if="status === 'failed'" :icon="CircleAlert" :title="t('dock.changes.failedTitle')" :description="t('dock.changes.failed')" />
+    <UiEmpty v-else-if="status === 'ready' && !files.length" :icon="GitCompare" :title="t('dock.changes.clean')" />
     <ul v-else-if="files.length" ref="list" class="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto p-2">
       <li v-for="file in shown" :key="file.path" :data-change="file.path" class="flex flex-col">
         <button

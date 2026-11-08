@@ -78,6 +78,12 @@ export const useShortcutsStore = defineStore('shortcuts', () => {
     return shortcut ? shortcutAria(shortcut) : undefined
   }
 
+  // Le terminal capte ses raccourcis avant la fenêtre : son ⌘D ne gêne pas celui du reste de l'app.
+  function sameZone(a: Shortcut['when'], b: Shortcut['when']) {
+    if (a === 'terminal' || b === 'terminal') return a === b
+    return !a || !b || a === b
+  }
+
   // Une lettre seule casserait la saisie ; Entrée ou Échap seuls ne vont qu'aux raccourcis qui n'avaient pas ⌘.
   // Deux raccourcis se gênent s'ils écoutent au même endroit, ou si l'un écoute toute la fenêtre.
   function check(id: ShortcutId, combo: Combo): ComboProblem | null {
@@ -89,7 +95,7 @@ export const useShortcutsStore = defineStore('shortcuts', () => {
       return (
         other !== id &&
         !!shortcut &&
-        (!shortcut.when || !base.when || shortcut.when === base.when) &&
+        sameZone(shortcut.when, base.when) &&
         overlaps(combo, shortcut)
       )
     })
