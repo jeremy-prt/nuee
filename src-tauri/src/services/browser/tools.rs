@@ -678,9 +678,9 @@ async fn computer(
     match action {
         "screenshot" => {
             let scale = args["scale"].as_f64().unwrap_or(1.0).clamp(0.1, 1.0);
-            let shot = browser.screenshot(app, tab, None, scale).await?;
+            let shot = browser.screenshot(app, tab, None, scale, false).await?;
             Ok(vec![
-                image(&shot.jpeg),
+                image(&shot.data),
                 text(format!(
                     "Capture {}x{} : un pixel = {} px CSS, coordonnées à partir du haut gauche de la page visible.",
                     shot.width,
@@ -704,10 +704,11 @@ async fn computer(
                     tab,
                     Some([x0, y0, (x1 - x0).max(1.0), (y1 - y0).max(1.0)]),
                     2.0,
+                    false,
                 )
                 .await?;
             Ok(vec![
-                image(&shot.jpeg),
+                image(&shot.data),
                 text(format!(
                     "Zone agrandie {}x{} (×2).",
                     shot.width, shot.height

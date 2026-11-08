@@ -113,10 +113,10 @@ pub async fn browser_snapshot(
     browser: State<'_, BrowserService>,
 ) -> Result<String, AppError> {
     use base64::Engine;
-    let shot = browser.screenshot(&app, &id, None, 2.0).await?;
+    let shot = browser.screenshot(&app, &id, None, 2.0, true).await?;
     Ok(format!(
-        "data:image/jpeg;base64,{}",
-        base64::engine::general_purpose::STANDARD.encode(shot.jpeg)
+        "data:image/png;base64,{}",
+        base64::engine::general_purpose::STANDARD.encode(shot.data)
     ))
 }
 

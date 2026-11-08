@@ -501,11 +501,15 @@ impl BrowserService {
         id: &str,
         region: Option<[f64; 4]>,
         scale: f64,
+        lossless: bool,
     ) -> Result<Screenshot, AppError> {
         self.wake(app, id).await?;
         let tab = id.to_owned();
         let (sender, receiver) = tokio::sync::oneshot::channel();
-        on_main(app, move |_| native::snapshot(&tab, region, scale, sender)).await?;
+        on_main(app, move |_| {
+            native::snapshot(&tab, region, scale, lossless, sender)
+        })
+        .await?;
         tokio::time::timeout(SCRIPT_TIMEOUT, receiver)
             .await
             .map_err(|_| AppError::Browser("capture trop longue".into()))?
@@ -751,7 +755,8 @@ struct Frame {
 }
 
 pub struct Screenshot {
-    pub jpeg: Vec<u8>,
+    /// JPEG pour l'agent (léger) ; PNG pour l'image posée sous un menu, le JPEG ternissant les petits détails colorés.
+    pub data: Vec<u8>,
     pub width: u32,
     pub height: u32,
 }
@@ -958,6 +963,7 @@ mod native {
         _: &str,
         _: Option<[f64; 4]>,
         _: f64,
+        _: bool,
         _: tokio::sync::oneshot::Sender<Result<Screenshot, String>>,
     ) {
     }

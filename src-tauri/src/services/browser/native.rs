@@ -508,6 +508,7 @@ pub fn snapshot(
     tab: &str,
     region: Option<[f64; 4]>,
     scale: f64,
+    lossless: bool,
     sender: Sender<Result<Screenshot, String>>,
 ) {
     let Some(mtm) = MainThreadMarker::new() else {
@@ -544,7 +545,7 @@ pub fn snapshot(
             return;
         };
         let result = match (unsafe { image.as_ref() }, unsafe { error.as_ref() }) {
-            (Some(image), _) => jpeg_of(image),
+            (Some(image), _) => encode(image, lossless),
             (None, Some(error)) => Err(error.localizedDescription().to_string()),
             (None, None) => Err("capture vide".into()),
         };
@@ -555,15 +556,18 @@ pub fn snapshot(
     }
 }
 
-fn jpeg_of(image: &NSImage) -> Result<Screenshot, String> {
+fn encode(image: &NSImage, lossless: bool) -> Result<Screenshot, String> {
     let tiff = image.TIFFRepresentation().ok_or("image illisible")?;
     let rep = NSBitmapImageRep::imageRepWithData(&tiff).ok_or("image illisible")?;
-    let data = unsafe {
-        rep.representationUsingType_properties(NSBitmapImageFileType::JPEG, &NSDictionary::new())
-    }
-    .ok_or("encodage JPEG impossible")?;
+    let kind = if lossless {
+        NSBitmapImageFileType::PNG
+    } else {
+        NSBitmapImageFileType::JPEG
+    };
+    let data = unsafe { rep.representationUsingType_properties(kind, &NSDictionary::new()) }
+        .ok_or("encodage de l'image impossible")?;
     Ok(Screenshot {
-        jpeg: data.to_vec(),
+        data: data.to_vec(),
         width: u32::try_from(rep.pixelsWide()).unwrap_or_default(),
         height: u32::try_from(rep.pixelsHigh()).unwrap_or_default(),
     })
