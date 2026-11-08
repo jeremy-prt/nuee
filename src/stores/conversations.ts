@@ -24,6 +24,7 @@ import { useAgentsStore } from '@/stores/agents'
 import { type Signal, useAttentionStore } from '@/stores/attention'
 import { useCatalogStore } from '@/stores/catalog'
 import { useGeneralStore } from '@/stores/general'
+import { useOperatorStore } from '@/stores/operator'
 import { useProjectsStore } from '@/stores/projects'
 import { useSkillsStore } from '@/stores/skills'
 import { useWorkspaceStore } from '@/stores/workspace'
@@ -599,6 +600,7 @@ export const useConversationsStore = defineStore('conversations', () => {
         useWorkspaceStore().touch(chatId)
         afterTurn(chatId, conversation)
         scheduleCompaction(chatId)
+        useOperatorStore().turnEnded(chatId, conversation.items)
       }
     }
     pending.clear()

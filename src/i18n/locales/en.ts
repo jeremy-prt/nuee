@@ -1321,6 +1321,10 @@ export default {
     viewport: 'Notifications ({hotkey})',
     close: 'Close',
   },
+  // Message de Nuée à la session qui en a lancé une autre (outil start_session).
+  operator: {
+    reported: '[Nuée] Session "{title}" ({id}) finished its turn, with this last answer.\n\n{answer}',
+  },
   attention: {
     done: '{agent} is done.',
     failed: '{agent} stopped on an error.',

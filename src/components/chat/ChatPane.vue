@@ -17,6 +17,7 @@ import { worktreeCheckout } from '@/ipc/worktree'
 import { useCatalogStore } from '@/stores/catalog'
 import { useDialogStore } from '@/stores/dialog'
 import { useDraftsStore } from '@/stores/drafts'
+import { useOperatorStore } from '@/stores/operator'
 import { mentionPlaceKey } from '@/stores/mentions'
 import { useToastsStore } from '@/stores/toasts'
 import { type Place, useConversationsStore } from '@/stores/conversations'
@@ -46,6 +47,7 @@ const workspace = useWorkspaceStore()
 const worktrees = useWorktreesStore()
 const dialog = useDialogStore()
 const toasts = useToastsStore()
+const operator = useOperatorStore()
 
 // Le pane est recréé à chaque changement d'onglet (:key), l'historique se charge donc ici.
 conversations.open(props.tab.id, props.tab.agent, props.tab.projectId)
@@ -127,6 +129,7 @@ async function checkout(branch: string) {
 }
 
 function send(prompt: string, attachments: Attachment[], other = false) {
+  operator.userSpoke(props.tab.id)
   const first = !items.value.some((item) => item.kind === 'user')
   if (first) {
     workspace.setWorktree(props.tab.id, worktree.value, props.tab.worktreePath)

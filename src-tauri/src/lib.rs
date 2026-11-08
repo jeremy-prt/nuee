@@ -79,6 +79,7 @@ pub fn run() {
             }));
             app.manage(agents);
             app.manage(BrowserService::default());
+            app.manage(services::operator::OperatorService::default());
             // Chemin repris par le scope `assetProtocol` de tauri.conf.json : les aperçus n'existent que là.
             app.manage(AttachmentService::new(data.join("attachments")));
             // Même contrainte que les pièces jointes : ce dossier est dans le scope `assetProtocol`.
@@ -184,6 +185,7 @@ pub fn run() {
             commands::terminal::terminal_busy,
             commands::terminal::terminal_close,
             commands::terminal::terminal_close_chat,
+            commands::operator::operator_reply,
             commands::window::window_set_blur,
             commands::worktree::worktree_support,
             commands::worktree::worktree_list,

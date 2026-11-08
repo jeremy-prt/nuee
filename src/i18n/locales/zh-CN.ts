@@ -1323,6 +1323,9 @@ export default {
     viewport: '通知（{hotkey}）',
     close: '关闭',
   },
+  operator: {
+    reported: '[Nuée] 会话「{title}」({id}) 已完成本轮，以下是最后的回答。\n\n{answer}',
+  },
   attention: {
     done: '{agent} 已完成。',
     failed: '{agent} 因错误而停止。',

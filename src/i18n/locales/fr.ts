@@ -1323,6 +1323,9 @@ export default {
     viewport: 'Notifications ({hotkey})',
     close: 'Fermer',
   },
+  operator: {
+    reported: '[Nuée] La session « {title} » ({id}) a terminé son tour, avec cette dernière réponse.\n\n{answer}',
+  },
   attention: {
     done: '{agent} a fini.',
     failed: '{agent} s\'est arrêté sur une erreur.',

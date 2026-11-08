@@ -1323,6 +1323,9 @@ export default {
     viewport: '通知（{hotkey}）',
     close: '閉じる',
   },
+  operator: {
+    reported: '[Nuée] セッション「{title}」({id}) のターンが終わりました。最後の回答はこちらです。\n\n{answer}',
+  },
   attention: {
     done: '{agent} が完了しました。',
     failed: '{agent} がエラーで停止しました。',

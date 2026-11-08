@@ -24,6 +24,7 @@ import { useDragStore } from '@/stores/drag'
 import { useGeneralStore } from '@/stores/general'
 import { SIZES, useLayoutStore } from '@/stores/layout'
 import { useNavigationStore } from '@/stores/navigation'
+import { useOperatorStore } from '@/stores/operator'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { useSkillsStore } from '@/stores/skills'
 import { useTerminalsStore } from '@/stores/terminals'
@@ -70,6 +71,8 @@ const general = useGeneralStore()
 const dialog = useDialogStore()
 // Suit le focus de la fenêtre dès le lancement : un chat qui finit doit savoir s'il est vu.
 useAttentionStore()
+// Outils de sessions des agents (serveur MCP `nuee`) : leur écouteur doit exister dès le lancement.
+useOperatorStore()
 // Cherche les agents installés dès le lancement, pas à l'ouverture des réglages.
 useAgentsStore()
 

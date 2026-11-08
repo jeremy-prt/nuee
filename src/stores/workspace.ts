@@ -153,14 +153,19 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   // `title` : titre fixé d'avance (chat ouvert par une commande), l'agent n'en propose pas d'autre.
   // `worktreePath` : worktree rejoint dès la création ; le poser ensuite partirait avant la ligne en base.
   function createChat(title: string | null = null, worktreePath: string | null | undefined = undefined) {
-    const projectId = navigation.projectId
+    const tab = addChat(navigation.projectId, title, worktreePath)
+    current().tabs.push(tab.id)
+    return tab
+  }
+
+  // Session ajoutée à la liste sans ouvrir d'onglet : celle qu'un agent lance depuis une autre.
+  function addChat(projectId: string | null, title: string | null = null, worktreePath: string | null | undefined = undefined) {
     const agent = projects.chatAgent(projectId)
     const worktree = worktreePath !== undefined && worktreePath !== null
     const summary = { id: crypto.randomUUID(), projectId, number: nextChatNumber(projectId), agent, title, started: false, worktree, worktreePath: worktreePath ?? null, archived: false, archivedAt: null, createdAt: Date.now(), updatedAt: Date.now(), pinned: false, model: null, added: 0, removed: 0 }
     const tab: Tab = { ...summary, kind: 'chat' }
     tabs.value.push(tab)
     conversations.create(summary)
-    current().tabs.push(tab.id)
     return tab
   }
 
@@ -567,6 +572,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     tabsFor,
     show,
     openChat,
+    addChat,
     blankChat,
     openBeside,
     split,

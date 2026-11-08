@@ -14,6 +14,7 @@ use super::{
     Viewport, World,
 };
 use crate::error::AppError;
+use crate::services::operator::{self, OperatorService};
 use crate::services::server::{self, ServerService, ServerStart, ServerStatus};
 
 pub const SERVER: &str = "nuee";
@@ -81,6 +82,13 @@ async fn run(
     name: &str,
     args: &Value,
 ) -> Result<Vec<Value>, AppError> {
+    if operator::TOOLS.contains(&name) {
+        let answer = app
+            .state::<OperatorService>()
+            .request(app, name, args, &caller.chat_id)
+            .await?;
+        return Ok(vec![text(answer)]);
+    }
     let browser = app.state::<BrowserService>();
     if name == "browser_batch" {
         return batch(app, caller, args).await;
@@ -1013,6 +1021,7 @@ fn strip_ansi(text: &str) -> String {
 
 fn instructions(cwd: &Path) -> String {
     let mut text = String::from(BROWSER_INSTRUCTIONS);
+    text.push_str(SESSIONS_INSTRUCTIONS);
     if server::auto_verify(cwd) {
         text.push_str(VERIFY_INSTRUCTIONS);
     }
@@ -1025,6 +1034,10 @@ read the console and network requests, measure elements, change the viewport siz
 the user sees an activity dot and can open it to watch or take over at any time. Use these tools, never Bash, to run the dev servers of .claude/launch.json (preview_start) and to \
 check web pages. Prefer read_page/find refs over coordinates; coordinates are CSS pixels of the last screenshot.";
 
+const SESSIONS_INSTRUCTIONS: &str = "\n\nOther sessions: Nuée runs several agent sessions side by side. start_session launches one with its own agent \
+(this project by default) for independent work, with a self-contained prompt; list_sessions, read_session and send_message reach the others. \
+A session you started reports back here when it finishes a turn: do not poll it.";
+
 const VERIFY_INSTRUCTIONS: &str = "\n\nWhen to verify: once the project has a dev server in .claude/launch.json (preview_list shows it), after editing code \
 whose result the browser can show (something the dev server renders, serves or logs), verify it yourself before you reply and share proof; \
 never ask the user to check manually, and never end with \"I did not check\". Skip it for changes the preview can't exercise \
@@ -1036,6 +1049,35 @@ never ask the user to check manually, and never end with \"I did not check\". Sk
 fn tool_list() -> Vec<Value> {
     let tab = json!({ "type": "string", "description": "Tab to act on. Omit for the tab shown in the pane." });
     let tools = vec![
+        tool(
+            "list_sessions",
+            "List the other sessions of Nuée in this project, or everywhere with all: true. Gives id, title, project, status (working, waiting for an approval, idle) and last activity.",
+            json!({ "all": { "type": "boolean", "description": "Sessions of every project, not only this one." } }),
+            &[],
+        ),
+        tool(
+            "read_session",
+            "Read the latest messages of another session (what the user asked, what its agent answered, without tool details) and its status.",
+            json!({ "id": { "type": "string" }, "limit": { "type": "number", "description": "Messages from the end (default 20)." } }),
+            &["id"],
+        ),
+        tool(
+            "start_session",
+            "Start a new session in Nuée, with its own agent, and send it a first message. It runs in parallel, shows in the sidebar, and reports back here when it finishes a turn. Returns its id.",
+            json!({
+                "prompt": { "type": "string", "description": "Self-contained first message: the new agent knows nothing of this conversation." },
+                "title": { "type": "string", "description": "Short title for the sidebar. Default: generated from the prompt." },
+                "project": { "type": "string", "description": "Project name to start in, or \"none\" for a session without a project. Default: this session's project." },
+                "worktree": { "type": "boolean", "description": "Give it its own git worktree, so its edits stay apart (projects only)." }
+            }),
+            &["prompt"],
+        ),
+        tool(
+            "send_message",
+            "Send a message to another session. It waits in that session's queue while its agent is working.",
+            json!({ "id": { "type": "string" }, "text": { "type": "string" } }),
+            &["id", "text"],
+        ),
         tool(
             "preview_start",
             "Start a dev server from .claude/launch.json by `name` (or open a `url`) and show its page in the browser pane. Reuses a running server and its tab. Returns tabId and serverId.",
