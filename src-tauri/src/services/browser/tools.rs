@@ -1025,8 +1025,9 @@ read the console and network requests, measure elements, change the viewport siz
 the user sees an activity dot and can open it to watch or take over at any time. Use these tools, never Bash, to run the dev servers of .claude/launch.json (preview_start) and to \
 check web pages. Prefer read_page/find refs over coordinates; coordinates are CSS pixels of the last screenshot.";
 
-const VERIFY_INSTRUCTIONS: &str = "\n\nWhen to verify: after editing code whose result the browser can show (something the dev server renders, serves \
-or logs), verify it yourself and share proof; never ask the user to check manually. Skip it for changes the preview can't exercise \
+const VERIFY_INSTRUCTIONS: &str = "\n\nWhen to verify: once the project has a dev server in .claude/launch.json (preview_list shows it), after editing code \
+whose result the browser can show (something the dev server renders, serves or logs), verify it yourself before you reply and share proof; \
+never ask the user to check manually, and never end with \"I did not check\". Skip it for changes the preview can't exercise \
 (tests, types, tooling, another runtime). Workflow: 1. preview_start with the server name (reuses the running one). \
 2. navigate \"reload\" if there is no hot reload. 3. read_console_messages (onlyErrors) and read_network_requests, preview_logs for the server. \
 4. read_page for content and structure. 5. inspect for computed CSS and sizes. 6. computer clicks/type or form_input, then read_page. \

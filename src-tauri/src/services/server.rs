@@ -100,11 +100,12 @@ struct LaunchFile {
     auto_verify: Option<bool>,
 }
 
-/// Vérification après chaque modification, comme l'app Claude : active quand le dossier a un
-/// `.claude/launch.json`, sauf `"autoVerify": false`.
+/// Vérification après chaque modification, comme l'app Claude : coupée seulement par `"autoVerify": false`.
+/// Active même sans `.claude/launch.json` : la CLI ne renvoie pas des consignes changées en cours de
+/// session, et le fichier est souvent écrit par l'agent après le lancement.
 pub fn auto_verify(root: &Path) -> bool {
     let Ok(text) = std::fs::read_to_string(root.join(LAUNCH_FILE)) else {
-        return false;
+        return true;
     };
     serde_json::from_str::<LaunchFile>(&strip_jsonc(&text))
         .map(|file| file.auto_verify != Some(false))
