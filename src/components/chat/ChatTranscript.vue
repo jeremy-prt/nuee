@@ -34,7 +34,10 @@ const lastUser = computed(() => {
 // Une longue conversation ne monte que ses derniers messages ; les plus anciens viennent en remontant, comme dans
 // une messagerie. `start` est l'indice du premier affiché, les indices du modèle restent absolus.
 const PAGE = 60
-const limit = ref(PAGE)
+// À l'ouverture, seule la fin monte : le reste de la page suit par morceaux aux images suivantes, sans retarder
+// l'affichage d'une longue session.
+const FIRST = 12
+const limit = ref(FIRST)
 const start = computed(() => Math.max(0, props.items.length - limit.value))
 const shown = computed(() => props.items.slice(start.value))
 
@@ -80,7 +83,7 @@ watch(
 // La hauteur ajoutée au-dessus est compensée : ce qu'on lisait ne saute pas.
 async function showEarlier() {
   const el = scroller.value
-  if (!el || !start.value) return
+  if (!el || !start.value || limit.value < PAGE) return
   const height = el.scrollHeight
   limit.value += PAGE
   await nextTick()
@@ -122,7 +125,28 @@ watch(
   { flush: 'post' },
 )
 
-onMounted(scrollToEnd)
+function grow() {
+  if (limit.value >= PAGE) return
+  // Tout est déjà affiché : la page passe quand même à sa taille, pour les messages à venir.
+  if (!start.value) {
+    limit.value = PAGE
+    return
+  }
+  requestAnimationFrame(async () => {
+    const el = scroller.value
+    const height = el?.scrollHeight ?? 0
+    limit.value = Math.min(PAGE, limit.value + FIRST)
+    await nextTick()
+    if (el && stick) scrollToEnd()
+    else if (el) el.scrollTop += el.scrollHeight - height
+    grow()
+  })
+}
+
+onMounted(() => {
+  scrollToEnd()
+  grow()
+})
 </script>
 
 <template>
