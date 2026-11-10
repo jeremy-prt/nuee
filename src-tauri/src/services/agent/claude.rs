@@ -1235,6 +1235,20 @@ fn effort_of(level: &str) -> Option<Effort> {
     }
 }
 
+/// Famille et numéro de version d'un modèle.
+type Version = (String, Vec<u32>);
+
+/// « claude-fable-5-2 » ou « claude-haiku-4-5-20251001 » : la famille et la version, sans la date.
+fn version_of(id: &str) -> Option<Version> {
+    let mut parts = id.strip_prefix("claude-")?.split('-');
+    let family = parts.next()?.to_owned();
+    let version: Vec<u32> = parts
+        .take_while(|part| part.len() <= 2)
+        .map_while(|part| part.parse().ok())
+        .collect();
+    (!version.is_empty()).then_some((family, version))
+}
+
 /// Réponse à `initialize` : modèles proposés par la CLI installée.
 fn catalog_of(response: &Value) -> Option<Catalog> {
     let rows = response["models"].as_array()?;
@@ -1260,18 +1274,58 @@ fn catalog_of(response: &Value) -> Option<Catalog> {
         })
         .filter(|model| !model.value.is_empty())
         .collect();
-    // La CLI nomme les modèles du moment par leur famille (« opus ») et les plus anciens par leur identifiant
-    // complet (« claude-opus-4-8 »). Sans aucun nom de famille (Bedrock, Vertex), rien n'est rangé à part.
-    let full_id = |model: &ModelInfo| model.value.starts_with("claude-");
-    if models.iter().any(|model| !full_id(model)) {
-        for model in &mut models {
-            model.legacy = full_id(model);
+    // La CLI nomme les modèles du moment par leur famille (« opus ») et les autres par leur identifiant complet
+    // (« claude-opus-4-8 ») : ceux-là sont rangés à part. Un identifiant complet plus récent que le nom de sa
+    // famille (une préversion) prend sa place, et c'est le nom de famille qui est rangé à part. Sans aucun nom
+    // de famille (Bedrock, Vertex), rien n'est rangé à part.
+    let full_id = |value: &str| value.starts_with("claude-");
+    let versions: Vec<(bool, Option<Version>)> = models
+        .iter()
+        .map(|model| {
+            let resolved = rows
+                .iter()
+                .find(|row| row["value"] == model.value.as_str())
+                .map_or("", |row| str_of(&row["resolvedModel"]));
+            (full_id(&model.value), version_of(resolved))
+        })
+        .collect();
+    if versions.iter().any(|(full, _)| !full) {
+        for (model, (full, version)) in models.iter_mut().zip(&versions) {
+            // Dépassé par un modèle de la même famille, nommé de l'autre façon.
+            let outdated = version.as_ref().is_some_and(|(family, mine)| {
+                versions.iter().any(|(other_full, other)| {
+                    other_full != full
+                        && other
+                            .as_ref()
+                            .is_some_and(|(name, theirs)| name == family && theirs > mine)
+                })
+            });
+            let newest = version.as_ref().is_some_and(|(family, mine)| {
+                versions.iter().any(|(other_full, other)| {
+                    !other_full
+                        && other
+                            .as_ref()
+                            .is_some_and(|(name, theirs)| name == family && mine > theirs)
+                })
+            });
+            model.legacy = if *full { !newest } else { outdated };
         }
     }
-    let default_model = default_target.and_then(|target| {
-        rows.iter()
-            .find(|row| row["value"] != "default" && &row["resolvedModel"] == target)
-            .map(|row| str_of(&row["value"]).to_owned())
+    // Sans modèle demandé, la CLI prend celui de `settings.json` avant son propre choix (la ligne « default »).
+    let chosen = user_settings().and_then(|settings| {
+        let name = settings["model"].as_str()?;
+        let name = name.split('[').next().unwrap_or(name).to_owned();
+        models
+            .iter()
+            .any(|model| model.value == name)
+            .then_some(name)
+    });
+    let default_model = chosen.or_else(|| {
+        default_target.and_then(|target| {
+            rows.iter()
+                .find(|row| row["value"] != "default" && &row["resolvedModel"] == target)
+                .map(|row| str_of(&row["value"]).to_owned())
+        })
     });
     let default_effort = user_settings()
         .and_then(|settings| effort_of(settings["effortLevel"].as_str()?))
@@ -1868,6 +1922,34 @@ mod tests {
         assert!(!catalog.models[1].fast);
         assert!(!catalog.models[0].legacy);
         assert!(catalog.models[1].legacy);
+    }
+
+    #[test]
+    fn a_model_newer_than_its_family_name_takes_its_place() {
+        let line = r#"{"type":"control_response","response":{"subtype":"success","request_id":"nuee-init","response":{"models":[
+            {"value":"default","resolvedModel":"claude-fable-5-2","displayName":"Default (recommended)"},
+            {"value":"fable","resolvedModel":"claude-fable-5-1","displayName":"Fable 5.1"},
+            {"value":"haiku","resolvedModel":"claude-haiku-5-5","displayName":"Haiku 5.5"},
+            {"value":"claude-fable-5-2","resolvedModel":"claude-fable-5-2","displayName":"Fable 5.2"},
+            {"value":"claude-haiku-4-5-20251001","resolvedModel":"claude-haiku-4-5-20251001","displayName":"Haiku 4.5"}
+        ]}}}"#;
+        let catalog = probe(&[&line.replace('\n', "")])
+            .catalog
+            .expect("catalogue");
+        let legacy: Vec<(&str, bool)> = catalog
+            .models
+            .iter()
+            .map(|model| (model.label.as_str(), model.legacy))
+            .collect();
+        assert_eq!(
+            legacy,
+            [
+                ("Fable 5.1", true),
+                ("Haiku 5.5", false),
+                ("Fable 5.2", false),
+                ("Haiku 4.5", true)
+            ]
+        );
     }
 
     #[test]
