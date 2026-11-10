@@ -27,6 +27,7 @@ export default {
     sort: { label: 'Sort sessions', title: 'Sort by', activity: 'Last activity', created: 'Creation date', name: 'Name', byDate: 'Group by date', compact: 'Compact view' },
     groups: { today: 'Today', yesterday: 'Yesterday', week: 'Last 7 days', month: 'Last 30 days', older: 'Older' },
     recent: 'Sessions',
+    nested: { unread: 'Unread: {n}' },
     renameLabel: 'Session name',
     renameFailed: 'Could not rename the session',
     pinFailed: 'Could not change the pin',
@@ -279,6 +280,7 @@ export default {
     },
   },
   chat: {
+    fromSession: { message: 'Message received from {title}', started: 'Started by {agent} from {title}', task: 'Task', showTask: 'Show task', show: 'Show message', more: 'Show more', less: 'Show less' },
     earlier: 'Show the earlier message | Show the {n} earlier messages',
     queue: {
       label: 'Waiting messages',
@@ -1325,6 +1327,7 @@ export default {
   // Message de Nuée à la session qui en a lancé une autre (outil start_session).
   operator: {
     reported: '[Nuée] Session "{title}" ({id}) finished its turn, with this last answer.\n\n{answer}',
+    received: '[Nuée] Message from session "{title}" ({id}).\n\n{text}',
   },
   attention: {
     done: '{agent} is done.',

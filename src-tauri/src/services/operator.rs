@@ -1,5 +1,5 @@
-//! Outils de sessions du serveur MCP `nuee` : l'agent liste, lit, lance les autres sessions et leur écrit. Projets et
-//! sessions vivent côté front : Rust lui passe la demande par un événement et attend sa réponse.
+//! Outils de sessions du serveur MCP `nuee` : l'agent liste, lit, lance, renomme et archive les autres sessions,
+//! et leur écrit. Projets et sessions vivent côté front : Rust lui passe la demande par un événement et attend sa réponse.
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -15,11 +15,13 @@ use ts_rs::TS;
 use crate::error::AppError;
 
 pub const REQUEST: &str = "operator-request";
-pub const TOOLS: [&str; 4] = [
+pub const TOOLS: [&str; 6] = [
     "list_sessions",
     "read_session",
     "start_session",
     "send_message",
+    "rename_session",
+    "archive_session",
 ];
 const TIMEOUT: Duration = Duration::from_secs(60);
 

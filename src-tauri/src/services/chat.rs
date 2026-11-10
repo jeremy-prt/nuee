@@ -57,6 +57,9 @@ pub struct ChatSummary {
     pub added: u32,
     #[serde(default)]
     pub removed: u32,
+    /// Session dont l'agent a lancé celle-ci : la barre latérale l'imbrique dessous.
+    #[serde(default)]
+    pub parent_id: Option<String>,
 }
 
 /// Texte d'une session archivée (messages et réponses, sans les outils) pour la recherche.
@@ -120,6 +123,8 @@ const MIGRATIONS: &[&str] = &[
        removed = (SELECT coalesce(sum(json_extract(value, '$.change.removed')), 0) FROM json_each(chats.items)
                   WHERE json_extract(value, '$.kind') = 'tool')
      WHERE json_valid(items)",
+    // Colonne nullable seule : une version d'avant l'ignore en lisant la même base.
+    "ALTER TABLE chats ADD COLUMN parent_id TEXT",
 ];
 
 /// Historique des chats dans une base SQLite du dossier de données de l'app.
@@ -142,7 +147,7 @@ impl ChatService {
         let db = self.lock();
         let mut query = db.prepare(
             "SELECT id, project_id, number, agent, title, started, worktree, worktree_path, archived, archived_at, updated_at, pinned,
-                    iif(json_valid(options), json_extract(options, '$.model'), NULL), added, removed, created_at
+                    iif(json_valid(options), json_extract(options, '$.model'), NULL), added, removed, created_at, parent_id
              FROM chats ORDER BY created_at",
         )?;
         let rows = query.query_map([], |row| {
@@ -167,6 +172,7 @@ impl ChatService {
                 added: row.get(13)?,
                 removed: row.get(14)?,
                 created_at: row.get(15)?,
+                parent_id: row.get(16)?,
             }))
         })?;
         let chats = rows.collect::<Result<Vec<_>, _>>()?;
@@ -176,8 +182,8 @@ impl ChatService {
     pub fn create(&self, chat: &ChatSummary) -> Result<(), AppError> {
         let now = now();
         self.lock().execute(
-            "INSERT INTO chats (id, project_id, number, agent, title, worktree, worktree_path, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8)",
-            params![chat.id, chat.project_id, chat.number, agent_name(chat.agent)?, chat.title, chat.worktree, chat.worktree_path, now],
+            "INSERT INTO chats (id, project_id, number, agent, title, worktree, worktree_path, created_at, updated_at, parent_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8, ?9)",
+            params![chat.id, chat.project_id, chat.number, agent_name(chat.agent)?, chat.title, chat.worktree, chat.worktree_path, now, chat.parent_id],
         )?;
         Ok(())
     }
@@ -421,6 +427,7 @@ mod tests {
             model: None,
             added: 0,
             removed: 0,
+            parent_id: None,
         };
         let content = ChatContent {
             session_id: Some("s1".into()),
@@ -499,7 +506,7 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("nuee-test-diff-{}", std::process::id()));
         let path = dir.join("nuee.db");
         std::fs::create_dir_all(&dir).expect("dossier");
-        let before = MIGRATIONS.len() - 1;
+        let before = 9;
         {
             let db = Connection::open(&path).expect("base");
             for sql in &MIGRATIONS[..before] {
@@ -530,6 +537,61 @@ mod tests {
             .expect("liste")
             .remove(0);
         assert_eq!((listed.added, listed.removed), (7, 4));
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn a_started_session_keeps_its_parent() {
+        let dir = std::env::temp_dir().join(format!("nuee-test-parent-{}", std::process::id()));
+        let path = dir.join("nuee.db");
+        std::fs::create_dir_all(&dir).expect("dossier");
+        let before = MIGRATIONS.len() - 1;
+        {
+            let db = Connection::open(&path).expect("base");
+            for sql in &MIGRATIONS[..before] {
+                db.execute_batch(sql).expect("migration");
+            }
+            db.pragma_update(
+                None,
+                "user_version",
+                i64::try_from(before).expect("version"),
+            )
+            .expect("version");
+            db.execute(
+                "INSERT INTO chats (id, number, agent, created_at, updated_at) VALUES ('ancien', 1, 'claude', 0, 0)",
+                [],
+            )
+            .expect("chat");
+        }
+
+        let chats = ChatService::open(&path).expect("migration");
+        assert_eq!(chats.list().expect("liste")[0].parent_id, None);
+        let child = ChatSummary {
+            id: "enfant".into(),
+            parent_id: Some("ancien".into()),
+            ..chats.list().expect("liste").remove(0)
+        };
+        chats.create(&child).expect("création");
+        drop(chats);
+
+        // L'insertion d'une version d'avant, sans la colonne, passe toujours.
+        Connection::open(&path)
+            .expect("base")
+            .execute(
+                "INSERT INTO chats (id, number, agent, created_at, updated_at) VALUES ('autre', 2, 'claude', 1, 1)",
+                [],
+            )
+            .expect("ancienne insertion");
+        let listed = ChatService::open(&path)
+            .expect("réouverture")
+            .list()
+            .expect("liste");
+        let parents: Vec<_> = listed
+            .iter()
+            .map(|chat| (chat.id.as_str(), chat.parent_id.as_deref()))
+            .collect();
+        assert!(parents.contains(&("enfant", Some("ancien"))));
+        assert!(parents.contains(&("autre", None)));
         let _ = std::fs::remove_dir_all(dir);
     }
 }

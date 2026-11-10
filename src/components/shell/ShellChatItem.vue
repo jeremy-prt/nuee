@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Archive, CircleAlert, CircleCheck, GitBranch, MessageQuestion, ShieldQuestion } from '@/components/ui/icons'
+import { Archive, ChevronDown, ChevronRight, CircleAlert, CircleCheck, GitBranch, MessageQuestion, ShieldQuestion } from '@/components/ui/icons'
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatDiffStat from '@/components/chat/ChatDiffStat.vue'
@@ -25,7 +25,9 @@ import { useWorktreesStore } from '@/stores/worktrees'
 import { agents } from '@/utils/agents'
 import { formatSince } from '@/utils/duration'
 
-const props = defineProps<{ tab: Tab }>()
+// `group` : la session a lancé celles imbriquées dessous ; flèche à côté du titre et point pour les non lues.
+const props = defineProps<{ tab: Tab; group?: { open: boolean; unread: number } }>()
+const emit = defineEmits<{ toggle: [] }>()
 
 const { t, locale } = useI18n()
 const catalog = useCatalogStore()
@@ -66,6 +68,10 @@ const diff = computed(() => (props.tab.added || props.tab.removed ? { added: pro
 // Au survol, les boutons se posent à droite de la dernière ligne (la branche, sinon le titre) : le texte s'estompe
 // dessous et le diff leur laisse la place.
 const fadeUnder = computed(() => (menuOpen.value ? 'fade-under-two' : 'group-focus-within:fade-under-two group-hover:fade-under-two'))
+// Avec une flèche de groupe, le titre s'arrête avant les boutons : la flèche reste cliquable.
+const keepClear = computed(() => (menuOpen.value ? 'pe-13' : 'group-focus-within:pe-13 group-hover:pe-13'))
+// Flèche du groupe au survol seulement, comme l'app Claude.
+const chevronShown = computed(() => (menuOpen.value ? '' : 'opacity-0 group-focus-within:opacity-100 group-hover:opacity-100'))
 const hideUnder = computed(() => (menuOpen.value ? 'hidden' : 'group-focus-within:hidden group-hover:hidden'))
 
 // Le chat peut venir d'un autre contexte (recherche) : on bascule d'abord sur son projet.
@@ -89,6 +95,12 @@ async function stopRename(title?: string) {
 
 // ⌘R sur une ligne qui a le focus la renomme, elle, plutôt que la session en cours.
 function onKeydown(event: KeyboardEvent) {
+  // Flèches droite et gauche : déplier et replier le groupe, comme une arborescence.
+  if (props.group && (event.key === 'ArrowRight' || event.key === 'ArrowLeft') && props.group.open === (event.key === 'ArrowLeft')) {
+    event.preventDefault()
+    emit('toggle')
+    return
+  }
   if (!shortcuts.matches(event, 'rename')) return
   event.preventDefault()
   event.stopPropagation()
@@ -121,6 +133,7 @@ watch(
           renaming || active ? 'bg-selection' : menuOpen ? 'bg-selection-hover' : 'group-hover/row:bg-selection-hover',
         ]"
         :aria-current="active && !renaming ? 'true' : undefined"
+        :aria-expanded="group && !renaming ? group.open : undefined"
         :aria-keyshortcuts="renaming ? undefined : shortcuts.aria('rename')"
         v-on="renaming ? {} : { click: select, dblclick: () => startRename(), keydown: onKeydown, pointerdown: (e: PointerEvent) => startChatDrag(e, tab.id) }"
       >
@@ -143,7 +156,13 @@ watch(
             @cancel="stopRename()"
           />
           <template v-else>
-            <span class="min-w-0 flex-1 truncate text-[13px]/5" :class="[fadeUnder, titleTone]">{{ tabTitle(tab) }}</span>
+            <span class="flex min-w-0 flex-1 items-center gap-1" :class="[fadeUnder, { [keepClear]: group }]">
+              <span class="min-w-0 truncate text-[13px]/5" :class="titleTone">{{ tabTitle(tab) }}</span>
+              <span v-if="group" class="-m-0.5 grid size-4 shrink-0 place-items-center text-muted hover:text-content" :class="chevronShown" aria-hidden="true" @click.stop="emit('toggle')" @dblclick.stop @pointerdown.stop>
+                <component :is="group.open ? ChevronDown : ChevronRight" class="size-3" />
+              </span>
+            </span>
+            <span v-if="group?.unread && !group.open" class="size-1.5 shrink-0 rounded-full bg-signal"><span class="sr-only">, {{ t('chats.nested.unread', { n: group.unread }) }},</span></span>
             <span class="shrink-0 text-[11px] text-muted" :class="hideUnder">{{ since }}</span>
           </template>
         </template>
@@ -170,7 +189,13 @@ watch(
               @commit="stopRename"
               @cancel="stopRename()"
             />
-            <span v-else class="min-w-0 flex-1 truncate text-[13px]/5 font-medium" :class="[{ [fadeUnder]: !branch }, titleTone]">{{ tabTitle(tab) }}</span>
+            <span v-else class="flex min-w-0 flex-1 items-center gap-1" :class="{ [fadeUnder]: !branch, [keepClear]: group }">
+              <span class="min-w-0 truncate text-[13px]/5 font-medium" :class="titleTone">{{ tabTitle(tab) }}</span>
+              <span v-if="group" class="-m-0.5 grid size-4 shrink-0 place-items-center text-muted hover:text-content" :class="chevronShown" aria-hidden="true" @click.stop="emit('toggle')" @dblclick.stop @pointerdown.stop>
+                <component :is="group.open ? ChevronDown : ChevronRight" class="size-3" />
+              </span>
+              <span v-if="group?.unread && !group.open" class="ms-0.5 size-1.5 shrink-0 rounded-full bg-signal"><span class="sr-only">, {{ t('chats.nested.unread', { n: group.unread }) }},</span></span>
+            </span>
             <ChatDiffStat v-if="!branch && diff && !renaming" v-bind="diff" plain class="text-[11px]" :class="hideUnder" />
           </span>
           <span v-if="branch" class="flex h-4 items-center gap-1.5 text-[11px] text-muted">

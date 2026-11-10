@@ -11,6 +11,8 @@ import ChatPromptText from '@/components/chat/ChatPromptText.vue'
 import ChatSkillForm from '@/components/chat/ChatSkillForm.vue'
 import ChatSubagent from '@/components/chat/ChatSubagent.vue'
 import ChatQuestionRecord from '@/components/chat/ChatQuestionRecord.vue'
+import ChatSessionMessage from '@/components/chat/ChatSessionMessage.vue'
+import ChatTaskCard from '@/components/chat/ChatTaskCard.vue'
 import ChatTool from '@/components/chat/ChatTool.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
@@ -19,6 +21,7 @@ import { previewSrc } from '@/ipc/attachment'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import { useAgentsStore } from '@/stores/agents'
 import type { ChatItem } from '@/stores/conversations'
+import { START_SESSION } from '@/utils/activity'
 import { agents } from '@/utils/agents'
 import { formatClock, formatDuration } from '@/utils/duration'
 
@@ -27,6 +30,7 @@ import { formatClock, formatDuration } from '@/utils/duration'
 const props = defineProps<{
   item: ChatItem
   agent: AgentKind
+  chatTitle?: string | null
   running: boolean
   streaming: boolean
   afterText: boolean
@@ -37,6 +41,9 @@ const props = defineProps<{
   latest?: boolean
 }>()
 const emit = defineEmits<{ rewind: []; resend: [] }>()
+
+// Id de la session lancée, tiré de la réponse de `start_session` (`stores/operator.ts`).
+const launched = (output: string | null) => output?.match(/^Session (\S+) lancée/)?.[1] ?? null
 
 const { t, locale } = useI18n()
 const agentParams = computed(() => ({ agent: agents[props.agent].name, command: agents[props.agent].command }))
@@ -56,6 +63,14 @@ watch(signedIn, async (now) => {
     <ChatCommandRow :item="item" :running="running" />
     <ChatSkillForm :item="item" :agent-name="agents[agent].name" />
   </template>
+  <ChatSessionMessage v-else-if="item.kind === 'user' && item.from" :from="item.from" :text="item.text" :agent="agent" :at="item.at" :chat-title="chatTitle" />
+  <ChatTaskCard
+    v-else-if="item.kind === 'tool' && item.name === START_SESSION"
+    :title="item.detail?.description ?? null"
+    :text="item.detail?.text ?? ''"
+    :session-id="launched(item.output)"
+    folded
+  />
   <template v-else-if="item.kind === 'user'">
     <ul v-if="item.attachments?.length" class="flex max-w-[85%] flex-wrap justify-end gap-2" :aria-label="t('composer.attachments')">
       <li v-for="attachment in item.attachments" :key="attachment.preview ?? attachment.path" :title="attachment.path">

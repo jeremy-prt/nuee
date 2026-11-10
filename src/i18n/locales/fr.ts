@@ -29,6 +29,7 @@ export default {
     sort: { label: 'Trier les sessions', title: 'Trier par', activity: 'Dernière activité', created: 'Date de création', name: 'Nom', byDate: 'Regrouper par date', compact: 'Affichage compact' },
     groups: { today: 'Aujourd\'hui', yesterday: 'Hier', week: '7 derniers jours', month: '30 derniers jours', older: 'Plus anciennes' },
     recent: 'Sessions',
+    nested: { unread: 'Non lues : {n}' },
     renameLabel: 'Nom de la session',
     renameFailed: 'Impossible de renommer la session',
     pinFailed: 'Impossible de modifier l\'épingle',
@@ -281,6 +282,7 @@ export default {
     },
   },
   chat: {
+    fromSession: { message: 'Message reçu de {title}', started: 'Démarrée par {agent} depuis {title}', task: 'Tâche', showTask: 'Afficher la tâche', show: 'Afficher le message', more: 'Afficher plus', less: 'Afficher moins' },
     earlier: 'Afficher le message précédent | Afficher les {n} messages précédents',
     queue: {
       label: 'Messages en attente',
@@ -1326,6 +1328,7 @@ export default {
   },
   operator: {
     reported: '[Nuée] La session « {title} » ({id}) a terminé son tour, avec cette dernière réponse.\n\n{answer}',
+    received: '[Nuée] Message de la session « {title} » ({id}).\n\n{text}',
   },
   attention: {
     done: '{agent} a fini.',

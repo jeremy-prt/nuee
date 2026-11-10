@@ -35,7 +35,8 @@ export type ChatItem =
   // steered : ajouté à une réponse en cours, l'agent l'a lu sans ouvrir de nouveau tour. agentId : identifiant que
   // l'agent lui donne, pour revenir avant lui. `at` (envoi, comme celui de la fin de tour) : absent des sessions
   // enregistrées avant lui.
-  | { kind: 'user'; id: string; text: string; attachments?: Attachment[]; steered?: boolean; agentId?: string; at?: number }
+  // `from` : venu de l'agent d'une autre session (`MessageFrom`).
+  | { kind: 'user'; id: string; text: string; attachments?: Attachment[]; steered?: boolean; agentId?: string; at?: number; from?: MessageFrom }
   // Chat ouvert par une commande de Nuée : son message d'ouverture est rendu depuis cet élément, sans tour
   // d'agent. `skill` : le skill à modifier tel qu'il était à l'ouverture.
   | { kind: 'command'; id: string; command: ChatCommand; skill?: { name: string; description: string; automatic: boolean } }
@@ -110,11 +111,21 @@ export interface Place {
   worktreeBase: string | null
 }
 
+// Titre gardé pour une session supprimée depuis ; sinon l'affichage prend le titre actuel. `task` : consigne de
+// départ d'une session lancée par une autre, `report` : fin de tour d'une session lancée.
+export interface MessageFrom {
+  id: string
+  title: string | null
+  report?: boolean
+  task?: boolean
+}
+
 export interface Queued {
   id: string
   place: Place
   prompt: string
   attachments: Attachment[]
+  from?: MessageFrom
 }
 
 export type Approval = Omit<Extract<AgentEvent, { type: 'approval' }>, 'type'>
@@ -673,21 +684,28 @@ export const useConversationsStore = defineStore('conversations', () => {
     if (isCompaction(prompt, attachments) && conversation.items.some((item) => item.kind === 'user')) {
       push(conversation, { kind: 'compact', id: crypto.randomUUID(), status: 'running', at: Date.now() })
     } else {
-      push(conversation, { kind: 'user', id: crypto.randomUUID(), text: prompt, attachments, at: Date.now() })
+      push(conversation, { kind: 'user', id: crypto.randomUUID(), text: prompt, attachments, at: Date.now(), ...(message.from ? { from: message.from } : {}) })
     }
     save(chatId)
-    dispatch(chatId, conversation, place, prompt, attachments)
+    dispatch(chatId, conversation, place, agentPrompt(message), attachments)
+  }
+
+  // Message d'une autre session : l'agent lit de qui il vient, la conversation garde le texte seul.
+  function agentPrompt({ prompt, from }: Pick<Queued, 'prompt' | 'from'>) {
+    if (!from || from.task) return prompt
+    const params = { title: from.title ?? from.id, id: from.id, text: prompt, answer: prompt }
+    return i18nGlobal().t(from.report ? 'operator.reported' : 'operator.received', params)
   }
 
   // Le message rejoint la réponse en cours ; trop tard (réponse complète), il reste dans la file.
   async function steer(chatId: string, conversation: Conversation, message: Queued) {
-    const steered = await agentSteer(chatId, message.prompt, message.attachments).catch(() => false)
+    const steered = await agentSteer(chatId, agentPrompt(message), message.attachments).catch(() => false)
     if (!steered) {
       if (conversation.phase === 'idle') afterTurn(chatId, conversation)
       return
     }
     conversation.queue = conversation.queue.filter((item) => item.id !== message.id)
-    push(conversation, { kind: 'user', id: message.id, text: message.prompt, attachments: message.attachments, steered: true, at: Date.now() })
+    push(conversation, { kind: 'user', id: message.id, text: message.prompt, attachments: message.attachments, steered: true, at: Date.now(), ...(message.from ? { from: message.from } : {}) })
     save(chatId)
   }
 
@@ -709,10 +727,11 @@ export const useConversationsStore = defineStore('conversations', () => {
 
   // Pendant un tour, le message attend la fin, ou rejoint la réponse en cours selon Réglages › Général.
   // `other` : ⌘↵, l'inverse du réglage pour un message envoyé pendant une réponse.
-  function send(chatId: string, place: Place, prompt: string, attachments: Attachment[], other = false) {
+  // `from` : message de l'agent d'une autre session.
+  function send(chatId: string, place: Place, prompt: string, attachments: Attachment[], other = false, from?: MessageFrom) {
     const conversation = conversations.get(chatId)
     if (!conversation?.loaded) return
-    const message: Queued = { id: crypto.randomUUID(), place, prompt, attachments }
+    const message: Queued = { id: crypto.randomUUID(), place, prompt, attachments, ...(from ? { from } : {}) }
     // L'agent attend : le message part, une reprise programmée devient inutile.
     if (conversation.phase === 'idle') {
       cancelResume(chatId)

@@ -48,4 +48,8 @@ model: string | null,
 /**
  * Lignes ajoutées et retirées par l'agent sur toute la session.
  */
-added: number, removed: number, };
+added: number, removed: number, 
+/**
+ * Session dont l'agent a lancé celle-ci : la barre latérale l'imbrique dessous.
+ */
+parentId: string | null, };

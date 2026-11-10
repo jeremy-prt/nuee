@@ -1134,6 +1134,8 @@ fn detail_of(name: &str, input: &Value) -> Option<ToolDetail> {
         "WebFetch" => (field("url"), field("prompt")),
         "WebSearch" => (field("query"), None),
         "Task" | "Agent" => (field("prompt"), field("description")),
+        // Carte « Tâche » de la session qui en lance une autre : la consigne et le titre, pas le JSON.
+        "mcp__nuee__start_session" => (field("prompt"), field("title")),
         _ => match input.as_object() {
             Some(fields) if !fields.is_empty() => (
                 serde_json::to_string_pretty(input)

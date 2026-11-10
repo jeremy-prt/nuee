@@ -42,6 +42,8 @@ export interface Tab {
   model: string | null
   added: number
   removed: number
+  // Session dont l'agent a lancé celle-ci : la liste l'imbrique dessous.
+  parentId: string | null
 }
 
 interface PaneLayout {
@@ -135,8 +137,28 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   )
   // Historique de la barre latérale, le plus récent en haut, les sessions épinglées à part.
   const contextChats = computed(() => tabsFor(navigation.projectId).filter((tab) => tab.started && !tab.archived).reverse())
+  // Sessions lancées par l'agent d'une autre, rangées sous la plus haute de leurs ancêtres visibles dans la liste,
+  // dans l'ordre de lancement. Une épinglée, ou dont l'ancêtre est ailleurs (archivé, autre projet), reste à sa place.
+  const nestedChats = computed(() => {
+    const shown = new Map(contextChats.value.map((tab) => [tab.id, tab]))
+    const byParent = new Map<string, Tab[]>()
+    const childIds = new Set<string>()
+    for (const tab of [...contextChats.value].reverse()) {
+      if (tab.pinned) continue
+      let root = tab.parentId ? shown.get(tab.parentId) : undefined
+      const seen = new Set([tab.id])
+      while (root?.parentId && !root.pinned && !seen.has(root.id) && shown.has(root.parentId)) {
+        seen.add(root.id)
+        root = shown.get(root.parentId)
+      }
+      if (!root || root.id === tab.id) continue
+      childIds.add(tab.id)
+      byParent.set(root.id, [...(byParent.get(root.id) ?? []), tab])
+    }
+    return { byParent, childIds }
+  })
   const pinnedChats = computed(() => contextChats.value.filter((tab) => tab.pinned))
-  const recentChats = computed(() => contextChats.value.filter((tab) => !tab.pinned))
+  const recentChats = computed(() => contextChats.value.filter((tab) => !tab.pinned && !nestedChats.value.childIds.has(tab.id)))
 
   function tabsFor(projectId: string | null) {
     return tabs.value.filter((tab) => tab.projectId === projectId)
@@ -158,11 +180,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return tab
   }
 
-  // Session ajoutée à la liste sans ouvrir d'onglet : celle qu'un agent lance depuis une autre.
-  function addChat(projectId: string | null, title: string | null = null, worktreePath: string | null | undefined = undefined) {
+  // Session ajoutée à la liste sans ouvrir d'onglet : celle qu'un agent lance depuis une autre (`parentId`).
+  function addChat(projectId: string | null, title: string | null = null, worktreePath: string | null | undefined = undefined, parentId: string | null = null) {
     const agent = projects.chatAgent(projectId)
     const worktree = worktreePath !== undefined && worktreePath !== null
-    const summary = { id: crypto.randomUUID(), projectId, number: nextChatNumber(projectId), agent, title, started: false, worktree, worktreePath: worktreePath ?? null, archived: false, archivedAt: null, createdAt: Date.now(), updatedAt: Date.now(), pinned: false, model: null, added: 0, removed: 0 }
+    const summary = { id: crypto.randomUUID(), projectId, number: nextChatNumber(projectId), agent, title, started: false, worktree, worktreePath: worktreePath ?? null, archived: false, archivedAt: null, createdAt: Date.now(), updatedAt: Date.now(), pinned: false, model: null, added: 0, removed: 0, parentId }
     const tab: Tab = { ...summary, kind: 'chat' }
     tabs.value.push(tab)
     conversations.create(summary)
@@ -565,6 +587,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     togglePinTab,
     openTab,
     contextChats,
+    nestedChats,
     pinnedChats,
     recentChats,
     startedChats,

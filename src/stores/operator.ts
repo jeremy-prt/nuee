@@ -16,15 +16,13 @@ const CLIP = 2000
 
 const clip = (text: string) => (text.length > CLIP ? `${text.slice(0, CLIP)}…` : text)
 
-// Outils de sessions du serveur MCP `nuee` : un agent liste, lit et lance d'autres sessions, et leur écrit. Une session
-// lancée ainsi prévient celle qui l'a lancée à chaque fin de tour.
+// Outils de sessions du serveur MCP `nuee` : un agent liste, lit, lance, renomme et archive d'autres sessions, et leur
+// écrit. Une session lancée ainsi (`parentId`, gardé en base) prévient celle qui l'a lancée à chaque fin de tour.
 export const useOperatorStore = defineStore('operator', () => {
   const workspace = useWorkspaceStore()
   const conversations = useConversationsStore()
   const projects = useProjectsStore()
 
-  // Session lancée -> celle qui l'a lancée. En mémoire seulement : un redémarrage coupe le lien.
-  const parents = new Map<string, string>()
   const reports = new Map<string, number>()
 
   if (isTauriApp()) onOperatorRequest(answer)
@@ -47,6 +45,10 @@ export const useOperatorStore = defineStore('operator', () => {
         return start(caller, args)
       case 'send_message':
         return message(caller, String(args.id ?? ''), String(args.text ?? ''))
+      case 'rename_session':
+        return rename(caller, String(args.id ?? ''), String(args.title ?? ''))
+      case 'archive_session':
+        return archive(caller, String(args.id ?? ''))
       default:
         throw new Error(`outil inconnu : ${tool}`)
     }
@@ -79,6 +81,7 @@ export const useOperatorStore = defineStore('operator', () => {
   }
 
   function line(item: ChatItem) {
+    if (item.kind === 'user' && item.from) return `Session ${item.from.id} : ${clip(item.text)}`
     if (item.kind === 'user') return `Utilisateur : ${clip(item.text)}`
     if (item.kind === 'text') return `Agent : ${clip(item.text)}`
     if (item.kind === 'end' && item.status !== 'completed') return `(tour ${item.status}${item.error ? ` : ${item.error}` : ''})`
@@ -114,14 +117,13 @@ export const useOperatorStore = defineStore('operator', () => {
       }
     }
     const title = typeof args.title === 'string' && args.title.trim() ? args.title.trim() : null
-    const tab = workspace.addChat(projectId, title)
+    const tab = workspace.addChat(projectId, title, undefined, caller)
     const project = projects.byId(projectId)
     if (args.worktree === true && project) await projects.checkWorktree(project)
     const worktree = args.worktree === true && !!project && projects.support[project.id] === 'ready'
     workspace.setWorktree(tab.id, worktree)
     workspace.startChat(tab.id, prompt, [])
-    parents.set(tab.id, caller)
-    conversations.send(tab.id, placeOf(tab), prompt, [])
+    conversations.send(tab.id, placeOf(tab), prompt, [], false, { id: caller, title: from?.title ?? null, task: true })
     return `Session ${tab.id} lancée (${projectName(projectId)}${worktree ? ', dans son propre worktree' : ''}). Elle préviendra ici à la fin de chaque tour.`
   }
 
@@ -142,32 +144,48 @@ export const useOperatorStore = defineStore('operator', () => {
     return conversation
   }
 
-  async function message(caller: string, id: string, text: string) {
+  async function message(caller: string, id: string, text: string, report = false) {
     if (!text.trim()) throw new Error('`text` manquant')
     if (id === caller) throw new Error('une session ne peut pas s\'écrire à elle-même')
     const tab = chat(id)
     const conversation = await loaded(tab)
     if (!tab.started) workspace.startChat(id, text, [])
     const busy = conversation?.phase !== 'idle'
-    conversations.send(id, conversation?.lastPlace ?? placeOf(tab), text, [])
+    const sender = workspace.tabs.find((item) => item.id === caller)
+    const from = { id: caller, title: sender?.title ?? null, ...(report ? { report } : {}) }
+    conversations.send(id, conversation?.lastPlace ?? placeOf(tab), text, [], false, from)
     return busy ? `Message mis en file : la session ${id} travaille encore.` : `Message envoyé à la session ${id}.`
+  }
+
+  async function rename(caller: string, id: string, title: string) {
+    if (!title.trim()) throw new Error('`title` manquant')
+    const tab = id === caller ? workspace.tabs.find((item) => item.id === id) : chat(id)
+    if (!tab) throw new Error(`pas de session ${id}`)
+    await workspace.renameChat(id, title)
+    return `Session ${id} renommée « ${tab.title} ».`
+  }
+
+  async function archive(caller: string, id: string) {
+    if (id === caller) throw new Error('une session ne peut pas s\'archiver elle-même')
+    const tab = chat(id)
+    if (!tab.started) throw new Error(`la session ${id} n'a pas encore commencé`)
+    await workspace.archiveChat(id)
+    return `Session ${id} archivée (Réglages › Archives la restaure).`
   }
 
   // Fin de tour d'une session lancée par un agent : celle qui l'a lancée reçoit sa dernière réponse.
   function turnEnded(chatId: string, items: readonly ChatItem[]) {
-    const parent = parents.get(chatId)
+    const parent = workspace.tabs.find((tab) => tab.id === chatId)?.parentId
     if (!parent || !workspace.tabs.some((tab) => tab.id === parent && !tab.archived)) return
     const count = reports.get(parent) ?? 0
     if (count >= MAX_REPORTS) return
     reports.set(parent, count + 1)
-    const tab = workspace.tabs.find((item) => item.id === chatId)
     let answer = ''
     for (let i = items.length - 1; i >= 0 && !answer; i--) {
       const item = items[i]
       if (item?.kind === 'text') answer = clip(item.text)
     }
-    const note = i18nGlobal().t('operator.reported', { title: tab?.title ?? chatId, id: chatId, answer })
-    message(chatId, parent, note).catch((error) => console.error('session', error))
+    message(chatId, parent, answer || '…', true).catch((error) => console.error('session', error))
   }
 
   // L'utilisateur a écrit dans la session : les messages de Nuée peuvent reprendre.

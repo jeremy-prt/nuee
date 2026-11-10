@@ -9,7 +9,7 @@ import UiIconButton from '@/components/ui/UiIconButton.vue'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { ChatItem } from '@/stores/conversations'
 import { useLayoutStore } from '@/stores/layout'
-import type { ActivityItem } from '@/utils/activity'
+import { type ActivityItem, START_SESSION } from '@/utils/activity'
 import { tasksOf } from '@/utils/tasks'
 import { turnText } from '@/utils/transcript'
 
@@ -19,7 +19,21 @@ const props = defineProps<{
   running: boolean
   agent: AgentKind
   clock: { since: number; pausedMs: number; pausedAt: number | null; asking: boolean } | null
+  // Titre de la session : celui de la carte « Tâche » d'une session lancée par une autre.
+  title?: string | null
+  // Session qui a lancé celle-ci : son premier message est sa consigne, même enregistré avant `from`.
+  parentId?: string | null
 }>()
+
+const firstUser = computed(() => props.items.findIndex((item) => item.kind === 'user'))
+function shownItem(item: ChatItem, index: number): ChatItem {
+  if (!props.parentId || index !== firstUser.value || item.kind !== 'user' || item.from) return item
+  return { ...item, from: { id: props.parentId, title: null, task: true } }
+}
+const fromSession = (item: ChatItem, index: number) => {
+  const shown = shownItem(item, index)
+  return shown.kind === 'user' && !!shown.from
+}
 
 const emit = defineEmits<{ rewind: [itemId: string]; resend: [] }>()
 
@@ -41,8 +55,9 @@ const limit = ref(FIRST)
 const start = computed(() => Math.max(0, props.items.length - limit.value))
 const shown = computed(() => props.items.slice(start.value))
 
-// Outils et réflexions qui se suivent forment une ligne d'activité ; les questions et les sous-agents restent à part. Une fois le tour passé, la réflexion ne s'affiche
-// plus (comme dans l'app Claude) et un outil seul reste une ligne simple. Pendant un tour, la dernière suite reste une
+// Outils et réflexions qui se suivent forment une ligne d'activité ; les questions, les sous-agents et les sessions
+// lancées restent à part. Une fois le tour passé, la réflexion ne s'affiche plus (comme dans l'app Claude) et un outil
+// seul reste une ligne simple. Pendant un tour, la dernière suite reste une
 // ligne d'activité, même seule : c'est elle qui dit ce que fait l'agent.
 // `index` : position absolue du premier élément de la ligne.
 type Row = { kind: 'item'; item: ChatItem; index: number } | { kind: 'activity'; id: string; items: ActivityItem[]; index: number }
@@ -57,7 +72,7 @@ const rows = computed(() => {
     run = []
   }
   shown.value.forEach((item, offset) => {
-    if ((item.kind === 'tool' && item.tool !== 'question' && item.tool !== 'agent') || item.kind === 'thinking') run.push(item)
+    if ((item.kind === 'tool' && item.tool !== 'question' && item.tool !== 'agent' && item.name !== START_SESSION) || item.kind === 'thinking') run.push(item)
     else {
       close(start.value + offset)
       out.push({ kind: 'item', item, index: start.value + offset })
@@ -162,7 +177,7 @@ onMounted(() => {
           {{ t('chat.earlier', { n: start }, start) }}
         </button>
       </li>
-      <li v-for="(row, offset) in rows" :key="row.kind === 'item' ? row.item.id : row.id" :class="{ 'group flex flex-col items-end gap-1': row.kind === 'item' && row.item.kind === 'user', 'group/end': row.kind === 'item' && row.item.kind === 'end' }">
+      <li v-for="(row, offset) in rows" :key="row.kind === 'item' ? row.item.id : row.id" :class="{ 'group flex flex-col items-end gap-1': row.kind === 'item' && row.item.kind === 'user' && !fromSession(row.item, row.index), 'group/end': row.kind === 'item' && row.item.kind === 'end' }">
         <ChatActivity
           v-if="row.kind === 'activity'"
           :items="row.items"
@@ -172,8 +187,9 @@ onMounted(() => {
         />
         <ChatMessage
           v-else
-          :item="row.item"
+          :item="shownItem(row.item, row.index)"
           :agent="agent"
+          :chat-title="title"
           :running="running"
           :streaming="running && row.index > lastUser"
           :after-text="items[row.index - 1]?.kind === 'text'"

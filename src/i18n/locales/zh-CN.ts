@@ -29,6 +29,7 @@ export default {
     sort: { label: '排序会话', title: '排序方式', activity: '最近活动', created: '创建日期', name: '名称', byDate: '按日期分组', compact: '紧凑视图' },
     groups: { today: '今天', yesterday: '昨天', week: '最近 7 天', month: '最近 30 天', older: '更早' },
     recent: '会话',
+    nested: { unread: '未读：{n}' },
     renameLabel: '会话名称',
     renameFailed: '无法重命名会话',
     pinFailed: '无法更改置顶',
@@ -281,6 +282,7 @@ export default {
     },
   },
   chat: {
+    fromSession: { message: '收到来自 {title} 的消息', started: '由 {agent} 从 {title} 启动', task: '任务', showTask: '显示任务', show: '显示消息', more: '显示更多', less: '收起' },
     earlier: '显示之前的 {n} 条消息',
     queue: {
       label: '等待中的消息',
@@ -1326,6 +1328,7 @@ export default {
   },
   operator: {
     reported: '[Nuée] 会话「{title}」({id}) 已完成本轮，以下是最后的回答。\n\n{answer}',
+    received: '[Nuée] 来自会话「{title}」({id}) 的消息。\n\n{text}',
   },
   attention: {
     done: '{agent} 已完成。',

@@ -29,6 +29,7 @@ export default {
     sort: { label: 'Ordenar sesiones', title: 'Ordenar por', activity: 'Última actividad', created: 'Fecha de creación', name: 'Nombre', byDate: 'Agrupar por fecha', compact: 'Vista compacta' },
     groups: { today: 'Hoy', yesterday: 'Ayer', week: 'Últimos 7 días', month: 'Últimos 30 días', older: 'Más antiguas' },
     recent: 'Sesiones',
+    nested: { unread: 'No leídas: {n}' },
     renameLabel: 'Nombre de la sesión',
     renameFailed: 'No se pudo renombrar la sesión',
     pinFailed: 'No se pudo cambiar la fijación',
@@ -281,6 +282,7 @@ export default {
     },
   },
   chat: {
+    fromSession: { message: 'Mensaje recibido de {title}', started: 'Iniciada por {agent} desde {title}', task: 'Tarea', showTask: 'Mostrar la tarea', show: 'Mostrar el mensaje', more: 'Mostrar más', less: 'Mostrar menos' },
     earlier: 'Mostrar el mensaje anterior | Mostrar los {n} mensajes anteriores',
     queue: {
       label: 'Mensajes en espera',
@@ -1326,6 +1328,7 @@ export default {
   },
   operator: {
     reported: '[Nuée] La sesión «{title}» ({id}) terminó su turno, con esta última respuesta.\n\n{answer}',
+    received: '[Nuée] Mensaje de la sesión «{title}» ({id}).\n\n{text}',
   },
   attention: {
     done: '{agent} ha terminado.',

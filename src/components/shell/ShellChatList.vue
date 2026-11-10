@@ -2,7 +2,7 @@
 import { Pin } from '@/components/ui/icons'
 import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import ShellChatItem from '@/components/shell/ShellChatItem.vue'
+import ShellChatGroup from '@/components/shell/ShellChatGroup.vue'
 import { useProgressiveList } from '@/composables/useProgressiveList'
 import { useTabTitle } from '@/composables/useTabTitle'
 import { useClockStore } from '@/stores/clock'
@@ -80,7 +80,7 @@ watch(
         <Pin class="size-3" aria-hidden="true" />{{ t('chats.pinned') }}
       </h2>
       <ul class="space-y-0.5">
-        <li v-for="tab in pinned" :key="tab.id" :data-chat-id="tab.id"><ShellChatItem :tab="tab" /></li>
+        <li v-for="tab in pinned" :key="tab.id" :data-chat-id="tab.id"><ShellChatGroup :tab="tab" /></li>
       </ul>
     </div>
     <div data-chat-zone="recent">
@@ -97,7 +97,7 @@ watch(
           <h2 class="mt-3 flex h-7 items-center px-2 text-[11px] text-muted">{{ t('chats.recent') }}</h2>
         </template>
         <ul class="space-y-0.5">
-          <li v-for="tab in group.tabs" :key="tab.id" :data-chat-id="tab.id"><ShellChatItem :tab="tab" /></li>
+          <li v-for="tab in group.tabs" :key="tab.id" :data-chat-id="tab.id"><ShellChatGroup :tab="tab" /></li>
         </ul>
       </template>
     </div>

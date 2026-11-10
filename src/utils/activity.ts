@@ -87,6 +87,9 @@ export function countFailures(items: readonly ActivityItem[]) {
   return items.filter((item) => item.kind === 'tool' && item.status === 'failed').length
 }
 
+// Outil du serveur `nuee` qui lance une autre session : carte « Tâche » hors du pli d'activité.
+export const START_SESSION = 'mcp__nuee__start_session'
+
 // `mcp__github__create_issue` devient « github › create_issue ».
 export function toolName(name: string) {
   const parts = name.split('__')

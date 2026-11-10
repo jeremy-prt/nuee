@@ -29,6 +29,7 @@ export default {
     sort: { label: 'セッションを並べ替え', title: '並べ替え', activity: '最終アクティビティ', created: '作成日', name: '名前', byDate: '日付でグループ化', compact: 'コンパクト表示' },
     groups: { today: '今日', yesterday: '昨日', week: '過去 7 日間', month: '過去 30 日間', older: 'それ以前' },
     recent: 'セッション',
+    nested: { unread: '未読: {n}' },
     renameLabel: 'セッション名',
     renameFailed: 'セッションの名前を変更できませんでした',
     pinFailed: 'ピン留めを変更できませんでした',
@@ -281,6 +282,7 @@ export default {
     },
   },
   chat: {
+    fromSession: { message: '{title} からメッセージを受信', started: '{title} から {agent} が開始', task: 'タスク', showTask: 'タスクを表示', show: 'メッセージを表示', more: 'もっと見る', less: '閉じる' },
     earlier: '以前のメッセージ {n} 件を表示',
     queue: {
       label: '待機中のメッセージ',
@@ -1326,6 +1328,7 @@ export default {
   },
   operator: {
     reported: '[Nuée] セッション「{title}」({id}) のターンが終わりました。最後の回答はこちらです。\n\n{answer}',
+    received: '[Nuée] セッション「{title}」({id}) からのメッセージです。\n\n{text}',
   },
   attention: {
     done: '{agent} が完了しました。',

@@ -1035,7 +1035,8 @@ the user sees an activity dot and can open it to watch or take over at any time.
 check web pages. Prefer read_page/find refs over coordinates; coordinates are CSS pixels of the last screenshot.";
 
 const SESSIONS_INSTRUCTIONS: &str = "\n\nOther sessions: Nuée runs several agent sessions side by side. start_session launches one with its own agent \
-(this project by default) for independent work, with a self-contained prompt; list_sessions, read_session and send_message reach the others. \
+(this project by default) for independent work, with a self-contained prompt; list_sessions, read_session and send_message reach the others; \
+rename_session and archive_session tidy them (archive only when the user asks or the work is done). \
 A session you started reports back here when it finishes a turn: do not poll it.";
 
 const VERIFY_INSTRUCTIONS: &str = "\n\nWhen to verify: once the project has a dev server in .claude/launch.json (preview_list shows it), after editing code \
@@ -1077,6 +1078,18 @@ fn tool_list() -> Vec<Value> {
             "Send a message to another session. It waits in that session's queue while its agent is working.",
             json!({ "id": { "type": "string" }, "text": { "type": "string" } }),
             &["id", "text"],
+        ),
+        tool(
+            "rename_session",
+            "Rename a session in the sidebar.",
+            json!({ "id": { "type": "string" }, "title": { "type": "string" } }),
+            &["id", "title"],
+        ),
+        tool(
+            "archive_session",
+            "Archive a session: it leaves the sidebar and can be restored from Settings › Archives. Not this session.",
+            json!({ "id": { "type": "string" } }),
+            &["id"],
         ),
         tool(
             "preview_start",
