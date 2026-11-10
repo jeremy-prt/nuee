@@ -144,7 +144,7 @@ async function close(item: Item) {
         </span>
         <span v-if="item.page && browser.agent[item.page.id]" class="sr-only">{{ t('dock.browser.agentBusy') }}</span>
         <!-- Comme les onglets de session : la croix se pose au survol sur la fin du titre, qui s'estompe. -->
-        <span class="truncate group-focus-within/tab:[mask-image:linear-gradient(to_left,transparent_1rem,black_1.75rem)] group-hover/tab:[mask-image:linear-gradient(to_left,transparent_1rem,black_1.75rem)]">{{ item.label }}</span>
+        <span class="truncate group-focus-within/tab:[mask-image:linear-gradient(to_left,transparent_1rem,black_1.375rem)] group-hover/tab:[mask-image:linear-gradient(to_left,transparent_1rem,black_1.375rem)]">{{ item.label }}</span>
       </button>
       <button
         type="button"

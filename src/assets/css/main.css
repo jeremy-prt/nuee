@@ -526,11 +526,11 @@ html[data-mode='light'] {
 /* Titre d'une ligne au survol : il s'estompe sous les boutons qui apparaissent au lieu de se raccourcir d'un coup.
    Les distances partent du bord droit du titre (un bouton, ou deux). */
 @utility fade-under-one {
-  mask-image: linear-gradient(to left, transparent 1.25rem, black 2.25rem);
+  mask-image: linear-gradient(to left, transparent 1.25rem, black 1.75rem);
 }
 
 @utility fade-under-two {
-  mask-image: linear-gradient(to left, transparent 2.875rem, black 3.875rem);
+  mask-image: linear-gradient(to left, transparent 2.875rem, black 3.375rem);
 }
 
 @layer base {

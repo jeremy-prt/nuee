@@ -54,6 +54,9 @@ const active = computed(() => props.tab.id === workspace.activeTabId)
 // Sans état, la carte donne l'heure de la dernière activité.
 const sessionStatus = useSessionStatus()
 const status = computed(() => sessionStatus(props.tab.id))
+// Une session au repos s'efface : celles qui travaillent, attendent ou viennent de finir ressortent.
+const quiet = computed(() => !status.value && !active.value)
+const titleTone = computed(() => (quiet.value && !menuOpen.value ? 'text-muted group-hover/row:text-content group-focus-within/row:text-content' : ''))
 
 const since = computed(() => formatSince(props.tab.updatedAt, clock.now, locale.value, layout.sessionCompact))
 const branch = computed(() => worktrees.branchOf(props.tab))
@@ -140,7 +143,7 @@ watch(
             @cancel="stopRename()"
           />
           <template v-else>
-            <span class="min-w-0 flex-1 truncate text-[13px]/5" :class="fadeUnder">{{ tabTitle(tab) }}</span>
+            <span class="min-w-0 flex-1 truncate text-[13px]/5" :class="[fadeUnder, titleTone]">{{ tabTitle(tab) }}</span>
             <span class="shrink-0 text-[11px] text-muted" :class="hideUnder">{{ since }}</span>
           </template>
         </template>
@@ -167,7 +170,7 @@ watch(
               @commit="stopRename"
               @cancel="stopRename()"
             />
-            <span v-else class="min-w-0 flex-1 truncate text-[13px]/5 font-medium" :class="{ [fadeUnder]: !branch }">{{ tabTitle(tab) }}</span>
+            <span v-else class="min-w-0 flex-1 truncate text-[13px]/5 font-medium" :class="[{ [fadeUnder]: !branch }, titleTone]">{{ tabTitle(tab) }}</span>
             <ChatDiffStat v-if="!branch && diff && !renaming" v-bind="diff" plain class="text-[11px]" :class="hideUnder" />
           </span>
           <span v-if="branch" class="flex h-4 items-center gap-1.5 text-[11px] text-muted">
