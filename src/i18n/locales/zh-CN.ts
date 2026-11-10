@@ -451,6 +451,7 @@ export default {
     deny: '拒绝',
   },
   agentUpdate: {
+    heading: "有可用更新",
     done: "已更新到 {version}",
     retry: "重试",
     close: "关闭",

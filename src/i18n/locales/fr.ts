@@ -451,6 +451,7 @@ export default {
     deny: 'Refuser',
   },
   agentUpdate: {
+    heading: "Mise à jour disponible",
     done: "Mis à jour vers la {version}",
     retry: "Réessayer",
     close: "Fermer",

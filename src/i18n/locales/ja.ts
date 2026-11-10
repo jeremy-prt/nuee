@@ -451,6 +451,7 @@ export default {
     deny: '拒否',
   },
   agentUpdate: {
+    heading: "アップデートがあります",
     done: "{version} にアップデートしました",
     retry: "再試行",
     close: "閉じる",

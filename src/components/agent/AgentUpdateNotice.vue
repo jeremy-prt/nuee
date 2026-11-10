@@ -65,26 +65,29 @@ const notice = computed(() => {
 <template>
   <section
     v-if="notice"
-    class="ui-glass fixed end-4 top-14 z-40 flex w-[min(20rem,calc(100%-2rem))] gap-3 rounded-xl p-3 text-content"
+    class="ui-glass fixed end-4 top-14 z-40 w-[min(26rem,calc(100%-2rem))] rounded-xl p-3 text-content"
     role="status"
     :aria-label="t('agentUpdate.title', { agent: notice.name })"
   >
-    <SettingsAgentLogo :id="notice.kind" small class="mt-0.5 shrink-0" />
-    <div class="min-w-0 flex-1">
-      <p class="text-[13px] font-medium">{{ t('agentUpdate.title', { agent: notice.name }) }}</p>
-      <p v-if="result?.version" class="mt-1 flex items-center gap-1 text-xs text-success">
+    <header class="flex items-center gap-2">
+      <p class="min-w-0 flex-1 truncate text-[13px] font-medium">{{ t('agentUpdate.heading') }}</p>
+      <UiIconButton :label="result?.version ? t('agentUpdate.close') : t('agentUpdate.dismiss')" class="-my-1 -me-1" :disabled="notice.status.updating" @click="close">
+        <X class="size-3.5" aria-hidden="true" />
+      </UiIconButton>
+    </header>
+    <div class="mt-2.5 flex min-h-7 items-center gap-2">
+      <SettingsAgentLogo :id="notice.kind" small class="shrink-0" />
+      <p class="min-w-0 flex-1 truncate text-[13px] font-medium">{{ notice.name }}</p>
+      <p v-if="result?.version" class="flex shrink-0 items-center gap-1 text-xs text-success">
         <Check class="size-3.5 shrink-0" aria-hidden="true" />{{ t('agentUpdate.done', { version: result.version }) }}
       </p>
       <template v-else>
-        <p class="mt-0.5 font-mono text-xs text-muted">{{ notice.status.version ? `${notice.status.version} → ${notice.status.latest}` : notice.status.latest }}</p>
-        <p v-if="result?.error" class="mt-1 line-clamp-2 text-xs text-danger" role="alert" :title="result.error">{{ result.error }}</p>
-        <UiButton size="sm" variant="primary" class="mt-2" :loading="notice.status.updating" @click="update(notice.kind)">
+        <p class="shrink-0 font-mono text-xs text-muted">{{ notice.status.version ? `${notice.status.version} → ${notice.status.latest}` : notice.status.latest }}</p>
+        <UiButton size="sm" variant="primary" class="shrink-0" :loading="notice.status.updating" @click="update(notice.kind)">
           {{ result?.error ? t('agentUpdate.retry') : t('agentUpdate.action') }}
         </UiButton>
       </template>
     </div>
-    <UiIconButton :label="result?.version ? t('agentUpdate.close') : t('agentUpdate.dismiss')" class="-me-1 -mt-1" :disabled="notice.status.updating" @click="close">
-      <X class="size-3.5" aria-hidden="true" />
-    </UiIconButton>
+    <p v-if="result?.error && !result.version" class="mt-2 line-clamp-2 text-xs text-danger" role="alert" :title="result.error">{{ result.error }}</p>
   </section>
 </template>

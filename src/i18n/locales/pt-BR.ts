@@ -451,6 +451,7 @@ export default {
     deny: 'Recusar',
   },
   agentUpdate: {
+    heading: "Atualização disponível",
     done: "Atualizado para a {version}",
     retry: "Tentar de novo",
     close: "Fechar",

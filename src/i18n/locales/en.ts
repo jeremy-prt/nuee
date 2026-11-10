@@ -449,6 +449,7 @@ export default {
     deny: 'Deny',
   },
   agentUpdate: {
+    heading: "Update available",
     done: "Updated to {version}",
     retry: "Retry",
     close: "Close",
