@@ -82,7 +82,7 @@ const notice = computed(() => {
         <Check class="size-3.5 shrink-0" aria-hidden="true" />{{ t('agentUpdate.done', { version: result.version }) }}
       </p>
       <template v-else>
-        <p class="shrink-0 font-mono text-xs text-muted">{{ notice.status.version ? `${notice.status.version} → ${notice.status.latest}` : notice.status.latest }}</p>
+        <p class="me-2 shrink-0 font-mono text-xs text-muted">{{ notice.status.version ? `${notice.status.version} → ${notice.status.latest}` : notice.status.latest }}</p>
         <UiButton size="sm" variant="primary" class="shrink-0" :loading="notice.status.updating" @click="update(notice.kind)">
           {{ result?.error ? t('agentUpdate.retry') : t('agentUpdate.action') }}
         </UiButton>
