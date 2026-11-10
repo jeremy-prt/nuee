@@ -23,7 +23,7 @@ defineProps<{ label: string; icon?: Component; value?: string }>()
       <DropdownMenuSubContent
         :side-offset="6"
         :collision-padding="8"
-        :class="[menuPanel, 'max-h-(--reka-dropdown-menu-content-available-height) max-w-72 min-w-44']"
+        :class="[menuPanel.replace('p-1.5', 'p-1'), 'max-h-(--reka-dropdown-menu-content-available-height) max-w-72 min-w-36']"
       >
         <slot />
       </DropdownMenuSubContent>

@@ -139,6 +139,7 @@ const actions: [ShortcutId, (event: KeyboardEvent) => void][] = [
   ['toggleRightDock', inChatsOnly(layout.toggleRight)],
   ['toggleTerminal', inChatsOnly(toggleTerminal)],
   ['toggleBrowser', inChatsOnly(() => layout.toggleView('browser'))],
+  ['toggleExplorer', inChatsOnly(() => layout.toggleView('files'))],
   ['browserAddress', inChatsOnly(browserAddress)],
   ['newTab', () => newChat()],
   ['closeTab', inChatsOnly(workspace.closeActiveTab)],

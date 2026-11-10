@@ -14,6 +14,7 @@ import { useNewChat } from '@/composables/useNewChat'
 import { isMacosApp } from '@/ipc/system'
 import { useAppearanceStore } from '@/stores/appearance'
 import { useBrowserStore } from '@/stores/browser'
+import { useFilesStore } from '@/stores/files'
 import { RAIL_COLLAPSED_WIDTH, useLayoutStore } from '@/stores/layout'
 import { parentDetail, settingsDetailTitle, useNavigationStore } from '@/stores/navigation'
 import { useShortcutsStore } from '@/stores/shortcuts'
@@ -27,6 +28,14 @@ const appearance = useAppearanceStore()
 const workspace = useWorkspaceStore()
 const newChat = useNewChat()
 const browser = useBrowserStore()
+const files = useFilesStore()
+// Fichier ouvert dans l'Explorateur : l'éditeur occupe la gauche du panneau, ses onglets restent au-dessus de
+// l'arborescence.
+const editorWidth = computed(() => {
+  const id = workspace.activeTabId
+  if (!layout.right.open || layout.right.active !== 'files' || !id || !files.editing(id)) return 0
+  return Math.max(0, layout.right.size - files.explorerShown(layout.right.size))
+})
 // Panneau fermé pendant que l'agent se sert du navigateur : une pastille sur son bouton.
 const agentActs = computed(() => !!workspace.activeTabId && browser.agentActs(workspace.activeTabId))
 
@@ -154,6 +163,7 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
         >
           <template v-if="layout.right.open">
             <!-- Comme T3 Code : les onglets des volets ouverts, puis un « + » pour en ouvrir d'autres. -->
+            <span v-if="editorWidth" class="shrink-0 self-stretch" :style="{ width: `${editorWidth}px` }" data-tauri-drag-region />
             <ShellDockTabs class="min-w-0" />
             <span class="flex-1 self-stretch" data-tauri-drag-region />
           </template>

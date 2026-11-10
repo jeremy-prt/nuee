@@ -67,6 +67,8 @@ export const defaultShortcuts = {
   // ⌘J comme T3 Code (choix de Jérémy) : ⌃` demandait une touche morte en AZERTY Mac.
   toggleTerminal: { group: 'interface', key: 'j' },
   toggleBrowser: { group: 'interface', key: 'b', shift: true },
+  // ⌘⇧E comme l'explorateur de VS Code.
+  toggleExplorer: { group: 'interface', key: 'e', shift: true },
   // Comme iTerm, Ghostty et T3 Code, quand le terminal a le focus : ils passent avant le ⌘D de la vue partagée.
   splitTerminal: { group: 'interface', key: 'd', when: 'terminal' },
   splitTerminalDown: { group: 'interface', key: 'd', shift: true, when: 'terminal' },

@@ -43,7 +43,7 @@ function onCloseAutoFocus(event: Event) {
               :key="view"
               :label="t(`dock.${view}.title`)"
               :icon="dockIcons[view]"
-              :shortcut="view === 'terminal' ? shortcuts.label('toggleTerminal') : view === 'browser' ? shortcuts.label('toggleBrowser') : undefined"
+              :shortcut="view === 'terminal' ? shortcuts.label('toggleTerminal') : view === 'browser' ? shortcuts.label('toggleBrowser') : view === 'files' ? shortcuts.label('toggleExplorer') : undefined"
               @select="open(view)"
             />
           </DropdownMenuContent>

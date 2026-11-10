@@ -10,7 +10,7 @@ import { useDockOpener } from '@/composables/useDockOpener'
 const LAUNCHERS: { view: DockView; key: string }[] = [
   { view: 'browser', key: 'B' },
   { view: 'terminal', key: 'T' },
-  { view: 'files', key: 'F' },
+  { view: 'files', key: 'E' },
   { view: 'changes', key: 'D' },
   { view: 'tasks', key: 'K' },
 ]

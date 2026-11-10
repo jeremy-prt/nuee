@@ -195,6 +195,15 @@ watch(
   },
   { immediate: true },
 )
+watch(
+  [() => drafts.attachRequested, loaded],
+  ([requested, ready]) => {
+    if (!requested || !ready || requested.chatId !== props.tab.id) return
+    drafts.attachRequested = null
+    composer.value?.attach(requested.paths)
+  },
+  { immediate: true },
+)
 
 // Chat de skill qui attend la réponse à son formulaire : il vient d'être ouvert pour qu'on y écrive.
 onMounted(() => {

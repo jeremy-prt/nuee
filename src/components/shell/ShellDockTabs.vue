@@ -127,7 +127,8 @@ async function close(item: Item) {
         role="tab"
         :aria-selected="isActive(item)"
         :title="item.page?.url ?? item.label"
-        class="flex h-full min-w-0 items-center gap-1.5 rounded-md px-2 focus-visible:outline-2 focus-visible:outline-ring"
+        class="flex h-full min-w-0 items-center gap-1.5 rounded-md focus-visible:outline-2 focus-visible:outline-ring"
+        :class="isActive(item) ? 'px-2' : 'w-7 justify-center'"
         @click="select(item)"
         @auxclick.middle="close(item)"
         @keydown.delete="close(item)"
@@ -143,10 +144,17 @@ async function close(item: Item) {
           />
         </span>
         <span v-if="item.page && browser.agent[item.page.id]" class="sr-only">{{ t('dock.browser.agentBusy') }}</span>
-        <!-- Comme les onglets de session : la croix se pose au survol sur la fin du titre, qui s'estompe. -->
-        <span class="truncate group-focus-within/tab:[mask-image:linear-gradient(to_left,transparent_1rem,black_1.375rem)] group-hover/tab:[mask-image:linear-gradient(to_left,transparent_1rem,black_1.375rem)]">{{ item.label }}</span>
+        <!-- Comme monocode : seul l'onglet actif montre son titre, les autres leur icône. La croix se pose au survol
+             sur la fin du titre, qui s'estompe. -->
+        <span v-if="!isActive(item)" class="sr-only">{{ item.label }}</span>
+        <span
+          v-else
+          class="truncate group-focus-within/tab:[mask-image:linear-gradient(to_left,transparent_1rem,black_1.375rem)] group-hover/tab:[mask-image:linear-gradient(to_left,transparent_1rem,black_1.375rem)]"
+          >{{ item.label }}</span
+        >
       </button>
       <button
+        v-if="isActive(item)"
         type="button"
         tabindex="-1"
         class="absolute end-1 top-1/2 grid size-5 -translate-y-1/2 place-items-center rounded-md text-muted opacity-0 transition-opacity duration-(--hover-duration) group-focus-within/tab:opacity-100 group-hover/tab:opacity-100 hover:bg-selection-inner hover:text-content motion-reduce:transition-none"

@@ -25,6 +25,15 @@ import Coffee02Icon from '@hugeicons/core-free-icons/Coffee02Icon'
 import CommentAdd01Icon from '@hugeicons/core-free-icons/CommentAdd01Icon'
 import ComputerTerminal01Icon from '@hugeicons/core-free-icons/ComputerTerminal01Icon'
 import Copy01Icon from '@hugeicons/core-free-icons/Copy01Icon'
+import ClipboardPasteIcon from '@hugeicons/core-free-icons/ClipboardPasteIcon'
+import Copy02Icon from '@hugeicons/core-free-icons/Copy02Icon'
+import FolderXIcon from '@hugeicons/core-free-icons/FolderXIcon'
+import CaseSensitiveIcon from '@hugeicons/core-free-icons/CaseSensitiveIcon'
+import LetterSpacingIcon from '@hugeicons/core-free-icons/LetterSpacingIcon'
+import RegexIcon from '@hugeicons/core-free-icons/RegexIcon'
+import FileAddIcon from '@hugeicons/core-free-icons/FileAddIcon'
+import Link01Icon from '@hugeicons/core-free-icons/Link01Icon'
+import ScissorIcon from '@hugeicons/core-free-icons/ScissorIcon'
 import Css3Icon from '@hugeicons/core-free-icons/Css3Icon'
 import Cursor02Icon from '@hugeicons/core-free-icons/Cursor02Icon'
 import Delete02Icon from '@hugeicons/core-free-icons/Delete02Icon'
@@ -134,6 +143,11 @@ const SquareMenuGlyph = [
   ['rect', { x: '3', y: '3', width: '18', height: '18', rx: '4', stroke: 'currentColor', strokeWidth: '1.5', key: '0' }],
   ['path', { d: 'M8 8.5H16M8 12H16M8 15.5H13', stroke: 'currentColor', strokeLinecap: 'round', strokeWidth: '1.5', key: '1' }],
 ] as Glyph
+// Tout replier, dessiné comme monocode : celle du catalogue a des chevrons pleins.
+const CollapseAllGlyph = [
+  ['path', { d: 'M2 12H4M8 12H10M14 12H16M20 12H22', stroke: 'currentColor', strokeLinecap: 'round', strokeWidth: '1.5', key: '0' }],
+  ['path', { d: 'M7 2L12 7L17 2M7 22L12 17L17 22', stroke: 'currentColor', strokeLinecap: 'round', strokeLinejoin: 'round', strokeWidth: '1.5', key: '1' }],
+] as Glyph
 const PanelLeftGlyph = panel(9)
 const PanelRightGlyph = panel(15)
 
@@ -169,6 +183,16 @@ export const Clock = icon(Clock01Icon)
 export const Coffee = icon(Coffee02Icon)
 export const Columns2 = icon(LayoutTwoColumnIcon)
 export const Copy = icon(Copy01Icon)
+export const ClipboardPaste = icon(ClipboardPasteIcon)
+export const CopyPlus = icon(Copy02Icon)
+export const FolderX = icon(FolderXIcon)
+export const CaseSensitive = icon(CaseSensitiveIcon)
+export const WholeWord = icon(LetterSpacingIcon)
+export const Regex = icon(RegexIcon)
+export const CollapseAll = icon(CollapseAllGlyph)
+export const FilePlus = icon(FileAddIcon)
+export const Link = icon(Link01Icon)
+export const Scissors = icon(ScissorIcon)
 export const CornerDownRight = icon(ArrowTurnForwardIcon)
 export const Download = icon(Download04Icon)
 export const Ellipsis = icon(MoreHorizontalIcon)

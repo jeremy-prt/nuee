@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import BrowserPane from '@/components/browser/BrowserPane.vue'
 import ChatChangesPanel from '@/components/chat/ChatChangesPanel.vue'
@@ -15,6 +15,9 @@ import { useServersStore } from '@/stores/servers'
 
 // Le volet affiché du panneau de droite, ou le lanceur si aucun n'est choisi. Ses onglets (pages, shells) sont au-dessus.
 defineProps<{ view: DockView | null }>()
+
+// Chargé à la première ouverture : l'éditeur (CodeMirror) n'alourdit pas le démarrage.
+const FilesPanel = defineAsyncComponent(() => import('@/components/files/FilesPanel.vue'))
 
 const { t } = useI18n()
 const servers = useServersStore()
@@ -34,6 +37,7 @@ const logs = computed(() => {
     <ChatTasks v-if="view === 'tasks'" />
     <ChatChangesPanel v-else-if="view === 'changes'" />
     <TerminalPanel v-else-if="view === 'terminal'" />
+    <FilesPanel v-else-if="view === 'files'" />
     <ServerLogs v-else-if="view === 'browser' && logs" :root="logs.root" :name="logs.name" />
     <BrowserPane v-else-if="view === 'browser' && chat" />
     <UiEmpty v-else :icon="dockIcons[view]" :title="t('dock.files.emptyTitle')" :description="t('dock.files.empty')" />

@@ -51,10 +51,17 @@ export const useDraftsStore = defineStore('drafts', () => {
     requested.value = { chatId, text }
   }
 
+  // Fichiers joints depuis un volet : la session les passe au `attach` de son champ, comme un dépôt.
+  const attachRequested = ref<{ chatId: string; paths: string[] } | null>(null)
+
+  function requestAttach(chatId: string, paths: string[]) {
+    attachRequested.value = { chatId, paths }
+  }
+
   // Brouillons de sessions qui n'existent plus (jamais envoyées, fermées avant le premier message).
   function prune(keep: Set<string>) {
     for (const id of Object.keys(drafts)) if (!keep.has(id)) delete drafts[id]
   }
 
-  return { requested, get, set, request, prune }
+  return { requested, attachRequested, get, set, request, requestAttach, prune }
 })

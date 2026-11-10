@@ -90,6 +90,7 @@ pub fn run() {
             app.manage(GithubService::default());
             app.manage(TerminalService::default());
             app.manage(ServerService::default());
+            app.manage(services::files::FilesService::default());
             app.manage(AutostartService::new(&app.package_info().name));
             // Le login shell met parfois une seconde à répondre : autant que ce ne soit pas au premier message.
             std::thread::spawn(utils::shell_env::search_path);
@@ -143,6 +144,22 @@ pub fn run() {
             commands::chat::chat_set_archived,
             commands::chat::chat_archived_texts,
             commands::chat::chat_delete,
+            commands::files::files_list,
+            commands::files::files_read,
+            commands::files::files_stat,
+            commands::files::files_write,
+            commands::files::files_editors,
+            commands::files::files_open_editor,
+            commands::files::files_reveal,
+            commands::files::files_create,
+            commands::files::files_rename,
+            commands::files::files_trash,
+            commands::files::files_paste,
+            commands::files::files_watch,
+            commands::files::files_unwatch,
+            commands::files::files_search,
+            commands::files::files_dir,
+            commands::files::files_marks,
             commands::github::github_status,
             commands::github::github_login,
             commands::github::github_avatar,
