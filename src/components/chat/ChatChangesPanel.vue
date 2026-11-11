@@ -1,15 +1,18 @@
 <script setup lang="ts">
-import { ChevronRight, CircleAlert, GitCommit, GitCompare, LoaderCircle, SendHorizontal, Undo } from '@/components/ui/icons'
+import { ChevronRight, CircleAlert, GitCompare, LoaderCircle, SendHorizontal, Undo } from '@/components/ui/icons'
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatDiff from '@/components/chat/ChatDiff.vue'
 import ChatDiffStat from '@/components/chat/ChatDiffStat.vue'
+import ChatGitRun from '@/components/chat/ChatGitRun.vue'
+import ChatSessionSplit from '@/components/chat/ChatSessionSplit.vue'
 import ShellDockToolbar from '@/components/shell/ShellDockToolbar.vue'
 import UiEmpty from '@/components/ui/UiEmpty.vue'
 import UiFileIcon from '@/components/ui/UiFileIcon.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
+import UiMenuItem from '@/components/ui/UiMenuItem.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
-import { useCommitRequest } from '@/composables/useCommitRequest'
+import { useGitActions } from '@/composables/useGitActions'
 import { useProgressiveList } from '@/composables/useProgressiveList'
 import { useTerminalChat } from '@/composables/useTerminalChat'
 import type { ChangedFile } from '@/ipc/bindings/ChangedFile'
@@ -22,6 +25,7 @@ import { useConversationsStore } from '@/stores/conversations'
 import { useDialogStore } from '@/stores/dialog'
 import { type DiffComment, useDiffCommentsStore } from '@/stores/diffComments'
 import { useFilesStore } from '@/stores/files'
+import { useGitActionsStore } from '@/stores/gitActions'
 import { useLayoutStore } from '@/stores/layout'
 import { useProjectsStore } from '@/stores/projects'
 import { useSessionGitStore } from '@/stores/sessionGit'
@@ -33,7 +37,8 @@ import { agents } from '@/utils/agents'
 // ligne, son diff déplié dessous. Plusieurs peuvent rester ouverts pour comparer.
 const { t } = useI18n()
 const { chat, place } = useTerminalChat()
-const { phase, commit } = useCommitRequest()
+const { phase, run, main, others, start } = useGitActions()
+const STOP = '[data-git-run="changes"] [data-git-stop]'
 const projects = useProjectsStore()
 const layout = useLayoutStore()
 const toasts = useToastsStore()
@@ -42,6 +47,7 @@ const conversations = useConversationsStore()
 const comments = useDiffCommentsStore()
 const sessionGit = useSessionGitStore()
 const filesStore = useFilesStore()
+const gitActions = useGitActionsStore()
 
 const project = computed(() => projects.byId(chat.value?.projectId ?? null))
 const listing = ref<ChangedFiles | null>(null)
@@ -161,6 +167,11 @@ watch([() => chat.value?.id, () => chat.value?.started, () => project.value?.pat
 watch(phase, (value, previous) => {
   if (value === 'idle' && previous && previous !== 'idle') load()
 })
+// Fin d'une action git de fond sur ce dossier : commit ou annulation ont changé la liste.
+watch(
+  () => gitActions.settled[gitActions.folderOf(chat.value) ?? ''],
+  () => load(),
+)
 watch(() => layout.changesFocus, applyFocus)
 
 // Pas de bouton Actualiser : la liste se relit aussi au retour de la fenêtre, quand le pointeur entre dans le volet
@@ -287,9 +298,30 @@ const note = 'px-2 py-1 text-xs text-muted'
             {{ allComments.length }}
           </button>
         </UiTooltip>
-        <UiIconButton :label="t('dock.session.commit')" :disabled="!files.length || phase !== 'idle'" @click="commit">
-          <GitCommit class="size-3.5" aria-hidden="true" />
-        </UiIconButton>
+        <div data-git-run="changes" class="flex">
+          <ChatGitRun v-if="run" :run="run" compact />
+          <ChatSessionSplit
+            v-else
+            compact
+            :label="main.label"
+            :menu-label="t('dock.session.gitActions')"
+            :disabled="main.disabled"
+            @run="start(main.id, $event.detail === 0, STOP)"
+          >
+            <component :is="main.icon" class="size-3.5" aria-hidden="true" />
+            <template v-if="others.length" #menu="{ keyboard }">
+              <UiMenuItem
+                v-for="item in others"
+                :key="item.id"
+                :label="item.label"
+                :icon="item.icon"
+                :hint="item.hint"
+                :disabled="item.disabled"
+                @select="start(item.id, keyboard, STOP)"
+              />
+            </template>
+          </ChatSessionSplit>
+        </div>
       </template>
     </ShellDockToolbar>
 

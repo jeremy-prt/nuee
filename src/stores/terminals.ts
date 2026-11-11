@@ -30,6 +30,8 @@ interface Instance {
   opened: boolean
   // Id du pty côté Rust, null le temps qu'il démarre.
   id: number | null
+  // Heure de la dernière sortie du shell, 0 avant la première.
+  output: number
 }
 
 // Comme T3 Code : au-delà, les plus vieilles lignes partent.
@@ -103,8 +105,10 @@ export const useTerminalsStore = defineStore('terminals', () => {
       if (instance.id !== null) terminalResize(instance.id, cols, rows).catch(() => {})
     })
     terminalOpen(chatId, place, term.cols, term.rows, (event) => {
-      if (event.type === 'output') term.write(event.data)
-      else discard(chatId, key)
+      if (event.type === 'output') {
+        instance.output = Date.now()
+        term.write(event.data)
+      } else discard(chatId, key)
     })
       .then((id) => {
         if (instances.get(key) !== instance) return terminalClose(id)
@@ -139,7 +143,7 @@ export const useTerminalsStore = defineStore('terminals', () => {
     term.loadAddon(fit)
     const element = document.createElement('div')
     element.className = 'size-full'
-    return { term, fit, element, opened: false, id: null }
+    return { term, fit, element, opened: false, id: null, output: 0 }
   }
 
   // xterm mesure ses caractères à l'ouverture : il ne s'ouvre qu'une fois posé dans la page, et son pty démarre
@@ -231,7 +235,37 @@ export const useTerminalsStore = defineStore('terminals', () => {
     wantsFocus.value = true
   }
 
-  return { tabs, active, splits, wantsFocus, tabsOf, groupsOf, create, split, attach, fit, focus, clear, close, closeChat, command, requestFocus }
+  // Shell prêt à recevoir une saisie : son invite est affichée. zsh, fish et bash 5.1+ allument le collage entre
+  // crochets à l'invite ; sans lui, on attend que plus rien n'arrive pendant une seconde.
+  async function settled(key: string) {
+    for (let waited = 0; waited < 8000; waited += 100) {
+      const instance = instances.get(key)
+      if (!instance) return null
+      const quiet = instance.term.modes.bracketedPasteMode ? 150 : 1000
+      if (instance.id !== null && instance.output && Date.now() - instance.output > quiet) return instance
+      await new Promise((resolve) => setTimeout(resolve, 100))
+    }
+    return null
+  }
+
+  // Dépose une commande à l'invite du shell actif de la session, sans l'exécuter. Shell absent ou occupé par une
+  // commande : un nouveau, attendu jusqu'à son invite. Collée comme au clavier : entre crochets si le shell le gère
+  // (les retours à la ligne n'y valident rien), sinon une commande sur plusieurs lignes n'est pas déposée.
+  async function paste(chatId: string, place: Place, text: string) {
+    // Sans caractère de contrôle : un Échap venu du texte fermerait les crochets et la suite serait exécutée.
+    const line = text.replace(/\r\n?/g, '\n').replace(/[\x00-\x08\x0b-\x1f\x7f]/g, '').replace(/\s+$/, '')
+    const current = active[chatId]
+    if (!current || !instances.has(current) || (await command(current))) create(chatId, place)
+    const key = active[chatId]
+    const instance = key ? await settled(key) : null
+    if (!key || !instance) return false
+    if (line.includes('\n') && !instance.term.modes.bracketedPasteMode) return false
+    instance.term.paste(line)
+    instance.term.focus()
+    return true
+  }
+
+  return { tabs, active, splits, wantsFocus, tabsOf, groupsOf, create, split, attach, fit, focus, clear, close, closeChat, command, requestFocus, paste }
 })
 
 // Palette ANSI de Brume (et de monocode) : ces couleurs viennent des programmes, pas de l'interface. En clair,

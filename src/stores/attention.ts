@@ -73,6 +73,8 @@ export const useAttentionStore = defineStore('attention', () => {
   }
 
   function signal(chatId: string, kind: Signal) {
+    // Action git de fond : `stores/gitActions.ts` prévient lui-même, en parlant de l'action.
+    if (workspace.hidden.has(chatId)) return
     const tab = workspace.tabs.find((item) => item.id === chatId)
     // Notifications coupées ou projet en sourdine : ni son ni message, le chat reste seulement marqué non lu.
     const muted = !general.notifications || (!!tab && projects.isMuted(tab.projectId))
@@ -96,6 +98,17 @@ export const useAttentionStore = defineStore('attention', () => {
     }
   }
 
+  // Fin ou blocage d'une action git de fond, qui pose son propre message dans la fenêtre : ici le point non lu de la
+  // session révélée (`mark`), et hors de l'app le son, le rebond et la notification (un clic ouvre `chatId`).
+  function away(chatId: string, kind: Signal, title: string, body: string, mark = false) {
+    const tab = workspace.tabs.find((item) => item.id === chatId)
+    if (mark && !shown.value.includes(chatId)) unseen.set(chatId, kind)
+    if (focused.value || !general.notifications || (!!tab && projects.isMuted(tab.projectId))) return
+    if (general.sounds) playCue(kind === 'done' ? 'done' : 'attention')
+    if (general.dockBounce && isMacosApp()) windowRequestAttention().catch(() => {})
+    if (general.systemNotifications && isTauriApp()) notificationSend(chatId, title, body).catch(() => {})
+  }
+
   function isUnseen(chatId: string) {
     return unseen.has(chatId)
   }
@@ -104,5 +117,5 @@ export const useAttentionStore = defineStore('attention', () => {
     return unseen.get(chatId) ?? null
   }
 
-  return { signal, isUnseen, unseenSignal }
+  return { signal, away, isUnseen, unseenSignal }
 })

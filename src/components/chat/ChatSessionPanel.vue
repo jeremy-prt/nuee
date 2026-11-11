@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import {
   Bot,
-  ChevronDown,
   ChevronRight,
-  CloudUpload,
   Coffee,
   ExternalLink,
   FileDiff,
+  Folder,
   FolderOpen,
+  FolderTree,
   Gauge,
   GitBranch,
-  GitCommit,
+  GitBranchPlus,
   Layers,
   NoProject,
   RemoteControl,
@@ -18,22 +18,23 @@ import {
   Square,
   SquareTerminal,
 } from '@/components/ui/icons'
-import { DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuTrigger } from 'reka-ui'
-import { type Component, computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
+import { DropdownMenuItem } from 'reka-ui'
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatDiffStat from '@/components/chat/ChatDiffStat.vue'
+import ChatGitRun from '@/components/chat/ChatGitRun.vue'
+import ChatSessionMenu from '@/components/chat/ChatSessionMenu.vue'
 import ChatSessionSplit from '@/components/chat/ChatSessionSplit.vue'
+import ProjectIcon from '@/components/project/ProjectIcon.vue'
 import ServerMenu from '@/components/server/ServerMenu.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
-import type { UiMenuSection } from '@/components/ui/UiMenu.vue'
-import UiMenuChoices from '@/components/ui/UiMenuChoices.vue'
 import UiMenuItem from '@/components/ui/UiMenuItem.vue'
 import UiMenuSeparator from '@/components/ui/UiMenuSeparator.vue'
 import UiSwitch from '@/components/ui/UiSwitch.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
-import { menuIcon, menuLabel, menuPanel, menuRow, menuTitle } from '@/components/ui/menuRow'
-import { useCommitRequest } from '@/composables/useCommitRequest'
+import { menuIcon, menuLabel, menuRow } from '@/components/ui/menuRow'
 import { useDockFocus } from '@/composables/useDockFocus'
+import { useGitActions } from '@/composables/useGitActions'
 import { useMachineName } from '@/composables/useMachineName'
 import { useTerminalChat } from '@/composables/useTerminalChat'
 import { isAppError } from '@/ipc/agent'
@@ -59,7 +60,8 @@ import { tasksOf } from '@/utils/tasks'
 const emit = defineEmits<{ close: [] }>()
 const { t, locale } = useI18n()
 const { chat } = useTerminalChat()
-const { phase, commitAndPush, commitOnly, push } = useCommitRequest()
+const { phase, idle, git, changed, run, main, others, initRepo, start } = useGitActions()
+const STOP = '[data-git-run="session"] [data-git-stop]'
 const { focusView } = useDockFocus()
 const projects = useProjectsStore()
 const worktrees = useWorktreesStore()
@@ -74,7 +76,7 @@ files.loadEditors()
 
 // Détails repliés par défaut, état retenu en local : simple confort, rien de grave si la lecture échoue.
 const OPEN_KEY = 'nuee.sessionPanel.v4'
-const groups = ['context', 'tasks', 'options'] as const
+const groups = ['place', 'context', 'tasks', 'options'] as const
 type Group = (typeof groups)[number]
 const open = reactive<Record<Group, boolean>>(Object.fromEntries(groups.map((name) => [name, false])) as Record<Group, boolean>)
 try {
@@ -102,9 +104,14 @@ const folder = computed(() => {
   if (!project.value || !tab) return null
   return tab.worktree ? tab.worktreePath : project.value.path
 })
-const folderLabel = computed(() => folder.value?.split(/[\\/]/).filter(Boolean).pop() ?? null)
+// Chemin coupé par le milieu s'il est trop long : le nom du dossier reste lisible en entier.
+const folderParts = computed(() => {
+  const path = folder.value
+  if (!path) return null
+  const cut = Math.max(path.lastIndexOf('/', path.length - 2), path.lastIndexOf('\\', path.length - 2)) + 1
+  return { head: path.slice(0, cut), tail: path.slice(cut) }
+})
 const items = computed(() => (chat.value ? (conversations.find(chat.value.id)?.items ?? []) : []))
-const idle = computed(() => phase.value === 'idle')
 
 // Le panneau s'ouvre par-dessus le reste : ce qui mène à un volet le referme, et le clavier y suit.
 function toDock(view: DockView, event: MouseEvent, path?: string) {
@@ -116,28 +123,9 @@ function toDock(view: DockView, event: MouseEvent, path?: string) {
 
 // ===== Éditeur et Finder =====
 
-// Le dernier éditeur choisi par ⌄ passe en tête, comme dans T3 Code.
-const EDITOR_KEY = 'nuee.sessionPanel.editor'
-const preferred = ref<string | null>(null)
-try {
-  preferred.value = localStorage.getItem(EDITOR_KEY)
-} catch {
-  // Premier éditeur détecté.
-}
-const editor = computed(() => files.editors?.find((app) => app.id === preferred.value) ?? files.editors?.[0] ?? null)
-const otherEditors = computed(() => files.editors?.filter((app) => app.id !== editor.value?.id) ?? [])
-
 async function openIn(app: EditorApp) {
   const tab = chat.value
   if (!tab || !project.value) return
-  if (app.id !== editor.value?.id) {
-    preferred.value = app.id
-    try {
-      localStorage.setItem(EDITOR_KEY, app.id)
-    } catch {
-      // Retenu jusqu'à la fermeture.
-    }
-  }
   try {
     await filesOpenEditor({ chatId: tab.id, path: project.value.path, worktree: tab.worktree ? tab.worktreePath : null }, '', app.id)
   } catch (error) {
@@ -156,6 +144,28 @@ async function reveal() {
 
 // ===== Branche =====
 
+// Dossier du projet pas encore suivi par git, comme T3 Code : une seule ligne « Initialiser Git » à la place de la
+// partie git. Relu en fin de tour : l'agent vient peut-être de créer le dépôt, la branche reprend alors sa place.
+const notRepo = computed(() => !!project.value && !chat.value?.worktree && projects.support[project.value.id] === 'notRepo')
+async function checkRepo() {
+  const current = project.value
+  if (!current) return
+  const before = projects.support[current.id]
+  await projects.checkWorktree(current)
+  if (before === 'notRepo' && projects.support[current.id] !== 'notRepo') worktrees.load(current)
+}
+watch(() => project.value?.id, checkRepo, { immediate: true })
+watch(phase, (value, previous) => {
+  if (value === 'idle' && previous && previous !== 'idle') checkRepo()
+})
+// Initialiser Git a pu aboutir dans sa session de fond.
+watch(
+  () => !!run.value,
+  (running, was) => {
+    if (was && !running) checkRepo()
+  },
+)
+
 // Seul le dossier du projet change de branche : un worktree garde la sienne.
 const canSwitch = computed(() => !!project.value && !!chat.value && !chat.value.worktree && !!branch.value)
 const branches = ref<Branch[]>([])
@@ -168,13 +178,9 @@ async function loadBranches(opened: boolean) {
   }
 }
 // Une branche prise par un worktree n'est pas proposée : git refuse de l'extraire ici.
-const branchChoices = computed<UiMenuSection>(() => ({
-  id: 'branch',
-  value: branch.value ?? '',
-  options: (branches.value.length ? branches.value : branch.value ? [{ name: branch.value, elsewhere: false }] : [])
-    .filter((item) => !item.elsewhere)
-    .map((item) => ({ value: item.name, label: item.name, icon: GitBranch })),
-}))
+const branchList = computed(() =>
+  (branches.value.length ? branches.value : branch.value ? [{ name: branch.value, elsewhere: false }] : []).filter((item) => !item.elsewhere),
+)
 async function checkout(name: string) {
   const tab = chat.value
   const current = project.value
@@ -186,29 +192,6 @@ async function checkout(name: string) {
   }
   await worktrees.load(current)
   sessionGit.refresh(tab.id, current.path)
-}
-
-// ===== Commit =====
-
-// État relu par `ChatPane` entre deux tours ; aussi à l'ouverture du panneau, pour un commit fait ailleurs.
-watch(
-  [() => chat.value?.id, () => chat.value?.started, () => project.value?.path],
-  ([id, started, path]) => {
-    if (id && started && path && idle.value) sessionGit.refresh(id, path)
-  },
-  { immediate: true },
-)
-const git = computed(() => (chat.value ? (sessionGit.states[chat.value.id] ?? null) : null))
-const changed = computed(() => (git.value?.changes.files ?? 0) > 0)
-const unpushed = computed(() => !!git.value?.unpushed)
-const commitLook = computed<{ label: string; icon: Component }>(() => {
-  if (changed.value) return { label: t('dock.session.commitPush'), icon: CloudUpload }
-  if (unpushed.value) return { label: t('dock.session.push'), icon: CloudUpload }
-  return { label: t('dock.session.nothingToCommit'), icon: GitCommit }
-})
-function runCommit() {
-  if (changed.value) commitAndPush()
-  else if (unpushed.value) push()
 }
 
 // ===== Contexte =====
@@ -243,19 +226,6 @@ watch(
 )
 onBeforeUnmount(() => clearInterval(ticker))
 
-// Menu non modal : un clic sur sa flèche déjà ouverte le fermait (clic « dehors ») puis le rouvrait aussitôt.
-// On retient s'il était ouvert à l'appui, et on refuse alors la réouverture qui suit.
-const menuOpen = ref(false)
-let pressedOpen = false
-function onTriggerDown() {
-  pressedOpen = menuOpen.value
-  setTimeout(() => (pressedOpen = false), 400)
-}
-function onMenuOpen(value: boolean) {
-  menuOpen.value = value && !pressedOpen
-  if (value) pressedOpen = false
-}
-
 const row = 'flex h-8 w-full min-w-0 items-center gap-2.5 rounded-lg px-2 text-start text-[13px]'
 const action = `${row} hover:bg-selection-hover focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring`
 const empty = `${row} text-muted`
@@ -266,78 +236,115 @@ const separator = 'mx-2 my-1 h-px shrink-0 bg-stroke'
 <template>
   <div v-if="chat?.started" class="flex min-h-0 flex-1 flex-col overflow-y-auto p-1.5">
     <div class="flex flex-col gap-0.5">
-      <!-- Où travaille l'agent : la machine, puis le dossier du projet ou du worktree. -->
-      <p :class="row" :title="folder ?? undefined">
-        <NoProject :class="icon" aria-hidden="true" />
-        <span class="min-w-0 truncate">
-          {{ machine || t('composer.hosts.local') }}<span v-if="folderLabel" class="text-muted"> · {{ folderLabel }}</span>
-        </span>
-      </p>
+      <button type="button" :class="action" :aria-expanded="open.place" @click="open.place = !open.place">
+        <ProjectIcon v-if="project" :project="project" class="size-4 shrink-0 rounded-sm" />
+        <NoProject v-else :class="icon" aria-hidden="true" />
+        <span class="min-w-0 flex-1 truncate">{{ project?.name ?? t('rail.chats') }}</span>
+        <ChevronRight :class="[icon, { 'rotate-90': open.place }]" aria-hidden="true" />
+      </button>
+      <!-- Où travaille l'agent. Seule cette machine pour l'instant : l'hôte SSH, annoncé dans `ChatHostPicker`, prendra
+           cette ligne avec son nom quand il sera branché. -->
+      <dl v-if="open.place" class="flex flex-col gap-0.5">
+        <div :class="row">
+          <dt class="sr-only">{{ t('dock.session.host') }}</dt>
+          <dd class="flex min-w-0 flex-1 items-center gap-2.5">
+            <NoProject :class="icon" aria-hidden="true" />
+            <span class="min-w-0 truncate">{{ machine || t('composer.hosts.local') }}</span>
+          </dd>
+          <dd class="shrink-0 text-xs text-muted">{{ t('dock.session.local') }}</dd>
+        </div>
+        <div v-if="folder && folderParts" :class="row" :title="folder">
+          <dt class="sr-only">{{ t('dock.session.folder') }}</dt>
+          <dd class="flex min-w-0 flex-1 items-center gap-2.5">
+            <component :is="chat.worktree ? FolderTree : Folder" :class="icon" aria-hidden="true" />
+            <span class="flex min-w-0 flex-1" dir="ltr">
+              <span class="min-w-4 truncate text-muted">{{ folderParts.head }}</span>
+              <span class="max-w-[calc(100%-1rem)] shrink-0 truncate">{{ folderParts.tail }}</span>
+            </span>
+          </dd>
+          <dd v-if="chat.worktree" class="shrink-0 text-xs text-muted">{{ t('composer.worktree.short') }}</dd>
+        </div>
+      </dl>
 
       <template v-if="folder">
-        <ChatSessionSplit v-if="editor" :menu-label="t('dock.files.openWith')" @run="openIn(editor)">
-          <img v-if="editor.icon" :src="editor.icon" alt="" draggable="false" class="size-4 shrink-0" />
-          <ExternalLink v-else :class="icon" aria-hidden="true" />
-          <span class="min-w-0 flex-1 truncate">{{ t('dock.session.openIn', { editor: editor.name }) }}</span>
+        <ChatSessionMenu>
+          <ExternalLink :class="icon" aria-hidden="true" />
+          <span class="min-w-0 flex-1 truncate">{{ t('dock.session.openIn') }}</span>
           <template #menu>
-            <DropdownMenuItem v-for="app in otherEditors" :key="app.id" :text-value="app.name" :class="[menuRow, 'py-1.5']" @select="openIn(app)">
+            <DropdownMenuItem v-for="app in files.editors ?? []" :key="app.id" :text-value="app.name" :class="[menuRow, 'py-1.5']" @select="openIn(app)">
               <img v-if="app.icon" :src="app.icon" alt="" draggable="false" :class="menuIcon" />
               <ExternalLink v-else :class="menuIcon" aria-hidden="true" />
               <span :class="[menuLabel, 'min-w-0 flex-1']">{{ app.name }}</span>
             </DropdownMenuItem>
-            <UiMenuSeparator v-if="otherEditors.length" />
-            <DropdownMenuItem :text-value="t('settings.projects.reveal')" :class="[menuRow, 'py-1.5']" @select="reveal">
+            <UiMenuSeparator v-if="files.editors?.length" />
+            <DropdownMenuItem :text-value="t('dock.session.finder')" :class="[menuRow, 'py-1.5']" @select="reveal">
               <img v-if="files.finderIcon" :src="files.finderIcon" alt="" draggable="false" :class="menuIcon" />
               <FolderOpen v-else :class="menuIcon" aria-hidden="true" />
-              <span :class="[menuLabel, 'min-w-0 flex-1']">{{ t('settings.projects.reveal') }}</span>
+              <span :class="[menuLabel, 'min-w-0 flex-1']">{{ t('dock.session.finder') }}</span>
             </DropdownMenuItem>
           </template>
-        </ChatSessionSplit>
-        <!-- Aucun éditeur détecté : le Finder seul. -->
-        <button v-else-if="files.editors" type="button" :class="action" @click="reveal">
-          <img v-if="files.finderIcon" :src="files.finderIcon" alt="" draggable="false" class="size-4 shrink-0" />
-          <FolderOpen v-else :class="icon" aria-hidden="true" />
-          <span class="min-w-0 flex-1 truncate">{{ t('settings.projects.reveal') }}</span>
-        </button>
+        </ChatSessionMenu>
         <ServerMenu row />
       </template>
     </div>
 
-    <template v-if="project">
+    <template v-if="project && notRepo">
+      <div :class="separator" aria-hidden="true" />
+      <div data-git-run="session">
+        <ChatGitRun v-if="run" :run="run" />
+        <button v-else type="button" :class="action" @click="start(initRepo.id, $event.detail === 0, STOP)">
+          <GitBranchPlus :class="icon" aria-hidden="true" />
+          <span class="min-w-0 flex-1 truncate">{{ initRepo.label }}</span>
+          <span v-if="initRepo.hint" class="shrink-0 text-xs text-muted">{{ initRepo.hint }}</span>
+        </button>
+      </div>
+    </template>
+    <template v-else-if="project">
       <div :class="separator" aria-hidden="true" />
       <div class="flex flex-col gap-0.5">
-        <DropdownMenuRoot v-if="canSwitch" :open="menuOpen" :modal="false" @update:open="(value) => (onMenuOpen(value), loadBranches(menuOpen))">
-          <DropdownMenuTrigger :class="[action, 'aria-expanded:bg-selection-hover']" :disabled="!idle" @pointerdown="onTriggerDown" :aria-label="`${t('composer.branch.label')} ${branch}`">
-            <GitBranch :class="icon" aria-hidden="true" />
-            <span class="min-w-0 flex-1 truncate">{{ branch }}</span>
-            <ChevronDown :class="icon" aria-hidden="true" />
-          </DropdownMenuTrigger>
-          <DropdownMenuPortal>
-            <DropdownMenuContent
-              align="start"
-              :side-offset="4"
-              :collision-padding="8"
-              :class="[menuPanel, 'max-h-(--reka-dropdown-menu-content-available-height) w-(--reka-dropdown-menu-trigger-width)']"
+        <ChatSessionMenu v-if="canSwitch" :label="`${t('composer.branch.label')} ${branch}`" :disabled="!idle || !!run" @open="loadBranches">
+          <GitBranch :class="icon" aria-hidden="true" />
+          <span class="min-w-0 flex-1 truncate">{{ branch }}</span>
+          <template #menu>
+            <DropdownMenuItem
+              v-for="item in branchList"
+              :key="item.name"
+              :text-value="item.name"
+              :disabled="item.name === branch"
+              :class="[menuRow, 'py-1.5 data-[disabled]:opacity-100!']"
+              @select="checkout(item.name)"
             >
-              <DropdownMenuLabel :class="menuTitle">{{ t('composer.branch.label') }}</DropdownMenuLabel>
-              <UiMenuChoices :section="branchChoices" @select="checkout" />
-            </DropdownMenuContent>
-          </DropdownMenuPortal>
-        </DropdownMenuRoot>
+              <GitBranch :class="[menuIcon, 'text-muted']" aria-hidden="true" />
+              <span :class="[menuLabel, 'min-w-0 flex-1', { 'text-muted': item.name === branch }]">{{ item.name }}</span>
+              <span v-if="item.name === branch" class="mt-0.5 shrink-0 text-[11px] leading-4 text-muted">{{ t('dock.session.current') }}</span>
+            </DropdownMenuItem>
+          </template>
+        </ChatSessionMenu>
         <p v-else :class="branch ? row : empty">
           <GitBranch :class="icon" aria-hidden="true" />
           <span class="sr-only">{{ t('composer.branch.label') }}</span>
           <span class="min-w-0 flex-1 truncate">{{ branch ?? t('dock.session.noBranch') }}</span>
         </p>
 
-        <ChatSessionSplit :menu-label="t('dock.session.gitActions')" :disabled="!idle || (!changed && !unpushed)" :menu-disabled="!idle" @run="runCommit">
-          <component :is="commitLook.icon" :class="icon" aria-hidden="true" />
-          <span class="min-w-0 flex-1 truncate">{{ commitLook.label }}</span>
-          <template v-if="changed || unpushed" #menu>
-            <UiMenuItem :label="t('dock.session.commitOnly')" :icon="GitCommit" :disabled="!changed" @select="commitOnly" />
-            <UiMenuItem :label="t('dock.session.push')" :icon="CloudUpload" :disabled="!unpushed" @select="push" />
-          </template>
-        </ChatSessionSplit>
+        <div data-git-run="session">
+          <ChatGitRun v-if="run" :run="run" />
+          <ChatSessionSplit v-else :menu-label="t('dock.session.gitActions')" :disabled="main.disabled" @run="start(main.id, $event.detail === 0, STOP)">
+            <component :is="main.icon" :class="icon" aria-hidden="true" />
+            <span class="min-w-0 flex-1 truncate">{{ main.label }}</span>
+            <span v-if="main.hint" class="max-w-32 shrink-0 truncate text-xs text-muted">{{ main.hint }}</span>
+            <template v-if="others.length" #menu="{ keyboard }">
+              <UiMenuItem
+                v-for="item in others"
+                :key="item.id"
+                :label="item.label"
+                :icon="item.icon"
+                :hint="item.hint"
+                :disabled="item.disabled"
+                @select="start(item.id, keyboard, STOP)"
+              />
+            </template>
+          </ChatSessionSplit>
+        </div>
 
         <button type="button" :class="action" @click="toDock('changes', $event)">
           <FileDiff :class="icon" aria-hidden="true" />

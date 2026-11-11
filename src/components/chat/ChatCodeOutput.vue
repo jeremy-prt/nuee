@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { SquareTerminal, X } from '@/components/ui/icons'
-import { computed, nextTick, onMounted, useTemplateRef, watch } from 'vue'
+import { computed, inject, nextTick, onMounted, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import { useDockFocus } from '@/composables/useDockFocus'
 import { useAppearanceStore } from '@/stores/appearance'
-import type { CodeRun } from '@/stores/codeRuns'
+import { type CodeRun, codeRunPlaceKey } from '@/stores/codeRuns'
 import { useLayoutStore } from '@/stores/layout'
-import { ANSI } from '@/stores/terminals'
+import { ANSI, useTerminalsStore } from '@/stores/terminals'
 import { parseAnsi } from '@/utils/ansi'
 
 // Sortie d'une commande lancée depuis un bloc de code, sous lui. Texte stylé en nœuds Vue, jamais en HTML ; seul
@@ -20,6 +20,8 @@ const { t } = useI18n()
 const layout = useLayoutStore()
 const appearance = useAppearanceStore()
 const { focusView } = useDockFocus()
+const terminals = useTerminalsStore()
+const context = inject(codeRunPlaceKey, null)
 const scroller = useTemplateRef('scroller')
 // Le bloc naît sous le champ de saisie quand son code est en bas du fil : on l'amène en vue, marge comprise.
 const root = useTemplateRef('root')
@@ -50,9 +52,13 @@ watch(
   { flush: 'pre' },
 )
 
-function openTerminal() {
+// La commande revient à l'invite du terminal de la session, sans être lancée : on la relance soi-même, par exemple
+// quand elle attend une saisie. Le volet crée son shell s'il n'en a pas, la commande arrive une fois l'invite prête.
+function resume() {
+  const where = context?.value
   layout.showView('terminal')
   focusView('terminal')
+  if (where && where.chatId === props.run.chatId) terminals.paste(where.chatId, where.place, props.run.command)
 }
 </script>
 
@@ -81,7 +87,7 @@ function openTerminal() {
       {{ status }}
     </p>
     <div class="absolute end-2 top-2 flex gap-0.5">
-      <UiIconButton inner :label="t('chat.run.terminal')" @click="openTerminal">
+      <UiIconButton inner :label="t('chat.run.terminal')" @click="resume">
         <SquareTerminal class="size-3.5" aria-hidden="true" />
       </UiIconButton>
       <UiIconButton inner :label="t('chat.run.dismiss')" @click="emit('dismiss', $event.detail === 0)">

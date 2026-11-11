@@ -163,14 +163,18 @@ export const useSkillsStore = defineStore('skills', () => {
   // Skills appelables dans un message : leur `/nom` s'affiche en pastille, dans le champ comme dans la conversation.
   const names = computed(() => new Set(skills.value.filter((skill) => mode(skill) !== 'off').map((skill) => skill.name)))
 
-  // Skill de commit de l'utilisateur (`j-commit`), pour les boutons Commiter : un segment « commit » dans le nom passe
-  // avant un nom qui le contient seulement, puis le plus court.
-  function commitSkill(agent: AgentKind) {
+  // Skill de l'utilisateur derrière une action git de fond (`stores/gitActions.ts`) : un nom qui contient chaque mot
+  // (`j-ship`, `j-commit`, `j-init-repo` chez Jérémy). Un segment exact passe avant un nom qui le contient seulement
+  // (« commit » de `j-commit` avant `precommit-check`), puis le plus court.
+  function actionSkill(agent: AgentKind, words: readonly string[]) {
     if (agent !== AGENT) return null
-    const rank = (skill: Skill) => (skill.name.toLowerCase().split(/[-_:.]/).includes('commit') ? 0 : 1)
+    const rank = (skill: Skill) => {
+      const segments = skill.name.toLowerCase().split(/[-_:.]/)
+      return words.filter((word) => !segments.includes(word)).length
+    }
     return (
       skills.value
-        .filter((skill) => mode(skill) !== 'off' && skill.name.toLowerCase().includes('commit'))
+        .filter((skill) => mode(skill) !== 'off' && words.every((word) => skill.name.toLowerCase().includes(word)))
         .sort((a, b) => rank(a) - rank(b) || a.name.length - b.name.length)[0] ?? null
     )
   }
@@ -426,7 +430,7 @@ export const useSkillsStore = defineStore('skills', () => {
     loadServers,
     refreshServers,
     mode,
-    commitSkill,
+    actionSkill,
     differs,
     setMode,
     serverOn,

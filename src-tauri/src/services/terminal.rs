@@ -438,6 +438,7 @@ mod tests {
                 added: 0,
                 removed: 0,
                 parent_id: None,
+                background: false,
             })
             .unwrap();
         chats

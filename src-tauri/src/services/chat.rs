@@ -60,6 +60,9 @@ pub struct ChatSummary {
     /// Session dont l'agent a lancé celle-ci : la barre latérale l'imbrique dessous.
     #[serde(default)]
     pub parent_id: Option<String>,
+    /// Lancée par Nuée pour une action git (Shipper, Commiter...) : elle ne rend jamais compte à sa session d'origine.
+    #[serde(default)]
+    pub background: bool,
 }
 
 /// Texte d'une session archivée (messages et réponses, sans les outils) pour la recherche.
@@ -125,6 +128,7 @@ const MIGRATIONS: &[&str] = &[
      WHERE json_valid(items)",
     // Colonne nullable seule : une version d'avant l'ignore en lisant la même base.
     "ALTER TABLE chats ADD COLUMN parent_id TEXT",
+    "ALTER TABLE chats ADD COLUMN background INTEGER",
 ];
 
 /// Historique des chats dans une base SQLite du dossier de données de l'app.
@@ -147,7 +151,7 @@ impl ChatService {
         let db = self.lock();
         let mut query = db.prepare(
             "SELECT id, project_id, number, agent, title, started, worktree, worktree_path, archived, archived_at, updated_at, pinned,
-                    iif(json_valid(options), json_extract(options, '$.model'), NULL), added, removed, created_at, parent_id
+                    iif(json_valid(options), json_extract(options, '$.model'), NULL), added, removed, created_at, parent_id, background
              FROM chats ORDER BY created_at",
         )?;
         let rows = query.query_map([], |row| {
@@ -173,6 +177,7 @@ impl ChatService {
                 removed: row.get(14)?,
                 created_at: row.get(15)?,
                 parent_id: row.get(16)?,
+                background: row.get::<_, Option<bool>>(17)?.unwrap_or(false),
             }))
         })?;
         let chats = rows.collect::<Result<Vec<_>, _>>()?;
@@ -182,8 +187,8 @@ impl ChatService {
     pub fn create(&self, chat: &ChatSummary) -> Result<(), AppError> {
         let now = now();
         self.lock().execute(
-            "INSERT INTO chats (id, project_id, number, agent, title, worktree, worktree_path, created_at, updated_at, parent_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8, ?9)",
-            params![chat.id, chat.project_id, chat.number, agent_name(chat.agent)?, chat.title, chat.worktree, chat.worktree_path, now, chat.parent_id],
+            "INSERT INTO chats (id, project_id, number, agent, title, worktree, worktree_path, created_at, updated_at, parent_id, background) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8, ?9, ?10)",
+            params![chat.id, chat.project_id, chat.number, agent_name(chat.agent)?, chat.title, chat.worktree, chat.worktree_path, now, chat.parent_id, chat.background.then_some(true)],
         )?;
         Ok(())
     }
@@ -436,6 +441,7 @@ mod tests {
             added: 0,
             removed: 0,
             parent_id: None,
+            background: false,
         };
         let content = ChatContent {
             session_id: Some("s1".into()),
@@ -553,7 +559,7 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("nuee-test-parent-{}", std::process::id()));
         let path = dir.join("nuee.db");
         std::fs::create_dir_all(&dir).expect("dossier");
-        let before = MIGRATIONS.len() - 1;
+        let before = MIGRATIONS.len() - 2;
         {
             let db = Connection::open(&path).expect("base");
             for sql in &MIGRATIONS[..before] {
@@ -600,6 +606,57 @@ mod tests {
             .collect();
         assert!(parents.contains(&("enfant", Some("ancien"))));
         assert!(parents.contains(&("autre", None)));
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn a_background_session_stays_marked() {
+        let dir = std::env::temp_dir().join(format!("nuee-test-background-{}", std::process::id()));
+        let path = dir.join("nuee.db");
+        let _ = std::fs::remove_dir_all(&dir);
+        let chats = ChatService::open(&path).expect("base");
+        let action = ChatSummary {
+            id: "commit".into(),
+            project_id: Some("p1".into()),
+            number: 2,
+            agent: AgentKind::Claude,
+            title: Some("Commiter et pousser".into()),
+            started: false,
+            worktree: false,
+            worktree_path: None,
+            archived: false,
+            archived_at: None,
+            created_at: 0,
+            updated_at: 0,
+            pinned: false,
+            model: None,
+            added: 0,
+            removed: 0,
+            parent_id: Some("origine".into()),
+            background: true,
+        };
+        chats.create(&action).expect("création");
+        chats
+            .create(&ChatSummary {
+                id: "origine".into(),
+                number: 1,
+                parent_id: None,
+                background: false,
+                ..action.clone()
+            })
+            .expect("création");
+        drop(chats);
+
+        let listed = ChatService::open(&path)
+            .expect("réouverture")
+            .list()
+            .expect("liste");
+        let marks: Vec<_> = listed
+            .iter()
+            .map(|chat| (chat.id.as_str(), chat.background))
+            .collect();
+        assert!(marks.contains(&("commit", true)));
+        assert!(marks.contains(&("origine", false)));
         let _ = std::fs::remove_dir_all(dir);
     }
 }

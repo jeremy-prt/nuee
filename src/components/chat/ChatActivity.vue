@@ -8,7 +8,7 @@ import ChatThinking from '@/components/chat/ChatThinking.vue'
 import ChatThumb from '@/components/chat/ChatThumb.vue'
 import ChatTool from '@/components/chat/ChatTool.vue'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
-import { type ActivityItem, capitalize, fileName, fileVerb, summarize } from '@/utils/activity'
+import { type ActivityItem, capitalize, lastStep, summarize } from '@/utils/activity'
 import { agents } from '@/utils/agents'
 import { formatDuration } from '@/utils/duration'
 
@@ -53,14 +53,8 @@ const imageTool = computed(() => {
 
 // Dernière étape outillée : son nom reste affiché jusqu'à la suivante, sans repasser par un texte générique.
 const step = computed(() => {
-  for (const item of [...props.items].reverse()) {
-    if (item.kind !== 'tool') continue
-    const verb = item.summary ? fileVerb(item) : null
-    if (verb) return { text: t(`chat.activity.doing.${verb === 'created' ? 'create' : item.tool}`), name: fileName(item.summary ?? '') }
-    const text = item.tool === 'agent' ? t('chat.activity.doing.agent') : item.detail?.description
-    return { text: text ?? t(`chat.activity.doing.${item.tool}`), name: null }
-  }
-  return null
+  const found = lastStep(props.items)
+  return found && { text: found.description ?? t(`chat.activity.doing.${found.doing}`), name: found.name }
 })
 // Ce que dit la ligne vivante : l'attente d'une autorisation, la réflexion en cours, la dernière étape outillée (gardée
 // jusqu'à la suivante), sinon que l'agent travaille.

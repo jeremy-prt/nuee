@@ -85,9 +85,12 @@ function isActive(item: Item) {
   return true
 }
 
-// Panneau partagé : un trait sous l'onglet de la zone qui a le focus, où s'affichera le prochain volet choisi.
-function hasFocus(item: Item) {
-  return !!layout.right.aside && layout.zoneOf(item.view) === layout.zone && isActive(item)
+// Panneau partagé : l'onglet de la zone qui a le focus (où s'affichera le prochain volet choisi) garde le fond plein,
+// celui de l'autre zone un fond plus léger et un texte atténué, comme les groupes d'éditeurs de VS Code.
+function tone(item: Item) {
+  if (!isActive(item)) return 'text-muted hover:bg-selection-hover hover:text-content'
+  if (layout.right.aside && layout.zoneOf(item.view) !== layout.zone) return 'bg-selection-hover text-muted hover:text-content'
+  return 'bg-selection text-content'
 }
 
 function zoneLabel(item: Item) {
@@ -139,7 +142,7 @@ function split(item: Item, direction: 'right' | 'down') {
       v-for="item in items"
       :key="item.key"
       class="group/tab relative flex h-7 max-w-36 min-w-0 shrink items-center rounded-md text-xs"
-      :class="[isActive(item) ? 'bg-selection text-content' : 'text-muted hover:bg-selection-hover hover:text-content', { 'opacity-50': dragging(item) }]"
+      :class="[tone(item), { 'opacity-50': dragging(item) }]"
     >
       <button
         type="button"
@@ -178,7 +181,6 @@ function split(item: Item, direction: 'right' | 'down') {
         </span>
         <span v-if="zoneLabel(item)" class="sr-only">{{ zoneLabel(item) }}</span>
       </button>
-      <span v-if="hasFocus(item)" class="pointer-events-none absolute inset-x-2 -bottom-1 h-0.5 rounded-full bg-ring" aria-hidden="true" />
       <button
         v-if="isActive(item)"
         type="button"

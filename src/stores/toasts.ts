@@ -11,6 +11,8 @@ export interface Toast {
   action?: { label: string; run: () => void }
   // Ce dont parle le message (un chat) : il disparaît quand ce sujet est vu ailleurs.
   topic?: string
+  // Reste jusqu'à sa fermeture : il attend un geste (répondre dans une session révélée).
+  sticky?: boolean
   // Faux dès la fermeture : le message reste dans la liste le temps de son animation de sortie.
   open: boolean
 }

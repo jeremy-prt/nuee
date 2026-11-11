@@ -63,7 +63,7 @@ export const useOperatorStore = defineStore('operator', () => {
   }
 
   function chat(id: string) {
-    const tab = workspace.tabs.find((item) => item.id === id && !item.archived)
+    const tab = workspace.tabs.find((item) => item.id === id && !item.archived && !workspace.hidden.has(item.id))
     if (!tab) throw new Error(`pas de session ${id} (voir list_sessions)`)
     return tab
   }
@@ -209,7 +209,9 @@ export const useOperatorStore = defineStore('operator', () => {
 
   // Fin de tour d'une session lancée par un agent : celle qui l'a lancée reçoit sa dernière réponse.
   function turnEnded(chatId: string, items: readonly ChatItem[]) {
-    const parent = workspace.tabs.find((tab) => tab.id === chatId)?.parentId
+    const tab = workspace.tabs.find((item) => item.id === chatId)
+    // Une action git de fond ne prévient jamais l'agent d'origine, même révélée ou reprise après un redémarrage.
+    const parent = tab?.background ? null : tab?.parentId
     if (!parent || !workspace.tabs.some((tab) => tab.id === parent && !tab.archived)) return
     const count = reports.get(parent) ?? 0
     if (count >= MAX_REPORTS) return

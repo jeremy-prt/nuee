@@ -52,4 +52,8 @@ added: number, removed: number,
 /**
  * Session dont l'agent a lancé celle-ci : la barre latérale l'imbrique dessous.
  */
-parentId: string | null, };
+parentId: string | null, 
+/**
+ * Lancée par Nuée pour une action git (Shipper, Commiter...) : elle ne rend jamais compte à sa session d'origine.
+ */
+background: boolean, };

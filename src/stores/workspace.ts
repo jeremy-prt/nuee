@@ -45,6 +45,8 @@ export interface Tab {
   removed: number
   // Session dont l'agent a lancé celle-ci : la liste l'imbrique dessous.
   parentId: string | null
+  // Lancée par une action git de fond (`stores/gitActions.ts`), sous sa session d'origine (`parentId`).
+  background: boolean
 }
 
 interface PaneLayout {
@@ -76,6 +78,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   // Tous les chats enregistrés, ouverts ou non.
   const tabs = ref<Tab[]>([])
   const layouts = reactive<Record<string, PaneLayout>>({})
+  // Sessions d'actions git qui se déroulent sans accroc : hors de la liste, de la recherche et des outils de sessions.
+  // En mémoire seulement : après un redémarrage, une action interrompue réapparaît sous sa session d'origine.
+  const hidden = reactive(new Set<string>())
 
   // Onglets non repris au lancement (choix de Jérémy) : l'app repart sur « Nouvel espace de travail ».
   chatList()
@@ -132,12 +137,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   )
   // Bande d'onglets : les épinglés, quel que soit leur projet, puis ceux du contexte.
   const stripTabs = computed(() => [...pinnedTabs.value, ...contextTabs.value.filter((tab) => !isTabPinned(tab.id))])
-  const startedChats = computed(() => tabs.value.filter((tab) => tab.started && !tab.archived))
+  const startedChats = computed(() => tabs.value.filter((tab) => tab.started && !tab.archived && !hidden.has(tab.id)))
   const archivedChats = computed(() =>
     tabs.value.filter((tab) => tab.archived).sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0)),
   )
   // Historique de la barre latérale, le plus récent en haut, les sessions épinglées à part.
-  const contextChats = computed(() => tabsFor(navigation.projectId).filter((tab) => tab.started && !tab.archived).reverse())
+  const contextChats = computed(() => tabsFor(navigation.projectId).filter((tab) => tab.started && !tab.archived && !hidden.has(tab.id)).reverse())
   // Sessions lancées par l'agent d'une autre, rangées sous la plus haute de leurs ancêtres visibles dans la liste,
   // dans l'ordre de lancement. Une épinglée, ou dont l'ancêtre est ailleurs (archivé, autre projet), reste à sa place.
   const nestedChats = computed(() => {
@@ -181,11 +186,19 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return tab
   }
 
-  // Session ajoutée à la liste sans ouvrir d'onglet : celle qu'un agent lance depuis une autre (`parentId`).
-  function addChat(projectId: string | null, title: string | null = null, worktreePath: string | null | undefined = undefined, parentId: string | null = null) {
-    const agent = projects.chatAgent(projectId)
+  // Session ajoutée à la liste sans ouvrir d'onglet : celle qu'un agent lance depuis une autre (`parentId`), ou celle
+  // d'une action git de fond (`background`, cachée dès sa création, avec l'agent de sa session d'origine).
+  function addChat(
+    projectId: string | null,
+    title: string | null = null,
+    worktreePath: string | null | undefined = undefined,
+    parentId: string | null = null,
+    background: { agent: AgentKind } | null = null,
+  ) {
+    const agent = background?.agent ?? projects.chatAgent(projectId)
     const worktree = worktreePath !== undefined && worktreePath !== null
-    const summary = { id: crypto.randomUUID(), projectId, number: nextChatNumber(projectId), agent, title, started: false, worktree, worktreePath: worktreePath ?? null, archived: false, archivedAt: null, createdAt: Date.now(), updatedAt: Date.now(), pinned: false, model: null, added: 0, removed: 0, parentId }
+    const summary = { id: crypto.randomUUID(), projectId, number: nextChatNumber(projectId), agent, title, started: false, worktree, worktreePath: worktreePath ?? null, archived: false, archivedAt: null, createdAt: Date.now(), updatedAt: Date.now(), pinned: false, model: null, added: 0, removed: 0, parentId, background: !!background }
+    if (background) hidden.add(summary.id)
     const tab: Tab = { ...summary, kind: 'chat' }
     tabs.value.push(tab)
     conversations.create(summary)
@@ -375,6 +388,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (layout) closeTab(id, layout)
     useLayoutStore().forget(id)
     tabs.value = tabs.value.filter((item) => item.id !== id)
+    hidden.delete(id)
     useDraftsStore().set(id, '', [])
     useWorktreesStore().setBase(id, null)
     return conversations.remove(id)
@@ -575,8 +589,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     layout.focused = side === 'right' ? 1 : 0
   }
 
+  function reveal(id: string) {
+    hidden.delete(id)
+  }
+
   return {
     tabs,
+    hidden,
+    reveal,
     panes,
     focusedPane,
     activeTabId,

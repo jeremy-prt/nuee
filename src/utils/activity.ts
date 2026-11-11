@@ -71,6 +71,20 @@ export function summarize(items: readonly ActivityItem[]) {
   return { parts, added, removed, failedFiles }
 }
 
+// Dernière étape outillée, gardée jusqu'à la suivante : la ligne vivante de `ChatActivity` et le bouton d'une action
+// git de fond. `doing` : clé sous `chat.activity.doing` ; `description` (donnée par l'agent) la remplace si présente.
+export function lastStep(items: readonly ChatItem[]) {
+  for (let i = items.length - 1; i >= 0; i--) {
+    const item = items[i]
+    if (item?.kind !== 'tool') continue
+    const verb = item.summary ? fileVerb(item) : null
+    if (verb) return { doing: verb === 'created' ? 'create' : item.tool, description: null, name: fileName(item.summary ?? '') }
+    if (item.tool === 'agent') return { doing: 'agent', description: null, name: null }
+    return { doing: item.tool, description: item.detail?.description ?? null, name: null }
+  }
+  return null
+}
+
 // Lignes ajoutées et retirées sur toute la session : enregistrées avec elle pour la liste des sessions.
 export function sessionDiff(items: readonly ChatItem[]) {
   let added = 0

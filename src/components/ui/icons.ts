@@ -61,9 +61,9 @@ import FolderOpenIcon from '@hugeicons/core-free-icons/FolderOpenIcon'
 import FolderTransferIcon from '@hugeicons/core-free-icons/FolderTransferIcon'
 import FolderTreeIcon from '@hugeicons/core-free-icons/FolderTreeIcon'
 import GitBranchIcon from '@hugeicons/core-free-icons/GitBranchIcon'
+import GitBranchPlusIcon from '@hugeicons/core-free-icons/GitBranchPlusIcon'
 import GitCommitHorizontalIcon from '@hugeicons/core-free-icons/GitCommitHorizontalIcon'
 import GitCompareIcon from '@hugeicons/core-free-icons/GitCompareIcon'
-import GitForkIcon from '@hugeicons/core-free-icons/GitForkIcon'
 import GithubIcon from '@hugeicons/core-free-icons/GithubIcon'
 import Globe02Icon from '@hugeicons/core-free-icons/Globe02Icon'
 import HourglassIcon from '@hugeicons/core-free-icons/HourglassIcon'
@@ -104,6 +104,7 @@ import PythonIcon from '@hugeicons/core-free-icons/PythonIcon'
 import Refresh01Icon from '@hugeicons/core-free-icons/Refresh01Icon'
 import RemoteControlIcon from '@hugeicons/core-free-icons/RemoteControlIcon'
 import RoboticIcon from '@hugeicons/core-free-icons/RoboticIcon'
+import Rocket01Icon from '@hugeicons/core-free-icons/Rocket01Icon'
 import Rows4Icon from '@hugeicons/core-free-icons/Rows4Icon'
 import Search01Icon from '@hugeicons/core-free-icons/Search01Icon'
 import SecurityCheckIcon from '@hugeicons/core-free-icons/SecurityCheckIcon'
@@ -238,7 +239,7 @@ export const FolderPlus = icon(FolderAddIcon)
 export const FolderTree = icon(FolderTreeIcon)
 export const Gauge = icon(DashboardSpeed02Icon)
 export const GitBranch = icon(GitBranchIcon)
-export const GitBranchPlus = icon(GitForkIcon)
+export const GitBranchPlus = icon(GitBranchPlusIcon)
 export const GitCommit = icon(GitCommitHorizontalIcon)
 export const GitCompare = icon(GitCompareIcon)
 export const Github = icon(GithubIcon)
@@ -278,6 +279,7 @@ export const RefreshCw = icon(Refresh01Icon)
 export const RemoteControl = icon(RemoteControlIcon)
 export const Robot = icon(RoboticIcon)
 export const RotateCcw = icon(UndoIcon)
+export const Rocket = icon(Rocket01Icon)
 export const RowsCompact = icon(Rows4Icon)
 export const Search = icon(Search01Icon)
 export const SendHorizontal = icon(SentIcon)

@@ -35,7 +35,7 @@ function run(toast: Toast) {
       v-for="toast in store.toasts"
       :key="toast.id"
       :open="toast.open"
-      :duration="KINDS[toast.kind].duration"
+      :duration="toast.sticky ? Infinity : KINDS[toast.kind].duration"
       :type="toast.kind === 'error' ? 'foreground' : 'background'"
       class="ui-toast grid grid-rows-[1fr] rounded-lg ease-[cubic-bezier(0.16,1,0.3,1)] starting:grid-rows-[0fr] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring data-[state=closed]:grid-rows-[0fr] data-[state=closed]:ease-in data-[swipe=end]:translate-x-(--reka-toast-swipe-end-x) data-[swipe=move]:translate-x-(--reka-toast-swipe-move-x) motion-safe:transition-[grid-template-rows,translate] motion-safe:duration-200 motion-safe:data-[state=closed]:animate-[ui-fade-out_160ms_ease-in] motion-safe:data-[state=closed]:duration-160 data-[swipe=move]:transition-none"
       @update:open="(open) => onOpenChange(toast, open)"

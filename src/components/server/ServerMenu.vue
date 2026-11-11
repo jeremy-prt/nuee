@@ -9,6 +9,7 @@ import UiMenuSeparator from '@/components/ui/UiMenuSeparator.vue'
 import UiMenuSub from '@/components/ui/UiMenuSub.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { menuPanel, menuTitle } from '@/components/ui/menuRow'
+import { useMenuToggle } from '@/composables/useMenuToggle'
 import { useServerSetup } from '@/composables/useServerSetup'
 import { useTerminalChat } from '@/composables/useTerminalChat'
 import type { ServerInfo } from '@/ipc/bindings/ServerInfo'
@@ -55,8 +56,10 @@ watch(
   },
 )
 
-function onOpen(open: boolean) {
-  if (open) refresh()
+const { open, onTriggerDown, onOpenChange } = useMenuToggle()
+function onOpen(value: boolean) {
+  onOpenChange(value)
+  if (open.value) refresh()
 }
 
 // Comme ▶ dans le volet : le serveur démarre et sa page s'ouvre.
@@ -76,7 +79,7 @@ function onCloseAutoFocus(event: Event) {
 <template>
   <UiTooltip :label="t('dock.servers.menu')" :disabled="row">
     <span class="flex">
-      <DropdownMenuRoot :modal="false" @update:open="onOpen">
+      <DropdownMenuRoot :open="open" :modal="false" @update:open="onOpen">
         <DropdownMenuTrigger
           :disabled="!chat"
           :class="
@@ -85,7 +88,7 @@ function onCloseAutoFocus(event: Event) {
               : 'relative grid size-7 place-items-center rounded-md text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-40 aria-expanded:bg-selection-hover aria-expanded:text-content'
           "
           :aria-label="running ? t('dock.servers.menuRunning', { n: running }) : t('dock.servers.menu')"
-          @pointerdown="openedBy(true)"
+          @pointerdown="(openedBy(true), onTriggerDown())"
           @keydown="openedBy(false)"
         >
           <template v-if="row">
