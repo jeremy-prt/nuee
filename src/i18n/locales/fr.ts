@@ -684,7 +684,7 @@ export default {
     },
     mode: {
       label: 'Mode de permission',
-      bypass: 'Bypass',
+      bypass: 'Sans confirmation',
       auto: 'Auto',
     },
     plus: {
