@@ -315,15 +315,23 @@ onMounted(() => {
         </button>
       </li>
     </ol>
-    <div v-if="away" class="pointer-events-none sticky bottom-6 flex justify-center">
-      <UiIconButton
-        :label="t('chat.backToEnd')"
-        class="pointer-events-auto size-9! rounded-full! border border-stroke bg-overlay! shadow-lg"
-        @click="backToEnd"
-      >
-        <ChatSpinner v-if="running" :agent="agent" class="text-base" />
-        <ArrowDown v-else class="size-4" aria-hidden="true" />
-      </UiIconButton>
-    </div>
+    <!-- Apparaît en fondu en montant un peu, comme l'app Claude ; repart de même. -->
+    <Transition
+      enter-active-class="transition duration-(--motion-quick) ease-(--motion-ease) motion-reduce:transition-none"
+      leave-active-class="transition duration-(--motion-quick) ease-(--motion-ease) motion-reduce:transition-none"
+      enter-from-class="translate-y-2 scale-95 opacity-0"
+      leave-to-class="translate-y-2 scale-95 opacity-0"
+    >
+      <div v-if="away" class="pointer-events-none sticky bottom-6 flex justify-center">
+        <UiIconButton
+          :label="t('chat.backToEnd')"
+          class="pointer-events-auto size-9! rounded-full! border border-stroke bg-overlay! shadow-lg"
+          @click="backToEnd"
+        >
+          <ChatSpinner v-if="running" :agent="agent" class="text-base" />
+          <ArrowDown v-else class="size-4" aria-hidden="true" />
+        </UiIconButton>
+      </div>
+    </Transition>
   </div>
 </template>
