@@ -183,8 +183,10 @@ const away = ref(false)
 function onScroll() {
   const el = scroller.value
   if (!el) return
-  stick = el.scrollHeight - el.scrollTop - el.clientHeight < 48
-  away.value = !stick
+  const below = el.scrollHeight - el.scrollTop - el.clientHeight
+  stick = below < 48
+  // Pas dès le premier cran : le bouton n'apparaît qu'une fois vraiment remonté.
+  away.value = below > 240
   if (el.scrollTop < 200) showEarlier()
 }
 
@@ -322,7 +324,8 @@ onMounted(() => {
       enter-from-class="translate-y-2 scale-95 opacity-0"
       leave-to-class="translate-y-2 scale-95 opacity-0"
     >
-      <div v-if="away" class="pointer-events-none sticky bottom-6 flex justify-center">
+      <!-- Hauteur nulle : en apparaissant, il ne rallonge pas la liste (sinon le fil rebondit en bas). -->
+      <div v-if="away" class="pointer-events-none sticky bottom-6 flex h-0 items-end justify-center">
         <UiIconButton
           :label="t('chat.backToEnd')"
           class="pointer-events-auto size-9! rounded-full! border border-stroke bg-overlay! shadow-lg"
