@@ -423,6 +423,12 @@ export default {
     },
   },
   chat: {
+    plan: {
+      title: "计划",
+      earlier: "在最后一条消息之前制定的计划",
+      progress: "已完成 {done}/{total} 步",
+      status: { pending: "待办", in_progress: "进行中", completed: "已完成" },
+    },
     fromSession: { message: '收到来自 {title} 的消息', started: '由 {agent} 从 {title} 启动', task: '任务', showTask: '显示任务', show: '显示消息', more: '显示更多', less: '收起' },
     earlier: '显示之前的 {n} 条消息',
     queue: {
@@ -481,6 +487,7 @@ export default {
     working: '{agent} 正在处理…',
     waitingApproval: '等待授权',
     waitingAnswer: '等待回答',
+    needsYou: "需要处理",
     question: {
       title: '问题',
       progress: '{n} / {total}',
@@ -682,6 +689,7 @@ export default {
       label: '权限模式',
       bypass: 'Bypass',
       auto: 'Auto',
+      ask: "询问权限",
     },
     plus: {
       label: '添加到消息',

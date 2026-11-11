@@ -64,7 +64,7 @@ const effortOptions = computed(() =>
     label: t(`composer.effort.${effort}`),
   })),
 )
-const modes = computed(() => (['bypass', 'auto'] as const).map((mode) => ({ value: mode, label: t(`composer.mode.${mode}`) })))
+const modes = computed(() => (['bypass', 'auto', 'ask'] as const).map((mode) => ({ value: mode, label: t(`composer.mode.${mode}`) })))
 
 const model = computed({
   get: () => resolved.value.model ?? '',

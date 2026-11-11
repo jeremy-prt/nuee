@@ -547,6 +547,7 @@ impl Driver for Claude {
         match options.mode {
             PermissionMode::Bypass => args.push("--dangerously-skip-permissions".into()),
             PermissionMode::Auto => args.extend(["--permission-mode".into(), "auto".into()]),
+            PermissionMode::Ask => args.extend(["--permission-mode".into(), "default".into()]),
         }
         if let Some(model) = &options.model {
             args.extend(["--model".into(), model.clone()]);
@@ -1136,6 +1137,8 @@ fn detail_of(name: &str, input: &Value) -> Option<ToolDetail> {
         "Task" | "Agent" => (field("prompt"), field("description")),
         // Carte « Tâche » de la session qui en lance une autre : la consigne et le titre, pas le JSON.
         "mcp__nuee__start_session" => (field("prompt"), field("title")),
+        // Carte « Plan » : la liste entière, jamais tronquée, que l'interface relit.
+        "mcp__nuee__update_plan" => (Some(input["items"].to_string()), None),
         _ => match input.as_object() {
             Some(fields) if !fields.is_empty() => (
                 serde_json::to_string_pretty(input)

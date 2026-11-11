@@ -423,6 +423,12 @@ export default {
     },
   },
   chat: {
+    plan: {
+      title: "プラン",
+      earlier: "最後のメッセージより前に立てたプラン",
+      progress: "{total} ステップ中 {done} 完了",
+      status: { pending: "未着手", in_progress: "進行中", completed: "完了" },
+    },
     fromSession: { message: '{title} からメッセージを受信', started: '{title} から {agent} が開始', task: 'タスク', showTask: 'タスクを表示', show: 'メッセージを表示', more: 'もっと見る', less: '閉じる' },
     earlier: '以前のメッセージ {n} 件を表示',
     queue: {
@@ -481,6 +487,7 @@ export default {
     working: '{agent} が作業中…',
     waitingApproval: '承認待ち',
     waitingAnswer: '回答待ち',
+    needsYou: "対応が必要です",
     question: {
       title: '質問',
       progress: '{n} / {total}',
@@ -682,6 +689,7 @@ export default {
       label: '権限モード',
       bypass: 'Bypass',
       auto: 'Auto',
+      ask: "許可を確認",
     },
     plus: {
       label: 'メッセージに追加',

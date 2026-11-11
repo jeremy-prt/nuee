@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { chatCard } from '@/components/chat/card'
 import { Clock, X } from '@/components/ui/icons'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -69,7 +70,7 @@ function dismiss() {
 </script>
 
 <template>
-  <section v-if="warning" class="flex w-full items-center gap-2.5 rounded-xl border border-stroke bg-content/3 py-1.5 ps-3 pe-1.5 text-xs" role="status">
+  <section v-if="warning" :class="chatCard" class="flex w-full items-center gap-2.5 py-1.5 ps-3 pe-1.5 text-xs" role="status">
     <Clock class="size-4 shrink-0 text-warning" aria-hidden="true" />
     <p class="min-w-0 flex-1 truncate">
       <span class="text-[13px] text-content">{{ title }}</span>

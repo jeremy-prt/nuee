@@ -129,7 +129,7 @@ function table(token: Tokens.Table) {
       inline(item.tokens),
     )
   return h('div', { class: 'my-2 overflow-x-auto' }, [
-    h('table', { class: 'border-collapse text-[13px]/5' }, [
+    h('table', { class: 'w-full border-collapse' }, [
       h('thead', h('tr', token.header.map((item) => cell('th', item)))),
       h('tbody', token.rows.map((row) => h('tr', { class: 'last:*:border-b-0' }, row.map((item) => cell('td', item))))),
     ]),

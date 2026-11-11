@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowUp, Orchestra, ShieldAlert, ShieldCheck, Square, X } from '@/components/ui/icons'
+import { ArrowUp, Orchestra, ShieldAlert, ShieldCheck, ShieldQuestion, Square, X } from '@/components/ui/icons'
 import { type Component, computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatContextMeter from '@/components/chat/ChatContextMeter.vue'
@@ -70,14 +70,15 @@ const focusInput = () => input.value?.focus()
 
 const modeLooks = {
   bypass: { icon: ShieldAlert, iconClass: 'text-warning' },
-  auto: { icon: ShieldCheck, iconClass: undefined },
+  auto: { icon: ShieldCheck, iconClass: 'text-info' },
+  ask: { icon: ShieldQuestion, iconClass: undefined },
 } satisfies Record<PermissionMode, { icon: Component; iconClass?: string }>
 const modeLook = computed(() => modeLooks[options.value.mode])
 const modeSections = computed<UiMenuSection[]>(() => [
   {
     id: 'mode',
     value: options.value.mode,
-    options: (['bypass', 'auto'] as const).map((mode) => ({
+    options: (['bypass', 'auto', 'ask'] as const).map((mode) => ({
       value: mode,
       label: t(`composer.mode.${mode}`),
       ...modeLooks[mode],

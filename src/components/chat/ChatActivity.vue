@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronRight, MessageQuestion, ShieldQuestion } from '@/components/ui/icons'
+import { ChevronRight } from '@/components/ui/icons'
 import { computed, onScopeDispose, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatDiffStat from '@/components/chat/ChatDiffStat.vue'
@@ -102,17 +102,23 @@ const entries = computed(() => props.items.filter((item) => item.kind === 'tool'
         @click="items.length && (open = !open)"
       >
         <template v-if="live">
+          <!-- Comme l'app Claude : un point jaune qui pulse et une pastille, la même pour une question ou une autorisation. -->
           <template v-if="label.waiting">
-            <component :is="clock?.asking ? MessageQuestion : ShieldQuestion" class="me-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
-            <span class="shrink-0 text-warning">{{ label.text }}</span>
+            <span class="me-0.5 grid size-4 shrink-0 place-items-center" aria-hidden="true">
+              <span class="size-2.5 rounded-full bg-warning ring-3 ring-warning/25 motion-safe:animate-pulse" />
+            </span>
+            <span class="shrink-0 rounded-md bg-warning/15 px-1.5 py-px text-xs font-medium text-warning">{{ t('chat.needsYou') }}</span>
+            <span class="sr-only">{{ label.text }}</span>
           </template>
           <template v-else>
             <ChatSpinner :agent="agent" class="me-0.5 text-base" />
             <span class="shrink-0" :class="{ 'text-shimmer': label.shimmer }">{{ label.text }}</span>
           </template>
           <span v-if="label.name" class="min-w-0 truncate text-content">{{ label.name }}</span>
-          <span class="shrink-0 text-xs tabular-nums">{{ elapsed }}</span>
-          <span v-if="background" class="min-w-0 truncate text-xs">· {{ t('chat.backgroundTasks', { n: background }, background) }}</span>
+          <template v-if="!label.waiting">
+            <span class="shrink-0 text-xs tabular-nums">{{ elapsed }}</span>
+            <span v-if="background" class="min-w-0 truncate text-xs">· {{ t('chat.backgroundTasks', { n: background }, background) }}</span>
+          </template>
         </template>
         <span v-else class="min-w-0 truncate">
           <template v-for="(segment, index) in summary.segments" :key="index">

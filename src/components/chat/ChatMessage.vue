@@ -118,7 +118,7 @@ watch(signedIn, async (now) => {
   </template>
   <ChatMarkdown v-else-if="item.kind === 'text'" :text="item.text" :streaming="streaming" :runs="item.id" />
   <ChatQuestionRecord v-else-if="item.kind === 'tool' && item.answers" :answers="item.answers" />
-  <ChatSubagent v-else-if="item.kind === 'tool' && item.tool === 'agent'" class="-mx-2 text-sm" :item="item" />
+  <ChatSubagent v-else-if="item.kind === 'tool' && item.tool === 'agent'" class="-mx-2 text-sm" :item="item" :agent="agent" />
   <ChatTool v-else-if="item.kind === 'tool'" class="-mx-2 text-sm" :item="item" />
   <ChatCompact v-else-if="item.kind === 'compact'" :item="item" :agent="agent" />
   <!-- Séparateur entre deux tours : celui-ci, l'agent l'a ouvert seul quand sa tâche de fond a fini. -->

@@ -2,6 +2,7 @@
 import {
   Bot,
   ChevronDown,
+  CircleCheck,
   CloudDownload,
   Coffee,
   ExternalLink,
@@ -23,6 +24,7 @@ import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatDiffStat from '@/components/chat/ChatDiffStat.vue'
 import ChatGitRun from '@/components/chat/ChatGitRun.vue'
+import ChatPlan from '@/components/chat/ChatPlan.vue'
 import ChatSessionSub from '@/components/chat/ChatSessionSub.vue'
 import ProjectIcon from '@/components/project/ProjectIcon.vue'
 import ServerMenu from '@/components/server/ServerMenu.vue'
@@ -53,6 +55,7 @@ import { useWorktreesStore } from '@/stores/worktrees'
 import { contextFormats, contextRatio, contextRows } from '@/utils/context'
 import { formatDuration } from '@/utils/duration'
 import { contextTone } from '@/utils/level'
+import { planOf } from '@/utils/activity'
 import { tasksOf } from '@/utils/tasks'
 
 // Résumé de la session active, sur le modèle du panneau de détails de T3 Code : en haut une ligne par action de tous
@@ -194,6 +197,15 @@ const categories = computed(() => {
 // ===== Tâches =====
 
 const tasks = computed(() => tasksOf(items.value))
+// Dernier plan de l'agent (`update_plan`), le même que la carte du fil.
+const plan = computed(() => {
+  for (let index = items.value.length - 1; index >= 0; index--) {
+    const steps = planOf(items.value[index])
+    if (steps) return steps
+  }
+  return null
+})
+const planDone = computed(() => plan.value?.filter((step) => step.status === 'completed').length ?? 0)
 const running = computed(() => tasks.value.filter(({ task }) => task.status === 'running'))
 const finished = computed(() => tasks.value.length - running.value.length)
 const taskName = (tool: ToolItem, task: TaskState) => task.description ?? tool.detail?.description ?? tool.summary ?? tool.name
@@ -340,6 +352,15 @@ const separator = 'mx-2 my-1 h-px shrink-0 bg-stroke'
             </li>
           </ul>
           <p v-else class="px-2 py-1.5 text-xs text-muted">{{ t('dock.session.noContext') }}</p>
+        </template>
+      </ChatSessionSub>
+
+      <ChatSessionSub v-if="plan" :label="t('chat.plan.title')">
+        <CircleCheck :class="icon" aria-hidden="true" />
+        <span class="min-w-0 flex-1 truncate">{{ t('chat.plan.title') }}</span>
+        <span class="text-xs text-muted tabular-nums">{{ planDone }}/{{ plan.length }}</span>
+        <template #menu>
+          <ChatPlan :steps="plan" :live="phase !== 'idle'" class="w-72 border-0! bg-transparent!" />
         </template>
       </ChatSessionSub>
 

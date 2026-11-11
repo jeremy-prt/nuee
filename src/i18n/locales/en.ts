@@ -421,6 +421,12 @@ export default {
     },
   },
   chat: {
+    plan: {
+      title: "Plan",
+      earlier: "Plan made before the last message",
+      progress: "{done} of {total} steps done",
+      status: { pending: "to do", in_progress: "in progress", completed: "done" },
+    },
     fromSession: { message: 'Message received from {title}', started: 'Started by {agent} from {title}', task: 'Task', showTask: 'Show task', show: 'Show message', more: 'Show more', less: 'Show less' },
     earlier: 'Show the earlier message | Show the {n} earlier messages',
     queue: {
@@ -479,6 +485,7 @@ export default {
     working: '{agent} is working…',
     waitingApproval: 'Waiting for approval',
     waitingAnswer: 'Waiting for an answer',
+    needsYou: "Needs your input",
     question: {
       title: 'Question',
       progress: '{n} of {total}',
@@ -680,6 +687,7 @@ export default {
       label: 'Permission mode',
       bypass: 'Bypass',
       auto: 'Auto',
+      ask: "Ask permissions",
     },
     plus: {
       label: 'Add to message',

@@ -24,6 +24,7 @@ import CheckmarkCircle02Icon from '@hugeicons/core-free-icons/CheckmarkCircle02I
 import Clock01Icon from '@hugeicons/core-free-icons/Clock01Icon'
 import Coffee02Icon from '@hugeicons/core-free-icons/Coffee02Icon'
 import CloudDownloadIcon from '@hugeicons/core-free-icons/CloudDownloadIcon'
+import DashedLineCircleIcon from '@hugeicons/core-free-icons/DashedLineCircleIcon'
 import CloudUploadIcon from '@hugeicons/core-free-icons/CloudUploadIcon'
 import CommentAdd01Icon from '@hugeicons/core-free-icons/CommentAdd01Icon'
 import ComputerTerminal01Icon from '@hugeicons/core-free-icons/ComputerTerminal01Icon'
@@ -105,8 +106,8 @@ import PlayIcon from '@hugeicons/core-free-icons/PlayIcon'
 import Plug01Icon from '@hugeicons/core-free-icons/Plug01Icon'
 import PythonIcon from '@hugeicons/core-free-icons/PythonIcon'
 import Refresh01Icon from '@hugeicons/core-free-icons/Refresh01Icon'
-import RemoteControlIcon from '@hugeicons/core-free-icons/RemoteControlIcon'
 import RoboticIcon from '@hugeicons/core-free-icons/RoboticIcon'
+import RemoteControlIcon from '@hugeicons/core-free-icons/RemoteControlIcon'
 import Rocket01Icon from '@hugeicons/core-free-icons/Rocket01Icon'
 import Rows4Icon from '@hugeicons/core-free-icons/Rows4Icon'
 import Search01Icon from '@hugeicons/core-free-icons/Search01Icon'
@@ -192,6 +193,7 @@ export const CircleAlert = icon(AlertCircleIcon)
 export const CircleCheck = icon(CheckmarkCircle02Icon)
 export const Clock = icon(Clock01Icon)
 export const CloudDownload = icon(CloudDownloadIcon)
+export const DashedCircle = icon(DashedLineCircleIcon)
 export const CloudUpload = icon(CloudUploadIcon)
 export const Coffee = icon(Coffee02Icon)
 export const Columns2 = icon(LayoutTwoColumnIcon)
@@ -281,8 +283,8 @@ export const Play = icon(PlayIcon)
 export const Plug = icon(Plug01Icon)
 export const Plus = icon(Add01Icon)
 export const RefreshCw = icon(Refresh01Icon)
-export const RemoteControl = icon(RemoteControlIcon)
 export const Robot = icon(RoboticIcon)
+export const RemoteControl = icon(RemoteControlIcon)
 export const RotateCcw = icon(UndoIcon)
 export const Rocket = icon(Rocket01Icon)
 export const RowsCompact = icon(Rows4Icon)

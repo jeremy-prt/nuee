@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MessageQuestion } from '@/components/ui/icons'
+import { chatCard } from '@/components/chat/card'
 import { useI18n } from 'vue-i18n'
 import type { ToolItem } from '@/stores/conversations'
 
@@ -10,13 +10,11 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <div class="flex gap-2.5 text-sm">
-    <MessageQuestion class="mt-0.5 size-4 shrink-0 text-muted" aria-hidden="true" />
-    <dl class="flex min-w-0 flex-col gap-1.5">
-      <div v-for="(entry, index) in answers" :key="index">
-        <dt class="text-muted">{{ entry.prompt }}</dt>
-        <dd :class="entry.answer === null ? 'text-muted italic' : ''">{{ entry.answer ?? t('chat.question.skipped') }}</dd>
-      </div>
-    </dl>
-  </div>
+  <!-- Même cadre que la carte de questions : chaque question, sa réponse dessous en plus discret. -->
+  <dl :class="chatCard" class="divide-y divide-stroke text-sm">
+    <div v-for="(entry, index) in answers" :key="index" class="px-4 py-2.5">
+      <dt>{{ entry.prompt }}</dt>
+      <dd class="text-muted" :class="{ italic: entry.answer === null }">{{ entry.answer ?? t('chat.question.skipped') }}</dd>
+    </div>
+  </dl>
 </template>

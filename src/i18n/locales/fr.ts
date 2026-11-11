@@ -423,6 +423,12 @@ export default {
     },
   },
   chat: {
+    plan: {
+      title: "Plan",
+      earlier: "Plan établi avant le dernier message",
+      progress: "{done} étapes faites sur {total}",
+      status: { pending: "à faire", in_progress: "en cours", completed: "fait" },
+    },
     fromSession: { message: 'Message reçu de {title}', started: 'Démarrée par {agent} depuis {title}', task: 'Tâche', showTask: 'Afficher la tâche', show: 'Afficher le message', more: 'Afficher plus', less: 'Afficher moins' },
     earlier: 'Afficher le message précédent | Afficher les {n} messages précédents',
     queue: {
@@ -481,6 +487,7 @@ export default {
     working: '{agent} travaille…',
     waitingApproval: 'En attente d\'autorisation',
     waitingAnswer: 'En attente d\'une réponse',
+    needsYou: "Intervention requise",
     question: {
       title: 'Question',
       progress: '{n} sur {total}',
@@ -682,6 +689,7 @@ export default {
       label: 'Mode de permission',
       bypass: 'Ignorer les permissions',
       auto: 'Auto',
+      ask: "Demander les permissions",
     },
     plus: {
       label: 'Ajouter au message',

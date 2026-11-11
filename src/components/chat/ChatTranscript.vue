@@ -4,12 +4,13 @@ import { computed, nextTick, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatActivity from '@/components/chat/ChatActivity.vue'
 import ChatMessage from '@/components/chat/ChatMessage.vue'
+import ChatPlan from '@/components/chat/ChatPlan.vue'
 import ChatSpinner from '@/components/chat/ChatSpinner.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import { type ChatItem, lastTurnIndex } from '@/stores/conversations'
 import { useLayoutStore } from '@/stores/layout'
-import { type ActivityItem, START_SESSION } from '@/utils/activity'
+import { type ActivityItem, type PlanStep, planOf, START_SESSION, UPDATE_PLAN } from '@/utils/activity'
 import { tasksOf } from '@/utils/tasks'
 import { turnText } from '@/utils/transcript'
 
@@ -65,6 +66,18 @@ const shown = computed(() => props.items.slice(start.value))
 type Row =
   | { kind: 'item'; item: ChatItem; index: number; end?: { item: ChatItem; index: number } }
   | { kind: 'activity'; id: string; items: ActivityItem[]; index: number }
+  | { kind: 'plan'; id: string; steps: PlanStep[]; earlier: boolean }
+
+// Dernier plan de l'agent, comme l'app Claude : il se tient en bas du fil, au-dessus de la ligne d'activité, pendant
+// son tour (même fini) ; d'un tour précédent, seulement tant qu'il lui reste une étape et qu'un tour tourne. Sinon il
+// reste à l'endroit de sa dernière mise à jour.
+const plan = computed(() => {
+  for (let index = props.items.length - 1; index >= 0; index--) {
+    const steps = planOf(props.items[index])
+    if (steps) return { id: props.items[index]!.id, index, steps, pinned: index > lastUser.value || (props.running && steps.some((step) => step.status !== 'completed')) }
+  }
+  return null
+})
 const rows = computed(() => {
   const out: Row[] = []
   let run: ActivityItem[] = []
@@ -76,20 +89,42 @@ const rows = computed(() => {
     run = []
   }
   shown.value.forEach((item, offset) => {
+    // Question qui attend sa réponse : sa carte est au-dessus du champ, sa ligne ferait doublon.
+    if (item.kind === 'tool' && item.tool === 'question' && !item.answers && item.status === 'running') return
+    if (item.kind === 'tool' && item.name === UPDATE_PLAN) {
+      if (plan.value && !plan.value.pinned && item.id === plan.value.id) {
+        close(start.value + offset)
+        out.push({ kind: 'plan', id: item.id, steps: plan.value.steps, earlier: false })
+      }
+      return
+    }
     if ((item.kind === 'tool' && item.tool !== 'question' && item.tool !== 'agent' && item.name !== START_SESSION) || item.kind === 'thinking') run.push(item)
     else {
       const index = start.value + offset
       close(index)
       const previous = out.at(-1)
-      if (item.kind === 'end' && previous?.kind === 'item' && previous.item.kind === 'text' && previous.index === index - 1) previous.end = { item, index }
+      if (item.kind === 'end' && previous?.kind === 'item' && previous.item.kind === 'text' && onlyPlansBetween(previous.index, index)) previous.end = { item, index }
       else out.push({ kind: 'item', item, index })
     }
   })
   const first = run.find((item) => item.kind === 'tool') ?? run[0]
   if (props.running && first) out.push({ kind: 'activity', id: first.id, items: run, index: props.items.length - run.length })
   else close(props.items.length)
+  if (plan.value?.pinned) {
+    const row: Row = { kind: 'plan', id: plan.value.id, steps: plan.value.steps, earlier: plan.value.index < lastUser.value }
+    const live = props.running && out.at(-1)?.kind === 'activity'
+    out.splice(live ? out.length - 1 : out.length, 0, row)
+  }
   return out
 })
+// Les appels au plan, sautés dans le fil, ne séparent pas un texte de sa fin de tour.
+function onlyPlansBetween(from: number, to: number) {
+  for (let index = from + 1; index < to; index++) {
+    const item = props.items[index]
+    if (item?.kind !== 'tool' || item.name !== UPDATE_PLAN) return false
+  }
+  return true
+}
 const liveRun = computed(() => props.running && rows.value.at(-1)?.kind === 'activity')
 // Un sous-agent en cours en bas de la conversation a déjà sa ligne animée : pas de « travaille… » en plus.
 const subagentLive = computed(() => {
@@ -194,15 +229,16 @@ onMounted(() => {
       </li>
       <li
         v-for="(row, offset) in rows"
-        :key="row.kind === 'item' ? row.item.id : row.id"
+        :key="row.kind === 'item' ? row.item.id : `${row.kind}-${row.id}`"
         :data-user-row="(row.kind === 'item' && row.item.kind === 'user') || undefined"
         :class="{
           'group flex flex-col items-end gap-1': row.kind === 'item' && row.item.kind === 'user' && !fromSession(row.item, row.index),
           'group/answer flex flex-col gap-3': row.kind === 'item' && (!!row.end || row.item.kind === 'end'),
         }"
       >
+        <ChatPlan v-if="row.kind === 'plan'" :steps="row.steps" :earlier="row.earlier" :live="running" :paused="clock?.pausedAt != null" />
         <ChatActivity
-          v-if="row.kind === 'activity'"
+          v-else-if="row.kind === 'activity'"
           :items="row.items"
           :agent="agent"
           :clock="liveRun && offset === rows.length - 1 ? clock : null"

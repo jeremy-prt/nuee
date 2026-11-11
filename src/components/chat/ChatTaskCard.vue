@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { chatCard } from '@/components/chat/card'
 import { ChevronDown, ChevronRight } from '@/components/ui/icons'
 import { computed, ref, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -24,7 +25,7 @@ const bodyId = useId()
 </script>
 
 <template>
-  <section class="rounded-xl border border-stroke text-sm">
+  <section :class="chatCard" class="text-sm">
     <button
       type="button"
       class="group/head flex w-full min-w-0 items-center gap-2 rounded-xl px-3 py-2 text-start text-muted hover:text-content focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"

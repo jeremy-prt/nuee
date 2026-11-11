@@ -119,7 +119,7 @@ pub struct TurnOptions {
     pub fast: bool,
 }
 
-/// Pas de mode « validation manuelle » : Nuée laisse l'agent agir seul.
+/// Ask : l'agent demande avant chaque modification ou commande, comme le mode par défaut de Claude Code.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
@@ -128,6 +128,8 @@ pub enum PermissionMode {
     Bypass,
     /// L'agent juge lui-même ce qui est risqué.
     Auto,
+    /// Chaque modification ou commande demande l'accord de l'utilisateur.
+    Ask,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]

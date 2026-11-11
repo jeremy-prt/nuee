@@ -82,6 +82,14 @@ async fn run(
     name: &str,
     args: &Value,
 ) -> Result<Vec<Value>, AppError> {
+    // Rien à faire côté Rust : l'interface lit la liste dans l'appel lui-même et l'affiche en carte.
+    if name == "update_plan" {
+        let items = args["items"].as_array().map_or(0, Vec::len);
+        if items == 0 {
+            return Err(fail("`items` manquant ou vide"));
+        }
+        return Ok(vec![text("Plan updated and shown to the user.")]);
+    }
     if operator::TOOLS.contains(&name) {
         let answer = app
             .state::<OperatorService>()
@@ -1022,6 +1030,7 @@ fn strip_ansi(text: &str) -> String {
 fn instructions(cwd: &Path) -> String {
     let mut text = String::from(BROWSER_INSTRUCTIONS);
     text.push_str(SESSIONS_INSTRUCTIONS);
+    text.push_str(PLAN_INSTRUCTIONS);
     if server::auto_verify(cwd) {
         text.push_str(VERIFY_INSTRUCTIONS);
     }
@@ -1042,6 +1051,10 @@ The user already sees each session you start as a Task card in this conversation
 never announce a launch, never quote a session id, never repeat or summarize a report. After a report, write only what it changes for the user \
 (the answer they asked for if it is new to them, a problem, the next step) in one short sentence, or nothing if the work simply goes on.";
 
+const PLAN_INSTRUCTIONS: &str = "\n\nPlan: for any task of three steps or more, call update_plan first with the whole list (one step \
+in_progress), then again each time a step starts or ends, with the whole list. The user sees it as a live checklist: do not also \
+write the plan as a list in your reply.";
+
 const VERIFY_INSTRUCTIONS: &str = "\n\nWhen to verify: once the project has a dev server in .claude/launch.json (preview_list shows it), after editing code \
 whose result the browser can show (something the dev server renders, serves or logs), verify it yourself before you reply and share proof; \
 never ask the user to check manually, and never end with \"I did not check\". Skip it for changes the preview can't exercise \
@@ -1053,6 +1066,24 @@ never ask the user to check manually, and never end with \"I did not check\". Sk
 fn tool_list() -> Vec<Value> {
     let tab = json!({ "type": "string", "description": "Tab to act on. Omit for the tab shown in the pane." });
     let tools = vec![
+        tool(
+            "update_plan",
+            "Show your plan to the user as a live checklist in Nuée. Send the whole list every time; exactly one step in_progress while working.",
+            json!({
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "content": { "type": "string", "description": "Short imperative step, in the user's language." },
+                            "status": { "type": "string", "enum": ["pending", "in_progress", "completed"] },
+                        },
+                        "required": ["content", "status"],
+                    },
+                },
+            }),
+            &["items"],
+        ),
         tool(
             "list_sessions",
             "List the other sessions of Nuée in this project, or everywhere with all: true. Gives id, title, project, status (working, waiting for an approval, idle) and last activity.",

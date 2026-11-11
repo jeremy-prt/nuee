@@ -295,6 +295,7 @@ onMounted(() => {
     <!-- La demande s'affiche au-dessus du champ sans le démonter : un brouillon en cours reste. Session commencée pas
          encore chargée : le champ est déjà en bas, sinon il passait par le milieu de l'écran le temps de la lecture. -->
     <div class="flex flex-col items-center gap-2 px-6" :class="items.length || tab.started ? 'pb-4' : 'flex-1 justify-start pb-16'">
+      <!-- Au-dessus du champ, à pleine largeur, au cadre des cartes du fil (demande de Jérémy). -->
       <ChatQuestion
         v-if="approval?.questions"
         :key="approval.id"

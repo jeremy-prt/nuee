@@ -103,6 +103,29 @@ export function countFailures(items: readonly ActivityItem[]) {
 
 // Outil du serveur `nuee` qui lance une autre session : carte « Tâche » hors du pli d'activité.
 export const START_SESSION = 'mcp__nuee__start_session'
+// Plan de l'agent (outil `update_plan` du serveur `nuee`, la CLI n'ayant pas de TodoWrite en mode SDK).
+export const UPDATE_PLAN = 'mcp__nuee__update_plan'
+
+export type PlanStatus = 'pending' | 'in_progress' | 'completed'
+export interface PlanStep {
+  content: string
+  status: PlanStatus
+}
+
+// La liste vient de l'appel lui-même (`detail.text`, en JSON) ; un appel mal formé ne donne rien.
+export function planOf(item: ChatItem | undefined): PlanStep[] | null {
+  if (item?.kind !== 'tool' || item.name !== UPDATE_PLAN || !item.detail?.text) return null
+  try {
+    const steps: unknown = JSON.parse(item.detail.text)
+    if (!Array.isArray(steps)) return null
+    const valid = steps.filter(
+      (step): step is PlanStep => typeof step?.content === 'string' && ['pending', 'in_progress', 'completed'].includes(step?.status),
+    )
+    return valid.length ? valid : null
+  } catch {
+    return null
+  }
+}
 
 // `mcp__github__create_issue` devient « github › create_issue ».
 export function toolName(name: string) {

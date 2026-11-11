@@ -30,7 +30,7 @@ export interface AgentStatus extends Omit<Probed, 'path'> {
 
 const STORAGE_KEY = 'nuee.agents.v1'
 const BLANK = { path: null, version: null, latest: null, account: null, usage: null }
-const MODES: PermissionMode[] = ['bypass', 'auto']
+const MODES: PermissionMode[] = ['bypass', 'auto', 'ask']
 const kinds = Object.keys(agents) as AgentKind[]
 
 export const DEFAULT_OPTIONS: TurnOptions = { mode: 'bypass', model: null, effort: null, fast: false }
