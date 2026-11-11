@@ -135,6 +135,9 @@ onBeforeUnmount(() => observer?.disconnect())
         </button>
       </div>
       <template #end>
+        <UiIconButton :label="t('dock.terminal.new')" :disabled="!place" @click="create">
+          <Plus class="size-3.5" aria-hidden="true" />
+        </UiIconButton>
         <UiIconButton
           :label="t('dock.terminal.splitRight')"
           :shortcut="shortcuts.label('splitTerminal')"

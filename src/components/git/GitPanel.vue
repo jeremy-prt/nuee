@@ -63,26 +63,27 @@ track(() => sideShown.value)
       :aria-label="t('dock.changes.title')"
     >
       <ShellDockToolbar :label="t('dock.changes.title')">
-        <ShellDockToolbarButton :label="t('dock.changes.modes.changes')" labeled :pressed="mode === 'changes'" @click="mode = 'changes'">
-          <FileDiff class="size-3.5" aria-hidden="true" />
-          {{ t('dock.changes.modes.changes') }}
-        </ShellDockToolbarButton>
-        <ShellDockToolbarButton :label="t('dock.changes.modes.history')" labeled :pressed="mode === 'history'" @click="mode = 'history'">
-          <History class="size-3.5" aria-hidden="true" />
-          {{ t('dock.changes.modes.history') }}
-        </ShellDockToolbarButton>
-        <template v-if="mode === 'changes' && changes.allComments.value.length" #end>
-          <UiTooltip :label="changes.sendLabel.value">
-            <button
-              type="button"
-              class="flex h-6 shrink-0 items-center gap-1.5 rounded-md bg-accent px-2 text-xs text-canvas tabular-nums hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
-              :aria-label="changes.sendLabel.value"
-              @click="changes.sendComments"
-            >
-              <SendHorizontal class="size-3.5" aria-hidden="true" />
-              {{ changes.allComments.value.length }}
-            </button>
-          </UiTooltip>
+        <!-- Comme l'Explorateur : les modes en icônes à droite (demande de Jérémy), les commentaires à envoyer devant. -->
+        <template #end>
+          <template v-if="mode === 'changes' && changes.allComments.value.length">
+            <UiTooltip :label="changes.sendLabel.value">
+              <button
+                type="button"
+                class="flex h-6 shrink-0 items-center gap-1.5 rounded-md bg-accent px-2 text-xs text-canvas tabular-nums hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+                :aria-label="changes.sendLabel.value"
+                @click="changes.sendComments"
+              >
+                <SendHorizontal class="size-3.5" aria-hidden="true" />
+                {{ changes.allComments.value.length }}
+              </button>
+            </UiTooltip>
+          </template>
+          <ShellDockToolbarButton :label="t('dock.changes.modes.changes')" :pressed="mode === 'changes'" @click="mode = 'changes'">
+            <FileDiff class="size-3.5" aria-hidden="true" />
+          </ShellDockToolbarButton>
+          <ShellDockToolbarButton :label="t('dock.changes.modes.history')" :pressed="mode === 'history'" @click="mode = 'history'">
+            <History class="size-3.5" aria-hidden="true" />
+          </ShellDockToolbarButton>
         </template>
       </ShellDockToolbar>
       <GitChanges v-if="mode === 'changes'" :side="sideMode" />

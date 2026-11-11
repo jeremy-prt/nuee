@@ -3,14 +3,13 @@ import { LoaderCircle } from '@/components/ui/icons'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 
 // Bouton d'une ligne d'outils de volet (Explorateur, Git), à la taille des boutons du Terminal et du Navigateur.
-// `pressed` défini : bouton à bascule, annoncé par `aria-pressed` (mode du volet, recherche ouverte). `labeled` : son
-// texte est affiché, pas d'infobulle.
+// `pressed` défini : bouton à bascule, annoncé par `aria-pressed` (mode du volet, recherche ouverte).
 defineOptions({ inheritAttrs: false })
-withDefaults(defineProps<{ label: string; pressed?: boolean; loading?: boolean; disabled?: boolean; labeled?: boolean }>(), { pressed: undefined })
+withDefaults(defineProps<{ label: string; pressed?: boolean; loading?: boolean; disabled?: boolean }>(), { pressed: undefined })
 </script>
 
 <template>
-  <UiTooltip :label="label" :disabled="labeled">
+  <UiTooltip :label="label">
     <button
       v-bind="$attrs"
       type="button"

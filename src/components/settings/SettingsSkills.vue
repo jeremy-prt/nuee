@@ -20,8 +20,9 @@ const store = useSkillsStore()
 const navigation = useNavigationStore()
 const query = ref('')
 
+// Les serveurs aussi : un relevé vide (CLI lancée trop tôt) restait sinon affiché jusqu'au redémarrage.
 if (!store.loaded) store.load()
-else store.loadSkills()
+else Promise.all([store.loadSkills(), store.refreshServers()])
 
 const needle = computed(() => normalize(query.value.trim()))
 const matches = (...texts: string[]) => !needle.value || texts.some((text) => normalize(text).includes(needle.value))
