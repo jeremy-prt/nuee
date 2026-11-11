@@ -8,6 +8,7 @@ import type { PaneRect } from '@/ipc/bindings/PaneRect'
 import { browserPlace, browserSnapshot } from '@/ipc/browser'
 import { useAppearanceStore } from '@/stores/appearance'
 import { useBrowserStore } from '@/stores/browser'
+import { useDragStore } from '@/stores/drag'
 import { useLayoutStore } from '@/stores/layout'
 
 // Place réservée à la page : la WKWebView native est posée par-dessus, au même endroit. Rien de Nuée ne peut passer
@@ -25,6 +26,7 @@ const { t } = useI18n()
 const appearance = useAppearanceStore()
 const browser = useBrowserStore()
 const layout = useLayoutStore()
+const drag = useDragStore()
 const host = useTemplateRef('host')
 const frozen = ref<string | null>(null)
 const covered = ref(false)
@@ -65,6 +67,8 @@ function schedule() {
 function isCovered() {
   const box = host.value?.getBoundingClientRect()
   if (!box) return false
+  // Onglet du panneau tiré : la page native prendrait le pointeur et cacherait les zones de dépôt.
+  if (drag.source?.kind === 'dock') return true
   if (document.querySelector(MODALS)) return true
   for (const element of document.querySelectorAll(OVERLAYS)) {
     if (host.value?.contains(element)) continue
@@ -99,6 +103,7 @@ watch(covered, async (now) => {
 
 watch(() => [props.tab.error, appearance.zoomFactor], () => place(true))
 watch(() => layout.moving.dock, () => place(true), { flush: 'post' })
+watch(() => drag.source, schedule)
 
 let resize: ResizeObserver | null = null
 let mutations: MutationObserver | null = null

@@ -8,6 +8,16 @@ export function terminalOpen(chatId: string, place: Place, cols: number, rows: n
   return invoke<number>('terminal_open', { chatId, ...place, cols, rows, onEvent: channel })
 }
 
+// Commande d'un bloc de code, lancée sur un clic dans le dossier de la session ; sortie sur onEvent jusqu'à `exit`.
+export function terminalRun(chatId: string, place: Place, command: string, onEvent: (event: TerminalEvent) => void) {
+  const channel = new Channel<TerminalEvent>(onEvent)
+  return invoke<number>('terminal_run', { chatId, ...place, command, onEvent: channel })
+}
+
+export function terminalStop(id: number) {
+  return invoke<void>('terminal_stop', { id })
+}
+
 export function terminalWrite(id: number, data: string) {
   return invoke<void>('terminal_write', { id, data })
 }

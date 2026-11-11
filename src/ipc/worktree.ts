@@ -38,6 +38,16 @@ export function worktreeFileDiff(chatId: string, path: string, file: string) {
   return invoke<FileDiff>('worktree_file_diff', { chatId, path, file })
 }
 
+// Remet ce seul fichier de la liste dans l'état du dernier commit ; Rust refuse tout autre chemin.
+export function worktreeRevertFile(chatId: string, path: string, file: string) {
+  return invoke<void>('worktree_revert_file', { chatId, path, file })
+}
+
+// Des commits du dossier de la session restent à pousser ; faux sans dépôt distant.
+export function worktreeUnpushed(chatId: string, path: string) {
+  return invoke<boolean>('worktree_unpushed', { chatId, path })
+}
+
 // Passe le dossier du projet sur une branche existante ; git refuse si des modifications seraient écrasées.
 export function worktreeCheckout(path: string, branch: string) {
   return invoke<void>('worktree_checkout', { path, branch })

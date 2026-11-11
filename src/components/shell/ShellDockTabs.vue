@@ -8,18 +8,21 @@ import UiContextMenu from '@/components/ui/UiContextMenu.vue'
 import UiMenuItem from '@/components/ui/UiMenuItem.vue'
 import UiMenuSeparator from '@/components/ui/UiMenuSeparator.vue'
 import { useDockClose } from '@/composables/useDockClose'
+import { useLayoutDrag } from '@/composables/useLayoutDrag'
 import { useTerminalChat } from '@/composables/useTerminalChat'
 import { useTerminalLabels } from '@/composables/useTerminalLabels'
 import type { BrowserTab } from '@/ipc/bindings/BrowserTab'
 import { useBrowserStore } from '@/stores/browser'
+import { useDragStore } from '@/stores/drag'
 import { useShortcutsStore } from '@/stores/shortcuts'
-import { type DockView, useLayoutStore } from '@/stores/layout'
+import { type DockView, SIDE_BY_SIDE, useLayoutStore } from '@/stores/layout'
 import { useTerminalsStore } from '@/stores/terminals'
 
 // Onglets du panneau de droite, comme T3 Code : un par volet ouvert, un par page pour le navigateur et un par groupe de
 // shells pour le terminal (pas de seconde barre dans le volet). La croix au survol, à droite comme les onglets de
 // session ; au clavier, Suppr ferme l'onglet qui a le focus ; clic droit pour fermer, diviser un terminal ou ouvrir
-// le volet à côté de celui affiché (panneau partagé, `layout.right.aside`).
+// le volet à côté de celui affiché (panneau partagé, `layout.right.aside`). Tiré sur le panneau, il s'y place dans
+// une zone (`startDockDrag`).
 interface Item {
   key: string
   view: DockView
@@ -39,6 +42,8 @@ const shortcuts = useShortcutsStore()
 const { chat, place } = useTerminalChat()
 const shellLabels = useTerminalLabels()
 const { close } = useDockClose()
+const drag = useDragStore()
+const { startDockDrag } = useLayoutDrag()
 
 function pageLabel(page: BrowserTab) {
   if (page.title) return page.title
@@ -72,7 +77,7 @@ function shown(view: DockView) {
   return layout.right.active === view || (!!layout.right.active && layout.right.aside === view)
 }
 
-// Affiché dans une zone du panneau ; seul celui de la première zone montre son titre (la barre est étroite).
+// Affiché dans une zone du panneau : il montre son titre, comme l'onglet actif de chaque groupe de VS Code.
 function isActive(item: Item) {
   if (!shown(item.view) || !chat.value) return false
   if (item.page) return browser.active[chat.value.id] === item.page.id
@@ -80,8 +85,16 @@ function isActive(item: Item) {
   return true
 }
 
-function isPrimary(item: Item) {
-  return item.view === layout.right.active && isActive(item)
+// Panneau partagé : un trait sous l'onglet de la zone qui a le focus, où s'affichera le prochain volet choisi.
+function hasFocus(item: Item) {
+  return !!layout.right.aside && layout.zoneOf(item.view) === layout.zone && isActive(item)
+}
+
+function zoneLabel(item: Item) {
+  const zone = layout.right.aside ? layout.zoneOf(item.view) : null
+  if (!zone) return ''
+  const beside = layout.right.size >= SIDE_BY_SIDE
+  return t(`dock.zone.${beside ? (zone === 'start' ? 'left' : 'right') : zone === 'start' ? 'top' : 'bottom'}`)
 }
 
 function groupOfActive() {
@@ -93,15 +106,24 @@ function shellsOf(group: string) {
   return chat.value ? terminals.tabsOf(chat.value.id).filter((shell) => shell.group === group) : []
 }
 
-function select(item: Item) {
+// Page ou groupe de shells montré par le volet, sans toucher aux zones.
+function pick(item: Item) {
   if (item.page && chat.value) browser.select(chat.value.id, item.page.id)
   const shell = item.group && groupOfActive() !== item.group ? shellsOf(item.group)[0] : null
   if (shell && chat.value) terminals.active[chat.value.id] = shell.key
+}
+
+function select(item: Item) {
+  pick(item)
   layout.showView(item.view)
   if (item.group && chat.value) {
     const key = terminals.active[chat.value.id]
     if (key) nextTick(() => terminals.focus(key))
   }
+}
+
+function dragging(item: Item) {
+  return drag.source?.kind === 'dock' && drag.source.id === item.key
 }
 
 function split(item: Item, direction: 'right' | 'down') {
@@ -117,15 +139,17 @@ function split(item: Item, direction: 'right' | 'down') {
       v-for="item in items"
       :key="item.key"
       class="group/tab relative flex h-7 max-w-36 min-w-0 shrink items-center rounded-md text-xs"
-      :class="isActive(item) ? 'bg-selection text-content' : 'text-muted hover:bg-selection-hover hover:text-content'"
+      :class="[isActive(item) ? 'bg-selection text-content' : 'text-muted hover:bg-selection-hover hover:text-content', { 'opacity-50': dragging(item) }]"
     >
       <button
         type="button"
         role="tab"
         :aria-selected="isActive(item)"
+        :data-dock-tab="item.view"
         :title="item.page?.url ?? item.label"
         class="flex h-full min-w-0 items-center rounded-md px-[7px] focus-visible:outline-2 focus-visible:outline-ring"
         @click="select(item)"
+        @pointerdown="startDockDrag($event, item.key, item.view, item.label, () => pick(item))"
         @auxclick.middle="close(item)"
         @keydown.delete="close(item)"
         @keydown.backspace="close(item)"
@@ -140,21 +164,23 @@ function split(item: Item, direction: 'right' | 'down') {
           />
         </span>
         <span v-if="item.page && browser.agent[item.page.id]" class="sr-only">{{ t('dock.browser.agentBusy') }}</span>
-        <!-- Comme monocode : seul l'onglet actif montre son titre, les autres leur icône ; le titre s'ouvre et se referme
-             en largeur (`.dock-tab-label`). La croix se pose au survol sur la fin du titre, qui s'estompe. -->
-        <span class="dock-tab-label min-w-0" :data-open="isPrimary(item) || undefined">
+        <!-- Comme monocode : l'onglet affiché (un par zone) montre son titre, les autres leur icône ; le titre s'ouvre et
+             se referme en largeur (`.dock-tab-label`). La croix se pose au survol sur la fin du titre, qui s'estompe. -->
+        <span class="dock-tab-label min-w-0" :data-open="isActive(item) || undefined">
           <span
             class="min-w-0 truncate ps-1.5 pe-px"
             :class="{
               'group-focus-within/tab:[mask-image:linear-gradient(to_left,transparent_1rem,black_1.375rem)] group-hover/tab:[mask-image:linear-gradient(to_left,transparent_1rem,black_1.375rem)]':
-                isPrimary(item),
+                isActive(item),
             }"
             >{{ item.label }}</span
           >
         </span>
+        <span v-if="zoneLabel(item)" class="sr-only">{{ zoneLabel(item) }}</span>
       </button>
+      <span v-if="hasFocus(item)" class="pointer-events-none absolute inset-x-2 -bottom-1 h-0.5 rounded-full bg-ring" aria-hidden="true" />
       <button
-        v-if="isPrimary(item)"
+        v-if="isActive(item)"
         type="button"
         tabindex="-1"
         class="absolute end-1 top-1/2 grid size-5 -translate-y-1/2 place-items-center rounded-md text-muted opacity-0 transition-opacity duration-(--hover-duration) group-focus-within/tab:opacity-100 group-hover/tab:opacity-100 hover:bg-selection-inner hover:text-content motion-reduce:transition-none"
@@ -170,9 +196,12 @@ function split(item: Item, direction: 'right' | 'down') {
           <UiMenuItem :label="t('dock.terminal.splitDown')" :icon="SplitDown" :shortcut="shortcuts.label('splitTerminalDown')" @select="split(item, 'down')" />
           <UiMenuSeparator />
         </template>
-        <template v-if="layout.right.active && item.view !== layout.right.active">
-          <UiMenuItem v-if="item.view === layout.right.aside" :label="t('dock.closeAside')" :icon="PanelRight" @select="layout.closeAside()" />
-          <UiMenuItem v-else :label="t('dock.openAside')" :icon="PanelRight" @select="layout.showAside(item.view)" />
+        <template v-if="layout.right.aside && layout.zoneOf(item.view)">
+          <UiMenuItem :label="t('dock.closeAside')" :icon="PanelRight" @select="layout.closeZone(layout.zoneOf(item.view)!)" />
+          <UiMenuSeparator />
+        </template>
+        <template v-else-if="layout.right.active && item.view !== layout.right.active">
+          <UiMenuItem :label="t('dock.openAside')" :icon="PanelRight" @select="layout.showAside(item.view)" />
           <UiMenuSeparator />
         </template>
         <UiMenuItem :label="t('dock.closeTab')" :icon="X" @select="close(item)" />

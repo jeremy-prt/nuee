@@ -5,6 +5,7 @@ use tauri::ipc::Channel;
 
 use crate::error::AppError;
 use crate::services::agent::{AgentService, valid_dir};
+use crate::services::chat::ChatService;
 use crate::services::terminal::{TerminalEvent, TerminalService};
 use crate::services::worktree::{WorktreeService, canonical};
 
@@ -52,6 +53,37 @@ pub(crate) async fn work_dir(
         }
     }
     valid_dir(&project)
+}
+
+/// Lance la commande d'un bloc de code de la conversation, sur un clic de l'utilisateur, dans le dossier où
+/// travaille l'agent. La sortie arrive sur `on_event` jusqu'à `exit`.
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+pub async fn terminal_run(
+    chat_id: String,
+    cwd: Option<String>,
+    worktree: bool,
+    worktree_path: Option<String>,
+    command: String,
+    on_event: Channel<TerminalEvent>,
+    terminals: State<'_, TerminalService>,
+    chats: State<'_, ChatService>,
+    agents: State<'_, AgentService>,
+    worktrees: State<'_, WorktreeService>,
+) -> Result<u32, AppError> {
+    // Avant `work_dir`, qui crée le dossier d'une session sans projet.
+    if !chats.exists(&chat_id)? {
+        return Err(AppError::InvalidInput(format!(
+            "session inconnue : {chat_id}"
+        )));
+    }
+    let dir = work_dir(&chat_id, cwd, worktree, worktree_path, &agents, &worktrees).await?;
+    terminals.run(&chats, &chat_id, &dir, &command, on_event)
+}
+
+#[tauri::command]
+pub fn terminal_stop(id: u32, terminals: State<'_, TerminalService>) {
+    terminals.stop(id);
 }
 
 #[tauri::command]

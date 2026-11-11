@@ -101,6 +101,33 @@ pub async fn worktree_file_diff(
     worktrees.file_diff(&PathBuf::from(path), &dir, &file).await
 }
 
+/// Des commits du dossier de la session restent à pousser.
+#[tauri::command]
+pub async fn worktree_unpushed(
+    chat_id: String,
+    path: String,
+    worktrees: State<'_, WorktreeService>,
+    chats: State<'_, ChatService>,
+) -> Result<bool, AppError> {
+    let dir = session_dir(&chats, &chat_id, &path)?;
+    worktrees.unpushed(&PathBuf::from(path), &dir).await
+}
+
+/// Remet un fichier de la liste des changements dans l'état du dernier commit.
+#[tauri::command]
+pub async fn worktree_revert_file(
+    chat_id: String,
+    path: String,
+    file: String,
+    worktrees: State<'_, WorktreeService>,
+    chats: State<'_, ChatService>,
+) -> Result<(), AppError> {
+    let dir = session_dir(&chats, &chat_id, &path)?;
+    worktrees
+        .revert_file(&PathBuf::from(path), &dir, &file)
+        .await
+}
+
 /// `existing` : la branche existe déjà ; sinon elle naît du HEAD du projet.
 #[tauri::command]
 pub async fn worktree_create(

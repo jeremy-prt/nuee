@@ -431,7 +431,7 @@ function onKeydown(event: KeyboardEvent) {
           <button
             type="button"
             class="grid size-7 shrink-0 place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            :class="approving ? 'bg-selection text-content hover:bg-content/20' : 'bg-accent text-canvas hover:opacity-90'"
+            :class="approving ? 'bg-selection text-content hover:bg-content/20' : 'bg-danger text-canvas hover:opacity-90'"
             :aria-label="t('composer.stop')"
             @click="emit('stop')"
           >

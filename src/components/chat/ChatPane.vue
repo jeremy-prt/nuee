@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, provide, useTemplateRef, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, provide, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatApproval from '@/components/chat/ChatApproval.vue'
 import ChatComposer from '@/components/chat/ChatComposer.vue'
@@ -16,6 +16,7 @@ import { useFileDrop } from '@/composables/useFileDrop'
 import { isAppError } from '@/ipc/agent'
 import { worktreeCheckout } from '@/ipc/worktree'
 import { useCatalogStore } from '@/stores/catalog'
+import { codeRunPlaceKey } from '@/stores/codeRuns'
 import { useDialogStore } from '@/stores/dialog'
 import { useDraftsStore } from '@/stores/drafts'
 import { useOperatorStore } from '@/stores/operator'
@@ -24,6 +25,7 @@ import { useToastsStore } from '@/stores/toasts'
 import { type Place, useConversationsStore } from '@/stores/conversations'
 import type { Attachment } from '@/ipc/bindings/Attachment'
 import { useProjectsStore } from '@/stores/projects'
+import { useSessionGitStore } from '@/stores/sessionGit'
 import { type Tab, useWorkspaceStore } from '@/stores/workspace'
 import { useWorktreesStore } from '@/stores/worktrees'
 import { agents } from '@/utils/agents'
@@ -101,6 +103,10 @@ const place = computed<Place>(() => ({
   worktreePath: worktree.value ? props.tab.worktreePath : null,
   worktreeBase: worktree.value && !props.tab.worktreePath ? base.value : null,
 }))
+provide(
+  codeRunPlaceKey,
+  computed(() => ({ chatId: props.tab.id, place: place.value })),
+)
 
 const worktreeState = computed<WorktreeChoice | null>(() =>
   project.value
@@ -130,6 +136,17 @@ async function checkout(branch: string) {
 }
 
 const launch = useComposerLaunch()
+
+// État git de la session (ligne de commit d'Environnement, point sur son bouton), relu entre deux tours et au retour
+// de la fenêtre : un commit fait hors de Nuée s'y voit.
+const sessionGit = useSessionGitStore()
+const idle = computed(() => loaded.value && conversation.value?.phase === 'idle')
+function refreshGit() {
+  if (idle.value && started.value && project.value) sessionGit.refresh(props.tab.id, project.value.path)
+}
+watch([idle, started, () => project.value?.path, () => props.tab.worktreePath], refreshGit, { immediate: true })
+onMounted(() => window.addEventListener('focus', refreshGit))
+onBeforeUnmount(() => window.removeEventListener('focus', refreshGit))
 
 function send(prompt: string, attachments: Attachment[], other = false) {
   operator.userSpoke(props.tab.id)

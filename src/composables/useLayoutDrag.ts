@@ -2,7 +2,7 @@ import { type DragSource, type PreviewRect, useDragStore } from '@/stores/drag'
 import { useI18n } from 'vue-i18n'
 import { useProjectActions } from '@/composables/useProjectActions'
 import { useTabTitle } from '@/composables/useTabTitle'
-import { useLayoutStore } from '@/stores/layout'
+import { type DockView, type DockZone, useLayoutStore } from '@/stores/layout'
 import { useProjectsStore } from '@/stores/projects'
 import { type Tab, useWorkspaceStore } from '@/stores/workspace'
 
@@ -247,5 +247,38 @@ export function useLayoutDrag() {
     )
   }
 
-  return { startTabDrag, startProjectDrag, startChatDrag }
+  // Onglets du panneau de droite, comme les groupes d'éditeurs de VS Code : tiré sur le panneau, il montre ses zones
+  // de dépôt (`ShellDockSplit`, `data-dock-drop`) ; lâché dans l'une, il s'y affiche. Ailleurs, rien.
+  function dockTarget(x: number, y: number) {
+    drag.target = null
+    for (const el of document.querySelectorAll<HTMLElement>('[data-dock-drop]')) {
+      const r = el.getBoundingClientRect()
+      if (x < r.left || x > r.right || y < r.top || y > r.bottom) continue
+      drag.target = { kind: 'dock', at: el.dataset.dockDrop as DockZone }
+      return
+    }
+  }
+
+  function startDockDrag(event: PointerEvent, key: string, view: DockView, label: string, onDrop: () => void) {
+    let last = { x: event.clientX, y: event.clientY }
+    track(
+      event,
+      { kind: 'dock', id: key, view },
+      (x, y) => {
+        last = { x, y }
+        drag.ghost = { x, y, label }
+        dockTarget(x, y)
+      },
+      () => {
+        // Les zones n'apparaissent qu'au rendu qui suit le début du glisser : un geste rapide n'en a vu aucune.
+        dockTarget(last.x, last.y)
+        const target = drag.target
+        if (target?.kind !== 'dock') return
+        onDrop()
+        layout.placeView(view, target.at)
+      },
+    )
+  }
+
+  return { startTabDrag, startProjectDrag, startChatDrag, startDockDrag }
 }

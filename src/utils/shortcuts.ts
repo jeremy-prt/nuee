@@ -71,6 +71,8 @@ export const defaultShortcuts = {
   // Comme iTerm, Ghostty et T3 Code, quand le terminal a le focus : ils passent avant le ⌘D de la vue partagée.
   splitTerminal: { group: 'interface', key: 'd', when: 'terminal' },
   splitTerminalDown: { group: 'interface', key: 'd', shift: true, when: 'terminal' },
+  // Même touches que splitTerminalDown : le terminal au focus garde la division, ailleurs le volet s'ouvre.
+  toggleChanges: { group: 'interface', key: 'd', shift: true },
   browserAddress: { group: 'interface', key: 'l' },
   zoomIn: { group: 'interface', key: '=', shift: 'any', also: ['+'], codes: ['NumpadAdd'], label: '+' },
   zoomOut: { group: 'interface', key: '-', shift: 'any', codes: ['NumpadSubtract'], label: '−' },

@@ -163,6 +163,18 @@ export const useSkillsStore = defineStore('skills', () => {
   // Skills appelables dans un message : leur `/nom` s'affiche en pastille, dans le champ comme dans la conversation.
   const names = computed(() => new Set(skills.value.filter((skill) => mode(skill) !== 'off').map((skill) => skill.name)))
 
+  // Skill de commit de l'utilisateur (`j-commit`), pour les boutons Commiter : un segment « commit » dans le nom passe
+  // avant un nom qui le contient seulement, puis le plus court.
+  function commitSkill(agent: AgentKind) {
+    if (agent !== AGENT) return null
+    const rank = (skill: Skill) => (skill.name.toLowerCase().split(/[-_:.]/).includes('commit') ? 0 : 1)
+    return (
+      skills.value
+        .filter((skill) => mode(skill) !== 'off' && skill.name.toLowerCase().includes('commit'))
+        .sort((a, b) => rank(a) - rank(b) || a.name.length - b.name.length)[0] ?? null
+    )
+  }
+
   // Nuée a son propre réglage pour ce skill, différent de celui de l'agent.
   function differs(skill: Skill) {
     const own = prefs.skills[skill.id]
@@ -414,6 +426,7 @@ export const useSkillsStore = defineStore('skills', () => {
     loadServers,
     refreshServers,
     mode,
+    commitSkill,
     differs,
     setMode,
     serverOn,

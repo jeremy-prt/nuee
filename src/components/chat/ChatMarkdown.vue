@@ -1,17 +1,14 @@
 <script setup lang="ts">
 import { Lexer, type Token, type Tokens } from 'marked'
 import { computed, h, type VNodeChild } from 'vue'
-import ChatCopyButton from '@/components/chat/ChatCopyButton.vue'
+import ChatCodeBlock from '@/components/chat/ChatCodeBlock.vue'
 import ChatSkillResult from '@/components/chat/ChatSkillResult.vue'
-import { i18nGlobal } from '@/i18n'
 import { useBrowserStore } from '@/stores/browser'
 import { parseSkillResult } from '@/utils/skillResult'
 
 // Markdown d'agent rendu en nœuds Vue, jamais en HTML brut : le HTML du texte reste du texte.
 // Les liens ne sont pas cliquables (un clic ferait naviguer la webview elle-même), sauf ceux du poste
 // (localhost, *.test) : ils s'ouvrent dans le volet Navigateur de la session.
-
-const CODE_BLOCK = 'overflow-x-auto rounded-md bg-selection/60 p-3 font-mono text-xs leading-relaxed'
 
 function isLocal(href: string) {
   try {
@@ -44,17 +41,9 @@ function block(token: Token): VNodeChild {
         // JSON encore incomplet pendant la réponse ; s'il reste illisible à la fin, le bloc brut s'affiche.
         if (props.streaming) return null
       }
-      return h('div', { class: 'group relative my-2' }, [
-        h('pre', { class: CODE_BLOCK }, h('code', code.text)),
-        h(
-          'div',
-          {
-            class:
-              'absolute end-1 top-1 rounded-md bg-surface opacity-0 transition-opacity duration-(--hover-duration) group-hover:opacity-100 focus-within:opacity-100 motion-reduce:transition-none',
-          },
-          h(ChatCopyButton, { text: () => code.text, label: i18nGlobal().t('chat.copy.code') }),
-        ),
-      ])
+      // Rang du bloc dans la réponse : sa sortie, s'il est lancé, reste attachée à lui.
+      const block = props.runs && !props.streaming ? `${props.runs}:${codeIndex++}` : undefined
+      return h(ChatCodeBlock, { code: code.text, lang: code.lang, block })
     }
     case 'blockquote':
       return h('blockquote', { class: 'my-2 border-s-2 border-stroke ps-3 text-muted' }, blocks((token as Tokens.Blockquote).tokens))
@@ -138,8 +127,8 @@ function table(token: Tokens.Table) {
   ])
 }
 
-// streaming : l'agent écrit encore ce texte.
-const props = defineProps<{ text: string; streaming?: boolean }>()
+// streaming : l'agent écrit encore ce texte. runs : id de la réponse, ses blocs shell peuvent alors être lancés.
+const props = defineProps<{ text: string; streaming?: boolean; runs?: string }>()
 
 // Pendant l'écriture, seule la fin est relue à chaque bout de texte : le début, coupé sur une ligne vide hors d'un
 // bloc de code, garde ses blocs déjà lus. Le texte fini est relu en entier (une liste coupée en deux se recolle).
@@ -159,7 +148,11 @@ const tokens = computed(() => {
   if (cut !== head.text.length || !text.startsWith(head.text)) head = { text: text.slice(0, cut), tokens: Lexer.lex(text.slice(0, cut)) }
   return [...head.tokens, ...Lexer.lex(text.slice(cut))]
 })
-const Rendered = () => blocks(tokens.value)
+let codeIndex = 0
+const Rendered = () => {
+  codeIndex = 0
+  return blocks(tokens.value)
+}
 </script>
 
 <template>

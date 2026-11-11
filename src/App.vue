@@ -141,6 +141,7 @@ const actions: [ShortcutId, (event: KeyboardEvent) => void][] = [
   ['toggleTerminal', inChatsOnly(() => dockFocus.toggleView('terminal'))],
   ['toggleBrowser', inChatsOnly(() => dockFocus.toggleView('browser'))],
   ['toggleExplorer', inChatsOnly(() => dockFocus.toggleView('files'))],
+  ['toggleChanges', inChatsOnly(() => dockFocus.toggleView('changes'))],
   ['browserAddress', inChatsOnly(browserAddress)],
   ['newTab', () => newChat()],
   ['closeTab', (event) => inChatsOnly(() => dockClose.closeFrom(event.target) || workspace.closeActiveTab())()],

@@ -8,12 +8,12 @@ import { useShortcutsStore } from '@/stores/shortcuts'
 import type { ShortcutId } from '@/utils/shortcuts'
 
 // Panneau ouvert sans volet, comme T3 Code : la liste des volets avec leur raccourci. Un volet sans raccourci global a
-// sa lettre, qui ne vaut que hors d'un champ de saisie (le message en cours garde ses D et ses K).
+// sa lettre, qui ne vaut que hors d'un champ de saisie (le message en cours garde ses K).
 const LAUNCHERS: { view: DockView; shortcut?: ShortcutId; key?: string }[] = [
   { view: 'browser', shortcut: 'toggleBrowser' },
   { view: 'terminal', shortcut: 'toggleTerminal' },
   { view: 'files', shortcut: 'toggleExplorer' },
-  { view: 'changes', key: 'D' },
+  { view: 'changes', shortcut: 'toggleChanges' },
   { view: 'tasks', key: 'K' },
 ]
 

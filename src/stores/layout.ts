@@ -10,6 +10,9 @@ export type SessionSort = 'activity' | 'created' | 'name'
 
 export type SlideColumn = 'rail' | 'panel' | 'dock'
 
+// Zone du panneau partagé : la première (en haut ou à gauche, `active`) ou la seconde (`aside`).
+export type DockZone = 'start' | 'end'
+
 // Panneau de droite en onglets, comme T3 Code : les volets ouverts en onglets ; `null` montre le lanceur « Ouvrir un
 // volet ». Environnement n'en fait pas partie, c'est un panneau flottant (`ShellEnvironment`).
 interface Dock {
@@ -225,6 +228,15 @@ export const useLayoutStore = defineStore('layout', () => {
     dock.preferOpen = dock.open
   }
 
+  // Zone qui a le focus dans le panneau partagé, comme le groupe actif de VS Code : un volet choisi s'y affiche.
+  const zone = ref<DockZone>('start')
+  watch(
+    () => state.right.aside,
+    (aside) => {
+      if (!aside) zone.value = 'start'
+    },
+  )
+
   // Session affichée et son projet : `remember` range ses onglets sous elle, la disposition sous le projet.
   let viewing: { chatId: string; group: string } | null = null
 
@@ -272,23 +284,54 @@ export const useLayoutStore = defineStore('layout', () => {
     dock.aside = validAside(layout.aside, tabs, layout.active)
     dock.asideRatio = layout.asideRatio
     dock.open = layout.open
+    zone.value = 'start'
   }
 
   function forget(chatId: string) {
     delete state.right.sessions[chatId]
   }
 
-  // Un volet déjà affiché à côté y reste.
+  function zoneOf(view: DockView): DockZone | null {
+    const dock = state.right
+    if (!dock.active) return null
+    return dock.active === view ? 'start' : dock.aside === view ? 'end' : null
+  }
+
+  // Un volet déjà affiché garde sa zone ; un autre prend celle qui a le focus.
   function showView(view: DockView) {
     const dock = state.right
     if (!dock.tabs.includes(view)) dock.tabs.push(view)
-    if (dock.aside === view && dock.active) {
-      dock.open = true
+    dock.open = true
+    const shownIn = zoneOf(view)
+    if (shownIn) {
+      zone.value = shownIn
       return
     }
     if (dock.aside === view) dock.aside = null
-    dock.active = view
+    if (dock.active && dock.aside && zone.value === 'end') dock.aside = view
+    else dock.active = view
+  }
+
+  // Volet déposé dans une zone (glisser-déposer). Il remplace celui qui y était ; venu de l'autre zone, les deux
+  // s'échangent et la poignée reste où elle était.
+  function placeView(view: DockView, at: DockZone) {
+    const dock = state.right
+    if (!dock.tabs.includes(view)) dock.tabs.push(view)
     dock.open = true
+    if (!dock.active) {
+      if (dock.aside === view) dock.aside = null
+      dock.active = view
+      return
+    }
+    const from = zoneOf(view)
+    if (from === at || (!dock.aside && from)) return
+    const replaced = at === 'start' ? dock.active : dock.aside
+    const kept = at === 'start' ? (dock.aside ?? dock.active) : dock.active
+    const other = kept === view ? replaced! : kept
+    if (from) dock.asideRatio = 1 - dock.asideRatio
+    dock.active = at === 'start' ? view : other
+    dock.aside = at === 'start' ? other : view
+    zone.value = at
   }
 
   // « Ouvrir à côté » : le panneau se partage entre le volet affiché et celui-ci.
@@ -298,10 +341,15 @@ export const useLayoutStore = defineStore('layout', () => {
     if (!dock.tabs.includes(view)) dock.tabs.push(view)
     dock.aside = view
     dock.open = true
+    zone.value = 'end'
   }
 
-  function closeAside() {
-    state.right.aside = null
+  // Croix d'une zone : elle disparaît, l'autre prend toute la place ; son volet reste ouvert en onglet.
+  function closeZone(at: DockZone) {
+    const dock = state.right
+    if (!dock.aside) return
+    if (at === 'start') dock.active = dock.aside
+    dock.aside = null
   }
 
   // Onglet ajouté sans être montré ni ouvrir le panneau (l'agent s'est servi du volet).
@@ -339,11 +387,8 @@ export const useLayoutStore = defineStore('layout', () => {
   function toggleView(view: DockView) {
     const dock = state.right
     if (!isShown(view)) showView(view)
-    else if (dock.aside === view) dock.aside = null
-    else if (dock.aside) {
-      dock.active = dock.aside
-      dock.aside = null
-    } else dock.open = false
+    else if (dock.aside) closeZone(zoneOf(view)!)
+    else dock.open = false
     dock.preferOpen = dock.open
   }
 
@@ -352,6 +397,8 @@ export const useLayoutStore = defineStore('layout', () => {
 
   // Fichier à déplier dans le volet Modifications (chemin absolu), hors de l'état enregistré.
   const changesFocus = ref<string | null>(null)
+  // Volet Modifications affiché par son raccourci : le focus va à sa première ligne une fois la liste lue.
+  const changesWantsFocus = ref(false)
 
   function showChanges(path: string | null = null) {
     changesFocus.value = path
@@ -368,6 +415,7 @@ export const useLayoutStore = defineStore('layout', () => {
     ...toRefs(state),
     moving,
     changesFocus,
+    changesWantsFocus,
     setEditing,
     spans,
     toggleRail,
@@ -378,8 +426,11 @@ export const useLayoutStore = defineStore('layout', () => {
     restore,
     forget,
     showView,
+    zone,
+    zoneOf,
+    placeView,
     showAside,
-    closeAside,
+    closeZone,
     showLauncher,
     addTab,
     addView,

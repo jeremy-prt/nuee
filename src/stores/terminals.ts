@@ -236,7 +236,7 @@ export const useTerminalsStore = defineStore('terminals', () => {
 
 // Palette ANSI de Brume (et de monocode) : ces couleurs viennent des programmes, pas de l'interface. En clair,
 // celle de GitHub Light : les couleurs vives du sombre ne se lisent pas sur du blanc.
-const ANSI = {
+export const ANSI = {
   dark: [
     '#1f2a3f', '#f87171', '#4ade80', '#fbbf24', '#60a5fa', '#c084fc', '#22d3ee', '#dce3ee',
     '#64748b', '#fca5a5', '#86efac', '#fde68a', '#93c5fd', '#d8b4fe', '#67e8f9', '#f8fafc',

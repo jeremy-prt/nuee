@@ -372,23 +372,10 @@ impl WorktreeService {
         dir: &Path,
         file: &str,
     ) -> Result<FileDiff, AppError> {
-        let path = Path::new(file);
-        if file.is_empty()
-            || !path
-                .components()
-                .all(|part| matches!(part, Component::Normal(_)))
-        {
-            return Err(AppError::InvalidInput("chemin de fichier invalide".into()));
-        }
         let git = require_git()?;
         let (top, base) = repo_base(&git, project, dir).await?;
-        let entry = collect(&git, &top, &base)
-            .await?
-            .into_iter()
-            .find(|entry| entry.path == file)
-            .ok_or_else(|| {
-                AppError::InvalidInput(format!("{file} ne fait pas partie des modifications"))
-            })?;
+        let entry = change_of(&git, &top, &base, file).await?;
+        let path = Path::new(file);
         if entry.binary {
             return Ok(FileDiff {
                 patch: String::new(),
@@ -420,6 +407,70 @@ impl WorktreeService {
             patch: hunks(&out),
             too_large: false,
         })
+    }
+
+    /// Des commits de la branche de `dir` manquent au dépôt distant : sur leur branche suivie, ou sur aucune branche
+    /// distante si elle n'en suit pas. Faux sans dépôt distant ou HEAD détaché.
+    pub async fn unpushed(&self, project: &Path, dir: &Path) -> Result<bool, AppError> {
+        let Some(git) = git_binary() else {
+            return Ok(false);
+        };
+        let Ok(dir) = session_dir(&git, project, dir).await else {
+            return Ok(false);
+        };
+        let on_branch = run(&git, &dir, &["symbolic-ref", "-q", "HEAD"], GIT_TIMEOUT).await;
+        let remotes = run(&git, &dir, &["remote"], GIT_TIMEOUT).await;
+        if on_branch.is_err() || remotes.is_ok_and(|out| out.trim().is_empty()) {
+            return Ok(false);
+        }
+        let upstream = ["rev-parse", "--verify", "--quiet", "@{upstream}"];
+        let range: &[&str] = if run(&git, &dir, &upstream, GIT_TIMEOUT).await.is_ok() {
+            &["rev-list", "--count", "@{upstream}..HEAD"]
+        } else {
+            &["rev-list", "--count", "HEAD", "--not", "--remotes"]
+        };
+        Ok(run(&git, &dir, range, GIT_TIMEOUT)
+            .await
+            .is_ok_and(|out| out.trim().parse::<u32>().is_ok_and(|count| count > 0)))
+    }
+
+    /// Remet un seul fichier de la liste des changements dans l'état du dernier commit : un fichier ajouté ou non
+    /// suivi disparaît, un renommage reprend son ancien nom.
+    pub async fn revert_file(
+        &self,
+        project: &Path,
+        dir: &Path,
+        file: &str,
+    ) -> Result<(), AppError> {
+        let git = require_git()?;
+        let (top, base) = repo_base(&git, project, dir).await?;
+        let entry = change_of(&git, &top, &base, file).await?;
+        let literal = format!(":(literal){}", entry.path);
+        match entry.status {
+            ChangeStatus::Untracked => {
+                let target = top.join(&entry.path);
+                // Un dossier parent remplacé par un lien mènerait hors du dépôt.
+                let parent = target.parent().map(std::fs::canonicalize).transpose()?;
+                let root = std::fs::canonicalize(&top)?;
+                if !parent.is_some_and(|parent| parent.starts_with(&root)) {
+                    return Err(AppError::InvalidInput(format!("{file} est hors du dépôt")));
+                }
+                std::fs::remove_file(&target)?;
+            }
+            ChangeStatus::Added => {
+                run(&git, &top, &["rm", "-qf", "--", &literal], GIT_TIMEOUT).await?;
+            }
+            ChangeStatus::Modified | ChangeStatus::Deleted => {
+                restore(&git, &top, &literal).await?;
+            }
+            ChangeStatus::Renamed => {
+                run(&git, &top, &["rm", "-qf", "--", &literal], GIT_TIMEOUT).await?;
+                if let Some(old) = &entry.old_path {
+                    restore(&git, &top, &format!(":(literal){old}")).await?;
+                }
+            }
+        }
+        Ok(())
     }
 
     /// Worktree dans `worktrees/<id du projet>/<branche nettoyée>`, sur une nouvelle branche partie du HEAD du
@@ -642,6 +693,42 @@ fn hunks(out: &str) -> String {
         .filter(|line| !line.starts_with('\\'))
         .collect::<Vec<_>>()
         .join("\n")
+}
+
+/// Le fichier `file` s'il fait partie des changements : jamais un autre chemin.
+async fn change_of(
+    git: &Path,
+    top: &Path,
+    base: &str,
+    file: &str,
+) -> Result<ChangedFile, AppError> {
+    if file.is_empty()
+        || !Path::new(file)
+            .components()
+            .all(|part| matches!(part, Component::Normal(_)))
+    {
+        return Err(AppError::InvalidInput("chemin de fichier invalide".into()));
+    }
+    collect(git, top, base)
+        .await?
+        .into_iter()
+        .find(|entry| entry.path == file)
+        .ok_or_else(|| {
+            AppError::InvalidInput(format!("{file} ne fait pas partie des modifications"))
+        })
+}
+
+/// Index et copie de travail repris de HEAD pour ce chemin.
+async fn restore(git: &Path, top: &Path, literal: &str) -> Result<(), AppError> {
+    let args = [
+        "restore",
+        "--source=HEAD",
+        "--staged",
+        "--worktree",
+        "--",
+        literal,
+    ];
+    run(git, top, &args, GIT_TIMEOUT).await.map(|_| ())
 }
 
 /// Racine du dépôt vue depuis `dir` et la référence à laquelle comparer : HEAD, ou l'arbre vide d'un dépôt sans
@@ -1109,6 +1196,105 @@ mod tests {
             );
         }
         assert!(block_on(service.file_diff(&repo, &root, "app/main.txt")).is_err());
+    }
+
+    #[test]
+    fn revert_file_puts_back_only_that_file() {
+        if git_binary().is_none() {
+            return;
+        }
+        let root = sandbox("revert");
+        let service = WorktreeService::new(root.join("worktrees"));
+        let repo = root.join("repo");
+        std::fs::create_dir_all(repo.join("app")).expect("dépôt");
+        git(&repo, &["init", "-q", "-b", "main"]);
+        for name in ["main.txt", "gone.txt", "old.txt", "other.txt"] {
+            std::fs::write(repo.join("app").join(name), name).expect("fichier");
+        }
+        git(&repo, &["add", "."]);
+        git(&repo, &["commit", "-qm", "départ"]);
+
+        std::fs::write(repo.join("app/main.txt"), "modifié").expect("modif");
+        git(&repo, &["add", "app/main.txt"]);
+        std::fs::write(repo.join("app/main.txt"), "encore").expect("modif");
+        std::fs::remove_file(repo.join("app/gone.txt")).expect("suppression");
+        std::fs::write(repo.join("app/added.txt"), "ajouté").expect("ajout");
+        git(&repo, &["add", "app/added.txt"]);
+        std::fs::write(repo.join("app/neuf.txt"), "non suivi").expect("non suivi");
+        git(&repo, &["mv", "app/old.txt", "app/new.txt"]);
+        std::fs::write(repo.join("app/other.txt"), "garde").expect("modif");
+
+        let revert = |file: &str| block_on(service.revert_file(&repo, &repo, file));
+        std::fs::write(root.join("secret.txt"), "non").expect("hors dépôt");
+        for path in [
+            "../secret.txt",
+            "app/../app/main.txt",
+            "/etc/hosts",
+            "",
+            "app/absent.txt",
+        ] {
+            assert!(revert(path).is_err(), "{path}");
+        }
+        assert!(root.join("secret.txt").exists());
+        assert!(block_on(service.revert_file(&repo, &root, "app/main.txt")).is_err());
+
+        for file in [
+            "app/main.txt",
+            "app/gone.txt",
+            "app/added.txt",
+            "app/neuf.txt",
+            "app/new.txt",
+        ] {
+            revert(file).expect(file);
+        }
+        let read = |name: &str| std::fs::read_to_string(repo.join("app").join(name)).ok();
+        assert_eq!(read("main.txt").as_deref(), Some("main.txt"));
+        assert_eq!(read("gone.txt").as_deref(), Some("gone.txt"));
+        assert_eq!(read("old.txt").as_deref(), Some("old.txt"));
+        assert_eq!(read("added.txt"), None);
+        assert_eq!(read("neuf.txt"), None);
+        assert_eq!(read("new.txt"), None);
+        let left: Vec<_> = block_on(service.changed_files(&repo, &repo))
+            .expect("liste")
+            .expect("dépôt")
+            .files
+            .into_iter()
+            .map(|file| file.path)
+            .collect();
+        assert_eq!(left, ["app/other.txt"]);
+    }
+
+    #[test]
+    fn unpushed_follows_the_remote() {
+        if git_binary().is_none() {
+            return;
+        }
+        let root = sandbox("unpushed");
+        let service = WorktreeService::new(root.join("worktrees"));
+        let repo = repo(&root);
+        let unpushed = || block_on(service.unpushed(&repo, &repo)).expect("état");
+        assert!(!unpushed(), "sans dépôt distant");
+
+        let remote = root.join("remote.git");
+        git(&root, &["init", "-q", "--bare", "-b", "main", "remote.git"]);
+        git(
+            &repo,
+            &["remote", "add", "origin", &remote.to_string_lossy()],
+        );
+        git(&repo, &["push", "-q", "-u", "origin", "HEAD"]);
+        assert!(!unpushed());
+
+        std::fs::write(repo.join("app/main.txt"), "suite").expect("modif");
+        git(&repo, &["commit", "-qam", "suite"]);
+        assert!(unpushed());
+        git(&repo, &["push", "-q"]);
+        assert!(!unpushed());
+
+        git(&repo, &["switch", "-qc", "neuve"]);
+        assert!(!unpushed(), "branche neuve sans commit à elle");
+        std::fs::write(repo.join("app/main.txt"), "neuve").expect("modif");
+        git(&repo, &["commit", "-qam", "neuve"]);
+        assert!(unpushed(), "branche sans suivi");
     }
 
     #[test]

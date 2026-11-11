@@ -109,7 +109,7 @@ watch(signedIn, async (now) => {
       </UiIconButton>
     </div>
   </template>
-  <ChatMarkdown v-else-if="item.kind === 'text'" :text="item.text" :streaming="streaming" />
+  <ChatMarkdown v-else-if="item.kind === 'text'" :text="item.text" :streaming="streaming" :runs="item.id" />
   <ChatQuestionRecord v-else-if="item.kind === 'tool' && item.answers" :answers="item.answers" />
   <ChatSubagent v-else-if="item.kind === 'tool' && item.tool === 'agent'" class="-mx-2 text-sm" :item="item" />
   <ChatTool v-else-if="item.kind === 'tool'" class="-mx-2 text-sm" :item="item" />

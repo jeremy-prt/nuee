@@ -154,7 +154,7 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
       <template v-if="navigation.view === 'chats'">
         <ShellTabs />
 
-        <UiIconButton :label="t('chats.newChat')" :shortcut="shortcuts.label('newChat')" class="ms-0.5" @click="newChat()">
+        <UiIconButton :label="t('settings.shortcuts.items.newTab')" :shortcut="shortcuts.label('newTab')" class="ms-0.5" @click="newChat()">
           <Plus class="size-4" aria-hidden="true" />
         </UiIconButton>
         <span class="flex-1 self-stretch" data-tauri-drag-region />

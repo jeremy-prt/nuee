@@ -18,6 +18,7 @@ export function useDockFocus() {
 
   function focusComposer() {
     files.wantsFocus = false
+    layout.changesWantsFocus = false
     nextTick(() => document.querySelector<HTMLElement>(`[data-pane-index="${workspace.focusedPane}"] .prompt-field`)?.focus())
   }
 
@@ -25,6 +26,7 @@ export function useDockFocus() {
   function focusView(view: DockView) {
     if (view === 'terminal') terminals.requestFocus()
     else if (view === 'files') files.requestFocus()
+    else if (view === 'changes') layout.changesWantsFocus = true
     else if (view === 'browser') {
       const page = chat.value ? browser.activeOf(chat.value.id) : null
       if (!page || page.url === 'about:blank') nextTick(() => browser.focusAddress++)

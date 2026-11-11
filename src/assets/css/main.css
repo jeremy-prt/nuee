@@ -733,6 +733,22 @@ html[data-mode='light'] {
   mask-image: linear-gradient(to left, transparent 2.875rem, black 3.375rem);
 }
 
+/* Bloc de code (`ChatCodeBlock`) : la première ligne s'estompe sous les boutons du coin, le fond du bloc reste
+   visible. `--veil-width` : largeur des boutons ; `--veil` passe de 1 (net) à 0 quand ils apparaissent. */
+@property --veil {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 1;
+}
+
+@utility code-veil {
+  mask-image: linear-gradient(to left, rgb(0 0 0 / var(--veil)) var(--veil-width), black calc(var(--veil-width) + 2rem)), linear-gradient(black, black);
+  mask-size: 100% 2.2rem, 100% calc(100% - 2.2rem);
+  mask-position: top, bottom;
+  mask-repeat: no-repeat;
+  transition: --veil var(--hover-duration) ease-out;
+}
+
 @layer base {
   :is(
       a,

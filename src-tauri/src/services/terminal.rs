@@ -11,14 +11,23 @@ use tauri::ipc::Channel;
 use ts_rs::TS;
 
 use crate::error::AppError;
+use crate::services::chat::ChatService;
 use crate::utils::shell_env;
+
+/// Sortie d'une commande lancée depuis la conversation : assez large pour les barres de progression.
+const RUN_SIZE: (u16, u16) = (120, 40);
 
 #[derive(Clone, Serialize, TS)]
 #[serde(tag = "type", rename_all = "camelCase")]
 #[ts(export)]
 pub enum TerminalEvent {
-    Output { data: String },
-    Exit,
+    Output {
+        data: String,
+    },
+    /// `code` : `None` si le process a été tué par un signal.
+    Exit {
+        code: Option<u32>,
+    },
 }
 
 struct Terminal {
@@ -54,6 +63,51 @@ impl TerminalService {
         command.env("COLORTERM", "truecolor");
         command.env("TERM_PROGRAM", "Nuee");
         self.spawn(chat_id, command, size, channel)
+    }
+
+    /// Commande d'un bloc de code, lancée par un clic : le shell du terminal de la session l'exécute puis s'arrête.
+    /// Rangée sous l'id du chat comme un shell, elle meurt avec lui ou avec l'app.
+    pub fn run(
+        &self,
+        chats: &ChatService,
+        chat_id: &str,
+        cwd: &Path,
+        line: &str,
+        channel: Channel<TerminalEvent>,
+    ) -> Result<u32, AppError> {
+        let shell = CommandBuilder::new_default_prog().get_shell();
+        self.run_in(&shell, chats, chat_id, cwd, line, channel)
+    }
+
+    fn run_in(
+        &self,
+        shell: &str,
+        chats: &ChatService,
+        chat_id: &str,
+        cwd: &Path,
+        line: &str,
+        channel: Channel<TerminalEvent>,
+    ) -> Result<u32, AppError> {
+        if !chats.exists(chat_id)? {
+            return Err(AppError::InvalidInput(format!(
+                "session inconnue : {chat_id}"
+            )));
+        }
+        if line.trim().is_empty() {
+            return Err(AppError::InvalidInput("commande vide".into()));
+        }
+        let mut command = CommandBuilder::new(shell);
+        // `-i` comme pour le PATH : zsh ne lit `.zshrc` (alias, nvm...) qu'en shell interactif.
+        #[cfg(unix)]
+        command.args(["-ilc", line]);
+        #[cfg(windows)]
+        command.args(["/C", line]);
+        command.cwd(cwd);
+        command.env("PATH", shell_env::search_path());
+        command.env("TERM", "xterm-256color");
+        command.env("COLORTERM", "truecolor");
+        command.env("TERM_PROGRAM", "Nuee");
+        self.spawn(chat_id, command, RUN_SIZE, channel)
     }
 
     fn spawn(
@@ -98,10 +152,14 @@ impl TerminalService {
                     break;
                 }
             }
-            let _ = child.wait();
+            let code = child
+                .wait()
+                .ok()
+                .filter(|status| status.signal().is_none())
+                .map(|status| status.exit_code());
             terminal.exited.store(true, Ordering::Relaxed);
             lock(&terminals).remove(&id);
-            let _ = channel.send(TerminalEvent::Exit);
+            let _ = channel.send(TerminalEvent::Exit { code });
         });
         Ok(id)
     }
@@ -142,6 +200,14 @@ impl TerminalService {
         }
     }
 
+    /// Arrêt d'une commande lancée par `run`, comme celui d'un serveur : SIGTERM, SIGKILL trois secondes plus tard.
+    /// Elle reste dans la liste jusqu'à sa fin, qui envoie `exit`.
+    pub fn stop(&self, id: u32) {
+        if let Ok(terminal) = self.get(id) {
+            end(terminal, Signal::Term, Duration::from_secs(3));
+        }
+    }
+
     pub fn close_chat(&self, chat_id: &str) {
         let mut terminals = lock(&self.terminals);
         let ids: Vec<u32> = terminals
@@ -171,10 +237,20 @@ impl TerminalService {
     }
 }
 
+#[derive(Clone, Copy)]
+enum Signal {
+    Hup,
+    Term,
+}
+
 /// Comme la fermeture d'une fenêtre de terminal : SIGHUP au shell, qui le passe à ses tâches, et à la commande
 /// au premier plan, dans son propre groupe. Ce qui l'ignore est tué deux secondes plus tard.
-#[cfg(unix)]
 fn hang_up(terminal: Arc<Terminal>) {
+    end(terminal, Signal::Hup, Duration::from_secs(2));
+}
+
+#[cfg(unix)]
+fn end(terminal: Arc<Terminal>, first: Signal, grace: Duration) {
     let Ok(pid) = libc::pid_t::try_from(terminal.pid) else {
         return;
     };
@@ -191,9 +267,12 @@ fn hang_up(terminal: Arc<Terminal>) {
             libc::kill(-pid, sig);
         }
     };
-    signal(libc::SIGHUP);
+    signal(match first {
+        Signal::Hup => libc::SIGHUP,
+        Signal::Term => libc::SIGTERM,
+    });
     std::thread::spawn(move || {
-        std::thread::sleep(Duration::from_secs(2));
+        std::thread::sleep(grace);
         if !terminal.exited.load(Ordering::Relaxed) {
             signal(libc::SIGKILL);
         }
@@ -201,7 +280,7 @@ fn hang_up(terminal: Arc<Terminal>) {
 }
 
 #[cfg(windows)]
-fn hang_up(terminal: Arc<Terminal>) {
+fn end(terminal: Arc<Terminal>, _first: Signal, _grace: Duration) {
     crate::services::agent::process::kill_tree(terminal.pid, true);
 }
 
@@ -332,5 +411,105 @@ mod tests {
         service.close_chat("chat");
         assert!(wait_for(&rx, &mut seen, "\"exit\""));
         assert!(service.write(id, "\n").is_err());
+    }
+
+    fn history(chat_id: &str) -> ChatService {
+        use crate::services::agent::AgentKind;
+        use crate::services::chat::ChatSummary;
+        let dir = std::env::temp_dir().join(format!("nuee-run-{}-{chat_id}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let chats = ChatService::open(&dir.join("nuee.db")).unwrap();
+        chats
+            .create(&ChatSummary {
+                id: chat_id.into(),
+                project_id: None,
+                number: 1,
+                agent: AgentKind::Claude,
+                title: None,
+                started: true,
+                worktree: false,
+                worktree_path: None,
+                archived: false,
+                archived_at: None,
+                created_at: 0,
+                updated_at: 0,
+                pinned: false,
+                model: None,
+                added: 0,
+                removed: 0,
+                parent_id: None,
+            })
+            .unwrap();
+        chats
+    }
+
+    #[test]
+    fn a_command_runs_in_the_session_folder_and_reports_its_exit_code() {
+        let chats = history("run");
+        let service = TerminalService::default();
+        let cwd = std::fs::canonicalize(std::env::temp_dir()).unwrap();
+
+        let (channel, rx) = collect();
+        let line = "echo nuee-$((40+2)) && pwd";
+        service
+            .run_in("/bin/sh", &chats, "run", &cwd, line, channel)
+            .unwrap();
+        let mut seen = String::new();
+        assert!(wait_for(&rx, &mut seen, "\"code\":0"), "{seen}");
+        assert!(seen.contains("nuee-42"), "{seen}");
+        assert!(seen.contains(&*cwd.to_string_lossy()), "{seen}");
+
+        let (channel, rx) = collect();
+        service
+            .run_in("/bin/sh", &chats, "run", &cwd, "echo boom; exit 3", channel)
+            .unwrap();
+        let mut seen = String::new();
+        assert!(wait_for(&rx, &mut seen, "\"code\":3"), "{seen}");
+        assert!(seen.contains("boom"));
+    }
+
+    #[test]
+    fn a_long_command_stops_on_request() {
+        let chats = history("stop");
+        let service = TerminalService::default();
+        let (channel, rx) = collect();
+        let cwd = std::env::temp_dir();
+        let id = service
+            .run_in(
+                "/bin/sh",
+                &chats,
+                "stop",
+                &cwd,
+                "echo start; sleep 30",
+                channel,
+            )
+            .unwrap();
+        let mut seen = String::new();
+        assert!(wait_for(&rx, &mut seen, "start"));
+        let started = Instant::now();
+        service.stop(id);
+        assert!(wait_for(&rx, &mut seen, "\"exit\""), "{seen}");
+        assert!(started.elapsed() < Duration::from_secs(5));
+        assert!(service.get(id).is_err());
+    }
+
+    #[test]
+    fn an_unknown_session_or_an_empty_command_is_refused() {
+        let chats = history("known");
+        let service = TerminalService::default();
+        let cwd = std::env::temp_dir();
+        let (channel, _rx) = collect();
+        assert!(
+            service
+                .run_in("/bin/sh", &chats, "ghost", &cwd, "echo hi", channel)
+                .is_err()
+        );
+        let (channel, _rx) = collect();
+        assert!(
+            service
+                .run_in("/bin/sh", &chats, "known", &cwd, "  \n", channel)
+                .is_err()
+        );
+        assert!(lock(&service.terminals).is_empty());
     }
 }

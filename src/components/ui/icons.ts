@@ -22,6 +22,7 @@ import ChartColumnIcon from '@hugeicons/core-free-icons/ChartColumnIcon'
 import CheckmarkCircle02Icon from '@hugeicons/core-free-icons/CheckmarkCircle02Icon'
 import Clock01Icon from '@hugeicons/core-free-icons/Clock01Icon'
 import Coffee02Icon from '@hugeicons/core-free-icons/Coffee02Icon'
+import CloudUploadIcon from '@hugeicons/core-free-icons/CloudUploadIcon'
 import CommentAdd01Icon from '@hugeicons/core-free-icons/CommentAdd01Icon'
 import ComputerTerminal01Icon from '@hugeicons/core-free-icons/ComputerTerminal01Icon'
 import Copy01Icon from '@hugeicons/core-free-icons/Copy01Icon'
@@ -37,9 +38,11 @@ import Link01Icon from '@hugeicons/core-free-icons/Link01Icon'
 import ScissorIcon from '@hugeicons/core-free-icons/ScissorIcon'
 import Css3Icon from '@hugeicons/core-free-icons/Css3Icon'
 import Cursor02Icon from '@hugeicons/core-free-icons/Cursor02Icon'
+import DashboardSpeed02Icon from '@hugeicons/core-free-icons/DashboardSpeed02Icon'
 import Delete02Icon from '@hugeicons/core-free-icons/Delete02Icon'
 import Download04Icon from '@hugeicons/core-free-icons/Download04Icon'
 import File01Icon from '@hugeicons/core-free-icons/File01Icon'
+import FileDiffIcon from '@hugeicons/core-free-icons/FileDiffIcon'
 import File02Icon from '@hugeicons/core-free-icons/File02Icon'
 import FileAudioIcon from '@hugeicons/core-free-icons/FileAudioIcon'
 import FileBracesIcon from '@hugeicons/core-free-icons/FileBracesIcon'
@@ -58,6 +61,7 @@ import FolderOpenIcon from '@hugeicons/core-free-icons/FolderOpenIcon'
 import FolderTransferIcon from '@hugeicons/core-free-icons/FolderTransferIcon'
 import FolderTreeIcon from '@hugeicons/core-free-icons/FolderTreeIcon'
 import GitBranchIcon from '@hugeicons/core-free-icons/GitBranchIcon'
+import GitCommitHorizontalIcon from '@hugeicons/core-free-icons/GitCommitHorizontalIcon'
 import GitCompareIcon from '@hugeicons/core-free-icons/GitCompareIcon'
 import GitForkIcon from '@hugeicons/core-free-icons/GitForkIcon'
 import GithubIcon from '@hugeicons/core-free-icons/GithubIcon'
@@ -183,6 +187,7 @@ export const ChevronsUpDown = icon(ChevronsUpDownGlyph)
 export const CircleAlert = icon(AlertCircleIcon)
 export const CircleCheck = icon(CheckmarkCircle02Icon)
 export const Clock = icon(Clock01Icon)
+export const CloudUpload = icon(CloudUploadIcon)
 export const Coffee = icon(Coffee02Icon)
 export const Columns2 = icon(LayoutTwoColumnIcon)
 export const Copy = icon(Copy01Icon)
@@ -204,6 +209,7 @@ export const ExternalLink = icon(LinkSquare02Icon)
 export const Eye = icon(ViewIcon)
 export const File = icon(File01Icon)
 export const FileAudio = icon(FileAudioIcon)
+export const FileDiff = icon(FileDiffIcon)
 export const FileBraces = icon(FileBracesIcon)
 export const FileCode = icon(FileCodeIcon)
 export const FileCog = icon(FileCogIcon)
@@ -230,8 +236,10 @@ export const FolderInput = icon(FolderTransferIcon)
 export const FolderOpen = icon(FolderOpenIcon)
 export const FolderPlus = icon(FolderAddIcon)
 export const FolderTree = icon(FolderTreeIcon)
+export const Gauge = icon(DashboardSpeed02Icon)
 export const GitBranch = icon(GitBranchIcon)
 export const GitBranchPlus = icon(GitForkIcon)
+export const GitCommit = icon(GitCommitHorizontalIcon)
 export const GitCompare = icon(GitCompareIcon)
 export const Github = icon(GithubIcon)
 export const Globe = icon(Globe02Icon)

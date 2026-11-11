@@ -198,6 +198,8 @@ pub fn run() {
             commands::skills::skills_trash,
             commands::skills::skills_reveal,
             commands::terminal::terminal_open,
+            commands::terminal::terminal_run,
+            commands::terminal::terminal_stop,
             commands::terminal::terminal_write,
             commands::terminal::terminal_resize,
             commands::terminal::terminal_busy,
@@ -213,6 +215,8 @@ pub fn run() {
             commands::worktree::worktree_changes,
             commands::worktree::worktree_changed_files,
             commands::worktree::worktree_file_diff,
+            commands::worktree::worktree_revert_file,
+            commands::worktree::worktree_unpushed,
             commands::worktree::worktree_create,
             commands::worktree::worktree_remove,
         ])

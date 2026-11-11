@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Globe, Logs, Play, Plus, Server, Stop, Wrench } from '@/components/ui/icons'
+import { ChevronDown, Globe, Logs, Play, Plus, Server, Stop, Wrench } from '@/components/ui/icons'
 import { DropdownMenuContent, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuTrigger } from 'reka-ui'
 import { type Component, computed, h, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -17,7 +17,9 @@ import { useBrowserStore } from '@/stores/browser'
 import { useConversationsStore } from '@/stores/conversations'
 import { useServersStore } from '@/stores/servers'
 
-// Menu Serveurs de l'en-tête du volet Navigateur, comme « Dev servers » dans l'app Claude.
+// Menu Serveurs de l'en-tête du volet Navigateur, comme « Dev servers » dans l'app Claude. `row` : la même chose en
+// ligne du volet Environnement.
+defineProps<{ row?: boolean }>()
 const { t } = useI18n()
 const servers = useServersStore()
 const conversations = useConversationsStore()
@@ -72,25 +74,39 @@ function onCloseAutoFocus(event: Event) {
 </script>
 
 <template>
-  <UiTooltip :label="t('dock.servers.menu')">
+  <UiTooltip :label="t('dock.servers.menu')" :disabled="row">
     <span class="flex">
       <DropdownMenuRoot :modal="false" @update:open="onOpen">
         <DropdownMenuTrigger
           :disabled="!chat"
-          class="relative grid size-7 place-items-center rounded-md text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-40 aria-expanded:bg-selection-hover aria-expanded:text-content"
+          :class="
+            row
+              ? 'flex h-8 w-full min-w-0 items-center gap-2.5 rounded-lg px-2 text-start text-[13px] hover:bg-selection-hover focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring aria-expanded:bg-selection-hover'
+              : 'relative grid size-7 place-items-center rounded-md text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-40 aria-expanded:bg-selection-hover aria-expanded:text-content'
+          "
           :aria-label="running ? t('dock.servers.menuRunning', { n: running }) : t('dock.servers.menu')"
           @pointerdown="openedBy(true)"
           @keydown="openedBy(false)"
         >
-          <Server class="size-4" aria-hidden="true" />
-          <span v-if="running" class="absolute end-1 top-1 size-1.5 rounded-full bg-success" aria-hidden="true" />
+          <template v-if="row">
+            <Server class="size-4 shrink-0 text-muted" aria-hidden="true" />
+            <span class="min-w-0 flex-1 truncate">{{ t('dock.servers.menu') }}</span>
+            <span v-if="running" class="flex shrink-0 items-center gap-1.5 text-xs text-muted tabular-nums" aria-hidden="true">
+              <span class="size-1.5 rounded-full bg-success" />{{ running }}
+            </span>
+            <ChevronDown class="size-4 shrink-0 text-muted" aria-hidden="true" />
+          </template>
+          <template v-else>
+            <Server class="size-4" aria-hidden="true" />
+            <span v-if="running" class="absolute end-1 top-1 size-1.5 rounded-full bg-success" aria-hidden="true" />
+          </template>
         </DropdownMenuTrigger>
         <DropdownMenuPortal>
           <DropdownMenuContent
-            align="end"
+            :align="row ? 'start' : 'end'"
             :side-offset="4"
             :collision-padding="8"
-            :class="[menuPanel, 'max-h-(--reka-dropdown-menu-content-available-height) w-56']"
+            :class="[menuPanel, 'max-h-(--reka-dropdown-menu-content-available-height)', row ? 'w-(--reka-dropdown-menu-trigger-width)' : 'w-56']"
             @close-auto-focus="onCloseAutoFocus"
           >
             <DropdownMenuLabel :class="menuTitle">{{ t('dock.servers.heading') }}</DropdownMenuLabel>

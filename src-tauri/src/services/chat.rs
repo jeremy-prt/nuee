@@ -359,6 +359,14 @@ impl ChatService {
         Ok(texts.collect::<Result<_, _>>()?)
     }
 
+    pub fn exists(&self, id: &str) -> Result<bool, AppError> {
+        Ok(self
+            .lock()
+            .query_row("SELECT 1 FROM chats WHERE id = ?1", [id], |_| Ok(()))
+            .optional()?
+            .is_some())
+    }
+
     pub fn delete(&self, id: &str) -> Result<(), AppError> {
         self.lock()
             .execute("DELETE FROM chats WHERE id = ?1", [id])?;
