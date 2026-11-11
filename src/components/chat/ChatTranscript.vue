@@ -25,6 +25,8 @@ const props = defineProps<{
   title?: string | null
   // Session qui a lancé celle-ci : son premier message est sa consigne, même enregistré avant `from`.
   parentId?: string | null
+  // Le champ de saisie n'est pas vide : la proposition ne met plus de réponse en avant.
+  typing?: boolean
 }>()
 
 const firstUser = computed(() => props.items.findIndex((item) => item.kind === 'user'))
@@ -38,6 +40,8 @@ const fromSession = (item: ChatItem, index: number) => {
 }
 
 const emit = defineEmits<{ rewind: [itemId: string]; resend: []; reply: [text: string] }>()
+// Propositions fermées par la croix, le temps que la session reste affichée.
+const dismissed = ref(new Set<string>())
 
 const { t } = useI18n()
 const layout = useLayoutStore()
@@ -71,12 +75,12 @@ type Row =
   | { kind: 'proposal'; id: string; proposal: Proposal; index: number }
 
 // Dernier plan de l'agent, comme l'app Claude : il se tient en bas du fil, au-dessus de la ligne d'activité, pendant
-// son tour (même fini) ; d'un tour précédent, seulement tant qu'il lui reste une étape et qu'un tour tourne. Sinon il
-// reste à l'endroit de sa dernière mise à jour.
+// son tour ; d'un tour précédent, seulement tant qu'il lui reste une étape et qu'un tour tourne. Fini et le tour
+// terminé, il disparaît, comme la liste de Claude Code ; inachevé, il reste à l'endroit de sa dernière mise à jour.
 const plan = computed(() => {
   for (let index = props.items.length - 1; index >= 0; index--) {
     const steps = planOf(props.items[index])
-    if (steps) return { id: props.items[index]!.id, index, steps, pinned: index > lastUser.value || (props.running && steps.some((step) => step.status !== 'completed')) }
+    if (steps) return { id: props.items[index]!.id, index, steps, pinned: index > lastUser.value || (props.running && steps.some((step) => step.status !== 'completed')), done: steps.every((step) => step.status === 'completed') }
   }
   return null
 })
@@ -95,14 +99,14 @@ const rows = computed(() => {
     if (item.kind === 'tool' && item.tool === 'question' && !item.answers && item.status === 'running') return
     if (item.kind === 'tool' && item.name === PROPOSE_NEXT) {
       const proposal = proposalOf(item)
-      if (proposal) {
+      if (proposal && !dismissed.value.has(item.id)) {
         close(start.value + offset)
         out.push({ kind: 'proposal', id: item.id, proposal, index: start.value + offset })
       }
       return
     }
     if (item.kind === 'tool' && item.name === UPDATE_PLAN) {
-      if (plan.value && !plan.value.pinned && item.id === plan.value.id) {
+      if (plan.value && !plan.value.pinned && !plan.value.done && item.id === plan.value.id) {
         close(start.value + offset)
         out.push({ kind: 'plan', id: item.id, steps: plan.value.steps, earlier: false })
       }
@@ -120,7 +124,7 @@ const rows = computed(() => {
   const first = run.find((item) => item.kind === 'tool') ?? run[0]
   if (props.running && first) out.push({ kind: 'activity', id: first.id, items: run, index: props.items.length - run.length })
   else close(props.items.length)
-  if (plan.value?.pinned) {
+  if (plan.value?.pinned && !(plan.value.done && !props.running)) {
     const row: Row = { kind: 'plan', id: plan.value.id, steps: plan.value.steps, earlier: plan.value.index < lastUser.value }
     const live = props.running && out.at(-1)?.kind === 'activity'
     out.splice(live ? out.length - 1 : out.length, 0, row)
@@ -251,7 +255,14 @@ onMounted(() => {
           'group/answer flex flex-col gap-3': row.kind === 'item' && (!!row.end || row.item.kind === 'end'),
         }"
       >
-        <ChatProposal v-if="row.kind === 'proposal'" :proposal="row.proposal" :answerable="!running && row.index > lastUser" @reply="emit('reply', $event)" />
+        <ChatProposal
+          v-if="row.kind === 'proposal'"
+          :proposal="row.proposal"
+          :answerable="!running && row.index > lastUser"
+          :typing="typing"
+          @reply="emit('reply', $event)"
+          @dismiss="dismissed = new Set([...dismissed, row.id])"
+        />
         <ChatPlan v-else-if="row.kind === 'plan'" :steps="row.steps" :earlier="row.earlier" :live="running" :paused="clock?.pausedAt != null" />
         <ChatActivity
           v-else-if="row.kind === 'activity'"

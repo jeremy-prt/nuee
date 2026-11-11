@@ -421,7 +421,7 @@ export default {
     },
   },
   chat: {
-    proposal: { label: "Suggested next step" },
+    proposal: { label: "Suggested next step", dismiss: "Dismiss" },
     plan: {
       title: "Plan",
       earlier: "Plan made before the last message",
@@ -480,8 +480,8 @@ export default {
         open: 'Show in settings',
       },
     },
-    projectTitles: ['An idea to dig into in {project}?', 'What to build in {project}?', 'Where to start in {project}?', 'A feature for {project}?', 'A bug to fix in {project}?', 'Something to check in {project}?', 'A question about {project}?', 'Some code to understand in {project}?', 'An improvement for {project}?', 'A lead to explore in {project}?'],
-    freeTitles: ['An idea to dig into?', 'A quick question?', 'Where to start?', 'Something to clear up?', 'A lead to explore?', 'Some code to understand?', 'An idea in mind?', 'Something to check?', 'A draft to start?', 'An explanation to ask for?'],
+    workspaceTitles: ['What to build today?', 'Where to begin?', 'Which project to kick off?', 'A new feature to build?', 'A project to explore?', 'An idea to turn into code?', 'A repository to get to know?', 'A prototype to put together?', 'A codebase to understand?', 'What to tackle first?'],
+    sessionTitles: ['What comes next?', 'A bug to fix?', 'A change to review?', 'Tests to write?', 'A module to refactor?', 'Docs to fill in?', 'Some behavior to explain?', 'A side task to run?', 'An error to investigate?', 'A small improvement to make?'],
     transcript: 'Conversation',
     working: '{agent} is working…',
     waitingApproval: 'Waiting for approval',

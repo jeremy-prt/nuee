@@ -180,6 +180,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     land(switched)
   })
   let fresh = false
+  // Session vierge ouverte par « Nouvel espace de travail » : son titre d'accueil n'est pas celui d'un onglet de plus.
+  const workspaceChat = ref<string | null>(null)
 
   function layoutOf(key: string) {
     layouts[key] ??= { tabs: [], panes: [], focused: 0 }
@@ -377,7 +379,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     visited.add(contextKey.value)
     if (fresh) {
       fresh = false
-      show(blankChat().id)
+      const blank = blankChat()
+      workspaceChat.value = blank.id
+      show(blank.id)
       return closeDock()
     }
     const layout = current()
@@ -745,6 +749,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     archivedChats,
     tabsFor,
     show,
+    workspaceChat,
     openFromList,
     openChat,
     addChat,

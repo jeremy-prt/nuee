@@ -423,7 +423,7 @@ export default {
     },
   },
   chat: {
-    proposal: { label: "Siguiente paso propuesto" },
+    proposal: { label: "Siguiente paso propuesto", dismiss: "Cerrar" },
     plan: {
       title: "Plan",
       earlier: "Plan establecido antes del último mensaje",
@@ -482,8 +482,8 @@ export default {
         open: 'Ver en los ajustes',
       },
     },
-    projectTitles: ['¿Una idea que explorar en {project}?', '¿Qué construir en {project}?', '¿Por dónde empezar en {project}?', '¿Una función para {project}?', '¿Un error que corregir en {project}?', '¿Algo que comprobar en {project}?', '¿Una pregunta sobre {project}?', '¿Un trozo de código que entender en {project}?', '¿Una mejora para {project}?', '¿Una pista que seguir en {project}?'],
-    freeTitles: ['¿Una idea que explorar?', '¿Una pregunta rápida?', '¿Por dónde empezar?', '¿Algo que aclarar?', '¿Una pista que seguir?', '¿Un trozo de código que entender?', '¿Una idea en mente?', '¿Algo que comprobar?', '¿Un borrador que empezar?', '¿Una explicación que pedir?'],
+    workspaceTitles: ['¿Qué construir hoy?', '¿Por dónde empezar?', '¿Qué proyecto poner en marcha?', '¿Una nueva funcionalidad que crear?', '¿Un proyecto que explorar?', '¿Una idea que convertir en código?', '¿Un repositorio que conocer a fondo?', '¿Un prototipo que montar?', '¿Una base de código que entender?', '¿Qué abordar primero?'],
+    sessionTitles: ['¿Cuál es el siguiente paso?', '¿Un error que corregir?', '¿Un cambio que revisar?', '¿Pruebas que escribir?', '¿Un módulo que refactorizar?', '¿Documentación que completar?', '¿Un comportamiento que explicar?', '¿Una tarea en paralelo?', '¿Un fallo que analizar?', '¿Una pequeña mejora pendiente?'],
     transcript: 'Conversación',
     working: '{agent} está trabajando…',
     waitingApproval: 'Esperando autorización',

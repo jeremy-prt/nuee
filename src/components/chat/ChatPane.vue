@@ -262,6 +262,7 @@ onMounted(() => {
       class="min-h-0 flex-1"
       @rewind="rewindTo"
       @resend="resend"
+      :typing="!!drafts.get(tab.id)?.text.trim()"
       @reply="send($event, [])"
     />
     <!-- Même en-tête que Nouvel espace de travail : titre, puis projet, machine et endroit juste au-dessus du champ. -->
@@ -269,7 +270,7 @@ onMounted(() => {
       <div class="w-full max-w-(--chat-width)">
         <slot name="title">
           <h1 class="px-1 text-2xl font-semibold tracking-tight text-balance break-words">
-            {{ project ? t(pick('chat.projectTitles'), { project: project.name }) : t(pick('chat.freeTitles')) }}
+            {{ t(pick(workspace.workspaceChat === tab.id ? 'chat.workspaceTitles' : 'chat.sessionTitles')) }}
           </h1>
         </slot>
         <ChatPlaceRow

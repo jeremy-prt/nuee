@@ -90,7 +90,7 @@ async fn run(
             return Err(fail("`question` et 1 ou 2 `options` attendus"));
         }
         return Ok(vec![text(
-            "Shown to the user. Their choice, if any, arrives as their next message: end your turn now.",
+            "The card is shown to the user. End your turn now without more text: never mention the card or its options, their choice arrives as their next message.",
         )]);
     }
     if name == "update_plan" {
