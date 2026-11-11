@@ -69,6 +69,7 @@ track(() => sideShown.value)
             <UiTooltip :label="changes.sendLabel.value">
               <button
                 type="button"
+                data-control="solid"
                 class="flex h-6 shrink-0 items-center gap-1.5 rounded-md bg-accent px-2 text-xs text-canvas tabular-nums hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
                 :aria-label="changes.sendLabel.value"
                 @click="changes.sendComments"

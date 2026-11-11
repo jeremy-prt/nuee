@@ -22,6 +22,7 @@ defineEmits<{ click: [] }>()
         <button
           v-bind="{ ...$attrs, class: undefined }"
           type="button"
+          data-control="solid"
           class="grid size-7 cursor-pointer place-items-center rounded-md bg-accent text-canvas shadow-md hover:bg-accent/85 focus-visible:outline-2 focus-visible:outline-ring"
           :aria-label="label"
           @click="$emit('click')"
