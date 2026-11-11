@@ -1,6 +1,8 @@
 import { invoke } from '@tauri-apps/api/core'
 import type { BranchList } from '@/ipc/bindings/BranchList'
+import type { ChangedFile } from '@/ipc/bindings/ChangedFile'
 import type { ChangedFiles } from '@/ipc/bindings/ChangedFiles'
+import type { CommitPage } from '@/ipc/bindings/CommitPage'
 import type { FileDiff } from '@/ipc/bindings/FileDiff'
 import type { HeadInfo } from '@/ipc/bindings/HeadInfo'
 import type { Worktree } from '@/ipc/bindings/Worktree'
@@ -42,6 +44,34 @@ export function worktreeFileDiff(chatId: string, path: string, file: string) {
 // Remet ce seul fichier de la liste dans l'état du dernier commit ; Rust refuse tout autre chemin.
 export function worktreeRevertFile(chatId: string, path: string, file: string) {
   return invoke<void>('worktree_revert_file', { chatId, path, file })
+}
+
+export function worktreeRevertAll(chatId: string, path: string) {
+  return invoke<void>('worktree_revert_all', { chatId, path })
+}
+
+// Commit de tous les changements, fait par l'app sans agent ; refusé si le message est vide.
+export function worktreeCommit(chatId: string, path: string, message: string) {
+  return invoke<HeadInfo>('worktree_commit', { chatId, path, message })
+}
+
+// Push de la branche courante, jamais forcé ; sans branche suivie, vers `origin` ou le seul dépôt distant.
+export function worktreePush(chatId: string, path: string) {
+  return invoke<HeadInfo>('worktree_push', { chatId, path })
+}
+
+// Journal de la branche courante, 50 commits à partir de `skip` ; `query` filtre les titres.
+export function worktreeLog(chatId: string, path: string, skip: number, query: string | null) {
+  return invoke<CommitPage>('worktree_log', { chatId, path, skip, query })
+}
+
+export function worktreeCommitFiles(chatId: string, path: string, sha: string) {
+  return invoke<ChangedFile[]>('worktree_commit_files', { chatId, path, sha })
+}
+
+// Diff d'un fichier de ce commit ; Rust refuse tout autre chemin.
+export function worktreeCommitDiff(chatId: string, path: string, sha: string, file: string) {
+  return invoke<FileDiff>('worktree_commit_diff', { chatId, path, sha, file })
 }
 
 // Des commits du dossier de la session restent à pousser ; faux sans dépôt distant.

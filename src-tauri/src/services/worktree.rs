@@ -11,9 +11,11 @@ use crate::error::AppError;
 use crate::services::agent::{process, valid_session_id};
 use crate::utils::shell_env;
 
-/// `worktree add` peut extraire un gros dépôt et lancer ses hooks de checkout.
+/// `worktree add` peut extraire un gros dépôt et lancer ses hooks de checkout ; un commit, ses hooks ; un push, le
+/// réseau.
 const ADD_TIMEOUT: Duration = Duration::from_secs(120);
 const GIT_TIMEOUT: Duration = Duration::from_secs(15);
+const LOG_PAGE: u32 = 50;
 
 /// Ce qui empêche (ou non) de donner un worktree aux chats d'un projet.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
@@ -125,6 +127,31 @@ pub struct FileDiff {
     pub patch: String,
     /// Au-delà de `MAX_DIFF` : rien n'est envoyé.
     pub too_large: bool,
+}
+
+/// Un commit de la branche courante.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct CommitEntry {
+    pub sha: String,
+    pub short: String,
+    pub subject: String,
+    pub author: String,
+    /// Secondes depuis 1970.
+    #[ts(type = "number")]
+    pub date: i64,
+    /// Branches et étiquettes posées sur lui, celle de HEAD en premier (`main`, `origin/main`, `tag: v1`).
+    pub refs: Vec<String>,
+}
+
+/// Une page du journal, du plus récent au plus ancien. `next` : où reprendre, `None` à la fin.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct CommitPage {
+    pub commits: Vec<CommitEntry>,
+    pub next: Option<u32>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
@@ -396,28 +423,7 @@ impl WorktreeService {
         if entry.status == ChangeStatus::Untracked {
             return Ok(untracked_diff(&top.join(path)));
         }
-        let mut args = vec![
-            "diff".to_owned(),
-            "--no-ext-diff".to_owned(),
-            "--no-color".to_owned(),
-            "-M".to_owned(),
-            base,
-            "--".to_owned(),
-        ];
-        args.extend(entry.old_path.iter().map(|old| format!(":(literal){old}")));
-        args.push(format!(":(literal){}", entry.path));
-        let args: Vec<&str> = args.iter().map(String::as_str).collect();
-        let out = run(&git, &top, &args, GIT_TIMEOUT).await?;
-        if out.len() > MAX_DIFF {
-            return Ok(FileDiff {
-                patch: String::new(),
-                too_large: true,
-            });
-        }
-        Ok(FileDiff {
-            patch: hunks(&out),
-            too_large: false,
-        })
+        patch_of(&git, &top, &[base], &entry).await
     }
 
     /// Des commits de la branche de `dir` manquent au dépôt distant : sur leur branche suivie, ou sur aucune branche
@@ -478,32 +484,181 @@ impl WorktreeService {
         let git = require_git()?;
         let (top, base) = repo_base(&git, project, dir).await?;
         let entry = change_of(&git, &top, &base, file).await?;
-        let literal = format!(":(literal){}", entry.path);
-        match entry.status {
-            ChangeStatus::Untracked => {
-                let target = top.join(&entry.path);
-                // Un dossier parent remplacé par un lien mènerait hors du dépôt.
-                let parent = target.parent().map(std::fs::canonicalize).transpose()?;
-                let root = std::fs::canonicalize(&top)?;
-                if !parent.is_some_and(|parent| parent.starts_with(&root)) {
-                    return Err(AppError::InvalidInput(format!("{file} est hors du dépôt")));
-                }
-                std::fs::remove_file(&target)?;
-            }
-            ChangeStatus::Added => {
-                run(&git, &top, &["rm", "-qf", "--", &literal], GIT_TIMEOUT).await?;
-            }
-            ChangeStatus::Modified | ChangeStatus::Deleted => {
-                restore(&git, &top, &literal).await?;
-            }
-            ChangeStatus::Renamed => {
-                run(&git, &top, &["rm", "-qf", "--", &literal], GIT_TIMEOUT).await?;
-                if let Some(old) = &entry.old_path {
-                    restore(&git, &top, &format!(":(literal){old}")).await?;
-                }
-            }
+        revert_entry(&git, &top, &entry).await
+    }
+
+    /// Tous les fichiers de la liste des changements reviennent au dernier commit, un par un comme `revert_file`.
+    pub async fn revert_all(&self, project: &Path, dir: &Path) -> Result<(), AppError> {
+        let git = require_git()?;
+        let (top, base) = repo_base(&git, project, dir).await?;
+        for entry in collect(&git, &top, &base).await? {
+            revert_entry(&git, &top, &entry).await?;
         }
         Ok(())
+    }
+
+    /// Commite tous les changements de la liste, non suivis compris, avec ce message. git le reçoit en argument :
+    /// rien n'est interprété.
+    pub async fn commit(
+        &self,
+        project: &Path,
+        dir: &Path,
+        message: &str,
+    ) -> Result<HeadInfo, AppError> {
+        let message = message.trim();
+        if message.is_empty() {
+            return Err(AppError::InvalidInput(
+                "le message du commit est vide".into(),
+            ));
+        }
+        let git = require_git()?;
+        let (top, base) = repo_base(&git, project, dir).await?;
+        if collect(&git, &top, &base).await?.is_empty() {
+            return Err(AppError::InvalidInput("rien à commiter".into()));
+        }
+        run(&git, &top, &["add", "--all"], ADD_TIMEOUT).await?;
+        let message = format!("--message={message}");
+        run(&git, &top, &["commit", "--quiet", &message], ADD_TIMEOUT).await?;
+        self.head(project, dir).await
+    }
+
+    /// Pousse la branche courante, jamais en force. Sans branche suivie, la pousse sur `origin` (ou le seul dépôt
+    /// distant) et la fait suivre.
+    pub async fn push(&self, project: &Path, dir: &Path) -> Result<HeadInfo, AppError> {
+        let git = require_git()?;
+        let cwd = session_dir(&git, project, dir).await?;
+        let Some(branch) = current_branch(&git, &cwd).await? else {
+            return Err(AppError::Git(
+                "HEAD détaché : aucune branche à pousser".into(),
+            ));
+        };
+        let upstream = ["rev-parse", "--verify", "--quiet", "@{upstream}"];
+        if run(&git, &cwd, &upstream, GIT_TIMEOUT).await.is_ok() {
+            run(&git, &cwd, &["push", "--quiet"], ADD_TIMEOUT).await?;
+            return self.head(project, dir).await;
+        }
+        let remotes = run(&git, &cwd, &["remote"], GIT_TIMEOUT).await?;
+        let remotes: Vec<&str> = remotes
+            .lines()
+            .map(str::trim)
+            .filter(|name| !name.is_empty())
+            .collect();
+        let remote = match remotes.as_slice() {
+            [] => {
+                return Err(AppError::Git(
+                    "aucun dépôt distant : la branche ne peut pas être poussée".into(),
+                ));
+            }
+            [only] => *only,
+            _ if remotes.contains(&"origin") => "origin",
+            _ => {
+                return Err(AppError::Git(format!(
+                    "la branche {branch} ne suit aucune branche distante et le dépôt en a plusieurs"
+                )));
+            }
+        };
+        if remote.starts_with('-') {
+            return Err(AppError::Git(format!("dépôt distant inattendu : {remote}")));
+        }
+        let args = ["push", "--quiet", "--set-upstream", remote, "HEAD"];
+        run(&git, &cwd, &args, ADD_TIMEOUT).await?;
+        self.head(project, dir).await
+    }
+
+    /// Commits de la branche courante, `LOG_PAGE` à partir de `skip`. `query` : seuls ceux dont le titre la contient.
+    /// Dépôt sans commit : une page vide.
+    pub async fn log(
+        &self,
+        project: &Path,
+        dir: &Path,
+        skip: u32,
+        query: Option<&str>,
+    ) -> Result<CommitPage, AppError> {
+        let git = require_git()?;
+        let cwd = session_dir(&git, project, dir).await?;
+        let head = ["rev-parse", "--verify", "--quiet", "HEAD^{commit}"];
+        if run(&git, &cwd, &head, GIT_TIMEOUT).await.is_err() {
+            return Ok(CommitPage {
+                commits: Vec::new(),
+                next: None,
+            });
+        }
+        let query = query.map(str::trim).filter(|query| !query.is_empty());
+        let mut args = vec![
+            "log".to_owned(),
+            "--no-show-signature".to_owned(),
+            "--format=%H%x1f%h%x1f%s%x1f%an%x1f%at%x1f%D%x1e".to_owned(),
+            format!("--skip={skip}"),
+            format!("--max-count={}", LOG_PAGE + 1),
+        ];
+        if let Some(query) = query {
+            args.extend([
+                "--fixed-strings".to_owned(),
+                "--regexp-ignore-case".to_owned(),
+                format!("--grep={query}"),
+            ]);
+        }
+        args.extend(["HEAD".to_owned(), "--".to_owned()]);
+        let args: Vec<&str> = args.iter().map(String::as_str).collect();
+        let out = run(&git, &cwd, &args, GIT_TIMEOUT).await?;
+        let mut commits: Vec<CommitEntry> = out
+            .split('\x1e')
+            .filter_map(|record| parse_commit(record.trim_start_matches('\n')))
+            .collect();
+        let more = commits.len() > LOG_PAGE as usize;
+        commits.truncate(LOG_PAGE as usize);
+        // `--grep` lit tout le message : la recherche ne vaut que pour le titre.
+        if let Some(query) = query {
+            let query = query.to_lowercase();
+            commits.retain(|commit| commit.subject.to_lowercase().contains(&query));
+        }
+        Ok(CommitPage {
+            commits,
+            next: more.then_some(skip + LOG_PAGE),
+        })
+    }
+
+    /// Fichiers changés par un commit, comparé à son premier parent (à l'arbre vide pour le premier commit).
+    pub async fn commit_files(
+        &self,
+        project: &Path,
+        dir: &Path,
+        sha: &str,
+    ) -> Result<Vec<ChangedFile>, AppError> {
+        let git = require_git()?;
+        let (top, _) = repo_base(&git, project, dir).await?;
+        let (from, to) = commit_range(&git, &top, sha).await?;
+        let mut files = tracked(&git, &top, &[from.as_str(), to.as_str()]).await?;
+        files.sort_by(|a, b| a.path.cmp(&b.path));
+        Ok(files)
+    }
+
+    /// Diff d'un fichier de ce commit : jamais un autre chemin.
+    pub async fn commit_diff(
+        &self,
+        project: &Path,
+        dir: &Path,
+        sha: &str,
+        file: &str,
+    ) -> Result<FileDiff, AppError> {
+        valid_relative(file)?;
+        let git = require_git()?;
+        let (top, _) = repo_base(&git, project, dir).await?;
+        let (from, to) = commit_range(&git, &top, sha).await?;
+        let entry = tracked(&git, &top, &[from.as_str(), to.as_str()])
+            .await?
+            .into_iter()
+            .find(|entry| entry.path == file)
+            .ok_or_else(|| {
+                AppError::InvalidInput(format!("{file} ne fait pas partie de ce commit"))
+            })?;
+        if entry.binary {
+            return Ok(FileDiff {
+                patch: String::new(),
+                too_large: false,
+            });
+        }
+        patch_of(&git, &top, &[from, to], &entry).await
     }
 
     /// Worktree dans `worktrees/<id du projet>/<branche nettoyée>`, sur une nouvelle branche partie du HEAD du
@@ -728,13 +883,38 @@ fn hunks(out: &str) -> String {
         .join("\n")
 }
 
-/// Le fichier `file` s'il fait partie des changements : jamais un autre chemin.
-async fn change_of(
+/// Diff unifié d'un fichier entre `range` (une référence et la copie de travail, ou deux commits), renommage compris.
+async fn patch_of(
     git: &Path,
     top: &Path,
-    base: &str,
-    file: &str,
-) -> Result<ChangedFile, AppError> {
+    range: &[String],
+    entry: &ChangedFile,
+) -> Result<FileDiff, AppError> {
+    let mut args = vec![
+        "diff".to_owned(),
+        "--no-ext-diff".to_owned(),
+        "--no-color".to_owned(),
+        "-M".to_owned(),
+    ];
+    args.extend(range.iter().cloned());
+    args.push("--".to_owned());
+    args.extend(entry.old_path.iter().map(|old| format!(":(literal){old}")));
+    args.push(format!(":(literal){}", entry.path));
+    let args: Vec<&str> = args.iter().map(String::as_str).collect();
+    let out = run(git, top, &args, GIT_TIMEOUT).await?;
+    if out.len() > MAX_DIFF {
+        return Ok(FileDiff {
+            patch: String::new(),
+            too_large: true,
+        });
+    }
+    Ok(FileDiff {
+        patch: hunks(&out),
+        too_large: false,
+    })
+}
+
+fn valid_relative(file: &str) -> Result<(), AppError> {
     if file.is_empty()
         || !Path::new(file)
             .components()
@@ -742,6 +922,124 @@ async fn change_of(
     {
         return Err(AppError::InvalidInput("chemin de fichier invalide".into()));
     }
+    Ok(())
+}
+
+/// Le commit `sha` (identifiant hexadécimal, jamais une autre expression) et son premier parent, ou l'arbre vide.
+async fn commit_range(git: &Path, top: &Path, sha: &str) -> Result<(String, String), AppError> {
+    if !(4..=64).contains(&sha.len()) || !sha.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return Err(AppError::InvalidInput(
+            "identifiant de commit invalide".into(),
+        ));
+    }
+    let target = format!("{sha}^{{commit}}");
+    let to = run(
+        git,
+        top,
+        &["rev-parse", "--verify", "--quiet", &target],
+        GIT_TIMEOUT,
+    )
+    .await
+    .map_err(|_| AppError::InvalidInput(format!("commit {sha} introuvable")))?
+    .trim()
+    .to_owned();
+    let parent = format!("{to}^1");
+    let from = match run(
+        git,
+        top,
+        &["rev-parse", "--verify", "--quiet", &parent],
+        GIT_TIMEOUT,
+    )
+    .await
+    {
+        Ok(out) => out.trim().to_owned(),
+        Err(_) => run(
+            git,
+            top,
+            &["hash-object", "-t", "tree", "--stdin"],
+            GIT_TIMEOUT,
+        )
+        .await?
+        .trim()
+        .to_owned(),
+    };
+    Ok((from, to))
+}
+
+/// Un enregistrement de `log` : champs séparés par 0x1f, refs de `%D`.
+fn parse_commit(record: &str) -> Option<CommitEntry> {
+    let mut fields = record.split('\x1f');
+    let (sha, short, subject, author, date, refs) = (
+        fields.next()?,
+        fields.next()?,
+        fields.next()?,
+        fields.next()?,
+        fields.next()?,
+        fields.next().unwrap_or_default(),
+    );
+    if sha.is_empty() {
+        return None;
+    }
+    let refs = refs
+        .trim()
+        .split(", ")
+        .filter_map(|name| match name.strip_prefix("HEAD -> ") {
+            Some(branch) => Some(branch),
+            None => (!name.is_empty() && name != "HEAD").then_some(name),
+        })
+        .map(str::to_owned)
+        .collect();
+    Some(CommitEntry {
+        sha: sha.to_owned(),
+        short: short.to_owned(),
+        subject: subject.to_owned(),
+        author: author.to_owned(),
+        date: date.trim().parse().unwrap_or(0),
+        refs,
+    })
+}
+
+/// Remet une entrée de la liste des changements dans l'état de HEAD.
+async fn revert_entry(git: &Path, top: &Path, entry: &ChangedFile) -> Result<(), AppError> {
+    let literal = format!(":(literal){}", entry.path);
+    match entry.status {
+        ChangeStatus::Untracked => {
+            let target = top.join(&entry.path);
+            // Un dossier parent remplacé par un lien mènerait hors du dépôt.
+            let parent = target.parent().map(std::fs::canonicalize).transpose()?;
+            let root = std::fs::canonicalize(top)?;
+            if !parent.is_some_and(|parent| parent.starts_with(&root)) {
+                return Err(AppError::InvalidInput(format!(
+                    "{} est hors du dépôt",
+                    entry.path
+                )));
+            }
+            std::fs::remove_file(&target)?;
+        }
+        ChangeStatus::Added => {
+            run(git, top, &["rm", "-qf", "--", &literal], GIT_TIMEOUT).await?;
+        }
+        ChangeStatus::Modified | ChangeStatus::Deleted => {
+            restore(git, top, &literal).await?;
+        }
+        ChangeStatus::Renamed => {
+            run(git, top, &["rm", "-qf", "--", &literal], GIT_TIMEOUT).await?;
+            if let Some(old) = &entry.old_path {
+                restore(git, top, &format!(":(literal){old}")).await?;
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Le fichier `file` s'il fait partie des changements : jamais un autre chemin.
+async fn change_of(
+    git: &Path,
+    top: &Path,
+    base: &str,
+    file: &str,
+) -> Result<ChangedFile, AppError> {
+    valid_relative(file)?;
     collect(git, top, base)
         .await?
         .into_iter()
@@ -789,7 +1087,34 @@ async fn repo_base(git: &Path, project: &Path, dir: &Path) -> Result<(PathBuf, S
 
 /// Fichiers suivis qui diffèrent de `base` (renommages repérés), puis fichiers non suivis.
 async fn collect(git: &Path, top: &Path, base: &str) -> Result<Vec<ChangedFile>, AppError> {
-    let names = ["diff", "--name-status", "-M", "-z", base];
+    let mut files = tracked(git, top, &[base]).await?;
+    let others = ["ls-files", "--others", "--exclude-standard", "-z"];
+    for path in run(git, top, &others, GIT_TIMEOUT)
+        .await?
+        .split('\0')
+        .filter(|path| !path.is_empty())
+    {
+        let bytes = small_file(&top.join(path), MAX_COUNTED);
+        let binary = bytes.as_ref().is_some_and(|bytes| bytes.contains(&0));
+        files.push(ChangedFile {
+            path: path.to_owned(),
+            old_path: None,
+            status: ChangeStatus::Untracked,
+            added: bytes
+                .filter(|_| !binary)
+                .map_or(0, |bytes| lines_of(&bytes)),
+            removed: 0,
+            binary,
+        });
+    }
+    files.sort_by(|a, b| a.path.cmp(&b.path));
+    Ok(files)
+}
+
+/// Fichiers suivis qui diffèrent entre `range` : une référence et la copie de travail, ou deux commits.
+async fn tracked(git: &Path, top: &Path, range: &[&str]) -> Result<Vec<ChangedFile>, AppError> {
+    let mut names = vec!["diff", "--name-status", "-M", "-z"];
+    names.extend_from_slice(range);
     let mut files = Vec::new();
     let out = run(git, top, &names, GIT_TIMEOUT).await?;
     let mut fields = out.split('\0');
@@ -817,7 +1142,8 @@ async fn collect(git: &Path, top: &Path, base: &str) -> Result<Vec<ChangedFile>,
     }
 
     // Avec -z, un renommage s'écrit `ajoutées\tretirées\t\0ancien\0nouveau\0`.
-    let numstat = ["diff", "--numstat", "-M", "-z", base];
+    let mut numstat = vec!["diff", "--numstat", "-M", "-z"];
+    numstat.extend_from_slice(range);
     let out = run(git, top, &numstat, GIT_TIMEOUT).await?;
     let mut fields = out.split('\0');
     while let Some(entry) = fields.next().filter(|entry| !entry.is_empty()) {
@@ -838,27 +1164,6 @@ async fn collect(git: &Path, top: &Path, base: &str) -> Result<Vec<ChangedFile>,
             file.removed = removed.parse().unwrap_or(0);
         }
     }
-
-    let others = ["ls-files", "--others", "--exclude-standard", "-z"];
-    for path in run(git, top, &others, GIT_TIMEOUT)
-        .await?
-        .split('\0')
-        .filter(|path| !path.is_empty())
-    {
-        let bytes = small_file(&top.join(path), MAX_COUNTED);
-        let binary = bytes.as_ref().is_some_and(|bytes| bytes.contains(&0));
-        files.push(ChangedFile {
-            path: path.to_owned(),
-            old_path: None,
-            status: ChangeStatus::Untracked,
-            added: bytes
-                .filter(|_| !binary)
-                .map_or(0, |bytes| lines_of(&bytes)),
-            removed: 0,
-            binary,
-        });
-    }
-    files.sort_by(|a, b| a.path.cmp(&b.path));
     Ok(files)
 }
 
@@ -1117,6 +1422,249 @@ mod tests {
         git(&repo, &["add", "."]);
         git(&repo, &["commit", "-qm", "départ"]);
         repo
+    }
+
+    /// Le service lance git sans `-c user.*` : l'identité vient de la config du dépôt.
+    fn identity(repo: &Path) {
+        git(repo, &["config", "user.name", "Nuée"]);
+        git(repo, &["config", "user.email", "nuee@example.com"]);
+        git(repo, &["config", "commit.gpgsign", "false"]);
+    }
+
+    #[test]
+    fn direct_commit_takes_everything_and_keeps_the_message_as_is() {
+        if git_binary().is_none() {
+            return;
+        }
+        let root = sandbox("commit");
+        let repo = repo(&root);
+        identity(&repo);
+        let service = WorktreeService::new(root.join("worktrees"));
+        let commit = |message: &str| block_on(service.commit(&repo, &repo, message));
+
+        assert!(
+            matches!(commit("titre"), Err(AppError::InvalidInput(_))),
+            "rien à commiter"
+        );
+        std::fs::write(repo.join("app/main.txt"), "modifié").expect("modif");
+        std::fs::write(repo.join("app/neuf.txt"), "non suivi").expect("non suivi");
+        assert!(matches!(commit("  \n "), Err(AppError::InvalidInput(_))));
+        assert_eq!(git(&repo, &["rev-list", "--count", "HEAD"]).trim(), "1");
+
+        let message =
+            "Titre \"cité\" et 'apostrophe' $HOME `id`\n\n--amend ; corps\nsur deux lignes";
+        let head = commit(message).expect("commit");
+        assert_eq!(
+            head.subject.as_deref(),
+            Some("Titre \"cité\" et 'apostrophe' $HOME `id`")
+        );
+        assert_eq!(
+            git(&repo, &["log", "-1", "--format=%B"]).trim_end(),
+            message
+        );
+        assert_eq!(git(&repo, &["rev-list", "--count", "HEAD"]).trim(), "2");
+        let left = block_on(service.changed_files(&repo, &repo))
+            .expect("liste")
+            .expect("dépôt");
+        assert!(left.files.is_empty());
+        assert!(git(&repo, &["ls-files"]).contains("app/neuf.txt"));
+
+        std::fs::write(repo.join("app/main.txt"), "encore").expect("modif");
+        assert!(block_on(service.commit(&repo, &root, "ailleurs")).is_err());
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn revert_all_puts_back_every_file() {
+        if git_binary().is_none() {
+            return;
+        }
+        let root = sandbox("revert-all");
+        let repo = repo(&root);
+        let service = WorktreeService::new(root.join("worktrees"));
+        std::fs::write(repo.join("app/main.txt"), "modifié").expect("modif");
+        std::fs::write(repo.join("app/neuf.txt"), "non suivi").expect("non suivi");
+        block_on(service.revert_all(&repo, &repo)).expect("annulé");
+        assert_eq!(
+            std::fs::read_to_string(repo.join("app/main.txt")).expect("fichier"),
+            "salut"
+        );
+        assert!(!repo.join("app/neuf.txt").exists());
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn push_sets_the_upstream_or_says_there_is_no_remote() {
+        if git_binary().is_none() {
+            return;
+        }
+        let root = sandbox("push");
+        let repo = repo(&root);
+        identity(&repo);
+        let service = WorktreeService::new(root.join("worktrees"));
+        let push = || block_on(service.push(&repo, &repo));
+        assert!(
+            matches!(push(), Err(AppError::Git(_))),
+            "sans dépôt distant"
+        );
+
+        let remote = root.join("remote.git");
+        git(&root, &["init", "-q", "--bare", "remote.git"]);
+        git(
+            &repo,
+            &["remote", "add", "origin", &remote.to_string_lossy()],
+        );
+        let head = push().expect("premier push");
+        let branch = head.branch.expect("branche");
+        assert_eq!(
+            git(&repo, &["rev-parse", "--abbrev-ref", "@{upstream}"]).trim(),
+            format!("origin/{branch}")
+        );
+        assert!(!block_on(service.unpushed(&repo, &repo)).expect("état"));
+
+        std::fs::write(repo.join("app/main.txt"), "suite").expect("modif");
+        block_on(service.commit(&repo, &repo, "suite")).expect("commit");
+        assert!(block_on(service.unpushed(&repo, &repo)).expect("état"));
+        push().expect("push suivi");
+        assert!(!block_on(service.unpushed(&repo, &repo)).expect("état"));
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn log_pages_through_the_branch_and_searches_titles() {
+        if git_binary().is_none() {
+            return;
+        }
+        let root = sandbox("log");
+        let repo = repo(&root);
+        let service = WorktreeService::new(root.join("worktrees"));
+        for index in 1..=120 {
+            git(
+                &repo,
+                &[
+                    "commit",
+                    "-q",
+                    "--allow-empty",
+                    "-m",
+                    &format!("Étape {index}"),
+                ],
+            );
+        }
+        git(
+            &repo,
+            &[
+                "commit",
+                "-q",
+                "--allow-empty",
+                "-m",
+                "Autre",
+                "-m",
+                "parle de l'étape 11",
+            ],
+        );
+        let branch = git(&repo, &["branch", "--show-current"]).trim().to_owned();
+        let log = |skip: u32, query: Option<&str>| {
+            block_on(service.log(&repo, &repo, skip, query)).expect("journal")
+        };
+
+        let first = log(0, None);
+        assert_eq!(first.commits.len(), 50);
+        assert_eq!(first.next, Some(50));
+        assert_eq!(first.commits[0].subject, "Autre");
+        assert_eq!(first.commits[0].refs, [branch]);
+        assert_eq!(first.commits[0].author, "Nuée");
+        assert!(
+            first.commits[0].date > 0 && first.commits[0].sha.starts_with(&first.commits[0].short)
+        );
+        assert!(first.commits[1].refs.is_empty());
+        let last = log(100, None);
+        assert_eq!(last.commits.len(), 22);
+        assert_eq!(last.next, None);
+        assert_eq!(
+            last.commits.last().map(|commit| commit.subject.as_str()),
+            Some("départ")
+        );
+
+        let found: Vec<_> = log(0, Some(" ÉTAPE 11 "))
+            .commits
+            .into_iter()
+            .map(|commit| commit.subject)
+            .collect();
+        assert_eq!(found.len(), 11, "{found:?}");
+        assert!(found.iter().all(|subject| subject.starts_with("Étape 11")));
+        assert!(log(0, Some("--all")).commits.is_empty());
+
+        let empty = root.join("vide");
+        std::fs::create_dir_all(&empty).expect("dossier");
+        git(&empty, &["init", "-q"]);
+        let page = block_on(service.log(&empty, &empty, 0, None)).expect("dépôt vide");
+        assert!(page.commits.is_empty() && page.next.is_none());
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn a_commit_lists_its_files_and_their_diffs() {
+        if git_binary().is_none() {
+            return;
+        }
+        let root = sandbox("commit-files");
+        let repo = repo(&root);
+        let service = WorktreeService::new(root.join("worktrees"));
+        let first = git(&repo, &["rev-parse", "HEAD"]).trim().to_owned();
+        std::fs::write(repo.join("app/old.txt"), "garde\n").expect("fichier");
+        std::fs::write(repo.join("app/gone.txt"), "a\nb\n").expect("fichier");
+        git(&repo, &["add", "."]);
+        git(&repo, &["commit", "-qm", "plus"]);
+        std::fs::write(repo.join("app/main.txt"), "bonjour\n").expect("modif");
+        std::fs::write(repo.join("app/neuf.txt"), "x\ny\nz\n").expect("ajout");
+        std::fs::remove_file(repo.join("app/gone.txt")).expect("suppression");
+        git(&repo, &["mv", "app/old.txt", "app/new.txt"]);
+        git(&repo, &["add", "--all"]);
+        git(&repo, &["commit", "-qm", "changements"]);
+        let sha = git(&repo, &["rev-parse", "HEAD"]).trim().to_owned();
+
+        let files = block_on(service.commit_files(&repo, &repo, &sha[..10])).expect("fichiers");
+        let summary: Vec<_> = files
+            .iter()
+            .map(|file| (file.path.as_str(), file.status, file.added, file.removed))
+            .collect();
+        assert_eq!(
+            summary,
+            [
+                ("app/gone.txt", ChangeStatus::Deleted, 0, 2),
+                ("app/main.txt", ChangeStatus::Modified, 1, 1),
+                ("app/neuf.txt", ChangeStatus::Added, 3, 0),
+                ("app/new.txt", ChangeStatus::Renamed, 0, 0),
+            ]
+        );
+        let diff = block_on(service.commit_diff(&repo, &repo, &sha, "app/main.txt")).expect("diff");
+        assert_eq!(diff.patch, "@@ -1 +1 @@\n-salut\n+bonjour");
+
+        let root_files =
+            block_on(service.commit_files(&repo, &repo, &first)).expect("premier commit");
+        assert_eq!(root_files.len(), 1);
+        assert_eq!(
+            (root_files[0].path.as_str(), root_files[0].status),
+            ("app/main.txt", ChangeStatus::Added)
+        );
+        let diff =
+            block_on(service.commit_diff(&repo, &repo, &first, "app/main.txt")).expect("diff");
+        assert_eq!(diff.patch, "@@ -0,0 +1 @@\n+salut");
+
+        for sha in ["HEAD", "HEAD~1", "--all", "zz12", "abc", ""] {
+            assert!(
+                block_on(service.commit_files(&repo, &repo, sha)).is_err(),
+                "{sha}"
+            );
+        }
+        assert!(block_on(service.commit_files(&repo, &repo, "abcdef12")).is_err());
+        for file in ["app/old.txt", "../secret.txt", "/etc/hosts", ""] {
+            assert!(
+                block_on(service.commit_diff(&repo, &repo, &sha, file)).is_err(),
+                "{file}"
+            );
+        }
+        let _ = std::fs::remove_dir_all(root);
     }
 
     #[test]

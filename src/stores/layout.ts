@@ -8,6 +8,12 @@ export const DOCK_VIEWS: DockView[] = ['browser', 'terminal', 'files', 'changes'
 
 export type SessionSort = 'activity' | 'created' | 'name'
 
+// Mode du volet Git : changements non commités ou journal de la branche.
+export type GitMode = 'changes' | 'history'
+
+// Volets qui ouvrent un éditeur à gauche de leur liste.
+export type EditorView = Extract<DockView, 'files' | 'changes'>
+
 export type SlideColumn = 'rail' | 'panel' | 'dock'
 
 // Zone du panneau partagé : la première (en haut ou à gauche, `active`) ou la seconde (`aside`).
@@ -34,6 +40,8 @@ interface Dock {
   sessions: Record<string, SessionDock>
   // Disposition commune aux sessions d'un projet ('' : « Sans projet ») : passer de l'une à l'autre ne la change pas.
   projects: Record<string, ProjectDock>
+  // Mode du volet Git par projet, comme le reste de la disposition.
+  gitModes: Record<string, GitMode>
 }
 
 interface SessionDock {
@@ -107,7 +115,7 @@ function defaults(): LayoutState {
   return {
     rail: { expanded: true, width: SIZES.rail.defaultSize },
     panel: { open: true, width: SIZES.panel.defaultSize },
-    right: { open: false, size: SIZES.right.defaultSize, width: null, editorWidth: null, tabs: [], active: null, aside: null, asideRatio: 0.5, preferOpen: true, sessions: {}, projects: {} },
+    right: { open: false, size: SIZES.right.defaultSize, width: null, editorWidth: null, tabs: [], active: null, aside: null, asideRatio: 0.5, preferOpen: true, sessions: {}, projects: {}, gitModes: {} },
     sessionSort: 'activity',
     sessionGroups: false,
     sessionCompact: true,
@@ -143,6 +151,9 @@ function load(): LayoutState {
       const ratio = Number.isFinite(saved.asideRatio) ? Math.min(0.9, Math.max(0.1, saved.asideRatio)) : 0.5
       state.right.projects[group] = { open: !!saved.open, active, aside, asideRatio: ratio }
     }
+    state.right.gitModes = Object.fromEntries(
+      Object.entries(state.right.gitModes ?? {}).filter(([, mode]) => mode === 'changes' || mode === 'history'),
+    )
     delete (state.right as { panes?: unknown }).panes
     delete (state.right as { split?: unknown }).split
     const legacy = state as LayoutState & { bottom?: unknown; views?: unknown }
@@ -180,23 +191,30 @@ export const useLayoutStore = defineStore('layout', () => {
     { deep: true },
   )
 
-  // Fichier ouvert dans l'Explorateur (signalé par `FilesPanel`) : le panneau prend la largeur retenue pour ce cas, sans
-  // toucher à celle du panneau simple. Jamais réglée : `roomy`, calculée par `FilesPanel`, non retenue.
-  const editing = ref(false)
+  // Éditeur ouvert à gauche d'un volet (fichier de l'Explorateur, diff du volet Git, signalé par `useDockEditor`) : le
+  // panneau prend la largeur retenue pour ce cas, sans toucher à celle du panneau simple. Jamais réglée : `roomy`, non
+  // retenue.
+  const editors = reactive(new Set<EditorView>())
   let switching = false
-  function setEditing(value: boolean, roomy = 0) {
-    if (editing.value === value) return
-    editing.value = value
+  function setEditing(view: EditorView, value: boolean, roomy = 0) {
+    const was = editors.size > 0
+    if (value) editors.add(view)
+    else editors.delete(view)
+    const editing = editors.size > 0
+    if (was === editing) return
     const simple = state.right.width ?? SIZES.right.defaultSize
     switching = true
-    state.right.size = value ? (state.right.editorWidth ?? Math.min(SIZES.right.max, Math.max(simple, Math.round(roomy)))) : simple
+    state.right.size = editing ? (state.right.editorWidth ?? Math.min(SIZES.right.max, Math.max(simple, Math.round(roomy)))) : simple
     switching = false
+  }
+  function editingIn(view: EditorView) {
+    return editors.has(view)
   }
   watch(
     () => state.right.size,
     (size) => {
       if (switching) return
-      if (editing.value) state.right.editorWidth = size
+      if (editors.size) state.right.editorWidth = size
       else state.right.width = size
     },
     { flush: 'sync' },
@@ -395,14 +413,22 @@ export const useLayoutStore = defineStore('layout', () => {
   // Colonne qui glisse (`useColumnSlide`) : celle qui se ferme reste affichée jusqu'à la fin du mouvement.
   const moving = reactive<Record<SlideColumn, boolean>>({ rail: false, panel: false, dock: false })
 
-  // Fichier à déplier dans le volet Modifications (chemin absolu), hors de l'état enregistré.
+  // Fichier à montrer dans le volet Git (chemin absolu), hors de l'état enregistré.
   const changesFocus = ref<string | null>(null)
-  // Volet Modifications affiché par son raccourci : le focus va à sa première ligne une fois la liste lue.
+  // Volet Git affiché par son raccourci : le focus va à sa première ligne une fois la liste lue.
   const changesWantsFocus = ref(false)
 
   function showChanges(path: string | null = null) {
     changesFocus.value = path
     showView('changes')
+  }
+
+  function gitMode(projectId: string | null): GitMode {
+    return state.right.gitModes[projectId ?? ''] ?? 'changes'
+  }
+
+  function setGitMode(projectId: string | null, mode: GitMode) {
+    state.right.gitModes[projectId ?? ''] = mode
   }
 
   function reset() {
@@ -417,6 +443,7 @@ export const useLayoutStore = defineStore('layout', () => {
     changesFocus,
     changesWantsFocus,
     setEditing,
+    editingIn,
     spans,
     toggleRail,
     togglePanel,
@@ -435,6 +462,8 @@ export const useLayoutStore = defineStore('layout', () => {
     addTab,
     addView,
     showChanges,
+    gitMode,
+    setGitMode,
     closeView,
     toggleView,
     reset,

@@ -6,35 +6,23 @@ import UiButton from '@/components/ui/UiButton.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import type { DiffComment } from '@/stores/diffComments'
 import { useShortcutsStore } from '@/stores/shortcuts'
+import { type DiffLine, changeStarts, diffLines } from '@/utils/diff'
 
 type Anchor = Pick<DiffComment, 'side' | 'line' | 'code'>
 
-// unbounded : sans hauteur maximale, quand le conteneur défile déjà (volet Modifications).
-// commentable : un bouton au survol de chaque ligne ouvre un champ de commentaire sous elle.
-const props = defineProps<{ patch: string; unbounded?: boolean; commentable?: boolean; comments?: DiffComment[] }>()
+// unbounded : sans hauteur maximale, quand le conteneur défile déjà (volet Git). flush : sans cadre, en pleine
+// colonne (éditeur du volet Git). commentable : un bouton au survol de chaque ligne ouvre un champ de commentaire sous
+// elle. La première ligne de chaque changement porte `data-change` (son rang), pour passer de l'un à l'autre.
+const props = defineProps<{ patch: string; unbounded?: boolean; flush?: boolean; commentable?: boolean; comments?: DiffComment[] }>()
 const emit = defineEmits<{ add: [comment: Anchor & { body: string }]; remove: [id: string] }>()
 
 const { t } = useI18n()
 const shortcuts = useShortcutsStore()
 
-type Line = { kind: 'hunk' | 'add' | 'del' | 'same'; text: string; old: number | null; new: number | null }
+type Line = DiffLine
 
-const lines = computed(() => {
-  const rows: Line[] = []
-  let old = 0
-  let now = 0
-  for (const raw of props.patch.split('\n')) {
-    const hunk = raw.match(/^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/)
-    if (hunk) {
-      old = Number(hunk[1])
-      now = Number(hunk[2])
-      if (rows.length) rows.push({ kind: 'hunk', text: '', old: null, new: null })
-    } else if (raw.startsWith('+')) rows.push({ kind: 'add', text: raw.slice(1), old: null, new: now++ })
-    else if (raw.startsWith('-')) rows.push({ kind: 'del', text: raw.slice(1), old: old++, new: null })
-    else rows.push({ kind: 'same', text: raw.slice(1), old: old++, new: now++ })
-  }
-  return rows
-})
+const lines = computed(() => diffLines(props.patch))
+const starts = computed(() => new Map(changeStarts(lines.value).map((line, rank) => [line, rank])))
 
 function anchor(line: Line): Anchor {
   return line.kind === 'del' ? { side: 'old', line: line.old ?? 0, code: line.text } : { side: 'new', line: line.new ?? 0, code: line.text }
@@ -91,11 +79,11 @@ const columns = computed(() => (props.commentable ? 5 : 4))
 </script>
 
 <template>
-  <div class="overflow-auto rounded-md border border-stroke font-mono text-[11px] leading-[1.6] select-text" :class="{ 'max-h-80': !unbounded }">
+  <div class="overflow-auto font-mono text-[11px] leading-[1.6] select-text" :class="[{ 'max-h-80': !unbounded }, flush ? '' : 'rounded-md border border-stroke']">
     <table class="w-full border-collapse">
       <tbody>
         <template v-for="(line, index) in lines" :key="index">
-          <tr class="group/line" :class="ROW[line.kind]">
+          <tr class="group/line scroll-mt-8" :class="ROW[line.kind]" :data-change="starts.get(index)">
             <template v-if="line.kind !== 'hunk'">
               <td v-if="commentable" class="w-px ps-0.5 align-top select-none">
                 <button

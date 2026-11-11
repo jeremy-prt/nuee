@@ -2,7 +2,7 @@
 import { computed, defineAsyncComponent, provide, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import BrowserPane from '@/components/browser/BrowserPane.vue'
-import ChatChangesPanel from '@/components/chat/ChatChangesPanel.vue'
+import GitPanel from '@/components/git/GitPanel.vue'
 import ChatTasks from '@/components/chat/ChatTasks.vue'
 import ServerLogs from '@/components/server/ServerLogs.vue'
 import TerminalPanel from '@/components/terminal/TerminalPanel.vue'
@@ -52,7 +52,7 @@ const logs = computed(() => {
     @focusin="enter"
   >
     <ChatTasks v-if="view === 'tasks'" />
-    <ChatChangesPanel v-else-if="view === 'changes'" />
+    <GitPanel v-else-if="view === 'changes'" />
     <TerminalPanel v-else-if="view === 'terminal'" />
     <FilesPanel v-else-if="view === 'files'" />
     <ServerLogs v-else-if="view === 'browser' && logs" :root="logs.root" :name="logs.name" />

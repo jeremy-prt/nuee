@@ -4,10 +4,12 @@ import { i18nGlobal } from '@/i18n'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { Effort } from '@/ipc/bindings/Effort'
 import type { HeadInfo } from '@/ipc/bindings/HeadInfo'
-import { worktreeHead } from '@/ipc/worktree'
+import { isAppError } from '@/ipc/agent'
+import { worktreeCommit, worktreeHead, worktreePush } from '@/ipc/worktree'
 import { type Signal, useAttentionStore } from '@/stores/attention'
 import { useCatalogStore } from '@/stores/catalog'
-import { type Conversation, type GitItem, useConversationsStore } from '@/stores/conversations'
+import { type ChatItem, type Conversation, type GitItem, useConversationsStore } from '@/stores/conversations'
+import { useGitPanelStore } from '@/stores/gitPanel'
 import { useNavigationStore } from '@/stores/navigation'
 import { useProjectsStore } from '@/stores/projects'
 import { useSessionGitStore } from '@/stores/sessionGit'
@@ -16,16 +18,29 @@ import { useToastsStore } from '@/stores/toasts'
 import { type Tab, useWorkspaceStore } from '@/stores/workspace'
 import { useWorktreesStore } from '@/stores/worktrees'
 
-export type GitAction = 'ship' | 'commitPush' | 'commit' | 'push' | 'initRepo'
+// `message` : écrire le titre du commit des changements, sans commiter (bouton du champ de message du volet Git).
+export type GitAction = 'ship' | 'commitPush' | 'commit' | 'push' | 'initRepo' | 'message'
 
 // Mots cherchés dans le nom des skills de l'utilisateur. null : toujours la consigne générique (« Commiter sans
-// pousser » : le skill de commit de Jérémy pousse aussi).
+// pousser » : le skill de commit de Jérémy pousse aussi). Le skill de `message` n'est jamais lancé, seulement lu.
 const SKILL_WORDS: Record<GitAction, readonly string[] | null> = {
   ship: ['ship'],
   commitPush: ['commit'],
   commit: null,
   push: null,
   initRepo: ['init', 'repo'],
+  message: ['commit'],
+}
+
+// Dernière ligne de texte de la réponse, sans guillemets ni balises de code : le titre demandé.
+function titleOf(items: readonly ChatItem[]) {
+  const text = items.filter((item): item is Extract<ChatItem, { kind: 'text' }> => item.kind === 'text').at(-1)?.text ?? ''
+  const line = text
+    .split('\n')
+    .map((part) => part.trim())
+    .filter((part) => part && !part.startsWith('```'))
+    .at(-1)
+  return line?.replace(/^[`"'«“\s]+|[`"'»”\s]+$/g, '').slice(0, 200) || null
 }
 
 export interface GitRun {
@@ -54,7 +69,7 @@ function brief(error: string) {
 const CHEAP = ['haiku', 'sonnet'] as const
 const EFFORT_ORDER: readonly Effort[] = ['low', 'medium', 'high', 'xhigh', 'max']
 
-// Actions git lancées d'un clic (Environnement, Modifications), comme T3 Code mais avec les skills de l'utilisateur :
+// Actions git lancées d'un clic (Environnement, volet Git), comme T3 Code mais avec les skills de l'utilisateur :
 // une session cachée, lancée dans le même dossier que celle d'origine, fait le travail. Elle n'apparaît (sous sa
 // session d'origine) que si elle attend l'utilisateur ou n'aboutit pas ; réussie, elle est supprimée et le fil
 // d'origine en garde un séparateur, que son agent apprend au message suivant. Une action à la fois par dossier.
@@ -69,7 +84,9 @@ export const useGitActionsStore = defineStore('gitActions', () => {
 
   // Par dossier de travail.
   const runs = reactive(new Map<string, GitRun>())
-  // Compteur par dossier, augmenté à chaque fin d'action : le volet Modifications s'y relit.
+  // Dossiers où l'app commite ou pousse elle-même (commit direct du volet Git) : aucune action de fond n'y démarre.
+  const manual = reactive(new Set<string>())
+  // Compteur par dossier, augmenté à chaque fin d'action : le volet Git s'y relit.
   const settled = reactive<Record<string, number>>({})
   const watchers = new Map<string, () => void>()
 
@@ -113,8 +130,8 @@ export const useGitActionsStore = defineStore('gitActions', () => {
       return false
     }
     const busy = runs.get(folder)
-    if (busy) {
-      toasts.push({ title: t('gitActions.busyTitle'), body: t('gitActions.busy', { action: label(busy.action) }) })
+    if (busy || manual.has(folder)) {
+      toasts.push({ title: t('gitActions.busyTitle'), body: t('gitActions.busy', { action: busy ? label(busy.action) : t('gitActions.direct') }) })
       return false
     }
     // Réservé avant d'attendre la liste des skills : un double clic ne lance pas deux actions.
@@ -124,7 +141,12 @@ export const useGitActionsStore = defineStore('gitActions', () => {
     await skills.loadSkills()
     const skill = skillOf(action, origin.agent)
     // Un skill de ship s'arrête avant de commiter tant qu'on ne lui a pas dit d'y aller : le clic vaut accord.
-    const prompt = skill ? `/${skill.name} ${t('gitActions.go')}` : t(`gitActions.prompts.${action}`)
+    const prompt =
+      action === 'message'
+        ? [t('gitActions.prompts.message'), skill ? t('gitActions.messageSkill', { path: skill.path }) : ''].filter(Boolean).join(' ')
+        : skill
+          ? `/${skill.name} ${t('gitActions.go')}`
+          : t(`gitActions.prompts.${action}`)
     const worktreePath = origin.worktree ? origin.worktreePath : undefined
     const tab = workspace.addChat(origin.projectId, label(action), worktreePath, origin.id, { agent: origin.agent })
     // Même mode d'autorisation que la session d'origine, jamais plus large.
@@ -199,7 +221,7 @@ export const useGitActionsStore = defineStore('gitActions', () => {
     const items = conversation.items
     const last = items.at(-1)
     const action = label(run.action)
-    const done = await achieved(run)
+    const done = run.action === 'message' ? !!titleOf(items) : await achieved(run)
     end(run)
     // Révélée, la session est une session comme une autre : la fin de son tour prévient par le chemin habituel.
     if (run.revealed) return
@@ -217,13 +239,59 @@ export const useGitActionsStore = defineStore('gitActions', () => {
     }
     // Tour fini sans le résultat attendu : souvent une question posée en texte, à laquelle répondre dans la session.
     if (!done) return reveal(run, 'done', t('gitActions.unfinished', { action }), t('gitActions.unfinishedBody'), { sticky: true })
+    if (run.action === 'message') {
+      useGitPanelStore().setMessage(run.originId, titleOf(items) ?? '')
+      return workspace.deleteChat(run.chatId)
+    }
     const head = await headOf(run)
     const title = t(`gitActions.done.${run.action}`)
     const body = (run.action === 'initRepo' ? head?.origin : [head?.subject, head?.branch].filter(Boolean).join(' · ')) ?? ''
     toasts.push({ kind: 'success', title, body })
     useAttentionStore().away(run.originId, 'done', title, body)
-    mark(run, head)
+    mark(run.originId, run.action, head)
     await workspace.deleteChat(run.chatId)
+  }
+
+  // Commit direct du volet Git, fait par l'app (`worktree_commit`), puis push si demandé : pas d'agent, pas de skill.
+  // Refusé pendant une action de fond dans le même dossier, qui refuse à son tour de démarrer pendant ce temps.
+  async function commitNow(origin: Tab, message: string, push: boolean) {
+    const { t } = i18nGlobal()
+    const folder = folderOf(origin)
+    const project = projects.byId(origin.projectId)
+    if (!folder || !project || !message.trim() || manual.has(folder)) return false
+    const busy = runs.get(folder)
+    if (busy) {
+      toasts.push({ title: t('gitActions.busyTitle'), body: t('gitActions.busy', { action: label(busy.action) }) })
+      return false
+    }
+    manual.add(folder)
+    try {
+      let head: HeadInfo
+      try {
+        head = await worktreeCommit(origin.id, project.path, message)
+      } catch (error) {
+        toasts.push({ kind: 'error', title: t('gitActions.directFailed'), body: brief(isAppError(error) ? error.message : String(error)), clamp: true })
+        return false
+      }
+      useGitPanelStore().setMessage(origin.id, '')
+      if (push) {
+        try {
+          head = await worktreePush(origin.id, project.path)
+        } catch (error) {
+          mark(origin.id, 'commit', head)
+          toasts.push({ kind: 'error', title: t('gitActions.pushFailed'), body: brief(isAppError(error) ? error.message : String(error)), clamp: true })
+          return true
+        }
+      }
+      const action = push ? 'commitPush' : 'commit'
+      toasts.push({ kind: 'success', title: t(`gitActions.done.${action}`), body: [head.subject, head.branch].filter(Boolean).join(' · ') })
+      mark(origin.id, action, head)
+      return true
+    } finally {
+      manual.delete(folder)
+      settled[folder] = (settled[folder] ?? 0) + 1
+      await sessionGit.refresh(origin.id, project.path)
+    }
   }
 
   async function headOf(run: GitRun) {
@@ -233,11 +301,11 @@ export const useGitActionsStore = defineStore('gitActions', () => {
 
   // Séparateur dans le fil d'origine, posé entre deux tours : en plein tour, le texte en flux de l'agent s'ajoute au
   // dernier élément. Son agent l'apprend au message suivant (`conversations.gitNote`).
-  function mark(run: GitRun, head: HeadInfo | null) {
-    const tab = workspace.tabs.find((item) => item.id === run.originId)
+  function mark(originId: string, action: GitAction, head: HeadInfo | null) {
+    const tab = workspace.tabs.find((item) => item.id === originId)
     if (!tab) return
     conversations.open(tab.id, tab.agent, tab.projectId)
-    const item: GitItem = { kind: 'git', id: crypto.randomUUID(), at: Date.now(), action: run.action, subject: head?.subject ?? null, branch: head?.branch ?? null, repo: head?.origin ?? null }
+    const item: GitItem = { kind: 'git', id: crypto.randomUUID(), at: Date.now(), action, subject: head?.subject ?? null, branch: head?.branch ?? null, repo: head?.origin ?? null }
     let handled = false
     // Hors de tout scope : arrêté à la pose, ou quand la session d'origine disparaît avant.
     const stop = watch(
@@ -281,5 +349,5 @@ export const useGitActionsStore = defineStore('gitActions', () => {
     conversations.stop(run.chatId)
   }
 
-  return { runs, settled, folderOf, runOf, skillOf, label, start, stop, open }
+  return { runs, manual, settled, folderOf, runOf, skillOf, label, start, commitNow, stop, open }
 })

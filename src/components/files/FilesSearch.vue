@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import FilesIcon from '@/components/files/FilesIcon.vue'
 import ShellDockToolbar from '@/components/shell/ShellDockToolbar.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
+import { field, fieldText } from '@/components/ui/field'
 import { useDebounced } from '@/composables/useDebounced'
 import type { FilesPlace } from '@/ipc/bindings/FilesPlace'
 import type { SearchResults } from '@/ipc/bindings/SearchResults'
@@ -31,11 +32,11 @@ const nameSearched = useDebounced(nameQuery, 100)
 const results = ref<SearchResults | null>(null)
 const loading = ref(false)
 const failed = ref(false)
-const field = useTemplateRef('field')
+const nameInput = useTemplateRef('nameInput')
 // Liste complète, lue seulement ici : l'arbre ne lit que ses dossiers ouverts.
 const files = ref<string[]>([])
 onMounted(() => {
-  field.value?.focus()
+  nameInput.value?.focus()
   filesList(props.place)
     .then((listed) => (files.value = listed.files))
     .catch(() => {})
@@ -130,10 +131,10 @@ function open(path: string, line?: number) {
 }
 
 function onKeydown(event: KeyboardEvent, which: 'name' | 'text') {
-  const field = which === 'name' ? nameQuery : query
+  const target = which === 'name' ? nameQuery : query
   if (event.key === 'Escape') {
     event.stopPropagation()
-    if (field.value) field.value = ''
+    if (target.value) target.value = ''
     else emit('close')
   } else if (event.key === 'Enter') {
     const first = groups.value[0]?.matches[0]
@@ -143,7 +144,7 @@ function onKeydown(event: KeyboardEvent, which: 'name' | 'text') {
 }
 
 const toggle =
-  'grid size-6 shrink-0 place-items-center rounded text-muted hover:bg-selection-inner hover:text-content focus-visible:outline-2 focus-visible:outline-ring aria-pressed:bg-selection aria-pressed:text-content'
+  'grid size-6 shrink-0 place-items-center rounded-md text-muted hover:bg-selection-inner hover:text-content focus-visible:outline-2 focus-visible:outline-ring aria-pressed:bg-selection aria-pressed:text-content'
 const row = 'flex w-full min-w-0 items-center gap-1.5 rounded-md px-2 text-start hover:bg-selection-hover focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring'
 </script>
 
@@ -157,14 +158,14 @@ const row = 'flex w-full min-w-0 items-center gap-1.5 rounded-md px-2 text-start
       </UiTooltip>
       <h3 class="ms-0.5 min-w-0 truncate text-xs font-medium">{{ t('dock.files.searchTitle') }}</h3>
     </ShellDockToolbar>
-    <div class="p-2">
-      <label data-control class="mb-2 flex h-8 items-center gap-1.5 rounded-md border border-stroke bg-selection/50 ps-2 pe-1 focus-within:border-stroke-focus">
+    <div class="flex flex-col gap-1.5 p-2">
+      <label data-control :class="field">
         <FileGlyph class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
         <input
-          ref="field"
+          ref="nameInput"
           v-model="nameQuery"
           type="text"
-          class="min-w-0 flex-1 bg-transparent text-xs outline-none placeholder:text-muted"
+          :class="fieldText"
           :placeholder="t('dock.files.namePlaceholder')"
           :aria-label="t('dock.files.namePlaceholder')"
           autocomplete="off"
@@ -175,12 +176,12 @@ const row = 'flex w-full min-w-0 items-center gap-1.5 rounded-md px-2 text-start
           @keydown="onKeydown($event, 'name')"
         />
       </label>
-      <label data-control class="flex h-8 items-center gap-1.5 rounded-md border border-stroke bg-selection/50 ps-2 pe-1 focus-within:border-stroke-focus">
+      <label data-control :class="field">
         <Search class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
         <input
           v-model="query"
           type="text"
-          class="min-w-0 flex-1 bg-transparent text-xs outline-none placeholder:text-muted"
+          :class="fieldText"
           :placeholder="t('dock.files.searchPlaceholder')"
           :aria-label="t('dock.files.searchPlaceholder')"
           autocomplete="off"
@@ -190,23 +191,25 @@ const row = 'flex w-full min-w-0 items-center gap-1.5 rounded-md px-2 text-start
           writingsuggestions="false"
           @keydown="onKeydown($event, 'text')"
         />
-        <UiTooltip :label="t('dock.files.matchCase')">
-          <button type="button" :class="toggle" :aria-label="t('dock.files.matchCase')" :aria-pressed="caseSensitive" @click="caseSensitive = !caseSensitive">
-            <CaseSensitive class="size-3.5" aria-hidden="true" />
-          </button>
-        </UiTooltip>
-        <UiTooltip :label="t('dock.files.wholeWord')">
-          <button type="button" :class="toggle" :aria-label="t('dock.files.wholeWord')" :aria-pressed="wholeWord" @click="wholeWord = !wholeWord">
-            <WholeWord class="size-3.5" aria-hidden="true" />
-          </button>
-        </UiTooltip>
-        <UiTooltip :label="t('dock.files.regex')">
-          <button type="button" :class="toggle" :aria-label="t('dock.files.regex')" :aria-pressed="regex" @click="regex = !regex">
-            <Regex class="size-3.5" aria-hidden="true" />
-          </button>
-        </UiTooltip>
+        <span class="-me-1.5 flex shrink-0">
+          <UiTooltip :label="t('dock.files.matchCase')">
+            <button type="button" :class="toggle" :aria-label="t('dock.files.matchCase')" :aria-pressed="caseSensitive" @click="caseSensitive = !caseSensitive">
+              <CaseSensitive class="size-3.5" aria-hidden="true" />
+            </button>
+          </UiTooltip>
+          <UiTooltip :label="t('dock.files.wholeWord')">
+            <button type="button" :class="toggle" :aria-label="t('dock.files.wholeWord')" :aria-pressed="wholeWord" @click="wholeWord = !wholeWord">
+              <WholeWord class="size-3.5" aria-hidden="true" />
+            </button>
+          </UiTooltip>
+          <UiTooltip :label="t('dock.files.regex')">
+            <button type="button" :class="toggle" :aria-label="t('dock.files.regex')" :aria-pressed="regex" @click="regex = !regex">
+              <Regex class="size-3.5" aria-hidden="true" />
+            </button>
+          </UiTooltip>
+        </span>
       </label>
-      <p v-if="searched" class="flex items-center gap-1.5 px-1 pt-2 text-[11px] text-muted" role="status">
+      <p v-if="searched" class="flex items-center gap-1.5 px-1 pt-0.5 text-[11px] text-muted" role="status">
         <LoaderCircle v-if="loading" class="size-3 animate-spin motion-reduce:animate-none" aria-hidden="true" />
         <template v-if="failed">{{ t('dock.files.searchFailed') }}</template>
         <template v-else-if="results">

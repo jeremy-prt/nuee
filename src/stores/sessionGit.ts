@@ -9,7 +9,7 @@ export interface SessionGit {
 }
 
 // État git du dossier de chaque session (ligne de commit du volet Environnement, point sur son bouton), relu entre
-// deux tours par `ChatPane` et après une action du volet Modifications.
+// deux tours par `ChatPane` et après une action du volet Git.
 export const useSessionGitStore = defineStore('sessionGit', () => {
   const states = reactive<Record<string, SessionGit>>({})
   const requests: Record<string, number> = {}

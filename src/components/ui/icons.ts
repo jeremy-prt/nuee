@@ -66,6 +66,7 @@ import GitCommitHorizontalIcon from '@hugeicons/core-free-icons/GitCommitHorizon
 import GitCompareIcon from '@hugeicons/core-free-icons/GitCompareIcon'
 import GithubIcon from '@hugeicons/core-free-icons/GithubIcon'
 import Globe02Icon from '@hugeicons/core-free-icons/Globe02Icon'
+import HistoryIcon from '@hugeicons/core-free-icons/HistoryIcon'
 import HourglassIcon from '@hugeicons/core-free-icons/HourglassIcon'
 import Html5Icon from '@hugeicons/core-free-icons/Html5Icon'
 import ImageAdd01Icon from '@hugeicons/core-free-icons/ImageAdd01Icon'
@@ -244,6 +245,7 @@ export const GitCommit = icon(GitCommitHorizontalIcon)
 export const GitCompare = icon(GitCompareIcon)
 export const Github = icon(GithubIcon)
 export const Globe = icon(Globe02Icon)
+export const History = icon(HistoryIcon)
 export const Hourglass = icon(HourglassIcon)
 export const ImagePlus = icon(ImageAdd01Icon)
 export const ImageUp = icon(ImageUpload01Icon)

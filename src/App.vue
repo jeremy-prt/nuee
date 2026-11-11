@@ -62,7 +62,6 @@ watch(
   },
 )
 const drag = useDragStore()
-const newChat = useNewChat()
 const newTab = useNewChat('tab')
 const shortcuts = useShortcutsStore()
 const dockFocus = useDockFocus()
@@ -132,7 +131,8 @@ function renameActive() {
 
 const actions: [ShortcutId, (event: KeyboardEvent) => void][] = [
   ['toggleRail', layout.toggleRail],
-  ['newChat', () => newChat()],
+  // ⌘N mène à « Nouvel espace de travail », où l'on choisit projet et dossier ; ⌘T ouvre un onglet dans le projet affiché.
+  ['newChat', () => navigation.go('new')],
   ['search', () => navigation.go('search')],
   ['switchProject', openSwitcher],
   ['previousProject', () => navigation.stepProject(-1)],

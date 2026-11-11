@@ -8,7 +8,8 @@ export function useNewChat(kind: 'session' | 'tab' = 'session') {
   const navigation = useNavigationStore()
   const workspace = useWorkspaceStore()
 
-  return function newChat(projectId = navigation.view === 'chats' ? navigation.projectId : null) {
+  // Sans projet précisé : celui qui est affiché, quelle que soit la page d'où part le raccourci.
+  return function newChat(projectId = navigation.projectId) {
     const another = kind === 'tab' && navigation.view === 'chats'
     navigation.openChats(projectId)
     if (another) workspace.newTab()

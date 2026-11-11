@@ -30,12 +30,12 @@ const newTab = useNewChat('tab')
 const browser = useBrowserStore()
 const files = useFilesStore()
 const dockFocus = useDockFocus()
-// Fichier ouvert dans l'Explorateur : l'éditeur occupe la gauche du panneau, sous ses onglets de fichiers ; ceux des
-// volets restent au-dessus de l'arborescence. Panneau partagé côte à côte : l'Explorateur n'a plus toute la largeur,
-// ses onglets de fichiers restent dans le volet.
+// Fichier ouvert dans l'Explorateur ou diff du volet Git : l'éditeur occupe la gauche du panneau, sous ses onglets ;
+// ceux des volets restent au-dessus de la liste. Panneau partagé côte à côte : le volet n'a plus toute la largeur, ses
+// onglets restent dans le volet.
 const editorWidth = computed(() => {
-  const id = workspace.activeTabId
-  if (!layout.spans('files') || !id || !files.editing(id)) return 0
+  const view = layout.right.active
+  if ((view !== 'files' && view !== 'changes') || !layout.spans(view) || !layout.editingIn(view)) return 0
   return Math.max(0, layout.right.size - files.explorerShown(layout.right.size))
 })
 // Panneau fermé pendant que l'agent se sert du navigateur : une pastille sur son bouton.
@@ -166,9 +166,9 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
           <!-- La zone coupe les onglets avant le bouton : en glissant, ils ne passent jamais dessus. -->
           <div v-if="layout.right.open || layout.moving.dock" class="flex min-w-0 flex-1 self-stretch" data-slide-clip data-tauri-drag-region>
             <div class="flex min-w-0 flex-1 items-center self-stretch" data-slide-content data-tauri-drag-region>
-              <!-- Fichier ouvert dans l'Explorateur : ses onglets passent ici, au-dessus de l'éditeur (`FilesEditorPane`),
-                   comme T3 Code qui range les fichiers ouverts dans la barre du panneau. Toujours présent, panneau
-                   ouvert : un Teleport ne cherche sa cible qu'à sa création. -->
+              <!-- Fichier ouvert dans l'Explorateur ou diff du volet Git : ses onglets passent ici, au-dessus de l'éditeur
+                   (`FilesEditorPane`, `GitDiffPane`), comme T3 Code qui range les fichiers ouverts dans la barre du
+                   panneau. Toujours présent, panneau ouvert : un Teleport ne cherche sa cible qu'à sa création. -->
               <div
                 id="dock-editor-tabs"
                 class="h-full min-w-0 shrink-0 items-center ps-2 pe-2"

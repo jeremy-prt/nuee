@@ -31,7 +31,7 @@ const title = computed(() => {
         <UiIconButton
           v-if="navigation.view === 'chats'"
           :label="t('chats.newChat')"
-          :shortcut="shortcuts.label('newChat')"
+          :shortcut="shortcuts.label('newTab')"
           @click="newChat()"
         >
           <Plus class="size-4" aria-hidden="true" />

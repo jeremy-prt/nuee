@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onMounted, ref, useTemplateRef } from 'vue'
+import { field, fieldText } from '@/components/ui/field'
 
 // Nom tapé dans l'arborescence (nouveau fichier, renommage) : Entrée ou sortie du champ valide, Échap annule. Au
 // renommage, seul le nom sans extension est sélectionné, comme dans le Finder.
@@ -40,18 +41,20 @@ function onKeydown(event: KeyboardEvent) {
 </script>
 
 <template>
-  <input
-    ref="input"
-    v-model="value"
-    type="text"
-    class="h-6 min-w-0 flex-1 rounded border border-stroke-focus bg-selection/50 px-1.5 text-[13px] outline-none"
-    :aria-label="label"
-    autocomplete="off"
-    autocorrect="off"
-    autocapitalize="off"
-    spellcheck="false"
-    writingsuggestions="false"
-    @keydown="onKeydown"
-    @blur="finish(true)"
-  />
+  <label :class="field" class="flex-1" data-control>
+    <input
+      ref="input"
+      v-model="value"
+      type="text"
+      :class="fieldText"
+      :aria-label="label"
+      autocomplete="off"
+      autocorrect="off"
+      autocapitalize="off"
+      spellcheck="false"
+      writingsuggestions="false"
+      @keydown="onKeydown"
+      @blur="finish(true)"
+    />
+  </label>
 </template>

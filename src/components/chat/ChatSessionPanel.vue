@@ -4,13 +4,13 @@ import {
   ChevronDown,
   Coffee,
   ExternalLink,
-  FileDiff,
   Folder,
   FolderOpen,
   FolderTree,
   Gauge,
   GitBranch,
   GitBranchPlus,
+  GitCompare,
   Layers,
   NoProject,
   RemoteControl,
@@ -34,19 +34,17 @@ import { menuIcon, menuLabel, menuRow } from '@/components/ui/menuRow'
 import { useDockFocus } from '@/composables/useDockFocus'
 import { useGitActions } from '@/composables/useGitActions'
 import { useMachineName } from '@/composables/useMachineName'
+import { useSessionBranch } from '@/composables/useSessionBranch'
 import { useTerminalChat } from '@/composables/useTerminalChat'
 import { isAppError } from '@/ipc/agent'
-import type { Branch } from '@/ipc/bindings/Branch'
 import type { EditorApp } from '@/ipc/bindings/EditorApp'
 import { filesOpenEditor } from '@/ipc/files'
 import { projectReveal } from '@/ipc/project'
-import { worktreeCheckout, worktreeRefs } from '@/ipc/worktree'
 import { type TaskState, type ToolItem, useConversationsStore } from '@/stores/conversations'
 import { useFilesStore } from '@/stores/files'
 import { useGeneralStore } from '@/stores/general'
 import { type DockView, useLayoutStore } from '@/stores/layout'
 import { useProjectsStore } from '@/stores/projects'
-import { useSessionGitStore } from '@/stores/sessionGit'
 import { useToastsStore } from '@/stores/toasts'
 import { useWorktreesStore } from '@/stores/worktrees'
 import { contextFormats, contextRatio, contextRows } from '@/utils/context'
@@ -64,7 +62,6 @@ const { focusView } = useDockFocus()
 const projects = useProjectsStore()
 const worktrees = useWorktreesStore()
 const conversations = useConversationsStore()
-const sessionGit = useSessionGitStore()
 const toasts = useToastsStore()
 const machine = useMachineName()
 const layout = useLayoutStore()
@@ -96,7 +93,6 @@ watch(open, (value) => {
 })
 
 const project = computed(() => projects.byId(chat.value?.projectId ?? null))
-const branch = computed(() => (chat.value ? worktrees.branchOf(chat.value) : null))
 const folder = computed(() => {
   const tab = chat.value
   if (!project.value || !tab) return null
@@ -167,33 +163,7 @@ watch(
   },
 )
 
-// Seul le dossier du projet change de branche : un worktree garde la sienne.
-const canSwitch = computed(() => !!project.value && !!chat.value && !chat.value.worktree && !!branch.value)
-const branches = ref<Branch[]>([])
-async function loadBranches(opened: boolean) {
-  if (!opened || !chat.value || !project.value) return
-  try {
-    branches.value = (await worktreeRefs(chat.value.id, project.value.path)).branches
-  } catch {
-    branches.value = []
-  }
-}
-// Une branche prise par un worktree n'est pas proposée : git refuse de l'extraire ici.
-const branchList = computed(() =>
-  (branches.value.length ? branches.value : branch.value ? [{ name: branch.value, elsewhere: false }] : []).filter((item) => !item.elsewhere),
-)
-async function checkout(name: string) {
-  const tab = chat.value
-  const current = project.value
-  if (!tab || !current || name === branch.value) return
-  try {
-    await worktreeCheckout(current.path, name)
-  } catch (error) {
-    toasts.push({ kind: 'error', title: t('composer.branch.checkoutFailed'), body: isAppError(error) ? error.message : String(error) })
-  }
-  await worktrees.load(current)
-  sessionGit.refresh(tab.id, current.path)
-}
+const { branch, canSwitch, branchList, loadBranches, checkout } = useSessionBranch()
 
 // ===== Contexte =====
 
@@ -358,7 +328,7 @@ const separator = 'mx-2 my-1 h-px shrink-0 bg-stroke'
         </div>
 
         <button type="button" :class="action" @click="toDock('changes', $event)">
-          <FileDiff :class="icon" aria-hidden="true" />
+          <GitCompare :class="icon" aria-hidden="true" />
           <span class="min-w-0 flex-1 truncate">{{ t('dock.changes.title') }}</span>
           <ChatDiffStat v-if="git && changed" :added="git.changes.added" :removed="git.changes.removed" plain class="text-xs" />
         </button>

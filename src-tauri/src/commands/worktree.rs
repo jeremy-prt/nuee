@@ -6,8 +6,8 @@ use crate::error::AppError;
 use crate::services::agent::AgentService;
 use crate::services::chat::ChatService;
 use crate::services::worktree::{
-    BranchList, ChangedFiles, FileDiff, HeadInfo, Worktree, WorktreeChanges, WorktreeService,
-    WorktreeSupport, canonical,
+    BranchList, ChangedFile, ChangedFiles, CommitPage, FileDiff, HeadInfo, Worktree,
+    WorktreeChanges, WorktreeService, WorktreeSupport, canonical,
 };
 
 #[tauri::command]
@@ -137,6 +137,90 @@ pub async fn worktree_revert_file(
     let dir = session_dir(&chats, &chat_id, &path)?;
     worktrees
         .revert_file(&PathBuf::from(path), &dir, &file)
+        .await
+}
+
+/// Remet tous les fichiers de la liste des changements dans l'état du dernier commit.
+#[tauri::command]
+pub async fn worktree_revert_all(
+    chat_id: String,
+    path: String,
+    worktrees: State<'_, WorktreeService>,
+    chats: State<'_, ChatService>,
+) -> Result<(), AppError> {
+    let dir = session_dir(&chats, &chat_id, &path)?;
+    worktrees.revert_all(&PathBuf::from(path), &dir).await
+}
+
+/// Commit de tous les changements du dossier de la session, fait par l'app sans agent.
+#[tauri::command]
+pub async fn worktree_commit(
+    chat_id: String,
+    path: String,
+    message: String,
+    worktrees: State<'_, WorktreeService>,
+    chats: State<'_, ChatService>,
+) -> Result<HeadInfo, AppError> {
+    let dir = session_dir(&chats, &chat_id, &path)?;
+    worktrees.commit(&PathBuf::from(path), &dir, &message).await
+}
+
+/// Push de la branche courante du dossier de la session, jamais forcé.
+#[tauri::command]
+pub async fn worktree_push(
+    chat_id: String,
+    path: String,
+    worktrees: State<'_, WorktreeService>,
+    chats: State<'_, ChatService>,
+) -> Result<HeadInfo, AppError> {
+    let dir = session_dir(&chats, &chat_id, &path)?;
+    worktrees.push(&PathBuf::from(path), &dir).await
+}
+
+/// Une page du journal de la branche courante.
+#[tauri::command]
+pub async fn worktree_log(
+    chat_id: String,
+    path: String,
+    skip: u32,
+    query: Option<String>,
+    worktrees: State<'_, WorktreeService>,
+    chats: State<'_, ChatService>,
+) -> Result<CommitPage, AppError> {
+    let dir = session_dir(&chats, &chat_id, &path)?;
+    worktrees
+        .log(&PathBuf::from(path), &dir, skip, query.as_deref())
+        .await
+}
+
+/// Fichiers changés par un commit.
+#[tauri::command]
+pub async fn worktree_commit_files(
+    chat_id: String,
+    path: String,
+    sha: String,
+    worktrees: State<'_, WorktreeService>,
+    chats: State<'_, ChatService>,
+) -> Result<Vec<ChangedFile>, AppError> {
+    let dir = session_dir(&chats, &chat_id, &path)?;
+    worktrees
+        .commit_files(&PathBuf::from(path), &dir, &sha)
+        .await
+}
+
+/// Diff d'un fichier d'un commit.
+#[tauri::command]
+pub async fn worktree_commit_diff(
+    chat_id: String,
+    path: String,
+    sha: String,
+    file: String,
+    worktrees: State<'_, WorktreeService>,
+    chats: State<'_, ChatService>,
+) -> Result<FileDiff, AppError> {
+    let dir = session_dir(&chats, &chat_id, &path)?;
+    worktrees
+        .commit_diff(&PathBuf::from(path), &dir, &sha, &file)
         .await
 }
 

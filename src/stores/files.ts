@@ -88,11 +88,6 @@ export const useFilesStore = defineStore('files', () => {
     return browse
   }
 
-  // Lu par la barre de titre : ne crée pas l'état d'une session qui n'a jamais ouvert le volet.
-  function editing(chatId: string) {
-    return (sessions.get(chatId)?.tabs.length ?? 0) > 0
-  }
-
   function openFile(chatId: string, path: string, options: { pin?: boolean; line?: number } = {}) {
     const browse = of(chatId)
     if (!browse.tabs.includes(path)) {
@@ -148,7 +143,8 @@ export const useFilesStore = defineStore('files', () => {
     save(WIDTH_KEY, explorerWidth.value)
   }
 
-  // Largeur réelle à côté de l'éditeur : jamais plus de 45 % du panneau, l'éditeur garde la place de lire.
+  // Largeur réelle à côté de l'éditeur (Explorateur, volet Git) : jamais plus de 45 % du panneau, l'éditeur garde la
+  // place de lire.
   function explorerShown(dock: number) {
     return Math.round(Math.min(explorerWidth.value, Math.max(EXPLORER.min, dock * 0.45)))
   }
@@ -180,5 +176,5 @@ export const useFilesStore = defineStore('files', () => {
     return editorsLoad
   }
 
-  return { of, editing, openFile, pin, closeFile, moved, view, setView, explorerWidth, setExplorerWidth, explorerShown, wantsFocus, requestFocus, clipboard, editors, finderIcon, loadEditors }
+  return { of, openFile, pin, closeFile, moved, view, setView, explorerWidth, setExplorerWidth, explorerShown, wantsFocus, requestFocus, clipboard, editors, finderIcon, loadEditors }
 })

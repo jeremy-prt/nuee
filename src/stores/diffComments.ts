@@ -11,7 +11,7 @@ export interface DiffComment {
   body: string
 }
 
-// Commentaires posés sur les lignes du volet Modifications, par session, en attendant d'être envoyés ensemble.
+// Commentaires posés sur les lignes du volet Git, par session, en attendant d'être envoyés ensemble.
 export const useDiffCommentsStore = defineStore('diffComments', () => {
   const byChat = reactive<Record<string, DiffComment[]>>({})
 

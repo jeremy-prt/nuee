@@ -5,6 +5,7 @@ import type { Attachment } from '@/ipc/bindings/Attachment'
 import { chatList, chatRename, chatSetArchived, chatSetPinned, chatSetWorktree, chatTitle } from '@/ipc/chat'
 import { i18nGlobal } from '@/i18n'
 import { useDraftsStore } from '@/stores/drafts'
+import { useGitPanelStore } from '@/stores/gitPanel'
 import { useLayoutStore } from '@/stores/layout'
 import { useMentionsStore } from '@/stores/mentions'
 import { useConversationsStore } from '@/stores/conversations'
@@ -402,6 +403,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     tabs.value = tabs.value.filter((item) => item.id !== id)
     hidden.delete(id)
     useDraftsStore().set(id, '', [])
+    useGitPanelStore().forget(id)
     useWorktreesStore().setBase(id, null)
     return conversations.remove(id)
   }

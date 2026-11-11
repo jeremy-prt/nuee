@@ -1,4 +1,4 @@
-import { CloudUpload, GitBranchPlus, GitCommit, Rocket } from '@/components/ui/icons'
+import { CloudUpload, GitBranchPlus, GitCommit, Rocket, Sparkles } from '@/components/ui/icons'
 import { type Component, computed, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useTerminalChat } from '@/composables/useTerminalChat'
@@ -17,9 +17,9 @@ export interface GitActionItem {
   disabled: boolean
 }
 
-const ICONS: Record<GitAction, Component> = { ship: Rocket, commitPush: CloudUpload, commit: GitCommit, push: CloudUpload, initRepo: GitBranchPlus }
+const ICONS: Record<GitAction, Component> = { ship: Rocket, commitPush: CloudUpload, commit: GitCommit, push: CloudUpload, initRepo: GitBranchPlus, message: Sparkles }
 
-// Actions git de la session active, mêmes choix et même état dans Environnement et Modifications : l'action
+// Actions git de la session active, mêmes choix et même état dans Environnement et le volet Git : l'action
 // principale (Shipper si l'utilisateur a un skill de ship, sinon Commiter et pousser), les autres dans le menu.
 export function useGitActions() {
   const { t } = useI18n()

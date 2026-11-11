@@ -6,6 +6,7 @@ import BrowserMenu from '@/components/browser/BrowserMenu.vue'
 import ServerMenu from '@/components/server/ServerMenu.vue'
 import ShellDockToolbar from '@/components/shell/ShellDockToolbar.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
+import { field, fieldText } from '@/components/ui/field'
 import type { BrowserTab } from '@/ipc/bindings/BrowserTab'
 import { useBrowserStore } from '@/stores/browser'
 import { useConversationsStore } from '@/stores/conversations'
@@ -70,7 +71,7 @@ function reload() {
       <X v-if="tab?.loading" class="size-3.5" aria-hidden="true" />
       <RefreshCw v-else class="size-3.5" aria-hidden="true" />
     </UiIconButton>
-    <form class="ms-1 flex min-w-0 flex-1" @submit.prevent="submit">
+    <form class="ms-1 flex-1" :class="field" data-control @submit.prevent="submit">
       <input
         ref="input"
         v-model="draft"
@@ -80,7 +81,7 @@ function reload() {
         autocorrect="off"
         autocapitalize="off"
         spellcheck="false"
-        class="h-7 min-w-24 flex-1 rounded-md border border-transparent bg-transparent px-2 text-[13px] text-content outline-none placeholder:text-muted hover:bg-selection-hover focus:border-stroke-focus focus:bg-selection-hover"
+        :class="fieldText"
         :placeholder="t('dock.browser.address')"
         :aria-label="t('dock.browser.addressLabel')"
         @focus="editing = true; input?.select()"
