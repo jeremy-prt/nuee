@@ -232,12 +232,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     for (const other of [...layout.tabs]) if (other !== id && isBlank(other) && !layout.panes.includes(other)) closeTab(other, layout)
   }
 
-  // « + » et ⌘T, comme un navigateur : toujours un onglet vierge de plus.
+  // « + » (bande d'onglets, barre latérale) et ⌘T, comme un navigateur : toujours un onglet vierge de plus.
   function newTab() {
     show(createChat().id)
   }
 
-  // « Nouvelle session » (⌘N, barre latérale, menu du projet) : la vierge du contexte plutôt qu'une de plus.
+  // « Nouvelle session » du menu d'un projet, ou « + » et ⌘T hors des sessions : la vierge du contexte plutôt qu'une
+  // de plus.
   function showBlank() {
     show(blankChat().id)
   }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import AgentLogin from '@/components/agent/AgentLogin.vue'
-import { CircleCheck, LoaderCircle } from '@/components/ui/icons'
+import { CircleCheck, LoaderCircle, TriangleAlert } from '@/components/ui/icons'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsGroup from '@/components/settings/SettingsGroup.vue'
@@ -18,6 +18,7 @@ import { pickFile } from '@/ipc/dialog'
 import { useAgentsStore } from '@/stores/agents'
 import { useCatalogStore } from '@/stores/catalog'
 import { agents } from '@/utils/agents'
+import { quotaTone } from '@/utils/level'
 
 const props = defineProps<{ kind: AgentKind }>()
 
@@ -120,7 +121,9 @@ async function choosePath(event: MouseEvent) {
     <SettingsRow :data-setting="`${kind}-cli`" :label="t('settings.agents.location')">
       <template #hint>
         <template v-if="status.state === 'checking'">{{ t('settings.agents.checking', { agent: name }) }}</template>
-        <span v-else-if="status.state === 'missing'" class="text-danger">{{ t('settings.agents.missing', { agent: name }) }}</span>
+        <span v-else-if="status.state === 'missing'" class="inline-flex items-start gap-1 text-warning">
+          <TriangleAlert class="mt-px size-3 shrink-0" aria-hidden="true" />{{ t('settings.agents.missing', { agent: name }) }}
+        </span>
         <span v-else-if="status.state === 'error'" class="text-danger">{{ t('settings.agents.error', { agent: name, command: agents[kind].command }) }}</span>
         <template v-else>
           <span class="break-all">{{ status.path }}</span>
@@ -180,9 +183,14 @@ async function choosePath(event: MouseEvent) {
       <span v-if="status.account" class="flex items-center gap-1.5 text-xs text-success">
         <CircleCheck class="size-3.5" aria-hidden="true" />{{ t('settings.agents.status.connected') }}
       </span>
-      <UiButton v-else size="sm" :loading="running === 'account'" :aria-describedby="hintId" @click="run($event, 'account', () => store.refresh(kind))">
-        {{ t('settings.agents.refresh') }}
-      </UiButton>
+      <div v-else class="flex items-center gap-3">
+        <span class="flex items-center gap-1.5 text-xs text-warning">
+          <TriangleAlert class="size-3.5" aria-hidden="true" />{{ t('settings.agents.status.signedOut') }}
+        </span>
+        <UiButton size="sm" :loading="running === 'account'" :aria-describedby="hintId" @click="run($event, 'account', () => store.refresh(kind))">
+          {{ t('settings.agents.refresh') }}
+        </UiButton>
+      </div>
     </SettingsRow>
     <AgentLogin v-if="status.state === 'found' && !status.account" class="px-4 pb-3" :kind="kind" :title="t('agentLogin.browserTitle')" />
   </SettingsGroup>
@@ -199,11 +207,11 @@ async function choosePath(event: MouseEvent) {
         <span class="h-1.5 w-32 overflow-hidden rounded-full bg-content/10" aria-hidden="true">
           <span
             class="block h-full rounded-full"
-            :class="row.quota.used >= 0.8 ? 'bg-danger' : 'bg-content/60'"
+            :class="quotaTone(row.quota.used).bar"
             :style="{ width: `${row.quota.used * 100}%` }"
           />
         </span>
-        <span class="min-w-20 text-end text-xs whitespace-nowrap text-muted tabular-nums">{{ t('settings.agents.used', { percent: percent(row.quota.used) }) }}</span>
+        <span class="min-w-20 text-end text-xs whitespace-nowrap tabular-nums" :class="quotaTone(row.quota.used).text">{{ t('settings.agents.used', { percent: percent(row.quota.used) }) }}</span>
       </div>
     </SettingsRow>
   </SettingsGroup>

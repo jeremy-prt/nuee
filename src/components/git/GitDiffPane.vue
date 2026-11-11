@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ChevronDown, ChevronRight, GitCommit, X } from '@/components/ui/icons'
+import { ChevronDown, ChevronRight, GitCommit } from '@/components/ui/icons'
 import { computed, inject, reactive, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatDiffStat from '@/components/chat/ChatDiffStat.vue'
 import GitDiffBody from '@/components/git/GitDiffBody.vue'
+import ShellEditorTabs from '@/components/shell/ShellEditorTabs.vue'
 import UiFileIcon from '@/components/ui/UiFileIcon.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import { type DiffState, GIT_CHANGES } from '@/composables/useGitChanges'
@@ -25,6 +26,9 @@ const chatId = computed(() => changes.chat.value?.id ?? '')
 const view = computed(() => gitPanel.of(chatId.value))
 const tab = computed(() => view.value.tabs.find((item) => item.key === view.value.open) ?? null)
 const nameOf = (path: string) => path.slice(path.lastIndexOf('/') + 1)
+const items = computed(() =>
+  view.value.tabs.map((item) => ({ ...item, name: nameOf(item.path), title: item.kind === 'commit' ? `${item.short} · ${item.path}` : item.path })),
+)
 
 // Diffs des commits, lus une fois : un commit ne change pas.
 const commitDiffs = reactive(new Map<string, DiffState>())
@@ -72,6 +76,8 @@ const total = computed(() => changeStarts(lines.value).length)
 // Changement montré, comme monocode : « 1/7 » et ses flèches.
 const index = ref(0)
 watch(() => tab.value?.key, () => (index.value = 0))
+// Diff relu avec moins de changements : l'index reste dans le total.
+watch(total, (count) => (index.value = Math.min(index.value, Math.max(0, count - 1))))
 const body = useTemplateRef('body')
 function step(by: number) {
   const next = Math.min(total.value - 1, Math.max(0, index.value + by))
@@ -85,49 +91,28 @@ const crumbs = computed(() => {
   const parts = item.path.split('/')
   return parts.map((label, at) => ({ label, last: at === parts.length - 1 }))
 })
-
-function onAuxClick(event: MouseEvent, key: string) {
-  if (event.button === 1) gitPanel.closeDiff(chatId.value, key)
-}
 </script>
 
 <template>
   <div class="flex min-h-0 flex-col">
-    <Teleport defer to="#dock-editor-tabs" :disabled="!inBar">
-      <div
-        class="flex [scrollbar-width:none] items-center gap-0.5 overflow-x-auto"
-        :class="inBar ? 'h-full min-w-0 flex-1' : 'h-9 shrink-0 border-b border-stroke ps-1.5 pe-2.5'"
-        role="tablist"
-        :aria-label="t('dock.changes.diffTabs')"
-      >
-        <div v-for="item in view.tabs" :key="item.key" class="group/tab relative w-44 min-w-24 shrink">
-          <button
-            type="button"
-            role="tab"
-            class="flex h-7 w-full min-w-0 items-center gap-1.5 rounded-md ps-2 pe-7 text-xs focus-visible:outline-2 focus-visible:outline-ring"
-            :class="view.open === item.key ? 'bg-selection text-content' : 'text-muted hover:bg-selection-hover hover:text-content'"
-            :aria-selected="view.open === item.key"
-            :title="item.kind === 'commit' ? `${item.short} · ${item.path}` : item.path"
-            @click="view.open = item.key"
-            @dblclick="gitPanel.pin(chatId, item.key)"
-            @auxclick="onAuxClick($event, item.key)"
-          >
-            <UiFileIcon :name="nameOf(item.path)" class="size-3.5 shrink-0" />
-            <span class="min-w-0 truncate" :class="{ italic: view.preview === item.key }">{{ nameOf(item.path) }}</span>
-            <span v-if="item.kind === 'commit'" class="shrink-0 font-mono text-[10px] text-muted">{{ item.short }}</span>
-          </button>
-          <button
-            type="button"
-            class="absolute end-1 top-1 grid size-5 place-items-center rounded text-muted hover:bg-selection-inner hover:text-content focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-ring"
-            :class="view.open === item.key ? '' : 'opacity-0 group-hover/tab:opacity-100'"
-            :aria-label="t('dock.changes.closeDiff', { name: nameOf(item.path) })"
-            @click="gitPanel.closeDiff(chatId, item.key)"
-          >
-            <X class="size-3" aria-hidden="true" />
-          </button>
-        </div>
-      </div>
-    </Teleport>
+    <ShellEditorTabs
+      :items="items"
+      :open="view.open"
+      :preview="view.preview"
+      :in-bar="inBar"
+      :label="t('dock.changes.diffTabs')"
+      :close-label="(name) => t('dock.changes.closeDiff', { name })"
+      @select="view.open = $event"
+      @pin="gitPanel.pin(chatId, $event)"
+      @close="gitPanel.closeDiff(chatId, $event)"
+    >
+      <template #icon="{ item }">
+        <UiFileIcon :name="item.name" class="size-3.5 shrink-0" />
+      </template>
+      <template #after="{ item }">
+        <span v-if="item.kind === 'commit'" class="shrink-0 font-mono text-[10px] text-muted">{{ item.short }}</span>
+      </template>
+    </ShellEditorTabs>
 
     <template v-if="tab">
       <!-- À la hauteur de la ligne d'outils de la liste : chemin, total du fichier, passage d'un changement à l'autre. -->
@@ -163,7 +148,7 @@ function onAuxClick(event: MouseEvent, key: string) {
           :state="state"
           :binary="binary"
           flush
-          :comments="tab.kind === 'work' ? changes.commentsOf(tab.path) : undefined"
+          :comments="tab.kind === 'work' && !changes.readOnly.value ? changes.commentsOf(tab.path) : undefined"
           @add="tab.kind === 'work' && changes.addComment(tab.path, $event)"
           @remove="changes.removeComment($event)"
         />

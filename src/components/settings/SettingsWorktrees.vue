@@ -112,7 +112,7 @@ async function remove(tree: Worktree, event: MouseEvent) {
               <span v-if="tree.state === 'changed'" class="shrink-0 rounded bg-warning/15 px-1.5 py-px text-[11px] text-warning">
                 {{ t('settings.projects.worktrees.states.changed') }}
               </span>
-              <span v-else-if="tree.state === 'missing'" class="shrink-0 rounded bg-content/8 px-1.5 py-px text-[11px] text-muted">
+              <span v-else-if="tree.state === 'missing'" class="shrink-0 rounded bg-warning/15 px-1.5 py-px text-[11px] text-warning">
                 {{ t('settings.projects.worktrees.states.missing') }}
               </span>
             </p>

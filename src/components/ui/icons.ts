@@ -2,6 +2,7 @@ import { type FunctionalComponent, h } from 'vue'
 import { HugeiconsIcon } from '@hugeicons/vue'
 import Add01Icon from '@hugeicons/core-free-icons/Add01Icon'
 import AlertCircleIcon from '@hugeicons/core-free-icons/AlertCircleIcon'
+import Alert02Icon from '@hugeicons/core-free-icons/Alert02Icon'
 import Archive02Icon from '@hugeicons/core-free-icons/Archive02Icon'
 import ArrangeByLettersAZIcon from '@hugeicons/core-free-icons/ArrangeByLettersAZIcon'
 import ArrowDown02Icon from '@hugeicons/core-free-icons/ArrowDown02Icon'
@@ -302,6 +303,7 @@ export const Star = icon(StarIcon)
 export const Stop = icon(StopIcon)
 export const Sun = icon(Sun03Icon)
 export const Tablet = icon(Tablet01Icon)
+export const TriangleAlert = icon(Alert02Icon)
 export const Trash2 = icon(Delete02Icon)
 export const Undo = icon(ArrowTurnBackwardIcon)
 export const Usage = icon(ChartColumnIcon)

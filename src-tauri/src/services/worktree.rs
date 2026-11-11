@@ -3,6 +3,7 @@ use std::process::Stdio;
 use std::time::Duration;
 
 use serde::Serialize;
+use tokio::io::{AsyncRead, AsyncReadExt};
 use tokio::process::Command;
 use tokio::time::timeout;
 use ts_rs::TS;
@@ -13,9 +14,14 @@ use crate::utils::shell_env;
 
 /// `worktree add` peut extraire un gros dépôt et lancer ses hooks de checkout ; un commit, ses hooks ; un push, le
 /// réseau.
-const ADD_TIMEOUT: Duration = Duration::from_secs(120);
+const LONG_TIMEOUT: Duration = Duration::from_secs(120);
 const GIT_TIMEOUT: Duration = Duration::from_secs(15);
+/// Après SIGTERM, le temps laissé à git pour retirer son `index.lock` avant SIGKILL.
+const TERM_GRACE: Duration = Duration::from_secs(3);
 const LOG_PAGE: u32 = 50;
+/// Commits lus par appel au plus pendant une recherche : la suite reprend là où l'appel s'arrête.
+const LOG_SCAN: u32 = 2000;
+const LOG_BATCH: u32 = 200;
 
 /// Ce qui empêche (ou non) de donner un worktree aux chats d'un projet.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
@@ -82,6 +88,15 @@ pub struct HeadInfo {
     pub subject: Option<String>,
     pub branch: Option<String>,
     pub origin: Option<String>,
+}
+
+/// Commit direct fait. `skipped` : dépôts git imbriqués laissés hors du commit.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct CommitDone {
+    pub head: HeadInfo,
+    pub skipped: Vec<String>,
 }
 
 /// État d'un fichier par rapport au dernier commit.
@@ -256,7 +271,7 @@ impl WorktreeService {
                     start.as_str(),
                 ]
             };
-            run(&git, &project, &args, ADD_TIMEOUT).await?;
+            run(&git, &project, &args, LONG_TIMEOUT).await?;
         }
         let cwd = dir.join(prefix);
         std::fs::create_dir_all(&cwd)?;
@@ -484,27 +499,47 @@ impl WorktreeService {
         let git = require_git()?;
         let (top, base) = repo_base(&git, project, dir).await?;
         let entry = change_of(&git, &top, &base, file).await?;
+        if nested(&entry) {
+            return Err(AppError::InvalidInput(format!(
+                "{} est un dépôt git imbriqué, il reste tel quel",
+                entry.path
+            )));
+        }
         revert_entry(&git, &top, &entry).await
     }
 
-    /// Tous les fichiers de la liste des changements reviennent au dernier commit, un par un comme `revert_file`.
-    pub async fn revert_all(&self, project: &Path, dir: &Path) -> Result<(), AppError> {
+    /// Remet au dernier commit les fichiers confirmés (`files`) qui sont encore dans la liste : un fichier apparu
+    /// depuis la confirmation reste. Les dépôts git imbriqués restent aussi, et leurs chemins sont renvoyés.
+    pub async fn revert_all(
+        &self,
+        project: &Path,
+        dir: &Path,
+        files: &[String],
+    ) -> Result<Vec<String>, AppError> {
         let git = require_git()?;
         let (top, base) = repo_base(&git, project, dir).await?;
+        let mut skipped = Vec::new();
         for entry in collect(&git, &top, &base).await? {
+            if !files.contains(&entry.path) {
+                continue;
+            }
+            if nested(&entry) {
+                skipped.push(entry.path);
+                continue;
+            }
             revert_entry(&git, &top, &entry).await?;
         }
-        Ok(())
+        Ok(skipped)
     }
 
     /// Commite tous les changements de la liste, non suivis compris, avec ce message. git le reçoit en argument :
-    /// rien n'est interprété.
+    /// rien n'est interprété. Un dépôt git imbriqué reste hors du commit : `add` en ferait un lien vers un autre dépôt.
     pub async fn commit(
         &self,
         project: &Path,
         dir: &Path,
         message: &str,
-    ) -> Result<HeadInfo, AppError> {
+    ) -> Result<CommitDone, AppError> {
         let message = message.trim();
         if message.is_empty() {
             return Err(AppError::InvalidInput(
@@ -513,17 +548,37 @@ impl WorktreeService {
         }
         let git = require_git()?;
         let (top, base) = repo_base(&git, project, dir).await?;
-        if collect(&git, &top, &base).await?.is_empty() {
+        let (skipped, kept): (Vec<_>, Vec<_>) = collect(&git, &top, &base)
+            .await?
+            .into_iter()
+            .partition(nested);
+        if kept.is_empty() {
             return Err(AppError::InvalidInput("rien à commiter".into()));
         }
-        run(&git, &top, &["add", "--all"], ADD_TIMEOUT).await?;
+        let mut add = vec![
+            "add".to_owned(),
+            "--all".to_owned(),
+            "--".to_owned(),
+            ".".to_owned(),
+        ];
+        add.extend(
+            skipped
+                .iter()
+                .map(|entry| format!(":(exclude,literal){}", entry.path)),
+        );
+        let add: Vec<&str> = add.iter().map(String::as_str).collect();
+        run(&git, &top, &add, LONG_TIMEOUT).await?;
         let message = format!("--message={message}");
-        run(&git, &top, &["commit", "--quiet", &message], ADD_TIMEOUT).await?;
-        self.head(project, dir).await
+        run(&git, &top, &["commit", "--quiet", &message], LONG_TIMEOUT).await?;
+        Ok(CommitDone {
+            head: self.head(project, dir).await?,
+            skipped: skipped.into_iter().map(|entry| entry.path).collect(),
+        })
     }
 
-    /// Pousse la branche courante, jamais en force. Sans branche suivie, la pousse sur `origin` (ou le seul dépôt
-    /// distant) et la fait suivre.
+    /// Pousse la branche courante, jamais en force, vers sa branche suivie, sans passer par la config de push de
+    /// l'utilisateur (`push.default`, `pushRemote`, `remote.*.push` pousseraient ailleurs ou d'autres branches).
+    /// Sans branche suivie, la pousse sur `origin` (ou le seul dépôt distant) et la fait suivre.
     pub async fn push(&self, project: &Path, dir: &Path) -> Result<HeadInfo, AppError> {
         let git = require_git()?;
         let cwd = session_dir(&git, project, dir).await?;
@@ -532,9 +587,31 @@ impl WorktreeService {
                 "HEAD détaché : aucune branche à pousser".into(),
             ));
         };
-        let upstream = ["rev-parse", "--verify", "--quiet", "@{upstream}"];
-        if run(&git, &cwd, &upstream, GIT_TIMEOUT).await.is_ok() {
-            run(&git, &cwd, &["push", "--quiet"], ADD_TIMEOUT).await?;
+        let local = format!("refs/heads/{branch}");
+        let format = "--format=%(upstream:remotename)%09%(upstream:remoteref)";
+        let upstream = run(&git, &cwd, &["for-each-ref", format, &local], GIT_TIMEOUT).await?;
+        if let Some((remote, target)) = upstream.trim_end_matches(['\n', '\r']).split_once('\t')
+            && !remote.is_empty()
+            && !target.is_empty()
+        {
+            if remote == "." {
+                return Err(AppError::Git(format!(
+                    "la branche {branch} suit une branche locale, rien à pousser"
+                )));
+            }
+            if remote.starts_with('-') || !target.starts_with("refs/") {
+                return Err(AppError::Git(format!(
+                    "branche suivie inattendue : {remote} {target}"
+                )));
+            }
+            let refspec = format!("HEAD:{target}");
+            run(
+                &git,
+                &cwd,
+                &["push", "--quiet", remote, &refspec],
+                LONG_TIMEOUT,
+            )
+            .await?;
             return self.head(project, dir).await;
         }
         let remotes = run(&git, &cwd, &["remote"], GIT_TIMEOUT).await?;
@@ -561,12 +638,12 @@ impl WorktreeService {
             return Err(AppError::Git(format!("dépôt distant inattendu : {remote}")));
         }
         let args = ["push", "--quiet", "--set-upstream", remote, "HEAD"];
-        run(&git, &cwd, &args, ADD_TIMEOUT).await?;
+        run(&git, &cwd, &args, LONG_TIMEOUT).await?;
         self.head(project, dir).await
     }
 
-    /// Commits de la branche courante, `LOG_PAGE` à partir de `skip`. `query` : seuls ceux dont le titre la contient.
-    /// Dépôt sans commit : une page vide.
+    /// Commits de la branche courante, `LOG_PAGE` à partir de `skip`. `query` : seuls ceux dont le titre la contient,
+    /// sans tenir compte de la casse, accents compris. Dépôt sans commit : une page vide.
     pub async fn log(
         &self,
         project: &Path,
@@ -583,39 +660,18 @@ impl WorktreeService {
                 next: None,
             });
         }
-        let query = query.map(str::trim).filter(|query| !query.is_empty());
-        let mut args = vec![
-            "log".to_owned(),
-            "--no-show-signature".to_owned(),
-            "--format=%H%x1f%h%x1f%s%x1f%an%x1f%at%x1f%D%x1e".to_owned(),
-            format!("--skip={skip}"),
-            format!("--max-count={}", LOG_PAGE + 1),
-        ];
-        if let Some(query) = query {
-            args.extend([
-                "--fixed-strings".to_owned(),
-                "--regexp-ignore-case".to_owned(),
-                format!("--grep={query}"),
-            ]);
+        match query.map(str::trim).filter(|query| !query.is_empty()) {
+            Some(query) => search_log(&git, &cwd, skip, &query.to_lowercase(), LOG_SCAN).await,
+            None => {
+                let mut commits = read_log(&git, &cwd, skip, LOG_PAGE + 1).await?;
+                let more = commits.len() > LOG_PAGE as usize;
+                commits.truncate(LOG_PAGE as usize);
+                Ok(CommitPage {
+                    commits,
+                    next: more.then_some(skip + LOG_PAGE),
+                })
+            }
         }
-        args.extend(["HEAD".to_owned(), "--".to_owned()]);
-        let args: Vec<&str> = args.iter().map(String::as_str).collect();
-        let out = run(&git, &cwd, &args, GIT_TIMEOUT).await?;
-        let mut commits: Vec<CommitEntry> = out
-            .split('\x1e')
-            .filter_map(|record| parse_commit(record.trim_start_matches('\n')))
-            .collect();
-        let more = commits.len() > LOG_PAGE as usize;
-        commits.truncate(LOG_PAGE as usize);
-        // `--grep` lit tout le message : la recherche ne vaut que pour le titre.
-        if let Some(query) = query {
-            let query = query.to_lowercase();
-            commits.retain(|commit| commit.subject.to_lowercase().contains(&query));
-        }
-        Ok(CommitPage {
-            commits,
-            next: more.then_some(skip + LOG_PAGE),
-        })
     }
 
     /// Fichiers changés par un commit, comparé à son premier parent (à l'arbre vide pour le premier commit).
@@ -732,7 +788,7 @@ impl WorktreeService {
                 "HEAD",
             ]
         };
-        if let Err(error) = run(&git, project, &args, ADD_TIMEOUT).await {
+        if let Err(error) = run(&git, project, &args, LONG_TIMEOUT).await {
             let _ = std::fs::remove_dir(&parent);
             return Err(error);
         }
@@ -964,6 +1020,78 @@ async fn commit_range(git: &Path, top: &Path, sha: &str) -> Result<(String, Stri
         .to_owned(),
     };
     Ok((from, to))
+}
+
+/// `count` commits de la branche courante à partir de `skip`.
+async fn read_log(
+    git: &Path,
+    cwd: &Path,
+    skip: u32,
+    count: u32,
+) -> Result<Vec<CommitEntry>, AppError> {
+    let skip = format!("--skip={skip}");
+    let count = format!("--max-count={count}");
+    let args = [
+        "log",
+        "--no-show-signature",
+        "--format=%H%x1f%h%x1f%s%x1f%an%x1f%at%x1f%D%x1e",
+        &skip,
+        &count,
+        "HEAD",
+        "--",
+    ];
+    let out = run(git, cwd, &args, GIT_TIMEOUT).await?;
+    Ok(out
+        .split('\x1e')
+        .filter_map(|record| parse_commit(record.trim_start_matches('\n')))
+        .collect())
+}
+
+/// Commits dont le titre contient `query` (en minuscules), à partir de `skip` : lus par lots jusqu'à `LOG_PAGE`
+/// trouvés, la fin du journal ou `scan` commits lus. `next` reprend juste après le dernier commit lu.
+async fn search_log(
+    git: &Path,
+    cwd: &Path,
+    skip: u32,
+    query: &str,
+    scan: u32,
+) -> Result<CommitPage, AppError> {
+    let mut commits = Vec::new();
+    let mut position = skip;
+    loop {
+        let mut batch = read_log(git, cwd, position, LOG_BATCH + 1).await?;
+        let more = batch.len() > LOG_BATCH as usize;
+        batch.truncate(LOG_BATCH as usize);
+        let last = batch.len();
+        for (at, commit) in batch.into_iter().enumerate() {
+            position += 1;
+            if !commit.subject.to_lowercase().contains(query) {
+                continue;
+            }
+            commits.push(commit);
+            if commits.len() == LOG_PAGE as usize {
+                let next = (more || at + 1 < last).then_some(position);
+                return Ok(CommitPage { commits, next });
+            }
+        }
+        if !more {
+            return Ok(CommitPage {
+                commits,
+                next: None,
+            });
+        }
+        if position - skip >= scan {
+            return Ok(CommitPage {
+                commits,
+                next: Some(position),
+            });
+        }
+    }
+}
+
+/// `ls-files --others` écrit un dépôt git imbriqué comme un dossier (`sous/`), jamais un fichier.
+fn nested(entry: &ChangedFile) -> bool {
+    entry.status == ChangeStatus::Untracked && entry.path.ends_with('/')
 }
 
 /// Un enregistrement de `log` : champs séparés par 0x1f, refs de `%D`.
@@ -1358,27 +1486,45 @@ pub(crate) async fn run(
     command.process_group(0);
     #[cfg(windows)]
     command.creation_flags(process::CREATE_NO_WINDOW);
-    let child = command.spawn()?;
+    let mut child = command.spawn()?;
     let pid = child.id();
-    let Ok(output) = timeout(limit, child.wait_with_output()).await else {
+    let (stdout, stderr) = (child.stdout.take(), child.stderr.take());
+    let work = async {
+        let (status, stdout, stderr) = tokio::join!(child.wait(), drain(stdout), drain(stderr));
+        Ok::<_, std::io::Error>((status?, stdout?, stderr?))
+    };
+    let done = timeout(limit, work).await;
+    let Ok(done) = done else {
+        // Tué net, git laisserait `.git/index.lock` et bloquerait les commandes suivantes.
         if let Some(pid) = pid {
-            process::kill_tree(pid, true);
+            process::kill_tree(pid, false);
+            if timeout(TERM_GRACE, child.wait()).await.is_err() {
+                process::kill_tree(pid, true);
+            }
         }
         return Err(AppError::Git(format!(
             "git {} trop long",
             args.first().unwrap_or(&"")
         )));
     };
-    let output = output?;
-    if output.status.success() {
-        return Ok(String::from_utf8_lossy(&output.stdout).into_owned());
+    let (status, stdout, stderr) = done?;
+    if status.success() {
+        return Ok(String::from_utf8_lossy(&stdout).into_owned());
     }
-    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_owned();
+    let stderr = String::from_utf8_lossy(&stderr).trim().to_owned();
     Err(AppError::Git(if stderr.is_empty() {
         format!("git {} a échoué", args.first().unwrap_or(&""))
     } else {
         stderr
     }))
+}
+
+async fn drain<R: AsyncRead + Unpin>(pipe: Option<R>) -> std::io::Result<Vec<u8>> {
+    let mut bytes = Vec::new();
+    if let Some(mut pipe) = pipe {
+        pipe.read_to_end(&mut bytes).await?;
+    }
+    Ok(bytes)
 }
 
 #[cfg(test)]
@@ -1417,7 +1563,7 @@ mod tests {
     fn repo(root: &Path) -> PathBuf {
         let repo = root.join("repo");
         std::fs::create_dir_all(repo.join("app")).expect("dépôt");
-        git(&repo, &["init", "-q"]);
+        git(&repo, &["init", "-q", "-b", "main"]);
         std::fs::write(repo.join("app/main.txt"), "salut").expect("fichier");
         git(&repo, &["add", "."]);
         git(&repo, &["commit", "-qm", "départ"]);
@@ -1453,9 +1599,10 @@ mod tests {
 
         let message =
             "Titre \"cité\" et 'apostrophe' $HOME `id`\n\n--amend ; corps\nsur deux lignes";
-        let head = commit(message).expect("commit");
+        let done = commit(message).expect("commit");
+        assert!(done.skipped.is_empty());
         assert_eq!(
-            head.subject.as_deref(),
+            done.head.subject.as_deref(),
             Some("Titre \"cité\" et 'apostrophe' $HOME `id`")
         );
         assert_eq!(
@@ -1484,12 +1631,70 @@ mod tests {
         let service = WorktreeService::new(root.join("worktrees"));
         std::fs::write(repo.join("app/main.txt"), "modifié").expect("modif");
         std::fs::write(repo.join("app/neuf.txt"), "non suivi").expect("non suivi");
-        block_on(service.revert_all(&repo, &repo)).expect("annulé");
+        // La liste que l'utilisateur a confirmée ; un agent crée ensuite un fichier.
+        let confirmed: Vec<String> = block_on(service.changed_files(&repo, &repo))
+            .expect("liste")
+            .expect("dépôt")
+            .files
+            .into_iter()
+            .map(|file| file.path)
+            .collect();
+        std::fs::write(repo.join("app/tard.txt"), "après la confirmation").expect("non suivi");
+        let skipped = block_on(service.revert_all(&repo, &repo, &confirmed)).expect("annulé");
+        assert!(skipped.is_empty());
         assert_eq!(
             std::fs::read_to_string(repo.join("app/main.txt")).expect("fichier"),
             "salut"
         );
         assert!(!repo.join("app/neuf.txt").exists());
+        assert!(repo.join("app/tard.txt").exists());
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn a_nested_repository_stays_out_of_revert_and_commit() {
+        if git_binary().is_none() {
+            return;
+        }
+        let root = sandbox("nested");
+        let repo = repo(&root);
+        identity(&repo);
+        let service = WorktreeService::new(root.join("worktrees"));
+        let inner = repo.join("app/inner");
+        std::fs::create_dir_all(&inner).expect("dossier");
+        git(&inner, &["init", "-q", "-b", "main"]);
+        std::fs::write(inner.join("f.txt"), "dedans").expect("fichier");
+        git(&inner, &["add", "."]);
+        git(&inner, &["commit", "-qm", "dedans"]);
+
+        let paths = || -> Vec<String> {
+            block_on(service.changed_files(&repo, &repo))
+                .expect("liste")
+                .expect("dépôt")
+                .files
+                .into_iter()
+                .map(|file| file.path)
+                .collect()
+        };
+        assert_eq!(paths(), ["app/inner/"]);
+        assert!(matches!(
+            block_on(service.commit(&repo, &repo, "seul")),
+            Err(AppError::InvalidInput(_))
+        ));
+        assert!(block_on(service.revert_file(&repo, &repo, "app/inner/")).is_err());
+
+        std::fs::write(repo.join("app/main.txt"), "modifié").expect("modif");
+        std::fs::write(repo.join("app/neuf.txt"), "non suivi").expect("non suivi");
+        let skipped = block_on(service.revert_all(&repo, &repo, &paths())).expect("annulé");
+        assert_eq!(skipped, ["app/inner/"]);
+        assert!(inner.join("f.txt").exists() && !repo.join("app/neuf.txt").exists());
+
+        std::fs::write(repo.join("app/main.txt"), "modifié").expect("modif");
+        let done =
+            block_on(service.commit(&repo, &repo, "sans le dépôt imbriqué")).expect("commit");
+        assert_eq!(done.skipped, ["app/inner/"]);
+        assert!(!git(&repo, &["ls-files", "--stage"]).contains("inner"));
+        assert_eq!(paths(), ["app/inner/"]);
         let _ = std::fs::remove_dir_all(root);
     }
 
@@ -1509,7 +1714,7 @@ mod tests {
         );
 
         let remote = root.join("remote.git");
-        git(&root, &["init", "-q", "--bare", "remote.git"]);
+        git(&root, &["init", "-q", "--bare", "-b", "main", "remote.git"]);
         git(
             &repo,
             &["remote", "add", "origin", &remote.to_string_lossy()],
@@ -1527,6 +1732,153 @@ mod tests {
         assert!(block_on(service.unpushed(&repo, &repo)).expect("état"));
         push().expect("push suivi");
         assert!(!block_on(service.unpushed(&repo, &repo)).expect("état"));
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_git_command_too_long_is_stopped_without_leaving_the_index_locked() {
+        use std::os::unix::fs::PermissionsExt;
+        if git_binary().is_none() {
+            return;
+        }
+        let root = sandbox("timeout");
+        let repo = repo(&root);
+        identity(&repo);
+        let hook = repo.join(".git/hooks/pre-commit");
+        std::fs::write(&hook, "#!/bin/sh\nsleep 30\n").expect("hook");
+        std::fs::set_permissions(&hook, std::fs::Permissions::from_mode(0o755)).expect("droits");
+        std::fs::write(repo.join("app/main.txt"), "modifié").expect("modif");
+        let git_bin = git_binary().expect("git");
+        let started = std::time::Instant::now();
+        let result = block_on(run(
+            &git_bin,
+            &repo,
+            &["commit", "-qam", "lent"],
+            Duration::from_secs(1),
+        ));
+        assert!(matches!(result, Err(AppError::Git(_))));
+        assert!(started.elapsed() < Duration::from_secs(10));
+        assert!(!repo.join(".git/index.lock").exists());
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn push_sends_only_the_current_branch_to_its_upstream() {
+        if git_binary().is_none() {
+            return;
+        }
+        let root = sandbox("push-config");
+        let repo = repo(&root);
+        identity(&repo);
+        let service = WorktreeService::new(root.join("worktrees"));
+        let remote = root.join("remote.git");
+        let other = root.join("other.git");
+        git(&root, &["init", "-q", "--bare", "-b", "main", "remote.git"]);
+        git(&root, &["init", "-q", "--bare", "-b", "main", "other.git"]);
+        git(
+            &repo,
+            &["remote", "add", "origin", &remote.to_string_lossy()],
+        );
+        git(
+            &repo,
+            &["remote", "add", "ailleurs", &other.to_string_lossy()],
+        );
+        git(&repo, &["push", "-q", "-u", "origin", "main"]);
+        git(&repo, &["branch", "autre"]);
+        git(&repo, &["push", "-q", "origin", "autre"]);
+        // Une config qui pousserait toutes les branches, ailleurs.
+        git(&repo, &["config", "push.default", "matching"]);
+        git(&repo, &["config", "remote.pushDefault", "ailleurs"]);
+        git(&repo, &["config", "branch.main.pushRemote", "ailleurs"]);
+        git(
+            &repo,
+            &[
+                "config",
+                "remote.origin.push",
+                "refs/heads/*:refs/heads/copie/*",
+            ],
+        );
+
+        git(&repo, &["switch", "-q", "autre"]);
+        std::fs::write(repo.join("app/main.txt"), "sur autre").expect("modif");
+        git(&repo, &["commit", "-qam", "autre"]);
+        git(&repo, &["switch", "-q", "main"]);
+        std::fs::write(repo.join("app/main.txt"), "sur main").expect("modif");
+        git(&repo, &["commit", "-qam", "main"]);
+        let remote_autre = git(&remote, &["rev-parse", "refs/heads/autre"]);
+
+        block_on(service.push(&repo, &repo)).expect("push");
+        assert_eq!(
+            git(&remote, &["rev-parse", "refs/heads/main"]),
+            git(&repo, &["rev-parse", "main"])
+        );
+        assert_eq!(
+            git(&remote, &["rev-parse", "refs/heads/autre"]),
+            remote_autre
+        );
+        assert!(git(&remote, &["for-each-ref", "refs/heads/copie"]).is_empty());
+        assert!(git(&other, &["for-each-ref"]).is_empty());
+
+        git(&repo, &["switch", "-qc", "locale", "--track", "main"]);
+        assert!(block_on(service.push(&repo, &repo)).is_err());
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn a_search_reads_on_until_it_finds_a_page_and_resumes_where_it_stopped() {
+        if git_binary().is_none() {
+            return;
+        }
+        let root = sandbox("search");
+        let repo = repo(&root);
+        let service = WorktreeService::new(root.join("worktrees"));
+        for index in 1..=60 {
+            git(
+                &repo,
+                &[
+                    "commit",
+                    "-q",
+                    "--allow-empty",
+                    "-m",
+                    &format!("Étape {index}"),
+                ],
+            );
+        }
+        for index in 1..=300 {
+            git(
+                &repo,
+                &[
+                    "commit",
+                    "-q",
+                    "--allow-empty",
+                    "-m",
+                    &format!("Bruit {index}"),
+                ],
+            );
+        }
+        let git_bin = git_binary().expect("git");
+
+        let first = block_on(service.log(&repo, &repo, 0, Some("étape"))).expect("recherche");
+        assert_eq!(first.commits.len(), 50);
+        assert_eq!(first.commits[0].subject, "Étape 60");
+        assert_eq!(first.next, Some(350));
+        let rest = block_on(service.log(&repo, &repo, 350, Some("ÉTAPE"))).expect("suite");
+        assert_eq!(rest.commits.len(), 10);
+        assert_eq!(
+            rest.commits.last().map(|commit| commit.subject.as_str()),
+            Some("Étape 1")
+        );
+        assert_eq!(rest.next, None);
+
+        // Borne atteinte sans rien trouver : une page vide, et la suite là où la lecture s'est arrêtée.
+        let bounded = block_on(search_log(&git_bin, &repo, 0, "étape", 200)).expect("bornée");
+        assert!(bounded.commits.is_empty());
+        assert_eq!(bounded.next, Some(200));
+        let resumed = block_on(search_log(&git_bin, &repo, 200, "étape", 200)).expect("reprise");
+        assert_eq!(resumed.commits.len(), 50);
+        assert_eq!(resumed.commits[0].subject, "Étape 60");
+        assert_eq!(resumed.next, Some(350));
         let _ = std::fs::remove_dir_all(root);
     }
 
@@ -1596,7 +1948,7 @@ mod tests {
 
         let empty = root.join("vide");
         std::fs::create_dir_all(&empty).expect("dossier");
-        git(&empty, &["init", "-q"]);
+        git(&empty, &["init", "-q", "-b", "main"]);
         let page = block_on(service.log(&empty, &empty, 0, None)).expect("dépôt vide");
         assert!(page.commits.is_empty() && page.next.is_none());
         let _ = std::fs::remove_dir_all(root);
@@ -1709,7 +2061,7 @@ mod tests {
 
         let fresh = root.join("fresh");
         std::fs::create_dir_all(&fresh).expect("dépôt vide");
-        git(&fresh, &["init", "-q"]);
+        git(&fresh, &["init", "-q", "-b", "main"]);
         std::fs::write(fresh.join("a.txt"), "un\ndeux").expect("fichier");
         git(&fresh, &["add", "."]);
         std::fs::write(fresh.join("b.txt"), "un\n").expect("non suivi");
@@ -2042,7 +2394,7 @@ mod tests {
         let plain = root.join("plain");
         std::fs::create_dir_all(&plain).expect("dossier");
         assert_eq!(block_on(service.support(&plain)), WorktreeSupport::NotRepo);
-        git(&plain, &["init", "-q"]);
+        git(&plain, &["init", "-q", "-b", "main"]);
         assert_eq!(block_on(service.support(&plain)), WorktreeSupport::NoCommit);
         assert_eq!(
             block_on(service.support(&repo(&root))),

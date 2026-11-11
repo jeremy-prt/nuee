@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronRight } from '@/components/ui/icons'
+import { ChevronRight, MessageQuestion, ShieldQuestion } from '@/components/ui/icons'
 import { computed, onScopeDispose, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatDiffStat from '@/components/chat/ChatDiffStat.vue'
@@ -33,15 +33,17 @@ const summary = computed(() => {
   const list = new Intl.ListFormat(locale.value, { type: 'conjunction' })
   const segments = parts.map((part) => {
     if (part.kind === 'count') {
-      const failed = part.failed ? ` ${t('chat.activity.failed', { n: part.failed }, part.failed)}` : ''
-      return { text: t(`chat.activity.count.${part.tool}`, { n: part.n }, part.n) + failed, name: null }
+      const failed = part.failed ? ` ${t('chat.activity.failed', { n: part.failed }, part.failed)}` : null
+      return { text: t(`chat.activity.count.${part.tool}`, { n: part.n }, part.n), name: null, failed }
     }
     const verbs = list.format(part.verbs.map((verb) => t(`chat.activity.verbs.${verb}`)))
-    return part.name ? { text: `${verbs} `, name: part.name } : { text: `${verbs} ${t('chat.activity.files', { n: part.n }, part.n)}`, name: null }
+    return part.name
+      ? { text: `${verbs} `, name: part.name, failed: null }
+      : { text: `${verbs} ${t('chat.activity.files', { n: part.n }, part.n)}`, name: null, failed: null }
   })
   const [first] = segments
   if (first) first.text = capitalize(first.text, locale.value)
-  const failed = failedFiles ? t('chat.activity.failed', { n: failedFiles }, failedFiles) : null
+  const failed = failedFiles ? ` ${t('chat.activity.failed', { n: failedFiles }, failedFiles)}` : null
   return { segments, added, removed, failed }
 })
 
@@ -59,10 +61,10 @@ const step = computed(() => {
 // Ce que dit la ligne vivante : l'attente d'une autorisation, la réflexion en cours, la dernière étape outillée (gardée
 // jusqu'à la suivante), sinon que l'agent travaille.
 const label = computed(() => {
-  if (props.clock?.pausedAt != null) return { text: t(props.clock.asking ? 'chat.waitingAnswer' : 'chat.waitingApproval'), name: null, shimmer: false }
-  if (props.items.at(-1)?.kind === 'thinking') return { text: t('chat.activity.thinking'), name: null, shimmer: true }
-  if (step.value && !props.writing) return { ...step.value, shimmer: true }
-  return { text: t('chat.working', { agent: agents[props.agent].name }), name: null, shimmer: true }
+  if (props.clock?.pausedAt != null) return { text: t(props.clock.asking ? 'chat.waitingAnswer' : 'chat.waitingApproval'), name: null, shimmer: false, waiting: true }
+  if (props.items.at(-1)?.kind === 'thinking') return { text: t('chat.activity.thinking'), name: null, shimmer: true, waiting: false }
+  if (step.value && !props.writing) return { ...step.value, shimmer: true, waiting: false }
+  return { text: t('chat.working', { agent: agents[props.agent].name }), name: null, shimmer: true, waiting: false }
 })
 
 // Une seule horloge à l'écran : celle de la ligne vivante.
@@ -100,17 +102,24 @@ const entries = computed(() => props.items.filter((item) => item.kind === 'tool'
         @click="items.length && (open = !open)"
       >
         <template v-if="live">
-          <ChatSpinner :agent="agent" class="me-0.5 text-base" />
-          <span class="shrink-0" :class="{ 'text-shimmer': label.shimmer }">{{ label.text }}</span>
+          <template v-if="label.waiting">
+            <component :is="clock?.asking ? MessageQuestion : ShieldQuestion" class="me-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
+            <span class="shrink-0 text-warning">{{ label.text }}</span>
+          </template>
+          <template v-else>
+            <ChatSpinner :agent="agent" class="me-0.5 text-base" />
+            <span class="shrink-0" :class="{ 'text-shimmer': label.shimmer }">{{ label.text }}</span>
+          </template>
           <span v-if="label.name" class="min-w-0 truncate text-content">{{ label.name }}</span>
           <span class="shrink-0 text-xs tabular-nums">{{ elapsed }}</span>
           <span v-if="background" class="min-w-0 truncate text-xs">· {{ t('chat.backgroundTasks', { n: background }, background) }}</span>
         </template>
         <span v-else class="min-w-0 truncate">
           <template v-for="(segment, index) in summary.segments" :key="index">
-            {{ index ? ', ' : '' }}{{ segment.text }}<span v-if="segment.name" class="text-content">{{ segment.name }}</span>
+            {{ index ? ', ' : '' }}{{ segment.text }}<span v-if="segment.name" class="text-content">{{ segment.name }}</span
+            ><span v-if="segment.failed" class="text-danger">{{ segment.failed }}</span>
           </template>
-          <template v-if="summary.failed"> {{ summary.failed }}</template>
+          <span v-if="summary.failed" class="text-danger">{{ summary.failed }}</span>
         </span>
         <ChatDiffStat v-if="!live && (summary.added || summary.removed)" :added="summary.added" :removed="summary.removed" />
         <ChevronRight

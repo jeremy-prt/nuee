@@ -19,9 +19,9 @@ import { useGitActionsStore } from '@/stores/gitActions'
 import { commitKey, useGitPanelStore } from '@/stores/gitPanel'
 import { useToastsStore } from '@/stores/toasts'
 
-// Mode Historique du volet Git, comme monocode : les commits de la branche courante en chronologie (un trait, un point
-// par commit), 50 à la fois, la suite au défilement. Un clic montre les fichiers du commit ; un fichier ouvre son diff
-// à gauche (`side`), sinon sous sa ligne. Lecture seule. La recherche s'ouvre depuis la ligne d'outils (`searching`).
+// Mode Historique du volet Git, comme monocode : les commits de la branche courante en chronologie, 50 à la fois, la
+// suite au défilement (une page de recherche peut revenir vide avec une suite, le témoin la demande aussitôt). Un clic
+// montre les fichiers du commit, un fichier son diff à gauche (`side`) ou dessous. Recherche : `searching`.
 const props = defineProps<{ side: boolean }>()
 const searching = defineModel<boolean>('searching', { default: false })
 
@@ -46,12 +46,14 @@ let generation = 0
 async function more() {
   const id = generation
   const tab = chat.value
-  if (!tab?.started || !path.value || next.value === null || busy.value) return
+  if (!tab || !path.value || changes.pending.value || next.value === null || busy.value) return
   busy.value = true
   try {
     const page = await worktreeLog(tab.id, path.value, next.value, search.value.trim() || null)
     if (id !== generation) return
-    commits.value = [...commits.value, ...page.commits]
+    // Un commit fait pendant le défilement décale les pages : celui déjà là revient en tête de la suivante.
+    const seen = new Set(commits.value.map((commit) => commit.sha))
+    commits.value = [...commits.value, ...page.commits.filter((commit) => !seen.has(commit.sha))]
     next.value = page.next
     status.value = 'ready'
   } catch {
@@ -70,7 +72,9 @@ function reload() {
   status.value = 'loading'
   return more()
 }
-watch([() => chat.value?.id, path, search, () => changes.status.value === 'notRepo'], reload, { immediate: true })
+watch([() => chat.value?.id, path, search, () => changes.status.value === 'notRepo', () => chat.value?.worktreePath, changes.pending], reload, {
+  immediate: true,
+})
 watch(
   () => gitActions.settled[gitActions.folderOf(chat.value) ?? ''],
   () => reload(),
@@ -187,8 +191,8 @@ const note = 'px-3 py-6 text-center text-xs text-muted'
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col">
-    <p v-if="!chat?.started" :class="note">{{ t('dock.changes.empty') }}</p>
-    <p v-else-if="!changes.project.value" :class="note">{{ t('dock.changes.noProject') }}</p>
+    <p v-if="!changes.project.value" :class="note">{{ t('dock.changes.noProject') }}</p>
+    <p v-else-if="changes.pending.value" :class="note">{{ t('dock.changes.pending') }}</p>
     <p v-else-if="changes.status.value === 'notRepo'" :class="note">{{ t('dock.changes.notRepo') }}</p>
     <template v-else>
       <div class="flex shrink-0 flex-col gap-1.5 border-b border-stroke p-2">
@@ -215,12 +219,12 @@ const note = 'px-3 py-6 text-center text-xs text-muted'
         </label>
       </div>
 
-      <p v-if="status === 'failed'" :class="note">{{ t('dock.changes.history.failed') }}</p>
+      <p v-if="status === 'failed'" :class="[note, 'text-danger!']" role="alert">{{ t('dock.changes.history.failed') }}</p>
       <p v-else-if="status === 'loading' && !commits.length" :class="note" class="flex items-center justify-center gap-1.5" role="status">
         <LoaderCircle class="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
         {{ t('dock.changes.history.loading') }}
       </p>
-      <p v-else-if="!commits.length" :class="note">{{ search ? t('dock.changes.history.noMatch') : t('dock.changes.history.noCommits') }}</p>
+      <p v-else-if="!commits.length && next === null" :class="note">{{ search ? t('dock.changes.history.noMatch') : t('dock.changes.history.noCommits') }}</p>
       <ol v-else class="min-h-0 flex-1 overflow-y-auto p-2" :aria-label="t('dock.changes.modes.history')">
         <li v-for="(commit, at) in commits" :key="commit.sha" class="relative">
           <!-- Chronologie : un trait continu d'un commit à l'autre, coupé avant le premier et après le dernier. -->
@@ -280,7 +284,6 @@ const note = 'px-3 py-6 text-center text-xs text-muted'
             <GitFileList
               v-else
               :files="listOf(commit.sha)"
-              :tree="gitPanel.tree"
               :inline="!side"
               :expanded="openedIn(commit.sha)"
               :active="activeIn(commit.sha)"

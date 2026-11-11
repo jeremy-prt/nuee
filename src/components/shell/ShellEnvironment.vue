@@ -46,7 +46,7 @@ function onCloseAutoFocus(event: Event) {
           @keydown="openedBy(false)"
         >
           <SquareMenu class="size-4" aria-hidden="true" />
-          <span v-if="changed" class="absolute end-1 top-1 size-1.5 rounded-full bg-signal" aria-hidden="true" />
+          <span v-if="changed" class="absolute end-1 top-1 size-1.5 rounded-full bg-warning" aria-hidden="true" />
         </PopoverTrigger>
         <PopoverPortal>
           <PopoverContent

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CaseSensitive, ChevronLeft, File as FileGlyph, LoaderCircle, Regex, Search, WholeWord } from '@/components/ui/icons'
+import { CaseSensitive, ChevronLeft, CircleAlert, File as FileGlyph, LoaderCircle, Regex, Search, WholeWord } from '@/components/ui/icons'
 import { computed, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import FilesIcon from '@/components/files/FilesIcon.vue'
@@ -211,7 +211,9 @@ const row = 'flex w-full min-w-0 items-center gap-1.5 rounded-md px-2 text-start
       </label>
       <p v-if="searched" class="flex items-center gap-1.5 px-1 pt-0.5 text-[11px] text-muted" role="status">
         <LoaderCircle v-if="loading" class="size-3 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-        <template v-if="failed">{{ t('dock.files.searchFailed') }}</template>
+        <span v-if="failed" class="flex items-center gap-1.5 text-danger">
+          <CircleAlert class="size-3" aria-hidden="true" />{{ t('dock.files.searchFailed') }}
+        </span>
         <template v-else-if="results">
           {{ t('dock.files.results', { n: count }, count) }}
           <template v-if="results.truncated">{{ t('dock.files.limited') }}</template>

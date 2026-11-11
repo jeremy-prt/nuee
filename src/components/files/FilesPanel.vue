@@ -178,6 +178,7 @@ function create(dir: boolean) {
         </ShellDockToolbar>
         <UiEmpty
           v-if="failure"
+          tone="danger"
           :icon="failure.missing ? FolderX : CircleAlert"
           :title="t(failure.missing ? 'dock.files.folderMissingTitle' : 'dock.files.folderUnreadableTitle')"
           :description="failure.missing ? t('dock.files.folderMissing', { path: place.worktree ?? place.path ?? '' }) : failure.detail"

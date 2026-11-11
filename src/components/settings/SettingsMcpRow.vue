@@ -45,7 +45,7 @@ function act(event: MouseEvent) {
         <span class="truncate text-sm font-medium" :title="server.target || undefined">{{ mcpLabel(server.name) }}</span>
       </p>
       <p :id="hintId" class="line-clamp-2 ps-6 text-xs/relaxed wrap-break-word text-muted" :title="server.error ?? (server.target || undefined)">
-        <span :class="{ 'text-danger': on && server.status === 'failed' }">{{ status.text }}</span>
+        <span class="me-1.5 inline-block size-1.5 rounded-full align-middle" :class="status.dot" aria-hidden="true" /><span :class="status.color">{{ status.text }}</span>
         <template v-if="origin"> · {{ origin }}</template>
       </p>
     </div>

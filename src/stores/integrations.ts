@@ -116,15 +116,12 @@ export const useIntegrationsStore = defineStore('integrations', () => {
     const status = github.value
     if (error.value) return toasts.push({ kind: 'error', title: t('feedback.refreshFailed'), body: error.value })
     if (status?.state === 'missing') {
-      return toasts.push({ kind: 'error', title: t('feedback.githubRefreshed'), body: t('settings.install.notInstalled', { tool: 'GitHub CLI' }) })
+      return toasts.push({ kind: 'warning', title: t('feedback.githubMissing'), body: t('settings.install.notInstalled', { tool: 'GitHub CLI' }) })
     }
-    if (status?.state === 'outdated') return toasts.push({ kind: 'error', title: t('feedback.githubRefreshed'), body: t('settings.github.outdatedShort') })
+    if (status?.state === 'outdated') return toasts.push({ kind: 'warning', title: t('feedback.githubOutdated'), body: t('settings.github.outdated') })
     const count = status?.state === 'ready' ? status.accounts.length : 0
-    toasts.push({
-      kind: 'success',
-      title: t('feedback.githubRefreshed'),
-      body: count ? t('settings.github.accountsCount', count) : t('settings.github.signedOut'),
-    })
+    if (!count) return toasts.push({ kind: 'warning', title: t('feedback.githubSignedOut'), body: t('settings.github.noAccounts') })
+    toasts.push({ kind: 'success', title: t('feedback.githubRefreshed'), body: t('settings.github.accountsCount', count) })
   }
 
   async function makeActive(account: GithubAccount) {

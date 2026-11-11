@@ -82,7 +82,15 @@ const width = computed(() => {
 
 // Un épinglé caché sous la pile garde son état visible : la pastille prend le plus pressant.
 const urgency: (SessionStatus | 'unseen')[] = ['approval', 'question', 'failed', 'done', 'working', 'unseen']
-const dotColor = { approval: 'bg-warning', question: 'bg-warning', failed: 'bg-danger', done: 'bg-success', working: 'bg-signal-text', unseen: 'bg-signal' }
+// Au travail : un anneau qui pulse, pour ne pas le confondre avec le point plein du non-lu (même teinte).
+const dotStyle = {
+  approval: 'bg-warning',
+  question: 'bg-warning',
+  failed: 'bg-danger',
+  done: 'bg-success',
+  working: 'border-2 border-signal-text bg-canvas motion-safe:animate-pulse',
+  unseen: 'bg-signal',
+}
 const pending = computed(() => {
   if (open.value) return null
   let best: SessionStatus | 'unseen' | null = null
@@ -140,7 +148,7 @@ function onMenu(id: string, state: boolean) {
     v-if="tabs.length"
     ref="deck"
     role="tablist"
-    :aria-label="t('workspace.pinnedDeck', { n: tabs.length }, tabs.length)"
+    :aria-label="[t('workspace.pinnedDeck', { n: tabs.length }, tabs.length), pending && t(`workspace.pinnedState.${pending}`)].filter(Boolean).join(', ')"
     class="pin-deck relative h-7 shrink-0 rounded-lg"
     :class="[workspace.activeTabId && workspace.isTabPinned(workspace.activeTabId) ? 'bg-selection' : 'bg-selection-hover', { 'is-open': open }]"
     :style="{ width: `${width}px` }"
@@ -162,6 +170,6 @@ function onMenu(id: string, state: boolean) {
       :focusable="index === focusable"
       @menu="onMenu(tab.id, $event)"
     />
-    <span v-if="pending" class="absolute -end-0.5 -top-0.5 z-10 size-2 rounded-full ring-2 ring-canvas" :class="[dotColor[pending], { 'motion-safe:animate-pulse': pending === 'working' }]" aria-hidden="true" />
+    <span v-if="pending" class="absolute -end-0.5 -top-0.5 z-10 size-2 rounded-full ring-2 ring-canvas" :class="dotStyle[pending]" aria-hidden="true" />
   </div>
 </template>

@@ -25,6 +25,7 @@ export type DiffState = FileDiff | 'loading' | 'failed'
 
 // Changements non commités du dossier de la session (volet Git) : la liste, les diffs lus (dépliés dans la liste ou
 // ouverts à gauche), les annulations et les commentaires de lignes. Une instance par volet, partagée par `provide`.
+// Avant le premier message, le dossier où la session va travailler se lit déjà, sauf un worktree encore à créer.
 export function useGitChanges() {
   const { t } = useI18n()
   const { chat, place } = useTerminalChat()
@@ -40,6 +41,14 @@ export function useGitChanges() {
   const gitPanel = useGitPanelStore()
 
   const project = computed(() => projects.byId(chat.value?.projectId ?? null))
+  const pending = computed(() => !!chat.value?.worktree && !chat.value.worktreePath)
+  // Commit, actions de fond et commentaires partent dans la conversation : pas avant son premier message.
+  const readOnly = computed(() => !chat.value?.started)
+  // Une action de fond ou un commit direct travaille dans ce dossier : rien ne s'y annule pendant ce temps.
+  const acting = computed(() => {
+    const folder = gitActions.folderOf(chat.value)
+    return !!folder && (gitActions.runs.has(folder) || gitActions.manual.has(folder))
+  })
   const listing = ref<ChangedFiles | null>(null)
   const status = ref<'loading' | 'ready' | 'notRepo' | 'failed'>('loading')
   const loading = ref(false)
@@ -59,8 +68,9 @@ export function useGitChanges() {
     loadedAt = Date.now()
     const tab = chat.value
     const path = project.value?.path
-    if (!tab?.started || !path) {
+    if (!tab || !path || pending.value) {
       listing.value = null
+      loading.value = false
       return
     }
     loading.value = true
@@ -120,10 +130,11 @@ export function useGitChanges() {
     () => {
       opened.clear()
       diffs.clear()
+      listing.value = null
       status.value = 'loading'
     },
   )
-  watch([() => chat.value?.id, () => chat.value?.started, () => project.value?.path, () => chat.value?.worktreePath], () => load(), {
+  watch([() => chat.value?.id, () => project.value?.path, () => chat.value?.worktree, () => chat.value?.worktreePath], () => load(), {
     immediate: true,
   })
   watch(phase, (value, previous) => {
@@ -142,13 +153,13 @@ export function useGitChanges() {
     const path = project.value?.path
     if (!tab || !path || loading.value || Date.now() - loadedAt < 2000) return
     load()
-    sessionGit.refresh(tab.id, path)
+    if (tab.started) sessionGit.refresh(tab.id, path)
   }
   async function refresh() {
     const tab = chat.value
     const path = project.value?.path
     if (!tab || !path) return
-    await Promise.all([load(), sessionGit.refresh(tab.id, path)])
+    await Promise.all([load(), tab.started && sessionGit.refresh(tab.id, path)])
   }
   let diskTimer: ReturnType<typeof setTimeout> | undefined
   watch(
@@ -173,7 +184,7 @@ export function useGitChanges() {
   async function revert(file: ChangedFile) {
     const tab = chat.value
     const path = project.value?.path
-    if (!tab || !path) return
+    if (!tab || !path || acting.value) return
     const fresh = file.status === 'added' || file.status === 'untracked'
     const confirmed = await dialog.confirm({
       title: t('dock.changes.revertTitle'),
@@ -181,7 +192,7 @@ export function useGitChanges() {
       confirmLabel: t('dock.changes.revertConfirm'),
       danger: true,
     })
-    if (!confirmed) return
+    if (!confirmed || acting.value) return
     try {
       await worktreeRevertFile(tab.id, path, file.path)
       for (const comment of commentsOf(file.path)) comments.remove(tab.id, comment.id)
@@ -194,18 +205,20 @@ export function useGitChanges() {
   async function revertAll() {
     const tab = chat.value
     const path = project.value?.path
-    const count = files.value.length
-    if (!tab || !path || !count) return
+    // Seuls les fichiers que montre la confirmation : un fichier créé entre-temps par un agent reste.
+    const shown = files.value.map((file) => file.path)
+    if (!tab || !path || !shown.length || acting.value) return
     const confirmed = await dialog.confirm({
       title: t('dock.changes.revertAllTitle'),
-      message: t('dock.changes.revertAllMessage', { n: count }, count),
+      message: t('dock.changes.revertAllMessage', { n: shown.length }, shown.length),
       confirmLabel: t('dock.changes.revertAllConfirm'),
       danger: true,
     })
-    if (!confirmed) return
+    if (!confirmed || acting.value) return
     try {
-      await worktreeRevertAll(tab.id, path)
-      comments.clear(tab.id)
+      const kept = await worktreeRevertAll(tab.id, path, shown)
+      for (const comment of [...allComments.value]) if (shown.includes(comment.file) && !kept.includes(comment.file)) comments.remove(tab.id, comment.id)
+      if (kept.length) toasts.push({ title: t('dock.changes.nestedKept', { n: kept.length }, kept.length), body: kept.join('\n') })
     } catch (error) {
       failed(t('dock.changes.revertFailed'), error)
     }
@@ -249,6 +262,9 @@ export function useGitChanges() {
   return {
     chat,
     project,
+    pending,
+    readOnly,
+    acting,
     listing,
     status,
     loading,
@@ -257,8 +273,6 @@ export function useGitChanges() {
     removed,
     opened,
     diffs,
-    load,
-    loadDiff,
     ensureDiff,
     diffOf,
     toggle,

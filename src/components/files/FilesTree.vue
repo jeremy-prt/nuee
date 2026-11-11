@@ -15,8 +15,9 @@ import { type FileTarget, parentOf, useFilesStore } from '@/stores/files'
 import { useToastsStore } from '@/stores/toasts'
 
 // Arborescence du dossier de la session, comme l'explorateur de monocode : le dossier en tête, puis ses dossiers et
-// ses fichiers, chaque dossier lu à son ouverture (`browse.dirs`, tenu à jour par le panneau). Couleur git sur les
-// fichiers et sur les dossiers qui en contiennent : modifié en jaune, nouveau en vert.
+// ses fichiers, chaque dossier lu à son ouverture (`browse.dirs`, tenu à jour par le panneau). État git en lettre et
+// en couleur, comme le volet Git (`GitFileList`) ; un dossier qui contient des changements prend un point.
+// Rust confond encore non suivi et ajouté (`GitMark`) : les deux sortent en A.
 const props = defineProps<{ place: FilesPlace; root: string; rootName: string }>()
 
 const { t } = useI18n()
@@ -62,10 +63,12 @@ const folderMarks = computed(() => {
   }
   return marks
 })
-const TONE: Record<GitMark, string> = { modified: 'text-warning', added: 'text-success', renamed: 'text-info' }
-function tone(item: Extract<Row, { kind: 'entry' }>) {
+const LETTER: Record<GitMark, string> = { modified: 'M', added: 'A', renamed: 'R' }
+const TONE: Record<GitMark, string> = { modified: 'text-warning', added: 'text-success', renamed: 'text-violet' }
+function gitMark(item: Extract<Row, { kind: 'entry' }>) {
   const mark = item.folder ? folderMarks.value.get(item.path) : browse.value.marks.get(item.path)
-  return mark ? TONE[mark] : ''
+  if (!mark) return null
+  return { tone: TONE[mark], letter: LETTER[mark], label: item.folder ? t('dock.files.folderChanged') : t(`dock.changes.status.${mark}`) }
 }
 
 const rootTarget: FileTarget = { path: '', folder: true }
@@ -212,7 +215,14 @@ const row =
               />
               <span v-else class="size-3.5 shrink-0" />
               <FilesIcon :name="item.name" :folder="item.folder" :open="browse.expanded.has(item.path)" />
-              <span class="max-w-full min-w-0 shrink-0 truncate" :class="tone(item)">{{ item.name }}</span>
+              <span class="max-w-full min-w-0 truncate" :class="gitMark(item)?.tone">{{ item.name }}</span>
+              <template v-if="gitMark(item)">
+                <span class="sr-only">{{ gitMark(item)?.label }}</span>
+                <span v-if="item.folder" class="ms-auto me-1 size-1.5 shrink-0 rounded-full bg-current" :class="gitMark(item)?.tone" aria-hidden="true" />
+                <span v-else class="ms-auto w-3 shrink-0 text-center font-mono text-[11px] font-medium" :class="gitMark(item)?.tone" aria-hidden="true">
+                  {{ gitMark(item)?.letter }}
+                </span>
+              </template>
             </button>
             <template #menu>
               <FilesMenu :place="place" :root="root" :target="{ path: item.path, folder: item.folder }" />

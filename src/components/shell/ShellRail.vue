@@ -38,7 +38,7 @@ const navigation = useNavigationStore()
 const projects = useProjectsStore()
 const updates = useUpdatesStore()
 const pickProject = useAddProject()
-const newChat = useNewChat()
+const newChat = useNewChat('tab')
 const appearance = useAppearanceStore()
 
 // « Projets en menu » : un projet à la fois, choisi en haut, ses sessions dessous. Repliée, la barre disparaît.

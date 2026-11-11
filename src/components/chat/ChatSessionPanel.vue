@@ -49,6 +49,7 @@ import { useToastsStore } from '@/stores/toasts'
 import { useWorktreesStore } from '@/stores/worktrees'
 import { contextFormats, contextRatio, contextRows } from '@/utils/context'
 import { formatDuration } from '@/utils/duration'
+import { contextTone } from '@/utils/level'
 import { tasksOf } from '@/utils/tasks'
 
 // Résumé de la session active, sur le modèle du panneau de détails de T3 Code : en haut une ligne par action de tous
@@ -171,7 +172,7 @@ const context = computed(() => (chat.value ? (conversations.find(chat.value.id)?
 const formats = computed(() => contextFormats(locale.value))
 const ratio = computed(() => (context.value ? contextRatio(context.value) : 0))
 const percent = computed(() => formats.value.percent.format(ratio.value))
-const tone = computed(() => (ratio.value >= 0.9 ? 'bg-danger' : ratio.value >= 0.75 ? 'bg-warning' : 'bg-info'))
+const tone = computed(() => contextTone(ratio.value))
 const categories = computed(() => {
   if (!context.value) return []
   const rows = contextRows(context.value, formats.value)
@@ -342,9 +343,9 @@ const separator = 'mx-2 my-1 h-px shrink-0 bg-stroke'
         <Gauge :class="icon" aria-hidden="true" />
         <span class="min-w-0 flex-1 truncate">{{ t('dock.session.context') }}</span>
         <template v-if="context">
-          <span class="text-xs text-muted tabular-nums">{{ percent }}</span>
+          <span class="text-xs tabular-nums" :class="tone.text">{{ percent }}</span>
           <span class="h-1.5 w-10 shrink-0 overflow-hidden rounded-full bg-content/10" aria-hidden="true">
-            <span class="block h-full rounded-full" :class="tone" :style="{ width: `${ratio * 100}%` }" />
+            <span class="block h-full rounded-full" :class="tone.bar" :style="{ width: `${ratio * 100}%` }" />
           </span>
         </template>
         <ChevronDown :class="[icon, { 'rotate-180': open.context }]" aria-hidden="true" />

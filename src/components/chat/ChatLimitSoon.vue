@@ -70,10 +70,10 @@ function dismiss() {
 
 <template>
   <section v-if="warning" class="flex w-full items-center gap-2.5 rounded-xl border border-stroke bg-content/3 py-1.5 ps-3 pe-1.5 text-xs" role="status">
-    <Clock class="size-4 shrink-0 text-muted" aria-hidden="true" />
+    <Clock class="size-4 shrink-0 text-warning" aria-hidden="true" />
     <p class="min-w-0 flex-1 truncate">
       <span class="text-[13px] text-content">{{ title }}</span>
-      <span class="ms-2 text-muted tabular-nums">{{ percent }}</span>
+      <span class="ms-2 text-warning tabular-nums">{{ percent }}</span>
       <span v-if="resets" class="ms-2 text-muted">{{ resets }}</span>
     </p>
     <UiIconButton :label="t('chat.limitSoon.dismiss')" @click="dismiss">

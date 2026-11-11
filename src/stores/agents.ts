@@ -236,13 +236,13 @@ export const useAgentsStore = defineStore('agents', () => {
     }
     if (current.state !== 'found') {
       const body = settings[kind].path ? t('feedback.pathMissing', { path: settings[kind].path }) : t('settings.install.notInstalled', { tool: name })
-      return useToastsStore().push({ kind: 'error', title: t('feedback.agentMissing', { agent: name }), body })
+      return useToastsStore().push({ kind: 'warning', title: t('feedback.agentMissing', { agent: name }), body })
     }
     const version = t('settings.agents.versionShort', { version: current.version })
     useToastsStore().push(
       current.account
         ? { kind: 'success', title: t('feedback.agentFound', { agent: name }), body: version }
-        : { kind: 'error', title: t('feedback.agentFound', { agent: name }), body: `${version} · ${t('settings.agents.status.signedOut')}` },
+        : { kind: 'warning', title: t('feedback.agentSignedOut', { agent: name }), body: version },
     )
   }
 

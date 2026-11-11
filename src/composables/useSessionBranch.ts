@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useTerminalChat } from '@/composables/useTerminalChat'
 import { isAppError } from '@/ipc/agent'
@@ -24,14 +24,24 @@ export function useSessionBranch() {
   const canSwitch = computed(() => !!project.value && !!chat.value && !chat.value.worktree && !!branch.value)
 
   const branches = ref<Branch[]>([])
+  // Une réponse arrivée après un changement de session ou de projet est ignorée.
+  let request = 0
   async function loadBranches(opened = true) {
     if (!opened || !chat.value || !project.value) return
+    const id = ++request
     try {
-      branches.value = (await worktreeRefs(chat.value.id, project.value.path)).branches
+      const list = await worktreeRefs(chat.value.id, project.value.path)
+      if (id === request) branches.value = list.branches
     } catch {
-      branches.value = []
+      if (id === request) branches.value = []
     }
   }
+  // Deux projets peuvent être sur une branche du même nom : la liste ne vaut que pour cette session et ce projet.
+  const place = computed(() => `${chat.value?.id ?? ''}|${project.value?.path ?? ''}`)
+  watch(place, () => {
+    request++
+    branches.value = []
+  })
   // Une branche prise par un worktree n'est pas proposée : git refuse de l'extraire ici.
   const branchList = computed(() =>
     (branches.value.length ? branches.value : branch.value ? [{ name: branch.value, elsewhere: false }] : []).filter((item) => !item.elsewhere),
@@ -50,5 +60,5 @@ export function useSessionBranch() {
     sessionGit.refresh(tab.id, current.path)
   }
 
-  return { branch, canSwitch, branchList, loadBranches, checkout }
+  return { branch, place, canSwitch, branchList, loadBranches, checkout }
 }

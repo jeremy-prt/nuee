@@ -133,7 +133,7 @@ onBeforeUnmount(() => {
   <div ref="host" class="relative min-h-0 flex-1 overflow-hidden bg-canvas">
     <img v-if="frozen" :src="frozen" alt="" class="pointer-events-none absolute inset-0 size-full object-contain object-top" />
     <div v-if="tab.error" class="flex h-full flex-col items-center justify-center gap-3 p-6 text-center" role="alert">
-      <CircleAlert class="size-6 text-muted" aria-hidden="true" />
+      <CircleAlert class="size-6 text-danger" aria-hidden="true" />
       <p class="text-sm text-content/85">{{ t('dock.browser.loadFailed') }}</p>
       <p class="max-w-80 text-xs break-words text-muted">{{ tab.error }}</p>
       <UiButton size="sm" @click="browser.history(tab.id, 'reload')">

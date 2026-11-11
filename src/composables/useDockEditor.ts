@@ -63,5 +63,5 @@ export function useDockEditor(view: EditorView) {
     layout.setEditing(view, false)
   })
 
-  return { area, areaWidth, listWidth, room, track }
+  return { area, listWidth, room, track }
 }

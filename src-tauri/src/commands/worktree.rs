@@ -6,7 +6,7 @@ use crate::error::AppError;
 use crate::services::agent::AgentService;
 use crate::services::chat::ChatService;
 use crate::services::worktree::{
-    BranchList, ChangedFile, ChangedFiles, CommitPage, FileDiff, HeadInfo, Worktree,
+    BranchList, ChangedFile, ChangedFiles, CommitDone, CommitPage, FileDiff, HeadInfo, Worktree,
     WorktreeChanges, WorktreeService, WorktreeSupport, canonical,
 };
 
@@ -50,6 +50,20 @@ fn session_dir(chats: &ChatService, chat_id: &str, project: &str) -> Result<Path
             .worktree_path(chat_id)?
             .unwrap_or_else(|| project.to_owned()),
     ))
+}
+
+/// Dossier où une commande écrit (commit, push, annulation) : refusé pour une session absente de la base, ou dont le
+/// propre worktree n'est pas encore créé (le dossier du projet n'est pas le sien).
+fn write_dir(chats: &ChatService, chat_id: &str, project: &str) -> Result<PathBuf, AppError> {
+    match chats.place(chat_id)? {
+        None => Err(AppError::InvalidInput(format!(
+            "session inconnue : {chat_id}"
+        ))),
+        Some((true, None)) => Err(AppError::InvalidInput(
+            "le worktree de cette session n'est pas encore créé".into(),
+        )),
+        Some((_, path)) => Ok(PathBuf::from(path.unwrap_or_else(|| project.to_owned()))),
+    }
 }
 
 /// Branches vues depuis le dossier de la session.
@@ -134,22 +148,25 @@ pub async fn worktree_revert_file(
     worktrees: State<'_, WorktreeService>,
     chats: State<'_, ChatService>,
 ) -> Result<(), AppError> {
-    let dir = session_dir(&chats, &chat_id, &path)?;
+    let dir = write_dir(&chats, &chat_id, &path)?;
     worktrees
         .revert_file(&PathBuf::from(path), &dir, &file)
         .await
 }
 
-/// Remet tous les fichiers de la liste des changements dans l'état du dernier commit.
+/// Remet dans l'état du dernier commit les fichiers confirmés encore dans la liste ; rend les dépôts imbriqués laissés.
 #[tauri::command]
 pub async fn worktree_revert_all(
     chat_id: String,
     path: String,
+    files: Vec<String>,
     worktrees: State<'_, WorktreeService>,
     chats: State<'_, ChatService>,
-) -> Result<(), AppError> {
-    let dir = session_dir(&chats, &chat_id, &path)?;
-    worktrees.revert_all(&PathBuf::from(path), &dir).await
+) -> Result<Vec<String>, AppError> {
+    let dir = write_dir(&chats, &chat_id, &path)?;
+    worktrees
+        .revert_all(&PathBuf::from(path), &dir, &files)
+        .await
 }
 
 /// Commit de tous les changements du dossier de la session, fait par l'app sans agent.
@@ -160,8 +177,8 @@ pub async fn worktree_commit(
     message: String,
     worktrees: State<'_, WorktreeService>,
     chats: State<'_, ChatService>,
-) -> Result<HeadInfo, AppError> {
-    let dir = session_dir(&chats, &chat_id, &path)?;
+) -> Result<CommitDone, AppError> {
+    let dir = write_dir(&chats, &chat_id, &path)?;
     worktrees.commit(&PathBuf::from(path), &dir, &message).await
 }
 
@@ -173,7 +190,7 @@ pub async fn worktree_push(
     worktrees: State<'_, WorktreeService>,
     chats: State<'_, ChatService>,
 ) -> Result<HeadInfo, AppError> {
-    let dir = session_dir(&chats, &chat_id, &path)?;
+    let dir = write_dir(&chats, &chat_id, &path)?;
     worktrees.push(&PathBuf::from(path), &dir).await
 }
 

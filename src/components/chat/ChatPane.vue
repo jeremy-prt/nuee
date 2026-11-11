@@ -183,6 +183,7 @@ async function rewindTo(itemId: string) {
     title: t('chat.rewind.title'),
     message: t('chat.rewind.message', { agent: agents[agent.value].name }),
     confirmLabel: t('chat.rewind.confirm'),
+    danger: true,
   })
   if (!confirmed) return
   try {

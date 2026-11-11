@@ -98,8 +98,8 @@ html[data-mode='light'] {
   --color-edge-hover: color-mix(in srgb, var(--color-content) 26%, var(--color-canvas));
   --color-signal-text: color-mix(in srgb, var(--color-signal) 80%, black);
   --color-danger: hsl(0 68% 48%);
-  --color-success: hsl(145 63% 32%);
-  --color-warning: hsl(32 92% 38%);
+  --color-success: hsl(145 63% 30%);
+  --color-warning: hsl(32 92% 33%);
   --color-info: hsl(210 80% 44%);
   --color-orange: hsl(16 72% 46%);
   --color-violet: hsl(262 58% 54%);

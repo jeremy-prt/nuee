@@ -4,6 +4,7 @@ import type { DirEntry } from '@/ipc/bindings/DirEntry'
 import type { EditorApp } from '@/ipc/bindings/EditorApp'
 import type { GitMark } from '@/ipc/bindings/GitMark'
 import { filesEditors, filesFinderIcon } from '@/ipc/files'
+import { type EditorTabs, closeTab, openTab, pinTab } from '@/utils/editorTabs'
 
 // Fichier ou dossier visé par un menu ; le dossier de la session a le chemin vide.
 export interface FileTarget {
@@ -13,12 +14,8 @@ export interface FileTarget {
 
 export type Editing = { kind: 'create'; parent: string; dir: boolean } | { kind: 'rename'; path: string; folder: boolean }
 
-interface Browse {
-  // Onglets de l'éditeur, comme monocode : un clic ouvre en aperçu (remplacé au clic suivant), un double clic ou une
-  // modification le garde.
-  tabs: string[]
-  open: string | null
-  preview: string | null
+// Onglets de l'éditeur : une modification garde aussi l'onglet d'aperçu.
+interface Browse extends EditorTabs<string> {
   // Ligne à montrer à l'ouverture (résultat de recherche), lue une fois par l'éditeur.
   goto: { path: string; line: number } | null
   expanded: Set<string>
@@ -37,6 +34,7 @@ interface Browse {
 }
 
 export const parentOf = (path: string) => path.slice(0, Math.max(0, path.lastIndexOf('/')))
+const same = (path: string) => path
 
 const VIEW_KEY = 'nuee.files.view'
 const WIDTH_KEY = 'nuee.files.explorer'
@@ -90,29 +88,17 @@ export const useFilesStore = defineStore('files', () => {
 
   function openFile(chatId: string, path: string, options: { pin?: boolean; line?: number } = {}) {
     const browse = of(chatId)
-    if (!browse.tabs.includes(path)) {
-      const preview = browse.preview && browse.tabs.indexOf(browse.preview)
-      if (!options.pin && typeof preview === 'number' && preview >= 0) browse.tabs.splice(preview, 1, path)
-      else browse.tabs.splice(browse.open ? browse.tabs.indexOf(browse.open) + 1 : browse.tabs.length, 0, path)
-      browse.preview = options.pin ? browse.preview : path
-    } else if (options.pin && browse.preview === path) browse.preview = null
-    browse.open = path
+    openTab(browse, path, same, options.pin)
     browse.selected = path
     browse.goto = options.line ? { path, line: options.line } : null
   }
 
   function pin(chatId: string, path: string) {
-    const browse = of(chatId)
-    if (browse.preview === path) browse.preview = null
+    pinTab(of(chatId), path)
   }
 
   function closeFile(chatId: string, path: string) {
-    const browse = of(chatId)
-    const index = browse.tabs.indexOf(path)
-    if (index < 0) return
-    browse.tabs.splice(index, 1)
-    if (browse.preview === path) browse.preview = null
-    if (browse.open === path) browse.open = browse.tabs[Math.min(index, browse.tabs.length - 1)] ?? null
+    closeTab(of(chatId), path, same)
   }
 
   // Chemin renommé ou déplacé (`to` null : supprimé) : les onglets suivent, sous-dossiers compris.

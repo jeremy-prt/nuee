@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ExternalLink, LoaderCircle, Square } from '@/components/ui/icons'
+import { ExternalLink, LoaderCircle, MessageQuestion, ShieldQuestion, Square } from '@/components/ui/icons'
 import { computed, onBeforeUnmount, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
@@ -29,7 +29,7 @@ const step = computed(() => {
   const conversation = conversations.find(props.run.chatId)
   const items = conversation?.items ?? []
   const approval = conversation?.approvals[0]
-  if (approval) return { text: t(approval.questions ? 'chat.waitingAnswer' : 'chat.waitingApproval'), name: null, command: null }
+  if (approval) return { text: t(approval.questions ? 'chat.waitingAnswer' : 'chat.waitingApproval'), name: null, command: null, waiting: approval.questions ? ('question' as const) : ('approval' as const) }
   if (items.at(-1)?.kind === 'thinking') return { text: t('chat.activity.thinking'), name: null, command: null }
   let command: string | null = null
   for (let i = items.length - 1; i >= 0 && command === null; i--) {
@@ -58,7 +58,8 @@ const tooltip = computed(() => [`${step.value.text}${step.value.name ? ` ${step.
     :aria-label="t('gitActions.running', { action })"
     role="group"
   >
-    <LoaderCircle class="shrink-0 animate-spin text-muted motion-reduce:animate-none" :class="compact ? 'size-3.5' : 'size-4'" aria-hidden="true" />
+    <component :is="step.waiting === 'question' ? MessageQuestion : ShieldQuestion" v-if="step.waiting" class="shrink-0 text-warning" :class="compact ? 'size-3.5' : 'size-4'" aria-hidden="true" />
+    <LoaderCircle v-else class="shrink-0 animate-spin text-muted motion-reduce:animate-none" :class="compact ? 'size-3.5' : 'size-4'" aria-hidden="true" />
     <UiTooltip :label="tooltip" side="bottom">
       <!-- Annoncé poliment à chaque étape ; le temps écoulé reste hors de la zone, sinon il serait lu chaque seconde. -->
       <span class="min-w-0 truncate" :class="compact ? 'max-w-36' : 'flex-1'" role="status" aria-live="polite">

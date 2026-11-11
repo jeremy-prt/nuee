@@ -14,7 +14,7 @@ const { t } = useI18n()
 const shortcuts = useShortcutsStore()
 const navigation = useNavigationStore()
 const projects = useProjectsStore()
-const newChat = useNewChat()
+const newChat = useNewChat('tab')
 
 const title = computed(() => {
   if (navigation.view !== 'chats') return t(`rail.${navigation.view}`)

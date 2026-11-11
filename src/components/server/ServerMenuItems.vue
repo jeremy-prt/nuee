@@ -32,6 +32,7 @@ const dot = (status: ServerStatus) => {
 }
 
 function state(server: ServerInfo) {
+  if (server.status === 'starting') return t('dock.servers.status.starting')
   if (alive(server)) return `:${server.activePort ?? server.port}`
   if (server.status === 'exited') return t('dock.servers.status.exited')
   return t('dock.servers.status.stopped')
@@ -44,16 +45,17 @@ function start(server: ServerInfo) {
 </script>
 
 <template>
-  <DropdownMenuLabel :class="menuTitle">{{ t('dock.servers.heading') }}</DropdownMenuLabel>
+  <!-- Sans serveur, le titre répéterait la ligne qui a ouvert le menu : l'état vide seul. -->
+  <DropdownMenuLabel v-if="list?.problem || list?.servers.length" :class="menuTitle">{{ t('dock.servers.heading') }}</DropdownMenuLabel>
   <p v-if="list?.problem" class="px-2 pb-1 text-danger">{{ t('dock.servers.invalid') }}</p>
-  <p v-else-if="list && !list.servers.length" class="px-2 pb-1 text-muted">{{ t('dock.servers.none') }}</p>
+  <p v-else-if="list && !list.servers.length" class="px-2 py-1 text-[13px] text-muted">{{ t('dock.servers.none') }}</p>
   <template v-for="server in list?.servers ?? []" :key="server.name">
     <UiMenuItem v-if="server.external" :label="t('dock.servers.external', { name: server.name })" :icon="dot('stopped')" disabled />
     <UiMenuSub v-else :label="server.name" :icon="dot(server.status)" :value="state(server)">
       <UiMenuItem v-if="alive(server)" :label="t('dock.servers.open')" :icon="Globe" @select="start(server)" />
       <UiMenuItem v-if="!alive(server)" :label="t('dock.servers.start')" :icon="Play" @select="start(server)" />
       <UiMenuItem :label="t('dock.servers.logs')" :icon="Logs" @select="servers.show(list!.root, server.name)" />
-      <UiMenuItem v-if="alive(server)" :label="t('dock.servers.stop')" :icon="Stop" danger @select="servers.stop(list!.root, server.name)" />
+      <UiMenuItem v-if="alive(server)" :label="t('dock.servers.stop')" :icon="Stop" @select="servers.stop(list!.root, server.name)" />
     </UiMenuSub>
   </template>
   <template v-if="list">

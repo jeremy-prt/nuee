@@ -33,7 +33,7 @@ function svgSize(text: string) {
 </script>
 
 <script setup lang="ts">
-import { ChevronRight, CircleAlert, File as FileGlyph, LoaderCircle } from '@/components/ui/icons'
+import { ChevronRight, CircleAlert, File as FileGlyph, LoaderCircle, TriangleAlert } from '@/components/ui/icons'
 import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatMarkdown from '@/components/chat/ChatMarkdown.vue'
@@ -312,7 +312,9 @@ const crumb = 'min-w-0 truncate rounded px-0.5 hover:text-content focus-visible:
         </ol>
       </nav>
       <template v-if="text && conflict">
-        <span class="shrink-0 text-content" role="status">{{ t('dock.files.conflict') }}</span>
+        <span class="flex shrink-0 items-center gap-1 text-warning" role="status">
+          <TriangleAlert class="size-3.5" aria-hidden="true" />{{ t('dock.files.conflict') }}
+        </span>
         <button type="button" class="shrink-0 text-content underline-offset-2 hover:underline" @click="save(true)">{{ t('dock.files.keepMine') }}</button>
         <button type="button" class="shrink-0 text-content underline-offset-2 hover:underline" @click="takeDisk">{{ t('dock.files.takeDisk') }}</button>
       </template>
@@ -329,7 +331,7 @@ const crumb = 'min-w-0 truncate rounded px-0.5 hover:text-content focus-visible:
       </p>
     </template>
     <UiEmpty v-else-if="status === 'missing'" :icon="FileGlyph" :title="t('dock.files.missingTitle')" :description="t('dock.files.missing')" />
-    <UiEmpty v-else-if="status === 'failed'" :icon="CircleAlert" :title="t('dock.files.readFailed', { name })" :description="error" />
+    <UiEmpty v-else-if="status === 'failed'" :icon="CircleAlert" tone="danger" :title="t('dock.files.readFailed', { name })" :description="error" />
     <template v-else-if="content">
       <UiEmpty v-if="content.body.kind === 'binary'" :icon="FileGlyph" :title="t('dock.files.binaryTitle')" :description="t('dock.files.binary')" />
       <UiEmpty v-else-if="content.body.kind === 'tooLarge'" :icon="FileGlyph" :title="t('dock.files.tooLargeTitle')" :description="t('dock.files.tooLarge')" />

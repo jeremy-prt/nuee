@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Minimize2 } from '@/components/ui/icons'
+import { CircleAlert, Minimize2 } from '@/components/ui/icons'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatSpinner from '@/components/chat/ChatSpinner.vue'
@@ -27,9 +27,10 @@ const tokens = computed(() => {
     <span class="h-px flex-1 bg-stroke" aria-hidden="true" />
     <p class="flex min-w-0 items-center gap-1.5" :title="error ?? formatClock(item.at, locale, true)">
       <ChatSpinner v-if="running" :agent="agent" muted class="text-sm" />
+      <CircleAlert v-else-if="item.status === 'failed'" class="size-3.5 shrink-0 text-danger" aria-hidden="true" />
       <Minimize2 v-else class="size-3.5 shrink-0" aria-hidden="true" />
       <span class="min-w-0 truncate" :class="{ 'text-shimmer': running }">
-        {{ t(`chat.compact.${item.status}`) }}<span v-if="tokens" class="tabular-nums"> · {{ tokens }}</span><template v-else-if="error"> · {{ error }}</template>
+        <span :class="{ 'text-danger': item.status === 'failed' }">{{ t(`chat.compact.${item.status}`) }}</span><span v-if="tokens" class="tabular-nums"> · {{ tokens }}</span><template v-else-if="error"> · {{ error }}</template>
       </span>
     </p>
     <span class="h-px flex-1 bg-stroke" aria-hidden="true" />

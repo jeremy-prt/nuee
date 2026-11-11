@@ -295,6 +295,18 @@ impl ChatService {
             .flatten())
     }
 
+    /// `None` : chat absent de la base. Sinon s'il travaille dans un worktree, et son chemin une fois connu.
+    pub fn place(&self, id: &str) -> Result<Option<(bool, Option<String>)>, AppError> {
+        Ok(self
+            .lock()
+            .query_row(
+                "SELECT worktree, worktree_path FROM chats WHERE id = ?1",
+                [id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()?)
+    }
+
     pub fn worktree_users(&self, path: &str) -> Result<Vec<String>, AppError> {
         let db = self.lock();
         let mut query =

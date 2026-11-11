@@ -269,7 +269,7 @@ const emptyText = computed(() => {
     <div class="overflow-hidden rounded-xl border border-stroke bg-content/3">
       <div v-if="rows.length" class="flex h-9 items-center gap-3 border-b border-stroke ps-4 pe-2 text-xs text-muted">
         <p class="min-w-0 flex-1 truncate" aria-live="polite">{{ t(tokens.length ? 'settings.archive.found' : 'settings.archive.count', { n: rows.length }, rows.length) }}</p>
-        <UiButton v-if="!tokens.length && inScope.length" size="xs" variant="ghost" class="hover:bg-danger/15! hover:text-danger!" @click="removeAll">
+        <UiButton v-if="!tokens.length && inScope.length" size="xs" class="text-danger enabled:hover:bg-danger/15!" @click="removeAll">
           {{ t('settings.archive.deleteAll') }}
         </UiButton>
       </div>

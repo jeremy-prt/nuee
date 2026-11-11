@@ -6,6 +6,7 @@ import UiButton from '@/components/ui/UiButton.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import type { ContextUsage } from '@/ipc/bindings/ContextUsage'
 import { contextFormats, contextRatio, contextRows } from '@/utils/context'
+import { contextTone } from '@/utils/level'
 
 const props = defineProps<{ usage: ContextUsage; disabled: boolean }>()
 const emit = defineEmits<{ compact: [] }>()
@@ -19,7 +20,7 @@ const RADIUS = (SIZE - STROKE) / 2
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS
 
 const ratio = computed(() => contextRatio(props.usage))
-const tone = computed(() => (ratio.value >= 0.9 ? 'text-danger' : ratio.value >= 0.75 ? 'text-warning' : 'text-muted'))
+const tone = computed(() => contextTone(ratio.value))
 
 const formats = computed(() => contextFormats(locale.value))
 const percent = computed(() => formats.value.percent.format(ratio.value))
@@ -41,7 +42,7 @@ function compact() {
           class="grid size-7 shrink-0 place-items-center rounded-md hover:bg-selection-inner focus-visible:outline-2 focus-visible:outline-ring aria-expanded:bg-selection-inner"
           :aria-label="t('composer.context.label', { percent })"
         >
-          <svg :width="SIZE" :height="SIZE" :viewBox="`0 0 ${SIZE} ${SIZE}`" :class="tone" aria-hidden="true">
+          <svg :width="SIZE" :height="SIZE" :viewBox="`0 0 ${SIZE} ${SIZE}`" :class="tone.text" aria-hidden="true">
             <circle :cx="SIZE / 2" :cy="SIZE / 2" :r="RADIUS" fill="none" stroke="currentColor" :stroke-width="STROKE" opacity="0.25" />
             <!-- Un bout arrondi laisserait un point sur un anneau vide. -->
             <circle
@@ -63,7 +64,7 @@ function compact() {
           <PopoverContent side="top" align="end" :side-offset="6" :collision-padding="8" class="ui-pop z-50 w-80 p-3 pb-1.5 text-xs text-content">
             <p class="text-[13px] font-medium">{{ t('composer.context.title') }}</p>
             <p class="mt-2 flex items-baseline justify-between gap-2">
-              <span class="text-[13px]">{{ t('composer.context.used', { percent }) }}</span>
+              <span class="text-[13px]" :class="tone.alert && tone.text">{{ t('composer.context.used', { percent }) }}</span>
               <span class="text-muted tabular-nums">{{ tokens.used }} / {{ tokens.window }}</span>
             </p>
             <div class="mt-2 flex h-1.5 gap-px overflow-hidden rounded-full bg-content/10" aria-hidden="true">

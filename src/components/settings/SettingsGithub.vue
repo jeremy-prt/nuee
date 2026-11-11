@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { RefreshCw } from '@/components/ui/icons'
+import { RefreshCw, TriangleAlert } from '@/components/ui/icons'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsGithubAccount from '@/components/settings/SettingsGithubAccount.vue'
@@ -25,7 +25,9 @@ const status = computed(() => store.github)
       </UiIconButton>
     </template>
     <template v-if="status?.state === 'ready'">
-      <p v-if="!status.accounts.length" class="border-b border-stroke px-4 py-3 text-xs text-muted">{{ t('settings.github.noAccounts') }}</p>
+      <p v-if="!status.accounts.length" class="flex items-start gap-1.5 border-b border-stroke px-4 py-3 text-xs text-warning">
+        <TriangleAlert class="mt-px size-3.5 shrink-0" aria-hidden="true" />{{ t('settings.github.noAccounts') }}
+      </p>
       <SettingsGithubAccount v-for="(account, index) in status.accounts" :key="`${accountKey(account)}#${index}`" :account="account" />
       <SettingsGithubLogin />
     </template>
@@ -39,8 +41,10 @@ const status = computed(() => store.github)
       <span class="max-w-72 text-end text-xs" aria-live="polite">
         <span v-if="store.error" class="wrap-break-word text-danger">{{ t('settings.github.error', { error: store.error }) }}</span>
         <span v-else-if="!status" class="text-muted">{{ t('settings.github.checking') }}</span>
-        <span v-else-if="status.state === 'missing'" class="text-danger">{{ t('settings.install.notInstalled', { tool: 'GitHub CLI' }) }}</span>
-        <span v-else-if="status.state === 'outdated'" class="text-danger">{{ t('settings.github.outdated') }}</span>
+        <span v-else-if="status.state === 'missing' || status.state === 'outdated'" class="inline-flex items-start gap-1 text-warning">
+          <TriangleAlert class="mt-px size-3 shrink-0" aria-hidden="true" />
+          {{ status.state === 'missing' ? t('settings.install.notInstalled', { tool: 'GitHub CLI' }) : t('settings.github.outdated') }}
+        </span>
         <span v-else class="font-mono text-muted">{{ status.version ?? '?' }}</span>
       </span>
     </SettingsRow>

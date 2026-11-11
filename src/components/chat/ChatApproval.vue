@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ShieldQuestion } from '@/components/ui/icons'
 import { onMounted, useId, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import UiButton from '@/components/ui/UiButton.vue'
@@ -37,7 +38,10 @@ onMounted(() => deny.value?.$el.focus())
     class="rounded-xl border border-stroke bg-overlay p-4 shadow-lg"
     @keydown="onKeydown"
   >
-    <p :id="titleId" class="text-sm font-medium">{{ t('approval.title', { agent: agentName, tool: approval.name }) }}</p>
+    <div class="flex items-start gap-2">
+      <ShieldQuestion class="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
+      <p :id="titleId" class="text-sm font-medium">{{ t('approval.title', { agent: agentName, tool: approval.name }) }}</p>
+    </div>
     <pre
       v-if="approval.detail"
       :id="detailId"

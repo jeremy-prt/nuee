@@ -5,14 +5,19 @@ import { useI18n } from 'vue-i18n'
 import UiMenu from '@/components/ui/UiMenu.vue'
 import { useGitActions } from '@/composables/useGitActions'
 import { useSessionBranch } from '@/composables/useSessionBranch'
+import { useTerminalChat } from '@/composables/useTerminalChat'
+import { useGitActionsStore } from '@/stores/gitActions'
 
 // Branche du dossier de la session, en tête des deux modes du volet Git (menu pour en changer quand c'est possible,
 // comme Environnement). Slot : ce qui s'affiche à droite (total des changements).
 const { t } = useI18n()
+const { chat } = useTerminalChat()
 const { idle, run } = useGitActions()
-const { branch, canSwitch, branchList, loadBranches, checkout } = useSessionBranch()
+const gitActions = useGitActionsStore()
+const { branch, place, canSwitch, branchList, loadBranches, checkout } = useSessionBranch()
+const committing = computed(() => gitActions.manual.has(gitActions.folderOf(chat.value) ?? ''))
 
-watch(branch, () => loadBranches(), { immediate: true })
+watch([place, branch], () => loadBranches(), { immediate: true })
 const sections = computed(() => [
   {
     id: 'branch',
@@ -29,7 +34,7 @@ const sections = computed(() => [
       v-if="canSwitch"
       :label="t('composer.branch.label')"
       :sections="sections"
-      :disabled="!idle || !!run"
+      :disabled="!idle || !!run || committing"
       side="bottom"
       look="h-7 max-w-full px-2 text-content hover:bg-selection-hover aria-expanded:bg-selection-hover"
       @select="(_, name) => checkout(name)"

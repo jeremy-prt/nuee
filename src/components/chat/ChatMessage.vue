@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CircleAlert, CornerDownRight, File, Folder, Orchestra, Undo } from '@/components/ui/icons'
+import { CircleAlert, CornerDownRight, File, Folder, Orchestra, TriangleAlert, Undo } from '@/components/ui/icons'
 import { computed, nextTick, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AgentLogin from '@/components/agent/AgentLogin.vue'
@@ -149,21 +149,26 @@ watch(signedIn, async (now) => {
       {{ afterText ? t('chat.end.stoppedKept', agentParams) : t('chat.end.stopped') }}
     </p>
     <!-- Connexion manquante sur le dernier message : une action à faire, pas une erreur. -->
-    <div v-else-if="item.status === 'unauthenticated' && latest" class="rounded-xl border border-stroke bg-content/3 px-4 py-3">
+    <div
+      v-else-if="item.status === 'unauthenticated' && latest"
+      class="rounded-xl border px-4 py-3"
+      :class="signedIn ? 'border-stroke bg-content/3' : 'border-warning/40 bg-warning/10'"
+    >
       <div v-if="signedIn" class="flex flex-wrap items-center gap-x-6 gap-y-2">
         <p class="min-w-40 flex-1 text-sm">{{ t('agentLogin.ready', agentParams) }}</p>
         <UiButton ref="resendButton" size="sm" variant="primary" @click="emit('resend')">{{ t('agentLogin.resend') }}</UiButton>
       </div>
       <AgentLogin v-else :kind="agent" />
     </div>
+    <div v-else-if="item.status === 'unauthenticated'" class="flex gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm">
+      <TriangleAlert class="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
+      <p class="min-w-0">{{ t('chat.end.unauthenticated', agentParams) }}</p>
+    </div>
     <div v-else class="flex gap-2 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm" role="alert">
       <CircleAlert class="mt-0.5 size-4 shrink-0 text-danger" aria-hidden="true" />
       <div class="min-w-0">
-        <p v-if="item.status === 'unauthenticated'">{{ t('chat.end.unauthenticated', agentParams) }}</p>
-        <template v-else>
-          <p>{{ t('chat.end.failed', agentParams) }}</p>
-          <pre v-if="item.error" class="mt-1 font-mono text-xs whitespace-pre-wrap break-words text-muted select-text">{{ item.error }}</pre>
-        </template>
+        <p>{{ t('chat.end.failed', agentParams) }}</p>
+        <pre v-if="item.error" class="mt-1 font-mono text-xs whitespace-pre-wrap break-words text-muted select-text">{{ item.error }}</pre>
       </div>
     </div>
   </template>

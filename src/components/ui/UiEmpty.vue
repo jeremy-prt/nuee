@@ -2,8 +2,8 @@
 import type { Component } from 'vue'
 
 // État vide d'un volet, comme T3 Code : l'icône dans une carte posée sur une autre, un titre, une phrase d'aide, puis
-// ce qu'on peut faire (slot).
-defineProps<{ icon: Component; title: string; description?: string }>()
+// ce qu'on peut faire (slot). `tone="danger"` : un échec de lecture, pas un volet vide.
+defineProps<{ icon: Component; title: string; description?: string; tone?: 'danger' }>()
 </script>
 
 <template>
@@ -15,7 +15,7 @@ defineProps<{ icon: Component; title: string; description?: string }>()
         <span class="absolute inset-0 origin-bottom-left -translate-x-0.5 -rotate-10 scale-84 rounded-lg border border-stroke bg-content/4" />
         <span class="absolute inset-0 origin-bottom-right translate-x-0.5 rotate-10 scale-84 rounded-lg border border-stroke bg-content/4" />
         <span class="relative grid size-10 place-items-center rounded-lg border border-stroke bg-content/8 shadow-sm backdrop-blur-md">
-          <component :is="icon" class="size-4.5 text-muted" />
+          <component :is="icon" class="size-4.5" :class="tone === 'danger' ? 'text-danger' : 'text-muted'" />
         </span>
       </span>
       <h2 class="text-base font-semibold text-content">{{ title }}</h2>

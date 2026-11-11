@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CircleAlert, CircleCheck, Info, X } from '@/components/ui/icons'
+import { CircleAlert, CircleCheck, Info, TriangleAlert, X } from '@/components/ui/icons'
 import { ToastAction, ToastClose, ToastDescription, ToastProvider, ToastRoot, ToastTitle, ToastViewport } from 'reka-ui'
 import type { Component } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -15,6 +15,7 @@ const store = useToastsStore()
 const KINDS: Record<ToastKind, { icon: Component; tint: string; duration: number }> = {
   info: { icon: Info, tint: 'text-info', duration: 8000 },
   success: { icon: CircleCheck, tint: 'text-success', duration: 5000 },
+  warning: { icon: TriangleAlert, tint: 'text-warning', duration: 10000 },
   error: { icon: CircleAlert, tint: 'text-danger', duration: 12000 },
 }
 

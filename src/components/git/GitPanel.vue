@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FileDiff, FolderTree, History, LayoutList, RefreshCw, Search, SendHorizontal, Undo } from '@/components/ui/icons'
+import { FileDiff, History, RefreshCw, Search, SendHorizontal, Undo } from '@/components/ui/icons'
 import { computed, provide, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import GitChanges from '@/components/git/GitChanges.vue'
@@ -16,10 +16,8 @@ import { useGitPanelStore } from '@/stores/gitPanel'
 import { type GitMode, useLayoutStore } from '@/stores/layout'
 import { useToastsStore } from '@/stores/toasts'
 
-// Volet Git, comme le contrôle de source de VS Code et monocode : deux modes dans le même volet, Changements et
-// Historique, choisis dans sa ligne d'outils et retenus par projet. Un diff s'ouvre à gauche de la liste, comme un
-// fichier de l'Explorateur, sauf si le panneau est partagé ou que la fenêtre n'a pas la place : il se déplie alors
-// sous sa ligne.
+// Volet Git, comme VS Code et monocode : modes Changements et Historique, retenus par projet. Un diff s'ouvre à gauche
+// de la liste, ou se déplie sous sa ligne si le panneau est partagé ou trop étroit.
 const { t } = useI18n()
 const layout = useLayoutStore()
 const gitPanel = useGitPanelStore()
@@ -54,7 +52,7 @@ track(() => sideShown.value)
 
 // ===== Ligne d'outils =====
 // Les boutons des modes restent en place d'un mode à l'autre : le focus clavier ne se perd pas en changeant de mode.
-const usable = computed(() => !!chat.value?.started && !!changes.project.value && changes.status.value !== 'notRepo')
+const usable = computed(() => !!changes.project.value && !changes.pending.value && changes.status.value !== 'notRepo')
 const history = useTemplateRef('history')
 const searching = ref(false)
 watch(mode, () => (searching.value = false))
@@ -84,11 +82,8 @@ async function refreshChanges() {
         <ShellDockToolbarButton :label="t('dock.changes.modes.history')" :pressed="mode === 'history'" @click="mode = 'history'">
           <History class="size-3.5" aria-hidden="true" />
         </ShellDockToolbarButton>
-        <ShellDockToolbarButton :label="gitPanel.tree ? t('dock.changes.flat') : t('dock.changes.tree')" :disabled="!usable" @click="gitPanel.setTree(!gitPanel.tree)">
-          <component :is="gitPanel.tree ? LayoutList : FolderTree" class="size-3.5" aria-hidden="true" />
-        </ShellDockToolbarButton>
         <template v-if="mode === 'changes'">
-          <ShellDockToolbarButton :label="t('dock.changes.revertAll')" :disabled="!usable || !files.length" @click="changes.revertAll()">
+          <ShellDockToolbarButton :label="t('dock.changes.revertAll')" :disabled="!usable || !files.length || changes.acting.value" @click="changes.revertAll()">
             <Undo class="size-3.5" aria-hidden="true" />
           </ShellDockToolbarButton>
           <ShellDockToolbarButton :label="t('dock.changes.refresh')" :disabled="!usable" :loading="changes.loading.value" @click="refreshChanges">

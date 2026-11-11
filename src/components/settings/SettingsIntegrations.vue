@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CircleCheck, ExternalLink, RefreshCw, SlidersHorizontal } from '@/components/ui/icons'
+import { CircleCheck, ExternalLink, RefreshCw, SlidersHorizontal, TriangleAlert } from '@/components/ui/icons'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsGithubAvatar from '@/components/settings/SettingsGithubAvatar.vue'
@@ -36,15 +36,19 @@ const retry = computed(() => store.prefs.github && (!!store.error || (!!status.v
             <template v-if="!store.prefs.github">{{ t('settings.github.off') }}</template>
             <span v-else-if="store.error" class="text-danger">{{ t('settings.github.unreachable') }}</span>
             <template v-else-if="!status">{{ t('settings.github.checking') }}</template>
-            <span v-else-if="status.state === 'missing'" class="text-danger">{{ t('settings.install.notInstalled', { tool: 'GitHub CLI' }) }}</span>
-            <span v-else-if="status.state === 'outdated'" class="text-danger">{{ t('settings.github.outdatedShort') }}</span>
+            <span v-else-if="status.state === 'missing' || status.state === 'outdated'" class="inline-flex items-center gap-1 text-warning">
+              <TriangleAlert class="size-3" aria-hidden="true" />
+              {{ status.state === 'missing' ? t('settings.install.notInstalled', { tool: 'GitHub CLI' }) : t('settings.github.outdatedShort') }}
+            </span>
             <template v-else-if="active">
               <span class="inline-flex items-center gap-1">
                 <CircleCheck class="size-3 text-success" aria-hidden="true" />{{ t('settings.github.connectedAs', { login: active.login }) }}
               </span>
               · {{ t('settings.github.accountsCount', accounts.length) }}
             </template>
-            <span v-else class="text-danger">{{ t('settings.github.signedOut') }}</span>
+            <span v-else class="inline-flex items-center gap-1 text-warning">
+              <TriangleAlert class="size-3" aria-hidden="true" />{{ t('settings.github.signedOut') }}
+            </span>
           </span>
         </template>
         <div class="flex items-center gap-1">

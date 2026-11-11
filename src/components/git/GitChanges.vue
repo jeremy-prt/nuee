@@ -9,6 +9,7 @@ import GitCommitBox from '@/components/git/GitCommitBox.vue'
 import GitDiffBody from '@/components/git/GitDiffBody.vue'
 import GitFileList from '@/components/git/GitFileList.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
+import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { useGitActions } from '@/composables/useGitActions'
 import { GIT_CHANGES } from '@/composables/useGitChanges'
 import type { ChangedFile } from '@/ipc/bindings/ChangedFile'
@@ -23,7 +24,7 @@ const props = defineProps<{ side: boolean }>()
 
 const { t } = useI18n()
 const changes = inject(GIT_CHANGES)!
-const { chat, files, status } = changes
+const { chat, files, status, readOnly } = changes
 const { run, initRepo, start } = useGitActions()
 const gitPanel = useGitPanelStore()
 const layout = useLayoutStore()
@@ -85,25 +86,29 @@ const note = 'px-3 py-6 text-center text-xs text-muted'
 
 <template>
   <div class="@container flex min-h-0 flex-1 flex-col">
-    <p v-if="!chat?.started" :class="note">{{ t('dock.changes.empty') }}</p>
-    <p v-else-if="!changes.project.value" :class="note">{{ t('dock.changes.noProject') }}</p>
+    <p v-if="!changes.project.value" :class="note">{{ t('dock.changes.noProject') }}</p>
+    <p v-else-if="changes.pending.value" :class="note">{{ t('dock.changes.pending') }}</p>
     <div v-else-if="status === 'notRepo'" class="flex flex-col items-center gap-3 px-3 py-6 text-center text-xs text-muted">
       <p>{{ t('dock.changes.notRepo') }}</p>
       <div data-git-run="changes" class="flex w-full justify-center">
         <ChatGitRun v-if="run" :run="run" />
-        <button
-          v-else
-          type="button"
-          class="flex h-7 items-center gap-1.5 rounded-md border border-stroke px-2.5 text-xs text-content hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring"
-          data-control
-          @click="start(initRepo.id, $event.detail === 0, '[data-git-run=changes] [data-git-stop]')"
-        >
-          <GitBranchPlus class="size-3.5" aria-hidden="true" />
-          {{ initRepo.label }}
-        </button>
+        <UiTooltip v-else :label="t('dock.changes.readOnly')" :disabled="!readOnly">
+          <span class="flex">
+            <button
+              type="button"
+              class="flex h-7 items-center gap-1.5 rounded-md border border-stroke px-2.5 text-xs text-content enabled:hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-40"
+              data-control
+              :disabled="readOnly"
+              @click="start(initRepo.id, $event.detail === 0, '[data-git-run=changes] [data-git-stop]')"
+            >
+              <GitBranchPlus class="size-3.5" aria-hidden="true" />
+              {{ initRepo.label }}
+            </button>
+          </span>
+        </UiTooltip>
       </div>
     </div>
-    <p v-else-if="status === 'failed'" :class="note">{{ t('dock.changes.failed') }}</p>
+    <p v-else-if="status === 'failed'" :class="[note, 'text-danger!']" role="alert">{{ t('dock.changes.failed') }}</p>
     <template v-else>
       <div class="flex shrink-0 flex-col gap-1.5 border-b border-stroke p-2">
         <GitBranchRow>
@@ -124,16 +129,15 @@ const note = 'px-3 py-6 text-center text-xs text-muted'
         <GitFileList
           v-else
           :files="files"
-          :tree="gitPanel.tree"
           :inline="!side"
           :expanded="changes.opened"
           :active="active"
-          :reset="chat.id"
+          :reset="chat?.id"
           @select="select($event)"
           @pin="select($event, true)"
         >
           <template #actions="{ file }">
-            <UiIconButton :label="t('dock.changes.revert')" inner class="size-6!" @click="changes.revert(file)">
+            <UiIconButton v-if="!file.path.endsWith('/')" :label="t('dock.changes.revert')" inner class="size-6!" :disabled="changes.acting.value" @click="changes.revert(file)">
               <Undo class="size-3.5 text-danger" aria-hidden="true" />
             </UiIconButton>
           </template>
@@ -141,7 +145,7 @@ const note = 'px-3 py-6 text-center text-xs text-muted'
             <GitDiffBody
               :state="changes.diffs.get(file.path)"
               :binary="file.binary"
-              :comments="changes.commentsOf(file.path)"
+              :comments="readOnly ? undefined : changes.commentsOf(file.path)"
               @add="changes.addComment(file.path, $event)"
               @remove="changes.removeComment($event)"
             />

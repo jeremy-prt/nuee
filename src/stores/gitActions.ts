@@ -53,6 +53,8 @@ export interface GitRun {
   startedAt: number
   // Session rendue visible (question, autorisation) : l'action continue, l'utilisateur y répond.
   revealed: boolean
+  // `message` : le champ au lancement. Changé depuis, le titre généré ne l'écrase pas.
+  draft: string
 }
 
 // Erreur brute d'un échec : ses deux premières lignes, le reste se lit dans la session.
@@ -69,10 +71,9 @@ function brief(error: string) {
 const CHEAP = ['haiku', 'sonnet'] as const
 const EFFORT_ORDER: readonly Effort[] = ['low', 'medium', 'high', 'xhigh', 'max']
 
-// Actions git lancées d'un clic (Environnement, volet Git), comme T3 Code mais avec les skills de l'utilisateur :
-// une session cachée, lancée dans le même dossier que celle d'origine, fait le travail. Elle n'apparaît (sous sa
-// session d'origine) que si elle attend l'utilisateur ou n'aboutit pas ; réussie, elle est supprimée et le fil
-// d'origine en garde un séparateur, que son agent apprend au message suivant. Une action à la fois par dossier.
+// Actions git d'un clic, comme T3 Code mais avec les skills de l'utilisateur. La session cachée qui les fait
+// n'apparaît que si elle attend l'utilisateur ou échoue ; réussie, elle est supprimée et le fil d'origine garde un
+// séparateur. Une action à la fois par dossier.
 export const useGitActionsStore = defineStore('gitActions', () => {
   const workspace = useWorkspaceStore()
   const conversations = useConversationsStore()
@@ -135,7 +136,8 @@ export const useGitActionsStore = defineStore('gitActions', () => {
       return false
     }
     // Réservé avant d'attendre la liste des skills : un double clic ne lance pas deux actions.
-    const run: GitRun = { action, folder, projectId: project.id, originId: origin.id, chatId: '', startedAt: Date.now(), revealed: false }
+    const draft = useGitPanelStore().of(origin.id).message
+    const run: GitRun = { action, folder, projectId: project.id, originId: origin.id, chatId: '', startedAt: Date.now(), revealed: false, draft }
     runs.set(folder, run)
     // Relue à chaque action, comme le menu « / » : un skill ajouté entre-temps est vu.
     await skills.loadSkills()
@@ -204,7 +206,7 @@ export const useGitActionsStore = defineStore('gitActions', () => {
     workspace.reveal(run.chatId)
     run.revealed = true
     const { t } = i18nGlobal()
-    toasts.push({ kind: kind === 'failed' ? 'error' : 'info', title, body, topic: run.chatId, ...options, action: { label: t('attention.open'), run: () => open(run.chatId) } })
+    toasts.push({ kind: kind === 'failed' ? 'error' : kind === 'done' ? 'info' : 'warning', title, body, topic: run.chatId, ...options, action: { label: t('attention.open'), run: () => open(run.chatId) } })
     useAttentionStore().away(run.chatId, kind, title, body, true)
   }
 
@@ -238,9 +240,11 @@ export const useGitActionsStore = defineStore('gitActions', () => {
       return reveal(run, 'done', t('gitActions.stopped', { action }), t('gitActions.stoppedBody'))
     }
     // Tour fini sans le résultat attendu : souvent une question posée en texte, à laquelle répondre dans la session.
-    if (!done) return reveal(run, 'done', t('gitActions.unfinished', { action }), t('gitActions.unfinishedBody'), { sticky: true })
+    if (!done) return reveal(run, 'failed', t('gitActions.unfinished', { action }), t('gitActions.unfinishedBody'), { sticky: true })
     if (run.action === 'message') {
-      useGitPanelStore().setMessage(run.originId, titleOf(items) ?? '')
+      const gitPanel = useGitPanelStore()
+      const typed = gitPanel.of(run.originId).message
+      if (!typed.trim() || typed === run.draft) gitPanel.setMessage(run.originId, titleOf(items) ?? '')
       return workspace.deleteChat(run.chatId)
     }
     const head = await headOf(run)
@@ -258,7 +262,7 @@ export const useGitActionsStore = defineStore('gitActions', () => {
     const { t } = i18nGlobal()
     const folder = folderOf(origin)
     const project = projects.byId(origin.projectId)
-    if (!folder || !project || !message.trim() || manual.has(folder)) return false
+    if (!folder || !project || !origin.started || !message.trim() || manual.has(folder)) return false
     const busy = runs.get(folder)
     if (busy) {
       toasts.push({ title: t('gitActions.busyTitle'), body: t('gitActions.busy', { action: label(busy.action) }) })
@@ -268,7 +272,10 @@ export const useGitActionsStore = defineStore('gitActions', () => {
     try {
       let head: HeadInfo
       try {
-        head = await worktreeCommit(origin.id, project.path, message)
+        const done = await worktreeCommit(origin.id, project.path, message)
+        head = done.head
+        if (done.skipped.length)
+          toasts.push({ title: t('dock.changes.nestedOut', { n: done.skipped.length }, done.skipped.length), body: done.skipped.join('\n') })
       } catch (error) {
         toasts.push({ kind: 'error', title: t('gitActions.directFailed'), body: brief(isAppError(error) ? error.message : String(error)), clamp: true })
         return false

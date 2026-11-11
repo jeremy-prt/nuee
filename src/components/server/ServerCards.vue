@@ -45,7 +45,10 @@ function openPage(server: ServerInfo) {
         <Server v-if="server.status === 'stopped'" class="size-4 shrink-0 text-muted" aria-hidden="true" />
         <ServerStatusDot v-else :status="server.status" class="size-4 shrink-0" />
         <span class="min-w-0 flex-1 truncate text-content/85">{{ server.name }}</span>
-        <span class="shrink-0 text-muted">:{{ server.activePort ?? server.port }}</span>
+        <span v-if="server.status === 'starting' || server.status === 'exited'" class="shrink-0 text-muted" aria-hidden="true">
+          {{ t(`dock.servers.status.${server.status}`) }}
+        </span>
+        <span v-else class="shrink-0 text-muted">:{{ server.activePort ?? server.port }}</span>
         <UiIconButton v-if="server.status === 'running'" :label="t('dock.servers.openNamed', { name: server.name })" @click="openPage(server)">
           <Globe class="size-3.5" aria-hidden="true" />
         </UiIconButton>

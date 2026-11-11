@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core'
 import type { BranchList } from '@/ipc/bindings/BranchList'
 import type { ChangedFile } from '@/ipc/bindings/ChangedFile'
 import type { ChangedFiles } from '@/ipc/bindings/ChangedFiles'
+import type { CommitDone } from '@/ipc/bindings/CommitDone'
 import type { CommitPage } from '@/ipc/bindings/CommitPage'
 import type { FileDiff } from '@/ipc/bindings/FileDiff'
 import type { HeadInfo } from '@/ipc/bindings/HeadInfo'
@@ -46,13 +47,15 @@ export function worktreeRevertFile(chatId: string, path: string, file: string) {
   return invoke<void>('worktree_revert_file', { chatId, path, file })
 }
 
-export function worktreeRevertAll(chatId: string, path: string) {
-  return invoke<void>('worktree_revert_all', { chatId, path })
+// Remet les fichiers confirmés encore dans la liste ; rend les dépôts git imbriqués laissés tels quels.
+export function worktreeRevertAll(chatId: string, path: string, files: string[]) {
+  return invoke<string[]>('worktree_revert_all', { chatId, path, files })
 }
 
-// Commit de tous les changements, fait par l'app sans agent ; refusé si le message est vide.
+// Commit de tous les changements, fait par l'app sans agent ; refusé si le message est vide. Les dépôts git
+// imbriqués restent hors du commit (`skipped`).
 export function worktreeCommit(chatId: string, path: string, message: string) {
-  return invoke<HeadInfo>('worktree_commit', { chatId, path, message })
+  return invoke<CommitDone>('worktree_commit', { chatId, path, message })
 }
 
 // Push de la branche courante, jamais forcé ; sans branche suivie, vers `origin` ou le seul dépôt distant.
@@ -60,7 +63,8 @@ export function worktreePush(chatId: string, path: string) {
   return invoke<HeadInfo>('worktree_push', { chatId, path })
 }
 
-// Journal de la branche courante, 50 commits à partir de `skip` ; `query` filtre les titres.
+// Journal de la branche courante, 50 commits à partir de `skip` ; `query` filtre les titres, une page peut revenir
+// vide avec une suite.
 export function worktreeLog(chatId: string, path: string, skip: number, query: string | null) {
   return invoke<CommitPage>('worktree_log', { chatId, path, skip, query })
 }

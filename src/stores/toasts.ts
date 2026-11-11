@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
-export type ToastKind = 'info' | 'success' | 'error'
+export type ToastKind = 'info' | 'success' | 'warning' | 'error'
 
 export interface Toast {
   id: string

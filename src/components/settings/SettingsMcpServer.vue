@@ -28,7 +28,7 @@ const enabled = computed({
   set: (value: boolean) => server.value && store.setServer(server.value, value, store.scope),
 })
 
-const status = computed(() => (server.value ? mcpStatus(server.value, enabled.value, t).text : ''))
+const status = computed(() => (server.value ? mcpStatus(server.value, enabled.value, t) : null))
 const action = computed(() => enabled.value && (server.value?.status === 'needsAuth' || server.value?.status === 'failed'))
 const origin = computed(() => {
   return t(`settings.skills.origins.${server.value?.scope === 'plugin' ? 'plugin' : 'config'}`, { agent: store.agentName })
@@ -56,7 +56,9 @@ function act(event: MouseEvent, name: string, status: McpServer['status']) {
       </SettingsRow>
       <SettingsRow :label="t('settings.skills.state')">
         <template #hint>
-          <span :class="{ 'text-danger': enabled && server.status === 'failed' }">{{ status }}</span>
+          <template v-if="status">
+            <span class="me-1.5 inline-block size-1.5 rounded-full align-middle" :class="status.dot" aria-hidden="true" /><span :class="status.color">{{ status.text }}</span>
+          </template>
         </template>
         <template #default="{ hintId }">
           <div v-if="action" class="flex items-center gap-1">

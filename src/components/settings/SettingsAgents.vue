@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CircleCheck, Download, ExternalLink, RefreshCw, SlidersHorizontal } from '@/components/ui/icons'
+import { CircleCheck, Download, ExternalLink, RefreshCw, SlidersHorizontal, TriangleAlert } from '@/components/ui/icons'
 import { reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsAgentLogo from '@/components/settings/SettingsAgentLogo.vue'
@@ -65,13 +65,17 @@ function action(kind: AgentKind) {
           <span aria-live="polite">
             <template v-if="!store.settings[kind].enabled">{{ t('settings.agents.status.off') }}</template>
             <template v-else-if="store.status[kind].state === 'checking'">{{ t('settings.agents.status.checking') }}</template>
-            <span v-else-if="store.status[kind].state === 'missing'" class="text-danger">{{ t('settings.install.notInstalled', { tool: agents[kind].name }) }}</span>
+            <span v-else-if="store.status[kind].state === 'missing'" class="inline-flex items-center gap-1 text-warning">
+              <TriangleAlert class="size-3" aria-hidden="true" />{{ t('settings.install.notInstalled', { tool: agents[kind].name }) }}
+            </span>
             <span v-else-if="store.status[kind].state === 'error'" class="text-danger">{{ t('settings.agents.status.error') }}</span>
             <template v-else>
               <span v-if="store.status[kind].account" class="inline-flex items-center gap-1">
                 <CircleCheck class="size-3 text-success" aria-hidden="true" />{{ t('settings.agents.status.connected') }}
               </span>
-              <span v-else class="text-danger">{{ t('settings.agents.status.signedOut') }}</span>
+              <span v-else class="inline-flex items-center gap-1 text-warning">
+                <TriangleAlert class="size-3" aria-hidden="true" />{{ t('settings.agents.status.signedOut') }}
+              </span>
               · {{ t('settings.agents.versionShort', { version: store.status[kind].version }) }}
             </template>
           </span>
