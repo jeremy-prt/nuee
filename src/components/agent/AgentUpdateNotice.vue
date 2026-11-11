@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Check, X } from '@/components/ui/icons'
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsAgentLogo from '@/components/settings/SettingsAgentLogo.vue'
 import UiButton from '@/components/ui/UiButton.vue'
@@ -9,29 +9,19 @@ import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import { useAgentsStore } from '@/stores/agents'
 import { agents } from '@/utils/agents'
 
-// Carte « nouvelle version » d'un agent, comme T3 Code et monocode : en haut à droite (les messages occupent le bas),
-// fermée pour cette version seulement ; la suivante la fait revenir. Mise à jour faite, elle le dit elle-même (comme
-// monocode) jusqu'à ce qu'on la ferme.
-const STORAGE_KEY = 'nuee.agentUpdates.dismissed.v1'
-
+// Carte « nouvelle version » d'un agent, comme T3 Code et monocode : en haut à droite (les messages occupent le bas).
+// Fermée, elle ne revient qu'au prochain lancement, comme monocode : la fermeture n'est retenue qu'en mémoire (demande de
+// Jérémy, une mise à jour ignorée ne doit pas disparaître pour de bon). Mise à jour faite, elle le dit elle-même.
 const { t } = useI18n()
 const store = useAgentsStore()
 
-function load(): Partial<Record<AgentKind, string>> {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') ?? {}
-  } catch {
-    return {}
-  }
+const dismissed = reactive<Partial<Record<AgentKind, string>>>({})
+// Ancienne fermeture retenue d'un lancement à l'autre : effacée pour que la carte revienne.
+try {
+  localStorage.removeItem('nuee.agentUpdates.dismissed.v1')
+} catch {
+  // Stockage indisponible : rien à effacer.
 }
-const dismissed = reactive(load())
-watch(dismissed, () => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(dismissed))
-  } catch {
-    // Stockage refusé : la carte reviendra au prochain lancement.
-  }
-})
 
 // Résultat de la dernière mise à jour lancée ici : la carte reste pour l'annoncer, ou montrer l'erreur.
 const result = ref<{ kind: AgentKind; version: string | null; error: string | null } | null>(null)
