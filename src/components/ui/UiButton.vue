@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { LoaderCircle } from '@/components/ui/icons'
 
-// primary : l'action principale, à la couleur du thème. danger : une action qu'on ne défait pas. ghost : discret.
+// primary : l'action principale, à la couleur du thème, avec le relief des boutons pleins (`data-control="solid"`). danger : une action qu'on ne défait pas. ghost : discret.
 // loading : le libellé reste en place (invisible) sous l'indicateur, le bouton ne change pas de largeur.
 // disabled est une prop : en attribut, il passerait après le nôtre et rendrait cliquable un bouton en chargement.
 withDefaults(
@@ -24,7 +24,7 @@ withDefaults(
         'disabled:opacity-50': !loading,
       },
     ]"
-    :data-control="variant === 'secondary' || undefined"
+    :data-control="variant === 'secondary' ? true : variant === 'primary' ? 'solid' : undefined"
     :disabled="disabled || loading || undefined"
     :aria-busy="loading || undefined"
   >
