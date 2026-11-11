@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ArrowUp, ShieldAlert, ShieldCheck, Square, X } from '@/components/ui/icons'
+import { ArrowUp, Orchestra, ShieldAlert, ShieldCheck, Square, X } from '@/components/ui/icons'
 import { type Component, computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatContextMeter from '@/components/chat/ChatContextMeter.vue'
 import ChatMentionMenu from '@/components/chat/ChatMentionMenu.vue'
 import ChatModelPicker from '@/components/chat/ChatModelPicker.vue'
+import ChatOrchestraBurst from '@/components/chat/ChatOrchestraBurst.vue'
 import ChatPlusMenu from '@/components/chat/ChatPlusMenu.vue'
 import ChatPromptText from '@/components/chat/ChatPromptText.vue'
 import ChatSlashMenu from '@/components/chat/ChatSlashMenu.vue'
@@ -24,6 +25,7 @@ import type { TurnOptions } from '@/ipc/bindings/TurnOptions'
 import { pickFiles } from '@/ipc/dialog'
 import { useDraftsStore } from '@/stores/drafts'
 import { useGeneralStore } from '@/stores/general'
+import { useOrchestraStore } from '@/stores/orchestra'
 import type { Project } from '@/stores/projects'
 import { useShortcutsStore } from '@/stores/shortcuts'
 
@@ -53,6 +55,8 @@ const { t } = useI18n()
 const shortcuts = useShortcutsStore()
 const general = useGeneralStore()
 const drafts = useDraftsStore()
+const orchestra = useOrchestraStore()
+const orchestrating = computed(() => orchestra.isOn(props.chatId))
 const prompt = ref(drafts.get(props.chatId)?.text ?? '')
 const attachments = ref<Attachment[]>(drafts.get(props.chatId)?.attachments ?? [])
 watch([prompt, attachments], () => drafts.set(props.chatId, prompt.value, attachments.value))
@@ -202,7 +206,6 @@ async function pick() {
   input.value?.focus()
 }
 
-// Depuis le menu « + » : le déclencheur tapé à la place de l'utilisateur, menu ouvert au curseur.
 // Le focus d'abord : son écouteur relit la sélection, qui serait encore en fin de texte.
 async function placeCaret(position: number) {
   await nextTick()
@@ -211,20 +214,21 @@ async function placeCaret(position: number) {
   caret.value = position
 }
 
-function startMention() {
-  const at = input.value?.selectionEnd ?? prompt.value.length
-  const before = prompt.value.slice(0, at)
-  const after = prompt.value.slice(at)
-  const head = `${before}${before && !/\s$/.test(before) ? ' ' : ''}@`
-  // Collé au mot suivant, le « @ » le prendrait pour sa recherche, et le choix d'un fichier l'écraserait.
-  prompt.value = head + (after && !/^\s/.test(after) ? ` ${after}` : after)
-  placeCaret(head.length)
-}
+const form = useTemplateRef('form')
+const orchestraChip = useTemplateRef('orchestraChip')
+const burst = ref<{ id: number; x: number; y: number } | null>(null)
 
-// Un skill ne se lit qu'en tête de message : « / » y est ajouté, le texte déjà tapé le suit.
-function startSkill() {
-  if (!prompt.value.startsWith('/')) prompt.value = `/${prompt.value ? ` ${prompt.value}` : ''}`
-  placeCaret(/^\/\S*/.exec(prompt.value)![0].length)
+async function setOrchestra(on: boolean, event?: MouseEvent) {
+  orchestra.set(props.chatId, on)
+  burst.value = null
+  // Validée au clavier, la puce disparaît : le focus va au champ.
+  if (!on && event?.detail === 0) input.value?.focus()
+  if (!on || matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  await nextTick()
+  const chip = orchestraChip.value?.getBoundingClientRect()
+  const box = form.value?.getBoundingClientRect()
+  if (!chip || !box) return
+  burst.value = { id: Date.now(), x: chip.left + chip.width / 2 - box.left, y: chip.top + chip.height / 2 - box.top }
 }
 
 // Capture d'écran ou fichier copié. WebKit tronque parfois `files` : `items` en a plus.
@@ -302,10 +306,13 @@ function onKeydown(event: KeyboardEvent) {
 
 <template>
   <!-- Le menu des skills est hors du cadre flouté : un flou imbriqué ne verrait que le cadre derrière lui. -->
-  <form class="relative" @submit.prevent="submit()">
+  <form ref="form" class="relative" @submit.prevent="submit()">
     <div
-      class="@container rounded-2xl border border-stroke bg-selection/50 backdrop-blur-sm has-[textarea:focus]:border-stroke-focus"
-      :class="{ 'opacity-60': disabled }"
+      class="@container rounded-2xl border bg-selection/50 backdrop-blur-sm"
+      :class="[
+        orchestrating ? 'border-violet/45 shadow-[0_0_22px_-8px_var(--color-violet)] has-[textarea:focus]:border-violet/70' : 'border-stroke has-[textarea:focus]:border-stroke-focus',
+        { 'opacity-60': disabled },
+      ]"
     >
       <ul v-if="attachments.length" class="flex flex-wrap gap-2 px-3 pt-3" :aria-label="t('composer.attachments')">
         <li v-for="(attachment, index) in attachments" :key="attachment.preview ?? attachment.path" class="group relative" :title="attachment.path">
@@ -352,7 +359,7 @@ function onKeydown(event: KeyboardEvent) {
           writingsuggestions="false"
           :disabled="disabled"
           class="prompt-field relative block max-h-60 min-h-18 w-full resize-none bg-transparent px-3.5 pt-3.5 pb-2 text-sm leading-5.5 select-text outline-none placeholder:truncate"
-          :placeholder="running ? t(`composer.placeholderBusy.${general.followUp}`, { send: shortcuts.label('send'), other: shortcuts.label('sendOther') }) : t('composer.placeholder')"
+          :placeholder="running ? t(`composer.placeholderBusy.${general.followUp}`, { send: shortcuts.label('send'), other: shortcuts.label('sendOther') }) : t(orchestrating ? 'composer.orchestra.placeholder' : 'composer.placeholder')"
           @keydown="onKeydown"
           @input="syncCaret"
           @keyup="syncCaret"
@@ -368,12 +375,25 @@ function onKeydown(event: KeyboardEvent) {
         <ChatPlusMenu
           :disabled="disabled"
           :loading="saving > 0"
-          :mention="!!project"
+          :orchestra="orchestrating"
           :focus-after="focusInput"
           @attach="pick"
-          @mention="startMention"
-          @skill="startSkill"
+          @orchestra="setOrchestra"
         />
+        <!-- Mode Orchestre : son icône et une croix pour en sortir, sans libellé qui prendrait la barre. -->
+        <UiTooltip v-if="orchestrating" :label="t('composer.orchestra.off')" side="top">
+          <button
+            ref="orchestraChip"
+            type="button"
+            :disabled="disabled"
+            class="flex h-7 shrink-0 items-center gap-1 rounded-md bg-violet/15 px-1.5 text-violet hover:bg-violet/25 focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-40"
+            :aria-label="t('composer.orchestra.off')"
+            @click="setOrchestra(false, $event)"
+          >
+            <Orchestra class="size-3.5" aria-hidden="true" />
+            <X class="size-3 opacity-70" aria-hidden="true" />
+          </button>
+        </UiTooltip>
         <ChatModelPicker
           v-model="chosenModel"
           v-model:effort="chosenEffort"
@@ -430,6 +450,7 @@ function onKeydown(event: KeyboardEvent) {
         </UiTooltip>
       </div>
     </div>
+    <ChatOrchestraBurst v-if="burst" :key="burst.id" :x="burst.x" :y="burst.y" @done="burst = null" />
     <ChatSlashMenu ref="slashMenu" :id="`${id}-skills`" :query="slashQuery" @choose="chooseSkill" />
     <ChatMentionMenu v-if="project" ref="mentionMenu" :id="`${id}-files`" :query="mention?.query ?? null" :chat-id="chatId" :project="project.path" @choose="chooseFile" />
   </form>

@@ -109,6 +109,9 @@ export default {
     right: '右パネル',
     toggle: '右パネルの表示を切り替え',
     resize: 'パネルのサイズを変更',
+    openAside: '横に開く',
+    closeAside: '横に表示しない',
+    resizeAside: 'パネルの2つの領域のサイズを変更',
     session: {
       title: '環境',
       environment: '環境',
@@ -293,6 +296,7 @@ export default {
       fitSize: "画面に合わせる",
       fitted: "調整済み",
       closeFile: "{name} を閉じる",
+      openFiles: "開いているファイル",
       collapse: "すべて折りたたむ",
       newFile: "新しいファイル",
       newFolder: "新しいフォルダ",
@@ -319,6 +323,9 @@ export default {
       revealFailed: "ファイルを表示できません",
       copied: "パスをコピーしました",
       copyFailed: "コピーできません",
+      location: "ファイルの場所",
+      showInTree: "{path} をエクスプローラーで表示",
+      actions: "ファイルの操作",
     },
     tasks: {
       title: 'タスク',
@@ -544,6 +551,12 @@ export default {
     hint: 'ブラウザーでサインインページが開き、表示されたコードをここに貼り付けます。',
   },
   composer: {
+    orchestra: {
+      label: 'オーケストラ',
+      off: 'オーケストラモードを終了',
+      placeholder: '分割する作業を記述…',
+      sent: 'オーケストラモードで送信',
+    },
     queue: '回答後に送信',
     steer: '進行中の回答に追加',
     label: 'メッセージ',
@@ -584,8 +597,6 @@ export default {
     plus: {
       label: 'メッセージに追加',
       attach: 'ファイルを添付',
-      mention: 'ファイルをメンション',
-      skill: 'スキルを使う',
     },
     model: {
       label: 'モデル',

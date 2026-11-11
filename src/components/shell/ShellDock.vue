@@ -33,7 +33,7 @@ const logs = computed(() => {
 
 <template>
   <ShellDockLauncher v-if="!view" />
-  <section v-else class="flex min-h-0 min-w-0 flex-col" :aria-label="t(`dock.${view}.title`)">
+  <section v-else class="flex min-h-0 min-w-0 flex-col" :aria-label="t(`dock.${view}.title`)" :data-dock-view="view">
     <ChatTasks v-if="view === 'tasks'" />
     <ChatChangesPanel v-else-if="view === 'changes'" />
     <TerminalPanel v-else-if="view === 'terminal'" />

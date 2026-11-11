@@ -59,8 +59,11 @@ const shown = computed(() => props.items.slice(start.value))
 // lancées restent à part. Une fois le tour passé, la réflexion ne s'affiche plus (comme dans l'app Claude) et un outil
 // seul reste une ligne simple. Pendant un tour, la dernière suite reste une
 // ligne d'activité, même seule : c'est elle qui dit ce que fait l'agent.
-// `index` : position absolue du premier élément de la ligne.
-type Row = { kind: 'item'; item: ChatItem; index: number } | { kind: 'activity'; id: string; items: ActivityItem[]; index: number }
+// `index` : position absolue du premier élément de la ligne. `end` : fin de tour rangée avec le texte qui la précède,
+// pour que le survol de la réponse et de son pied ne fasse qu'une zone.
+type Row =
+  | { kind: 'item'; item: ChatItem; index: number; end?: { item: ChatItem; index: number } }
+  | { kind: 'activity'; id: string; items: ActivityItem[]; index: number }
 const rows = computed(() => {
   const out: Row[] = []
   let run: ActivityItem[] = []
@@ -74,8 +77,11 @@ const rows = computed(() => {
   shown.value.forEach((item, offset) => {
     if ((item.kind === 'tool' && item.tool !== 'question' && item.tool !== 'agent' && item.name !== START_SESSION) || item.kind === 'thinking') run.push(item)
     else {
-      close(start.value + offset)
-      out.push({ kind: 'item', item, index: start.value + offset })
+      const index = start.value + offset
+      close(index)
+      const previous = out.at(-1)
+      if (item.kind === 'end' && previous?.kind === 'item' && previous.item.kind === 'text' && previous.index === index - 1) previous.end = { item, index }
+      else out.push({ kind: 'item', item, index })
     }
   })
   const first = run.find((item) => item.kind === 'tool') ?? run[0]
@@ -84,6 +90,14 @@ const rows = computed(() => {
   return out
 })
 const liveRun = computed(() => props.running && rows.value.at(-1)?.kind === 'activity')
+// Un sous-agent en cours en bas de la conversation a déjà sa ligne animée : pas de « travaille… » en plus.
+const subagentLive = computed(() => {
+  for (const row of [...rows.value].reverse()) {
+    if (row.kind !== 'item' || row.item.kind !== 'tool' || row.item.tool !== 'agent') return false
+    if (row.item.status === 'running' || row.item.task?.status === 'running') return true
+  }
+  return false
+})
 // La ligne de compaction dit déjà que l'agent travaille.
 const compacting = computed(() => {
   const last = props.items.at(-1)
@@ -177,7 +191,14 @@ onMounted(() => {
           {{ t('chat.earlier', { n: start }, start) }}
         </button>
       </li>
-      <li v-for="(row, offset) in rows" :key="row.kind === 'item' ? row.item.id : row.id" :class="{ 'group flex flex-col items-end gap-1': row.kind === 'item' && row.item.kind === 'user' && !fromSession(row.item, row.index), 'group/end': row.kind === 'item' && row.item.kind === 'end' }">
+      <li
+        v-for="(row, offset) in rows"
+        :key="row.kind === 'item' ? row.item.id : row.id"
+        :class="{
+          'group flex flex-col items-end gap-1': row.kind === 'item' && row.item.kind === 'user' && !fromSession(row.item, row.index),
+          'group/answer flex flex-col gap-3': row.kind === 'item' && (!!row.end || row.item.kind === 'end'),
+        }"
+      >
         <ChatActivity
           v-if="row.kind === 'activity'"
           :items="row.items"
@@ -199,8 +220,19 @@ onMounted(() => {
           @rewind="emit('rewind', row.item.id)"
           @resend="emit('resend')"
         />
+        <ChatMessage
+          v-if="row.kind === 'item' && row.end"
+          :item="row.end.item"
+          :agent="agent"
+          :running="running"
+          :streaming="false"
+          after-text
+          :answer="() => turnText(items, row.end!.index)"
+          :latest="!running && row.end.index === items.length - 1"
+          @resend="emit('resend')"
+        />
       </li>
-      <li v-if="running && clock && !liveRun && !compacting">
+      <li v-if="running && clock && !liveRun && !compacting && !(subagentLive && clock.pausedAt === null)">
         <ChatActivity :items="[]" :agent="agent" :clock="clock" :background="background" :writing="items.at(-1)?.kind === 'text'" />
       </li>
       <li v-if="background && !running" class="flex items-center gap-2 text-sm text-muted">

@@ -109,6 +109,9 @@ export default {
     right: 'Panel derecho',
     toggle: 'Mostrar u ocultar el panel derecho',
     resize: 'Cambiar el tamaño del panel',
+    openAside: 'Abrir al lado',
+    closeAside: 'Dejar de mostrar al lado',
+    resizeAside: 'Cambiar el tamaño de las dos zonas del panel',
     session: {
       title: 'Entorno',
       environment: 'Entorno',
@@ -293,6 +296,7 @@ export default {
       fitSize: "Ajustar a la vista",
       fitted: "Ajustado",
       closeFile: "Cerrar {name}",
+      openFiles: "Archivos abiertos",
       collapse: "Contraer todo",
       newFile: "Nuevo archivo",
       newFolder: "Nueva carpeta",
@@ -319,6 +323,9 @@ export default {
       revealFailed: "No se puede mostrar el archivo",
       copied: "Ruta copiada",
       copyFailed: "No se pudo copiar",
+      location: "Ubicación del archivo",
+      showInTree: "Mostrar {path} en el explorador",
+      actions: "Acciones del archivo",
     },
     tasks: {
       title: 'Tareas',
@@ -544,6 +551,12 @@ export default {
     hint: 'La página de inicio de sesión se abre en el navegador y luego se pega un código aquí.',
   },
   composer: {
+    orchestra: {
+      label: 'Orquesta',
+      off: 'Salir del modo Orquesta',
+      placeholder: 'Describir el trabajo que hay que dividir…',
+      sent: 'Enviado en modo Orquesta',
+    },
     queue: 'Enviar tras la respuesta',
     steer: 'Añadir a la respuesta en curso',
     label: 'Mensaje',
@@ -584,8 +597,6 @@ export default {
     plus: {
       label: 'Añadir al mensaje',
       attach: 'Adjuntar archivos',
-      mention: 'Mencionar un archivo',
-      skill: 'Usar un skill',
     },
     model: {
       label: 'Modelo',

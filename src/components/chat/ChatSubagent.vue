@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Bot, ChevronRight } from '@/components/ui/icons'
+import { ChevronRight, Robot } from '@/components/ui/icons'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatMarkdown from '@/components/chat/ChatMarkdown.vue'
@@ -50,10 +50,10 @@ const rail =
         :aria-expanded="expandable ? open : undefined"
         @click="expandable && (open = !open)"
       >
-        <!-- L'icône dit « sous-agent » ; sa couleur seulement ce qui demande l'œil (en cours, échec), fini il reste neutre. -->
-        <Bot
-          class="size-3.5 shrink-0"
-          :class="running ? 'animate-pulse text-signal-text motion-reduce:animate-none' : failed ? 'text-danger' : 'text-muted'"
+        <!-- En cours, le robot sautille et son antenne clignote, par paliers comme la mascotte de monocode. -->
+        <Robot
+          class="size-4 shrink-0"
+          :class="running ? 'subagent-live text-content' : failed ? 'text-danger' : 'text-muted'"
           aria-hidden="true"
         />
         <span class="min-w-0 truncate text-content/85" :class="{ 'text-shimmer': running }" :title="title">{{ title }}</span>
@@ -87,3 +87,32 @@ const rail =
   </div>
 </template>
 
+<style scoped>
+.subagent-live {
+  animation: subagent-hop 920ms steps(1, end) infinite;
+}
+
+/* 4e tracé de RoboticIcon : la boule de l'antenne. */
+.subagent-live :deep(path:nth-child(4)) {
+  animation: subagent-antenna 920ms steps(1, end) infinite;
+}
+
+@keyframes subagent-hop {
+  50% {
+    transform: translateY(-1px);
+  }
+}
+
+@keyframes subagent-antenna {
+  50% {
+    fill: currentColor;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .subagent-live,
+  .subagent-live :deep(path:nth-child(4)) {
+    animation: none;
+  }
+}
+</style>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CircleAlert, CornerDownRight, File, Folder, Undo } from '@/components/ui/icons'
+import { CircleAlert, CornerDownRight, File, Folder, Orchestra, Undo } from '@/components/ui/icons'
 import { computed, nextTick, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AgentLogin from '@/components/agent/AgentLogin.vue'
@@ -45,6 +45,9 @@ const emit = defineEmits<{ rewind: []; resend: [] }>()
 // Id de la session lancée, tiré de la réponse de `start_session` (`stores/operator.ts`).
 const launched = (output: string | null) => output?.match(/^Session (\S+) lancée/)?.[1] ?? null
 
+// Opacité seule, jamais `display` : le pied garde sa place et la réponse ne bouge pas au survol.
+const onHover = 'opacity-0 transition-opacity duration-(--hover-duration) group-hover/answer:opacity-100 group-focus-within/answer:opacity-100 motion-reduce:transition-none'
+
 const { t, locale } = useI18n()
 const agentParams = computed(() => ({ agent: agents[props.agent].name, command: agents[props.agent].command }))
 const agentsStore = useAgentsStore()
@@ -87,6 +90,9 @@ watch(signedIn, async (now) => {
       v-if="item.text"
       class="max-w-[85%] rounded-xl bg-selection px-3 py-2 text-sm whitespace-pre-wrap break-words select-text"
     ><ChatPromptText :text="item.text" /></p>
+    <p v-if="item.orchestra" class="flex items-center gap-1 text-[11px] text-violet" :title="t('composer.orchestra.sent')">
+      <Orchestra class="size-3" aria-hidden="true" />{{ t('composer.orchestra.label') }}
+    </p>
     <p v-if="item.steered" class="flex items-center gap-1 text-[11px] text-muted">
       <CornerDownRight class="size-3" aria-hidden="true" />{{ t('chat.queue.steered') }}
     </p>
@@ -115,26 +121,14 @@ watch(signedIn, async (now) => {
     <span class="h-px flex-1 bg-stroke" aria-hidden="true" />
   </p>
   <template v-else-if="item.kind === 'end'">
-    <!-- Toujours affichée (choix de Jérémy) : copier, puis la durée du tour, remplacée par l'heure au survol. Sous une
-         seconde, la durée ne dit rien : seule l'heure, au survol. Même case pour les deux, la ligne garde sa largeur. -->
-    <div v-if="item.status === 'completed'" class="-ms-1 -mt-1.5 flex items-center gap-0.5 text-xs text-muted">
+    <!-- Au survol seulement : copier, puis la durée du tour sous la dernière réponse, l'heure sous les précédentes. -->
+    <div v-if="item.status === 'completed'" class="-ms-1 -mt-1.5 flex items-center gap-0.5 text-xs text-muted" :class="onHover">
       <ChatCopyButton v-if="answer && afterText" :text="answer" :label="t('chat.copy.answer')" />
-      <span v-if="item.durationMs !== null && item.at" class="grid px-1 text-[11px] tabular-nums">
-        <span v-if="item.durationMs >= 1000" class="col-start-1 row-start-1 transition-opacity duration-(--hover-duration) group-hover/end:opacity-0 group-focus-within/end:opacity-0 motion-reduce:transition-none">
-          {{ t('chat.end.completed', { duration: formatDuration(item.durationMs, locale, true) }) }}
-        </span>
-        <time
-          :datetime="new Date(item.at).toISOString()"
-          :title="formatClock(item.at, locale, true)"
-          class="col-start-1 row-start-1 opacity-0 transition-opacity duration-(--hover-duration) group-hover/end:opacity-100 group-focus-within/end:opacity-100 motion-reduce:transition-none"
-        >
-          {{ formatClock(item.at, locale) }}
-        </time>
+      <span v-if="latest && item.durationMs !== null" class="px-1 text-[11px] tabular-nums">
+        {{ t('chat.end.completed', { duration: formatDuration(item.durationMs, locale, true) }) }}
       </span>
-      <time v-else-if="item.at && item.durationMs === null" :datetime="new Date(item.at).toISOString()" :title="formatClock(item.at, locale, true)" class="px-1 text-[11px] tabular-nums">
-        {{ formatClock(item.at, locale) }}
-      </time>
-      <p v-else-if="!afterText" class="px-1">{{ t('chat.end.done') }}</p>
+      <span v-else-if="!latest && item.at" class="px-1 text-[11px] tabular-nums">{{ formatClock(item.at, locale) }}</span>
+      <p v-else-if="!afterText && !item.at" class="px-1">{{ t('chat.end.done') }}</p>
     </div>
     <p v-else-if="item.status === 'stopped'" class="text-xs text-muted">
       {{ afterText ? t('chat.end.stoppedKept', agentParams) : t('chat.end.stopped') }}

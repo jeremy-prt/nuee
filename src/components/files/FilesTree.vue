@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ChevronRight } from '@/components/ui/icons'
-import { computed } from 'vue'
+import { computed, nextTick, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import FilesIcon from '@/components/files/FilesIcon.vue'
 import FilesMenu from '@/components/files/FilesMenu.vue'
@@ -70,6 +70,36 @@ function tone(item: Extract<Row, { kind: 'entry' }>) {
 
 const rootTarget: FileTarget = { path: '', folder: true }
 
+// Volet ouvert par son raccourci : la ligne choisie, sinon la première, une fois le dossier lu.
+const scroller = useTemplateRef('scroller')
+watch(
+  [() => store.wantsFocus, () => browse.value.dirs.has('') || !browse.value.rootOpen],
+  async ([wanted, ready]) => {
+    if (!wanted || !ready) return
+    await nextTick()
+    const rows = [...(scroller.value?.querySelectorAll<HTMLElement>('[role="treeitem"]') ?? [])]
+    const row = rows.find((item) => item.dataset.path === browse.value.selected) ?? rows[0]
+    ;(row ?? scroller.value?.querySelector<HTMLElement>('button'))?.focus()
+    store.wantsFocus = false
+  },
+  { immediate: true },
+)
+
+// Ligne choisie hors de l'arbre (fil d'Ariane, recherche) : amenée à l'écran une fois ses dossiers lus.
+let pending: string | null = null
+watch(
+  () => browse.value.selected,
+  (path) => (pending = path),
+)
+watch([() => browse.value.selected, shown], async () => {
+  if (!pending) return
+  await nextTick()
+  const row = [...(scroller.value?.querySelectorAll<HTMLElement>('[role="treeitem"]') ?? [])].find((item) => item.dataset.path === pending)
+  if (!row) return
+  pending = null
+  row.scrollIntoView({ block: 'nearest' })
+})
+
 // Un clic ouvre le fichier en aperçu, un double clic le garde en onglet.
 function select(item: Extract<Row, { kind: 'entry' }>) {
   browse.value.selected = item.path
@@ -136,7 +166,7 @@ const row =
 
 <template>
   <UiContextMenu class="flex min-h-0 flex-1 flex-col">
-    <div class="flex min-h-0 flex-1 flex-col overflow-y-auto px-2 pb-2">
+    <div ref="scroller" class="flex min-h-0 flex-1 flex-col overflow-y-auto px-2 pb-2">
       <button
         type="button"
         :class="row"

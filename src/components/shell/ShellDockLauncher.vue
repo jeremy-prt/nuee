@@ -4,19 +4,24 @@ import { useI18n } from 'vue-i18n'
 import { dockIcons } from '@/components/shell/dockIcons'
 import type { DockView } from '@/stores/layout'
 import { useDockOpener } from '@/composables/useDockOpener'
+import { useShortcutsStore } from '@/stores/shortcuts'
+import type { ShortcutId } from '@/utils/shortcuts'
 
-// Panneau ouvert sans volet, comme T3 Code : la liste des volets, chacun avec sa lettre. Les lettres ne valent que hors
-// d'un champ de saisie (le message en cours garde ses B et ses T).
-const LAUNCHERS: { view: DockView; key: string }[] = [
-  { view: 'browser', key: 'B' },
-  { view: 'terminal', key: 'T' },
-  { view: 'files', key: 'E' },
+// Panneau ouvert sans volet, comme T3 Code : la liste des volets avec leur raccourci. Un volet sans raccourci global a
+// sa lettre, qui ne vaut que hors d'un champ de saisie (le message en cours garde ses D et ses K).
+const LAUNCHERS: { view: DockView; shortcut?: ShortcutId; key?: string }[] = [
+  { view: 'browser', shortcut: 'toggleBrowser' },
+  { view: 'terminal', shortcut: 'toggleTerminal' },
+  { view: 'files', shortcut: 'toggleExplorer' },
   { view: 'changes', key: 'D' },
   { view: 'tasks', key: 'K' },
 ]
 
 const { t } = useI18n()
+const shortcuts = useShortcutsStore()
 const open = useDockOpener()
+
+const hint = (item: (typeof LAUNCHERS)[number]) => (item.shortcut ? shortcuts.label(item.shortcut) : item.key)
 
 function typing(target: EventTarget | null) {
   return target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))
@@ -48,7 +53,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
           >
             <component :is="dockIcons[item.view]" class="size-4 shrink-0 text-muted" aria-hidden="true" />
             <span class="min-w-0 flex-1 truncate">{{ t(`dock.${item.view}.title`) }}</span>
-            <kbd class="grid size-5 place-items-center rounded bg-content/8 font-sans text-[11px] text-muted">{{ item.key }}</kbd>
+            <kbd v-if="hint(item)" class="grid h-5 min-w-5 place-items-center rounded bg-content/8 px-1 font-sans text-[11px] text-muted">{{ hint(item) }}</kbd>
           </button>
         </li>
       </ul>

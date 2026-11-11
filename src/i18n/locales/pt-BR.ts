@@ -109,6 +109,9 @@ export default {
     right: 'Painel direito',
     toggle: 'Mostrar ou ocultar o painel direito',
     resize: 'Redimensionar o painel',
+    openAside: 'Abrir ao lado',
+    closeAside: 'Deixar de mostrar ao lado',
+    resizeAside: 'Redimensionar as duas áreas do painel',
     session: {
       title: 'Ambiente',
       environment: 'Ambiente',
@@ -293,6 +296,7 @@ export default {
       fitSize: "Ajustar à visualização",
       fitted: "Ajustado",
       closeFile: "Fechar {name}",
+      openFiles: "Arquivos abertos",
       collapse: "Recolher tudo",
       newFile: "Novo arquivo",
       newFolder: "Nova pasta",
@@ -319,6 +323,9 @@ export default {
       revealFailed: "Não é possível mostrar o arquivo",
       copied: "Caminho copiado",
       copyFailed: "Falha ao copiar",
+      location: "Local do arquivo",
+      showInTree: "Mostrar {path} no explorador",
+      actions: "Ações do arquivo",
     },
     tasks: {
       title: 'Tarefas',
@@ -544,6 +551,12 @@ export default {
     hint: 'A página de login abre no navegador, depois um código é colado aqui.',
   },
   composer: {
+    orchestra: {
+      label: 'Orquestra',
+      off: 'Sair do modo Orquestra',
+      placeholder: 'Descrever o trabalho a dividir…',
+      sent: 'Enviado no modo Orquestra',
+    },
     queue: 'Enviar após a resposta',
     steer: 'Adicionar à resposta em andamento',
     label: 'Mensagem',
@@ -584,8 +597,6 @@ export default {
     plus: {
       label: 'Adicionar à mensagem',
       attach: 'Anexar arquivos',
-      mention: 'Mencionar um arquivo',
-      skill: 'Usar um skill',
     },
     model: {
       label: 'Modelo',

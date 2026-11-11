@@ -3,4 +3,4 @@
 /**
  * Commande de Nuée attachée à un message : des consignes que l'utilisateur ne voit pas partent avec lui.
  */
-export type ChatCommand = { "kind": "createSkill" } | { "kind": "editSkill", id: string, };
+export type ChatCommand = { "kind": "createSkill" } | { "kind": "editSkill", id: string, } | { "kind": "orchestra" };

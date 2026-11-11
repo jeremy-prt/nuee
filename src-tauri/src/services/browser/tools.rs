@@ -1037,7 +1037,10 @@ check web pages. Prefer read_page/find refs over coordinates; coordinates are CS
 const SESSIONS_INSTRUCTIONS: &str = "\n\nOther sessions: Nuée runs several agent sessions side by side. start_session launches one with its own agent \
 (this project by default) for independent work, with a self-contained prompt; list_sessions, read_session and send_message reach the others; \
 rename_session and archive_session tidy them (archive only when the user asks or the work is done). \
-A session you started reports back here when it finishes a turn: do not poll it.";
+A session you started reports back here when it finishes a turn: do not poll it. \
+The user already sees each session you start as a Task card in this conversation, and each report as a \"Message from\" line followed by its text: \
+never announce a launch, never quote a session id, never repeat or summarize a report. After a report, write only what it changes for the user \
+(the answer they asked for if it is new to them, a problem, the next step) in one short sentence, or nothing if the work simply goes on.";
 
 const VERIFY_INSTRUCTIONS: &str = "\n\nWhen to verify: once the project has a dev server in .claude/launch.json (preview_list shows it), after editing code \
 whose result the browser can show (something the dev server renders, serves or logs), verify it yourself before you reply and share proof; \
@@ -1069,7 +1072,9 @@ fn tool_list() -> Vec<Value> {
                 "prompt": { "type": "string", "description": "Self-contained first message: the new agent knows nothing of this conversation." },
                 "title": { "type": "string", "description": "Short title for the sidebar. Default: generated from the prompt." },
                 "project": { "type": "string", "description": "Project name to start in, or \"none\" for a session without a project. Default: this session's project." },
-                "worktree": { "type": "boolean", "description": "Give it its own git worktree, so its edits stay apart (projects only)." }
+                "worktree": { "type": "boolean", "description": "Give it its own git worktree, so its edits stay apart (projects only)." },
+                "model": { "type": "string", "description": "Model for its agent: a family (\"sonnet\", \"haiku\", \"opus\") or a full model id. Default: the user's default model." },
+                "effort": { "type": "string", "enum": ["low", "medium", "high", "xhigh", "max"], "description": "Reasoning effort, for models that support it." }
             }),
             &["prompt"],
         ),

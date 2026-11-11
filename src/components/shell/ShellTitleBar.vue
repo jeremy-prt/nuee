@@ -10,6 +10,7 @@ import ShellTab from '@/components/shell/ShellTab.vue'
 import ShellTabs from '@/components/shell/ShellTabs.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
+import { useDockFocus } from '@/composables/useDockFocus'
 import { useNewChat } from '@/composables/useNewChat'
 import { isMacosApp } from '@/ipc/system'
 import { useAppearanceStore } from '@/stores/appearance'
@@ -29,11 +30,13 @@ const workspace = useWorkspaceStore()
 const newChat = useNewChat()
 const browser = useBrowserStore()
 const files = useFilesStore()
-// Fichier ouvert dans l'Explorateur : l'éditeur occupe la gauche du panneau, ses onglets restent au-dessus de
-// l'arborescence.
+const dockFocus = useDockFocus()
+// Fichier ouvert dans l'Explorateur : l'éditeur occupe la gauche du panneau, sous ses onglets de fichiers ; ceux des
+// volets restent au-dessus de l'arborescence. Panneau partagé côte à côte : l'Explorateur n'a plus toute la largeur,
+// ses onglets de fichiers restent dans le volet.
 const editorWidth = computed(() => {
   const id = workspace.activeTabId
-  if (!layout.right.open || layout.right.active !== 'files' || !id || !files.editing(id)) return 0
+  if (!layout.spans('files') || !id || !files.editing(id)) return 0
   return Math.max(0, layout.right.size - files.explorerShown(layout.right.size))
 })
 // Panneau fermé pendant que l'agent se sert du navigateur : une pastille sur son bouton.
@@ -153,27 +156,48 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
           <Plus class="size-4" aria-hidden="true" />
         </UiIconButton>
         <span class="flex-1 self-stretch" data-tauri-drag-region />
+        <!-- Environnement n'est pas un volet : un panneau flottant (choix de Jérémy), toujours là. Comme le bouton des
+             détails de T3 Code, il reste du côté de la session, à gauche des onglets du panneau. -->
+        <span class="flex shrink-0" :class="{ 'me-1': layout.right.open }">
+          <ShellEnvironment />
+        </span>
         <!-- Comme Orca et l'app Claude : panneau ouvert, ses volets se choisissent au-dessus de lui, dans une zone calée
              sur sa largeur (poignée comprise) ; `-me-2` annule la marge de la barre ; le bouton qui l'ouvre reste tout à droite. -->
         <div
-          class="-me-2 flex shrink-0 items-center gap-0.5 self-stretch pe-3.5"
-          :class="{ 'ps-2': layout.right.open }"
+          class="relative -me-2 flex shrink-0 items-center gap-0.5 self-stretch pe-3.5"
           :style="layout.right.open ? { width: `${layout.right.size + 1}px` } : undefined"
           data-tauri-drag-region
         >
           <template v-if="layout.right.open">
-            <!-- Comme T3 Code : les onglets des volets ouverts, puis un « + » pour en ouvrir d'autres. -->
-            <span v-if="editorWidth" class="shrink-0 self-stretch" :style="{ width: `${editorWidth}px` }" data-tauri-drag-region />
-            <ShellDockTabs class="min-w-0" />
-            <span class="flex-1 self-stretch" data-tauri-drag-region />
+            <!-- Fichier ouvert dans l'Explorateur : ses onglets passent ici, au-dessus de l'éditeur (`FilesEditorPane`),
+                 comme T3 Code qui range les fichiers ouverts dans la barre du panneau. Toujours présent, panneau
+                 ouvert : un Teleport ne cherche sa cible qu'à sa création. -->
+            <div
+              id="dock-editor-tabs"
+              class="h-full min-w-0 shrink-0 items-center ps-2 pe-2"
+              :class="editorWidth ? 'flex' : 'hidden'"
+              :style="{ width: `${editorWidth}px` }"
+              data-tauri-drag-region
+            />
+            <template v-if="editorWidth">
+              <!-- Le trait entre l'éditeur et l'arborescence monte jusqu'en haut (choix de Jérémy) et s'allume avec leur
+                   poignée, restée dans le panneau. -->
+              <span
+                class="pointer-events-none absolute inset-y-0 w-px bg-stroke [:root:has([data-explorer-handle]:active)_&]:bg-edge-hover [:root:has([data-explorer-handle]:active)_&]:shadow-[1px_0_0_0_var(--color-edge-hover)] [:root:has([data-explorer-handle]:focus-visible)_&]:bg-ring [:root:has([data-explorer-handle]:focus-visible)_&]:shadow-[1px_0_0_0_var(--color-ring)] [:root:has([data-explorer-handle]:hover)_&]:bg-edge-hover [:root:has([data-explorer-handle]:hover)_&]:shadow-[1px_0_0_0_var(--color-edge-hover)]"
+                :style="{ insetInlineStart: `${editorWidth}px` }"
+                aria-hidden="true"
+              />
+            </template>
+            <!-- Comme T3 Code : les onglets des volets ouverts, puis leur « + », puis un vide qui les sépare du bouton du
+                 panneau et laisse de quoi déplacer la fenêtre. -->
+            <ShellDockTabs class="ms-2 min-w-0" />
+            <span class="min-w-3 flex-1 self-stretch" data-tauri-drag-region />
           </template>
-          <!-- Environnement n'est pas un volet : un panneau flottant, ouvert depuis ce bouton (choix de Jérémy). -->
-          <ShellEnvironment />
           <UiIconButton
             :label="t('dock.toggle')"
             :shortcut="shortcuts.label('toggleRightDock')"
             :aria-expanded="layout.right.open"
-            @click="layout.toggleRight()"
+            @click="dockFocus.toggleDock(false)"
           >
             <span class="relative grid place-items-center">
               <PanelRight class="size-4" aria-hidden="true" />

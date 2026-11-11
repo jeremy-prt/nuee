@@ -4,13 +4,19 @@ import { i18nGlobal } from '@/i18n'
 import type { OperatorRequest } from '@/ipc/bindings/OperatorRequest'
 import { onOperatorRequest, operatorReply } from '@/ipc/operator'
 import { isTauriApp } from '@/ipc/system'
+import type { Effort } from '@/ipc/bindings/Effort'
+import { useCatalogStore } from '@/stores/catalog'
 import { type ChatItem, type Place, useConversationsStore } from '@/stores/conversations'
+import { useOrchestraStore } from '@/stores/orchestra'
 import { useProjectsStore } from '@/stores/projects'
 import { type Tab, useWorkspaceStore } from '@/stores/workspace'
 
 // Messages de Nuée envoyés d'affilée à une session sans que l'utilisateur y écrive : au-delà, deux agents qui se
 // répondent tourneraient en boucle.
 const MAX_REPORTS = 3
+// Mode Orchestre : sessions lancées qui travaillent en même temps, au plus (règle de j-orchestre).
+const MAX_WORKERS = 3
+const EFFORTS: readonly Effort[] = ['low', 'medium', 'high', 'xhigh', 'max']
 const READ_LIMIT = 20
 const CLIP = 2000
 
@@ -22,6 +28,8 @@ export const useOperatorStore = defineStore('operator', () => {
   const workspace = useWorkspaceStore()
   const conversations = useConversationsStore()
   const projects = useProjectsStore()
+  const catalog = useCatalogStore()
+  const orchestra = useOrchestraStore()
 
   const reports = new Map<string, number>()
 
@@ -116,15 +124,41 @@ export const useOperatorStore = defineStore('operator', () => {
         projectId = project.id
       }
     }
+    if (orchestra.isOn(caller)) {
+      const working = workspace.tabs.filter((tab) => tab.parentId === caller && !tab.archived && (conversations.find(tab.id)?.phase ?? 'idle') !== 'idle')
+      if (working.length >= MAX_WORKERS) throw new Error(`${MAX_WORKERS} sessions lancées travaillent déjà : attendre un retour avant d'en lancer une autre`)
+    }
     const title = typeof args.title === 'string' && args.title.trim() ? args.title.trim() : null
+    const agent = projects.chatAgent(projectId)
+    const model = typeof args.model === 'string' && args.model.trim() ? pickModel(agent, args.model.trim()) : null
+    const effort = EFFORTS.find((value) => value === args.effort) ?? null
     const tab = workspace.addChat(projectId, title, undefined, caller)
+    const conversation = conversations.find(tab.id)
+    if (conversation && (model || effort)) conversations.setOptions(tab.id, { ...conversation.options, ...(model ? { model } : {}), ...(effort ? { effort } : {}) })
     const project = projects.byId(projectId)
     if (args.worktree === true && project) await projects.checkWorktree(project)
     const worktree = args.worktree === true && !!project && projects.support[project.id] === 'ready'
     workspace.setWorktree(tab.id, worktree)
     workspace.startChat(tab.id, prompt, [])
     conversations.send(tab.id, placeOf(tab), prompt, [], false, { id: caller, title: from?.title ?? null, task: true })
-    return `Session ${tab.id} lancée (${projectName(projectId)}${worktree ? ', dans son propre worktree' : ''}). Elle préviendra ici à la fin de chaque tour.`
+    const options = conversations.find(tab.id)?.options
+    const where = [projectName(projectId), worktree && 'dans son propre worktree', options && catalog.modelLabel(agent, catalog.resolve(agent, options).model)]
+    // Début gardé tel quel : `ChatMessage` en tire l'id de la carte « Tâche ».
+    return `Session ${tab.id} lancée (${where.filter(Boolean).join(', ')}). L'utilisateur la voit déjà en carte « Tâche » : ne pas annoncer ce lancement ni citer cet id. Elle préviendra ici à la fin de chaque tour.`
+  }
+
+  // Modèle demandé par l'agent : valeur exacte du catalogue, sinon famille (« sonnet ») trouvée dans les libellés.
+  function pickModel(agent: Tab['agent'], wanted: string) {
+    catalog.load(agent)
+    const models = catalog.get(agent)?.models
+    if (!models) return wanted
+    const name = wanted.toLowerCase()
+    const found =
+      models.find((model) => model.value.toLowerCase() === name) ??
+      models.find((model) => !model.legacy && model.label.toLowerCase().startsWith(name)) ??
+      models.find((model) => model.label.toLowerCase().includes(name))
+    if (!found) throw new Error(`modèle ${wanted} inconnu (${models.filter((model) => !model.legacy).map((model) => model.value).join(', ')})`)
+    return found.value
   }
 
   async function loaded(tab: Tab) {

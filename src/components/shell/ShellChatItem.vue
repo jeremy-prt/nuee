@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Archive, ChevronDown, ChevronRight, CircleAlert, CircleCheck, GitBranch, MessageQuestion, ShieldQuestion } from '@/components/ui/icons'
+import { Archive, ChevronDown, ChevronRight, CircleAlert, CircleCheck, GitBranch, MessageQuestion, Orchestra, ShieldQuestion } from '@/components/ui/icons'
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatDiffStat from '@/components/chat/ChatDiffStat.vue'
@@ -19,6 +19,7 @@ import { useClockStore } from '@/stores/clock'
 import { useDragStore } from '@/stores/drag'
 import { useLayoutStore } from '@/stores/layout'
 import { useNavigationStore } from '@/stores/navigation'
+import { useOrchestraStore } from '@/stores/orchestra'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { type Tab, useWorkspaceStore } from '@/stores/workspace'
 import { useWorktreesStore } from '@/stores/worktrees'
@@ -52,6 +53,8 @@ const menuOpen = ref(false)
 let returnFocus: HTMLElement | null = null
 
 const active = computed(() => props.tab.id === workspace.activeTabId)
+const orchestra = useOrchestraStore()
+const orchestrating = computed(() => orchestra.isOn(props.tab.id))
 
 // Sans état, la carte donne l'heure de la dernière activité.
 const sessionStatus = useSessionStatus()
@@ -144,8 +147,10 @@ watch(
             <MessageQuestion v-else-if="status === 'question'" class="size-3.5" aria-hidden="true" />
             <CircleCheck v-else-if="status === 'done'" class="size-3.5" aria-hidden="true" />
             <CircleAlert v-else-if="status" class="size-3.5" aria-hidden="true" />
+            <Orchestra v-else-if="orchestrating" class="size-3.5 text-violet" aria-hidden="true" />
             <SettingsAgentLogo v-else :id="tab.agent" small />
             <span v-if="status" class="sr-only">{{ t(`chats.status.${status}`) }}</span>
+            <span v-else-if="orchestrating" class="sr-only">{{ t('composer.orchestra.label') }}</span>
           </span>
           <UiRenameField
             v-if="renaming"
@@ -168,7 +173,11 @@ watch(
         </template>
         <template v-else>
           <span class="flex h-4 items-center gap-1.5 text-[11px] text-muted">
-            <SettingsAgentLogo :id="tab.agent" small class="-my-0.5 -ms-0.5 -me-0.5" />
+            <template v-if="orchestrating">
+              <Orchestra class="size-3 shrink-0 text-violet" aria-hidden="true" />
+              <span class="sr-only">{{ t('composer.orchestra.label') }}</span>
+            </template>
+            <SettingsAgentLogo v-else :id="tab.agent" small class="-my-0.5 -ms-0.5 -me-0.5" />
             <span class="min-w-0 flex-1 truncate">{{ model ?? agents[tab.agent].name }}</span>
             <span v-if="status" class="flex shrink-0 items-center gap-1" :class="sessionStatusColor[status]">
               <ChatSpinner v-if="status === 'working'" :agent="tab.agent" inherit class="text-xs" />

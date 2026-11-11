@@ -1,26 +1,15 @@
 <script setup lang="ts">
-import { AtSign, LoaderCircle, Paperclip, Plus, Sparkles } from '@/components/ui/icons'
-import { DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuTrigger } from 'reka-ui'
-import { computed } from 'vue'
+import { LoaderCircle, Orchestra, Paperclip, Plus } from '@/components/ui/icons'
+import { DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuTrigger } from 'reka-ui'
 import { useI18n } from 'vue-i18n'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { menuIcon, menuLabel, menuPanel, menuRow, menuTitle } from '@/components/ui/menuRow'
 
-// Bouton « + » du champ de saisie. `mention` : seulement dans un projet, le menu « @ » cherche dans son dossier.
-// Le choix fait, le focus va au champ (`focusAfter`), jamais au bouton.
-const props = defineProps<{ disabled: boolean; loading: boolean; mention: boolean; focusAfter: () => void }>()
-const emit = defineEmits<{ attach: []; mention: []; skill: [] }>()
+// Bouton « + » du champ de saisie. Le choix fait, le focus va au champ (`focusAfter`), jamais au bouton.
+const props = defineProps<{ disabled: boolean; loading: boolean; orchestra: boolean; focusAfter: () => void }>()
+const emit = defineEmits<{ attach: []; orchestra: [on: boolean] }>()
 
 const { t } = useI18n()
-
-// Chaque icône prend la couleur de ce qu'elle insère : bleu des mentions, jaune des skills.
-const entries = computed(() =>
-  [
-    { id: 'attach', icon: Paperclip, tint: 'rotate-45 text-info', run: () => emit('attach') },
-    props.mention && { id: 'mention', icon: AtSign, tint: 'text-mention', run: () => emit('mention') },
-    { id: 'skill', icon: Sparkles, tint: 'text-skill', run: () => emit('skill') },
-  ].filter((entry) => !!entry),
-)
 
 function onCloseAutoFocus(event: Event) {
   event.preventDefault()
@@ -52,16 +41,19 @@ function onCloseAutoFocus(event: Event) {
             @close-auto-focus="onCloseAutoFocus"
           >
             <DropdownMenuLabel :class="menuTitle">{{ t('composer.plus.label') }}</DropdownMenuLabel>
-            <DropdownMenuItem
-              v-for="entry in entries"
-              :key="entry.id"
-              :text-value="t(`composer.plus.${entry.id}`)"
-              :class="[menuRow, 'py-1.5']"
-              @select="entry.run"
-            >
-              <component :is="entry.icon" :class="[menuIcon, entry.tint]" aria-hidden="true" />
-              <span :class="[menuLabel, 'min-w-0 flex-1']">{{ t(`composer.plus.${entry.id}`) }}</span>
+            <DropdownMenuItem :text-value="t('composer.plus.attach')" :class="[menuRow, 'py-1.5']" @select="emit('attach')">
+              <Paperclip :class="[menuIcon, 'rotate-45 text-info']" aria-hidden="true" />
+              <span :class="[menuLabel, 'min-w-0 flex-1']">{{ t('composer.plus.attach') }}</span>
             </DropdownMenuItem>
+            <DropdownMenuCheckboxItem
+              :model-value="orchestra"
+              :text-value="t('composer.orchestra.label')"
+              :class="[menuRow, 'py-1.5']"
+              @update:model-value="emit('orchestra', $event === true)"
+            >
+              <Orchestra :class="[menuIcon, 'text-violet']" aria-hidden="true" />
+              <span :class="[menuLabel, 'min-w-0 flex-1']">{{ t('composer.orchestra.label') }}</span>
+            </DropdownMenuCheckboxItem>
           </DropdownMenuContent>
         </DropdownMenuPortal>
       </DropdownMenuRoot>

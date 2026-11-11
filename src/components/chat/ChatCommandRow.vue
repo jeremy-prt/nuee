@@ -9,9 +9,9 @@ const props = defineProps<{ item: CommandItem; running: boolean }>()
 
 const { t } = useI18n()
 const label = computed(() =>
-  props.item.command.kind === 'createSkill'
-    ? t('chat.commands.createSkill')
-    : t('chat.commands.editSkill', { name: props.item.skill?.name ?? props.item.command.id }),
+  props.item.command.kind === 'editSkill'
+    ? t('chat.commands.editSkill', { name: props.item.skill?.name ?? props.item.command.id })
+    : t('chat.commands.createSkill'),
 )
 </script>
 

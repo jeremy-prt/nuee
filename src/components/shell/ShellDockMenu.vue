@@ -8,11 +8,9 @@ import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { menuPanel } from '@/components/ui/menuRow'
 import { useDockOpener } from '@/composables/useDockOpener'
 import { DOCK_VIEWS } from '@/stores/layout'
-import { useShortcutsStore } from '@/stores/shortcuts'
 
 // « + » au-dessus du panneau de droite : ouvre un volet ou y ramène ; le navigateur reçoit un onglet de plus.
 const { t } = useI18n()
-const shortcuts = useShortcutsStore()
 const open = useDockOpener()
 
 let byPointer = false
@@ -43,7 +41,6 @@ function onCloseAutoFocus(event: Event) {
               :key="view"
               :label="t(`dock.${view}.title`)"
               :icon="dockIcons[view]"
-              :shortcut="view === 'terminal' ? shortcuts.label('toggleTerminal') : view === 'browser' ? shortcuts.label('toggleBrowser') : view === 'files' ? shortcuts.label('toggleExplorer') : undefined"
               @select="open(view)"
             />
           </DropdownMenuContent>

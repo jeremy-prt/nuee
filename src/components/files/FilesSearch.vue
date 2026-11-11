@@ -149,7 +149,7 @@ const row = 'flex w-full min-w-0 items-center gap-1.5 rounded-md px-2 text-start
 <template>
   <div class="flex min-h-0 flex-1 flex-col">
     <div class="flex h-9 shrink-0 items-center gap-1 border-b border-stroke px-2">
-      <UiTooltip :label="t('dock.files.backToFiles')">
+      <UiTooltip :label="t('dock.files.backToFiles')" side="bottom">
         <button type="button" :class="toggle" :aria-label="t('dock.files.backToFiles')" @click="emit('close')">
           <ChevronLeft class="size-3.5" aria-hidden="true" />
         </button>

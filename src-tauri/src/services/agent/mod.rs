@@ -101,6 +101,8 @@ pub enum ChatCommand {
     CreateSkill,
     /// Retoucher un skill de la config globale, désigné par son dossier.
     EditSkill { id: String },
+    /// Mode Orchestre du champ de saisie : l'agent découpe le travail et le confie à d'autres sessions.
+    Orchestra,
 }
 
 /// Réglages d'un chat, repris à chaque tour : en changer en cours de conversation est possible.
@@ -1155,16 +1157,17 @@ pub(crate) fn valid_name(name: &str) -> bool {
 /// Consignes d'une commande, avec les vrais chemins : l'agent écrit où la CLI ira lire. Elles partent avec
 /// la première réponse de l'utilisateur au formulaire que Nuée affiche seule.
 fn command_instructions(kind: AgentKind, command: &ChatCommand) -> Result<String, AppError> {
-    let skills_dir = kind
-        .skills_dir()
-        .ok_or_else(|| std::io::Error::other("dossier de config introuvable"))?;
     let task = match command {
+        ChatCommand::Orchestra => return Ok(include_str!("orchestra.md").to_owned()),
         ChatCommand::CreateSkill => CREATE_SKILL.to_owned(),
         ChatCommand::EditSkill { id } => {
             let file = crate::services::skills::skill_file(kind, id)?;
             EDIT_SKILL.replace("{file}", &file.to_string_lossy())
         }
     };
+    let skills_dir = kind
+        .skills_dir()
+        .ok_or_else(|| std::io::Error::other("dossier de config introuvable"))?;
     Ok(include_str!("skill_writer.md")
         .replace("{task}", &task)
         .replace("{skills_dir}", &skills_dir.to_string_lossy()))
@@ -1285,6 +1288,13 @@ mod tests {
             id: "../settings.json".into(),
         };
         assert!(command_instructions(AgentKind::Claude, &edit).is_err());
+    }
+
+    #[test]
+    fn orchestra_instructions_name_the_session_tools() {
+        let text = command_instructions(AgentKind::Claude, &ChatCommand::Orchestra).unwrap();
+        assert!(text.contains("mcp__nuee__start_session"));
+        assert!(text.contains("three"));
     }
 
     #[test]

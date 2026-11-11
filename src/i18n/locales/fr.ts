@@ -109,6 +109,9 @@ export default {
     right: 'Panneau de droite',
     toggle: 'Afficher ou masquer le panneau de droite',
     resize: 'Redimensionner le panneau',
+    openAside: 'Ouvrir à côté',
+    closeAside: 'Ne plus afficher à côté',
+    resizeAside: 'Redimensionner les deux zones du panneau',
     session: {
       title: 'Environnement',
       environment: 'Environnement',
@@ -293,6 +296,7 @@ export default {
       fitSize: "Ajuster à la fenêtre",
       fitted: "Ajusté",
       closeFile: "Fermer {name}",
+      openFiles: "Fichiers ouverts",
       collapse: "Tout replier",
       newFile: "Nouveau fichier",
       newFolder: "Nouveau dossier",
@@ -319,6 +323,9 @@ export default {
       revealFailed: "Impossible d'afficher le fichier",
       copied: "Chemin copié",
       copyFailed: "Copie impossible",
+      location: "Emplacement du fichier",
+      showInTree: "Afficher {path} dans l'arborescence",
+      actions: "Actions du fichier",
     },
     tasks: {
       title: 'Tâches',
@@ -544,6 +551,12 @@ export default {
     hint: 'La page de connexion s\'ouvre dans le navigateur, puis un code est à coller ici.',
   },
   composer: {
+    orchestra: {
+      label: 'Orchestre',
+      off: 'Quitter le mode Orchestre',
+      placeholder: 'Décrire le chantier à découper…',
+      sent: 'Envoyé en mode Orchestre',
+    },
     queue: 'Envoyer après la réponse',
     steer: 'Ajouter à la réponse en cours',
     label: 'Message',
@@ -584,8 +597,6 @@ export default {
     plus: {
       label: 'Ajouter au message',
       attach: 'Joindre des fichiers',
-      mention: 'Mentionner un fichier',
-      skill: 'Utiliser un skill',
     },
     model: {
       label: 'Modèle',

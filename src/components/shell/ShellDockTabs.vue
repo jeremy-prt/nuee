@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Columns2, LoaderCircle, SplitDown, X } from '@/components/ui/icons'
+import { Columns2, LoaderCircle, PanelRight, SplitDown, X } from '@/components/ui/icons'
 import { type Component, computed, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ShellDockMenu from '@/components/shell/ShellDockMenu.vue'
@@ -7,6 +7,7 @@ import { dockIcons } from '@/components/shell/dockIcons'
 import UiContextMenu from '@/components/ui/UiContextMenu.vue'
 import UiMenuItem from '@/components/ui/UiMenuItem.vue'
 import UiMenuSeparator from '@/components/ui/UiMenuSeparator.vue'
+import { useDockClose } from '@/composables/useDockClose'
 import { useTerminalChat } from '@/composables/useTerminalChat'
 import { useTerminalLabels } from '@/composables/useTerminalLabels'
 import type { BrowserTab } from '@/ipc/bindings/BrowserTab'
@@ -17,7 +18,8 @@ import { useTerminalsStore } from '@/stores/terminals'
 
 // Onglets du panneau de droite, comme T3 Code : un par volet ouvert, un par page pour le navigateur et un par groupe de
 // shells pour le terminal (pas de seconde barre dans le volet). La croix au survol, à droite comme les onglets de
-// session ; au clavier, Suppr ferme l'onglet qui a le focus ; clic droit pour fermer, ou diviser un terminal.
+// session ; au clavier, Suppr ferme l'onglet qui a le focus ; clic droit pour fermer, diviser un terminal ou ouvrir
+// le volet à côté de celui affiché (panneau partagé, `layout.right.aside`).
 interface Item {
   key: string
   view: DockView
@@ -36,6 +38,7 @@ const terminals = useTerminalsStore()
 const shortcuts = useShortcutsStore()
 const { chat, place } = useTerminalChat()
 const shellLabels = useTerminalLabels()
+const { close } = useDockClose()
 
 function pageLabel(page: BrowserTab) {
   if (page.title) return page.title
@@ -65,11 +68,20 @@ const items = computed<Item[]>(() =>
   }),
 )
 
+function shown(view: DockView) {
+  return layout.right.active === view || (!!layout.right.active && layout.right.aside === view)
+}
+
+// Affiché dans une zone du panneau ; seul celui de la première zone montre son titre (la barre est étroite).
 function isActive(item: Item) {
-  if (layout.right.active !== item.view || !chat.value) return false
+  if (!shown(item.view) || !chat.value) return false
   if (item.page) return browser.active[chat.value.id] === item.page.id
   if (item.group) return groupOfActive() === item.group
   return true
+}
+
+function isPrimary(item: Item) {
+  return item.view === layout.right.active && isActive(item)
 }
 
 function groupOfActive() {
@@ -97,21 +109,6 @@ function split(item: Item, direction: 'right' | 'down') {
   select(item)
   terminals.split(chat.value.id, place.value, direction)
 }
-
-// Fermer la dernière page ou le dernier shell ferme aussi le volet.
-async function close(item: Item) {
-  const chatId = chat.value?.id
-  if (item.page && chatId) {
-    const last = browser.tabsOf(chatId).length <= 1
-    browser.close(item.page.id)
-    if (last) layout.closeView('browser')
-  } else if (item.group && chatId) {
-    for (const shell of shellsOf(item.group)) await terminals.close(chatId, shell.key)
-    if (!terminals.tabsOf(chatId).length) layout.closeView('terminal')
-  } else {
-    layout.closeView(item.view)
-  }
-}
 </script>
 
 <template>
@@ -128,7 +125,7 @@ async function close(item: Item) {
         :aria-selected="isActive(item)"
         :title="item.page?.url ?? item.label"
         class="flex h-full min-w-0 items-center gap-1.5 rounded-md focus-visible:outline-2 focus-visible:outline-ring"
-        :class="isActive(item) ? 'px-2' : 'w-7 justify-center'"
+        :class="isPrimary(item) ? 'px-2' : 'w-7 justify-center'"
         @click="select(item)"
         @auxclick.middle="close(item)"
         @keydown.delete="close(item)"
@@ -146,7 +143,7 @@ async function close(item: Item) {
         <span v-if="item.page && browser.agent[item.page.id]" class="sr-only">{{ t('dock.browser.agentBusy') }}</span>
         <!-- Comme monocode : seul l'onglet actif montre son titre, les autres leur icône. La croix se pose au survol
              sur la fin du titre, qui s'estompe. -->
-        <span v-if="!isActive(item)" class="sr-only">{{ item.label }}</span>
+        <span v-if="!isPrimary(item)" class="sr-only">{{ item.label }}</span>
         <span
           v-else
           class="truncate group-focus-within/tab:[mask-image:linear-gradient(to_left,transparent_1rem,black_1.375rem)] group-hover/tab:[mask-image:linear-gradient(to_left,transparent_1rem,black_1.375rem)]"
@@ -154,7 +151,7 @@ async function close(item: Item) {
         >
       </button>
       <button
-        v-if="isActive(item)"
+        v-if="isPrimary(item)"
         type="button"
         tabindex="-1"
         class="absolute end-1 top-1/2 grid size-5 -translate-y-1/2 place-items-center rounded-md text-muted opacity-0 transition-opacity duration-(--hover-duration) group-focus-within/tab:opacity-100 group-hover/tab:opacity-100 hover:bg-selection-inner hover:text-content motion-reduce:transition-none"
@@ -168,6 +165,11 @@ async function close(item: Item) {
         <template v-if="item.view === 'terminal'">
           <UiMenuItem :label="t('dock.terminal.splitRight')" :icon="Columns2" :shortcut="shortcuts.label('splitTerminal')" @select="split(item, 'right')" />
           <UiMenuItem :label="t('dock.terminal.splitDown')" :icon="SplitDown" :shortcut="shortcuts.label('splitTerminalDown')" @select="split(item, 'down')" />
+          <UiMenuSeparator />
+        </template>
+        <template v-if="layout.right.active && item.view !== layout.right.active">
+          <UiMenuItem v-if="item.view === layout.right.aside" :label="t('dock.closeAside')" :icon="PanelRight" @select="layout.closeAside()" />
+          <UiMenuItem v-else :label="t('dock.openAside')" :icon="PanelRight" @select="layout.showAside(item.view)" />
           <UiMenuSeparator />
         </template>
         <UiMenuItem :label="t('dock.closeTab')" :icon="X" @select="close(item)" />

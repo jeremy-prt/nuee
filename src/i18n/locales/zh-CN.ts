@@ -109,6 +109,9 @@ export default {
     right: '右侧面板',
     toggle: '显示或隐藏右侧面板',
     resize: '调整面板大小',
+    openAside: '在旁边打开',
+    closeAside: '不再在旁边显示',
+    resizeAside: '调整面板两个区域的大小',
     session: {
       title: '环境',
       environment: '环境',
@@ -293,6 +296,7 @@ export default {
       fitSize: "适应视图",
       fitted: "已适应",
       closeFile: "关闭 {name}",
+      openFiles: "已打开的文件",
       collapse: "全部折叠",
       newFile: "新建文件",
       newFolder: "新建文件夹",
@@ -319,6 +323,9 @@ export default {
       revealFailed: "无法显示文件",
       copied: "路径已复制",
       copyFailed: "复制失败",
+      location: "文件位置",
+      showInTree: "在资源管理器中显示 {path}",
+      actions: "文件操作",
     },
     tasks: {
       title: '任务',
@@ -544,6 +551,12 @@ export default {
     hint: '登录页面会在浏览器中打开，然后在这里粘贴代码。',
   },
   composer: {
+    orchestra: {
+      label: '编排',
+      off: '退出编排模式',
+      placeholder: '描述要拆分的工作…',
+      sent: '以编排模式发送',
+    },
     queue: '回答结束后发送',
     steer: '添加到当前回答',
     label: '消息',
@@ -584,8 +597,6 @@ export default {
     plus: {
       label: '添加到消息',
       attach: '附加文件',
-      mention: '提及文件',
-      skill: '使用技能',
     },
     model: {
       label: '模型',

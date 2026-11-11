@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { WindowStyle } from '@/stores/appearance'
 import { useLayoutStore } from '@/stores/layout'
@@ -83,11 +83,31 @@ export type View = 'new' | 'chats' | 'github' | 'notes' | 'search' | 'usage' | '
 // Vues « liste à gauche, détail au centre » : elles affichent le second panneau.
 const PANEL_VIEWS: readonly View[] = ['chats', 'github', 'notes']
 
+const PROJECT_KEY = 'nuee.navigation.project'
+
+// Projet affiché au dernier lancement, s'il existe encore ; sinon « Cet ordinateur ».
+function lastProject() {
+  try {
+    const id = localStorage.getItem(PROJECT_KEY)
+    return id && useProjectsStore().byId(id) ? id : null
+  } catch {
+    return null
+  }
+}
+
 export const useNavigationStore = defineStore('navigation', () => {
   const layout = useLayoutStore()
   const view = ref<View>('new')
-  // Contexte des chats : un projet, ou null pour les chats sans projet.
-  const projectId = ref<string | null>(null)
+  // Contexte des chats : un projet, ou null pour les chats sans projet. Repris au lancement (choix de Jérémy).
+  const projectId = ref<string | null>(lastProject())
+  watch(projectId, (id) => {
+    try {
+      if (id) localStorage.setItem(PROJECT_KEY, id)
+      else localStorage.removeItem(PROJECT_KEY)
+    } catch {
+      // Stockage indisponible : le prochain lancement repart sur « Cet ordinateur ».
+    }
+  })
   const settingsSection = ref<SettingsSection>('general')
   const settingsDetail = ref<SettingsDetail | null>(null)
   // Projet affiché par Réglages › Projets : le dernier ouvert, que sa sous-page reprend en titre.

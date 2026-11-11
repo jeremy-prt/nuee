@@ -61,12 +61,11 @@ export const defaultShortcuts = {
   deny: { group: 'message', key: 'Escape', mod: false, when: 'approval' },
   favoriteModel: { group: 'message', key: 'f', when: 'modelPicker' },
   toggleRail: { group: 'interface', key: 'b' },
-  // ⌘⇧B revient au navigateur, comme dans l'app Claude.
   togglePanel: { group: 'interface', key: 'b', shift: true, alt: true },
-  toggleRightDock: { group: 'interface', key: 'b', alt: true },
+  toggleRightDock: { group: 'interface', key: 'b', shift: true },
   // ⌘J comme T3 Code (choix de Jérémy) : ⌃` demandait une touche morte en AZERTY Mac.
   toggleTerminal: { group: 'interface', key: 'j' },
-  toggleBrowser: { group: 'interface', key: 'b', shift: true },
+  toggleBrowser: { group: 'interface', key: 'j', shift: true },
   // ⌘⇧E comme l'explorateur de VS Code.
   toggleExplorer: { group: 'interface', key: 'e', shift: true },
   // Comme iTerm, Ghostty et T3 Code, quand le terminal a le focus : ils passent avant le ⌘D de la vue partagée.

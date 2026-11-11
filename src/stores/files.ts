@@ -153,6 +153,16 @@ export const useFilesStore = defineStore('files', () => {
     return Math.round(Math.min(explorerWidth.value, Math.max(EXPLORER.min, dock * 0.45)))
   }
 
+  // Volet ouvert par son raccourci : l'arbre prend le focus une fois rendu et lu. Demande oubliée s'il n'est pas là à
+  // temps (session sans dossier, recherche ouverte), sinon il prendrait le focus bien plus tard.
+  const wantsFocus = ref(false)
+  let focusTimer = 0
+  function requestFocus() {
+    wantsFocus.value = true
+    clearTimeout(focusTimer)
+    focusTimer = window.setTimeout(() => (wantsFocus.value = false), 2000)
+  }
+
   // Couper ou copier : collé ensuite dans un dossier de la même session.
   const clipboard = ref<{ chatId: string; target: FileTarget; cut: boolean } | null>(null)
 
@@ -168,5 +178,5 @@ export const useFilesStore = defineStore('files', () => {
     return editors.value
   }
 
-  return { of, editing, openFile, pin, closeFile, moved, view, setView, explorerWidth, setExplorerWidth, explorerShown, clipboard, editors, loadEditors }
+  return { of, editing, openFile, pin, closeFile, moved, view, setView, explorerWidth, setExplorerWidth, explorerShown, wantsFocus, requestFocus, clipboard, editors, loadEditors }
 })

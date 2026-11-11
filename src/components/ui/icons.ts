@@ -78,6 +78,7 @@ import LicenseIcon from '@hugeicons/core-free-icons/LicenseIcon'
 import LinkSquare02Icon from '@hugeicons/core-free-icons/LinkSquare02Icon'
 import Loading03Icon from '@hugeicons/core-free-icons/Loading03Icon'
 import LogsIcon from '@hugeicons/core-free-icons/LogsIcon'
+import MagicWand01Icon from '@hugeicons/core-free-icons/MagicWand01Icon'
 import Moon02Icon from '@hugeicons/core-free-icons/Moon02Icon'
 import MoreHorizontalIcon from '@hugeicons/core-free-icons/MoreHorizontalIcon'
 import NoteEditIcon from '@hugeicons/core-free-icons/NoteEditIcon'
@@ -97,6 +98,7 @@ import Plug01Icon from '@hugeicons/core-free-icons/Plug01Icon'
 import PythonIcon from '@hugeicons/core-free-icons/PythonIcon'
 import Refresh01Icon from '@hugeicons/core-free-icons/Refresh01Icon'
 import RemoteControlIcon from '@hugeicons/core-free-icons/RemoteControlIcon'
+import RoboticIcon from '@hugeicons/core-free-icons/RoboticIcon'
 import Rows4Icon from '@hugeicons/core-free-icons/Rows4Icon'
 import Search01Icon from '@hugeicons/core-free-icons/Search01Icon'
 import SecurityCheckIcon from '@hugeicons/core-free-icons/SecurityCheckIcon'
@@ -238,6 +240,7 @@ export const Info = icon(InformationCircleIcon)
 export const Keyboard = icon(KeyboardIcon)
 export const Layers = icon(LayerIcon)
 export const LayoutList = icon(LeftToRightListBulletIcon)
+export const Orchestra = icon(MagicWand01Icon)
 export const SplitDown = icon(LayoutTwoRowIcon)
 export const LoaderCircle = icon(Loading03Icon)
 export const Logs = icon(LogsIcon)
@@ -263,6 +266,7 @@ export const Plug = icon(Plug01Icon)
 export const Plus = icon(Add01Icon)
 export const RefreshCw = icon(Refresh01Icon)
 export const RemoteControl = icon(RemoteControlIcon)
+export const Robot = icon(RoboticIcon)
 export const RotateCcw = icon(UndoIcon)
 export const RowsCompact = icon(Rows4Icon)
 export const Search = icon(Search01Icon)

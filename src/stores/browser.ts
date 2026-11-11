@@ -162,9 +162,10 @@ export const useBrowserStore = defineStore('browser', () => {
     )
   }
 
-  // Raccourci tapé dans la page : rejoué sur la fenêtre de Nuée, dont les écouteurs le traitent comme d'habitude.
+  // Raccourci tapé dans la page : rejoué depuis le volet (⌘W y ferme la page, pas la session), et les écouteurs de la
+  // fenêtre le traitent comme d'habitude.
   function replayKey(event: { key: string; code: string; meta: boolean; ctrl: boolean; alt: boolean; shift: boolean }) {
-    window.dispatchEvent(
+    ;(document.querySelector('[data-dock-view="browser"]') ?? window).dispatchEvent(
       new KeyboardEvent('keydown', {
         key: event.key,
         code: event.code,

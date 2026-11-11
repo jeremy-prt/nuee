@@ -6,7 +6,7 @@ import { menuPanel } from '@/components/ui/menuRow'
 
 // Bouton « … » d'une ligne : même menu que son clic droit, et seul accès au clavier.
 // `keepFocus` : l'action choisie place elle-même le focus (champ de renommage), le menu ne le rend pas au bouton.
-const props = defineProps<{ label: string; keepFocus?: () => boolean }>()
+const props = defineProps<{ label: string; keepFocus?: () => boolean; tooltipSide?: 'top' | 'bottom' }>()
 const emit = defineEmits<{ 'update:open': [open: boolean] }>()
 
 let byPointer = false
@@ -20,7 +20,7 @@ function onCloseAutoFocus(event: Event) {
 </script>
 
 <template>
-  <UiTooltip :label="label">
+  <UiTooltip :label="label" :side="tooltipSide">
     <span class="flex">
       <DropdownMenuRoot :modal="false" @update:open="emit('update:open', $event)">
         <DropdownMenuTrigger

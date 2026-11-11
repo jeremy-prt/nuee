@@ -4,7 +4,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsSkillPanel from '@/components/settings/SettingsSkillPanel.vue'
 import ShellBackground from '@/components/shell/ShellBackground.vue'
-import ShellDock from '@/components/shell/ShellDock.vue'
+import ShellDockSplit from '@/components/shell/ShellDockSplit.vue'
 import ShellRail from '@/components/shell/ShellRail.vue'
 import ShellResizeHandle from '@/components/shell/ShellResizeHandle.vue'
 import ShellSidePanel from '@/components/shell/ShellSidePanel.vue'
@@ -12,6 +12,8 @@ import ShellTitleBar from '@/components/shell/ShellTitleBar.vue'
 import UiConfirmDialog from '@/components/ui/UiConfirmDialog.vue'
 import UiToasts from '@/components/ui/UiToasts.vue'
 import AgentUpdateNotice from '@/components/agent/AgentUpdateNotice.vue'
+import { useDockClose } from '@/composables/useDockClose'
+import { useDockFocus } from '@/composables/useDockFocus'
 import { useNewChat } from '@/composables/useNewChat'
 import { appQuit, onQuitRequested } from '@/ipc/app'
 import { isTauriApp } from '@/ipc/system'
@@ -27,7 +29,6 @@ import { useNavigationStore } from '@/stores/navigation'
 import { useOperatorStore } from '@/stores/operator'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { useSkillsStore } from '@/stores/skills'
-import { useTerminalsStore } from '@/stores/terminals'
 import { useUpdatesStore } from '@/stores/updates'
 import { useWorkspaceStore } from '@/stores/workspace'
 import type { ShortcutId } from '@/utils/shortcuts'
@@ -53,7 +54,7 @@ watch(
   { immediate: true },
 )
 watch(
-  () => [layout.right.open, layout.right.active, [...layout.right.tabs]],
+  () => [layout.right.open, layout.right.active, layout.right.aside, [...layout.right.tabs]],
   () => {
     if (workspace.activeTabId) layout.remember(workspace.activeTabId)
   },
@@ -61,7 +62,8 @@ watch(
 const drag = useDragStore()
 const newChat = useNewChat()
 const shortcuts = useShortcutsStore()
-const terminals = useTerminalsStore()
+const dockFocus = useDockFocus()
+const dockClose = useDockClose()
 // Branché dès le lancement : les onglets ouverts par l'agent arrivent même volet fermé.
 const browser = useBrowserStore()
 // Pose le style de fenêtre sur <html> dès le démarrage, pas seulement à l'ouverture des réglages.
@@ -97,12 +99,6 @@ function inChatsOnly(action: () => void) {
   }
 }
 
-// Ouvre le volet du terminal et y met le focus, ou le referme s'il est déjà affiché.
-function toggleTerminal() {
-  layout.toggleView('terminal')
-  if (layout.isShown('terminal')) terminals.requestFocus()
-}
-
 // ⌘L : le volet Navigateur s'ouvre au besoin, son adresse est sélectionnée.
 function browserAddress() {
   layout.showView('browser')
@@ -111,6 +107,13 @@ function browserAddress() {
 
 function togglePanel() {
   if (navigation.hasPanel && !menu.value) layout.togglePanel()
+}
+
+// La session vierge du nouveau pane prend le focus : sans l'état du panneau de droite, `restore` le fermerait.
+function splitPane() {
+  const from = workspace.activeTabId
+  workspace.split()
+  if (workspace.activeTabId && workspace.activeTabId !== from) layout.remember(workspace.activeTabId)
 }
 
 // La liste des projets est en haut de la barre latérale : elle s'ouvre au besoin.
@@ -136,19 +139,19 @@ const actions: [ShortcutId, (event: KeyboardEvent) => void][] = [
   ['previousProject', () => navigation.stepProject(-1)],
   ['nextProject', () => navigation.stepProject(1)],
   ['togglePanel', togglePanel],
-  ['toggleRightDock', inChatsOnly(layout.toggleRight)],
-  ['toggleTerminal', inChatsOnly(toggleTerminal)],
-  ['toggleBrowser', inChatsOnly(() => layout.toggleView('browser'))],
-  ['toggleExplorer', inChatsOnly(() => layout.toggleView('files'))],
+  ['toggleRightDock', inChatsOnly(() => dockFocus.toggleDock())],
+  ['toggleTerminal', inChatsOnly(() => dockFocus.toggleView('terminal'))],
+  ['toggleBrowser', inChatsOnly(() => dockFocus.toggleView('browser'))],
+  ['toggleExplorer', inChatsOnly(() => dockFocus.toggleView('files'))],
   ['browserAddress', inChatsOnly(browserAddress)],
   ['newTab', () => newChat()],
-  ['closeTab', inChatsOnly(workspace.closeActiveTab)],
+  ['closeTab', (event) => inChatsOnly(() => dockClose.closeFrom(event.target) || workspace.closeActiveTab())()],
   ['closeAllTabs', inChatsOnly(() => workspace.activeTabId && workspace.closeTabs(workspace.activeTabId, 'all'))],
   ['reopenTab', inChatsOnly(workspace.reopenTab)],
   ['nextTab', inChatsOnly(() => workspace.stepTab(1))],
   ['previousTab', inChatsOnly(() => workspace.stepTab(-1))],
   ['goToTab', (event) => inChatsOnly(() => workspace.goToTab(Number(event.code.slice(-1))))()],
-  ['split', inChatsOnly(workspace.split)],
+  ['split', inChatsOnly(splitPane)],
   ['rename', inChatsOnly(renameActive)],
   ['settings', () => navigation.go('settings')],
   ['zoomIn', () => appearance.stepZoom(1)],
@@ -157,6 +160,8 @@ const actions: [ShortcutId, (event: KeyboardEvent) => void][] = [
 ]
 
 function onKeydown(event: KeyboardEvent) {
+  // CodeMirror a déjà traité la touche (⌘D, ⌘[, ⌘]) sans arrêter sa propagation.
+  if (event.defaultPrevented && event.target instanceof Element && event.target.closest('.cm-editor')) return
   const action = actions.find(([id]) => shortcuts.matches(event, id))
   if (!action) return
   event.preventDefault()
@@ -262,7 +267,7 @@ onUnmounted(() => {
                   :label="t('dock.resize')"
                 />
                 <div class="flex min-h-0 flex-col bg-chrome" :style="{ width: `${layout.right.size}px` }" :aria-label="t('dock.right')" role="region">
-                  <ShellDock :key="layout.right.active ?? 'launcher'" :view="layout.right.active" class="min-h-0 flex-1" />
+                  <ShellDockSplit class="min-h-0 flex-1" />
                 </div>
               </template>
             </div>

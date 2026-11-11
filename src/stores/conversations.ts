@@ -25,6 +25,7 @@ import { type Signal, useAttentionStore } from '@/stores/attention'
 import { useCatalogStore } from '@/stores/catalog'
 import { useGeneralStore } from '@/stores/general'
 import { useOperatorStore } from '@/stores/operator'
+import { useOrchestraStore } from '@/stores/orchestra'
 import { useProjectsStore } from '@/stores/projects'
 import { useSkillsStore } from '@/stores/skills'
 import { useWorkspaceStore } from '@/stores/workspace'
@@ -35,8 +36,8 @@ export type ChatItem =
   // steered : ajouté à une réponse en cours, l'agent l'a lu sans ouvrir de nouveau tour. agentId : identifiant que
   // l'agent lui donne, pour revenir avant lui. `at` (envoi, comme celui de la fin de tour) : absent des sessions
   // enregistrées avant lui.
-  // `from` : venu de l'agent d'une autre session (`MessageFrom`).
-  | { kind: 'user'; id: string; text: string; attachments?: Attachment[]; steered?: boolean; agentId?: string; at?: number; from?: MessageFrom }
+  // `from` : venu de l'agent d'une autre session (`MessageFrom`). `orchestra` : envoyé en mode Orchestre.
+  | { kind: 'user'; id: string; text: string; attachments?: Attachment[]; steered?: boolean; agentId?: string; at?: number; from?: MessageFrom; orchestra?: boolean }
   // Chat ouvert par une commande de Nuée : son message d'ouverture est rendu depuis cet élément, sans tour
   // d'agent. `skill` : le skill à modifier tel qu'il était à l'ouverture.
   | { kind: 'command'; id: string; command: ChatCommand; skill?: { name: string; description: string; automatic: boolean } }
@@ -126,6 +127,7 @@ export interface Queued {
   prompt: string
   attachments: Attachment[]
   from?: MessageFrom
+  orchestra?: boolean
 }
 
 export type Approval = Omit<Extract<AgentEvent, { type: 'approval' }>, 'type'>
@@ -575,6 +577,7 @@ export const useConversationsStore = defineStore('conversations', () => {
         conversation.options = content.options
         conversation.context = content.context
         conversation.items = settleInterrupted(content.items as ChatItem[])
+        useOrchestraStore().remember(chatId, conversation.items)
       })
       .catch((error) => console.error('historique', error))
       .finally(() => {
@@ -652,7 +655,7 @@ export const useConversationsStore = defineStore('conversations', () => {
     return { chatId, agent, ...place, sessionId, options: catalog.resolve(agent, conversation.options), hooks, ...skills.exclusions() }
   }
 
-  async function dispatch(chatId: string, conversation: Conversation, place: Place, prompt: string, attachments: Attachment[]) {
+  async function dispatch(chatId: string, conversation: Conversation, place: Place, prompt: string, attachments: Attachment[], briefing: ChatCommand | null = null) {
     conversation.lastPlace = place
     // `/compact` part seul : un texte ajouté devant, rappel ou consignes, le ferait lire comme un message.
     const compaction = conversation.items.at(-1)?.kind === 'compact'
@@ -660,7 +663,7 @@ export const useConversationsStore = defineStore('conversations', () => {
     const recap = compaction ? null : interruptedText(conversation.items.slice(0, lastIndex(conversation.items, (item) => item.kind === 'user')))
     // Les consignes partent tant qu'aucun tour n'a abouti : la session les garde ensuite, `--resume` compris.
     const opening = conversation.sessionId || compaction ? undefined : conversation.items.find((item) => item.kind === 'command')
-    const command = opening?.kind === 'command' ? opening.command : null
+    const command = opening?.kind === 'command' ? opening.command : briefing
     conversation.phase = 'answering'
     conversation.startedAt = performance.now()
     conversation.activeAt = conversation.startedAt
@@ -680,14 +683,17 @@ export const useConversationsStore = defineStore('conversations', () => {
   function start(chatId: string, conversation: Conversation, message: Omit<Queued, 'id'>) {
     const { place, prompt, attachments } = message
     useWorkspaceStore().touch(chatId)
+    // Consignes du mode Orchestre : au premier message envoyé dans ce mode, la session les garde ensuite.
+    const previous = conversation.items[lastIndex(conversation.items, (item) => item.kind === 'user' && !item.from)]
+    const briefing: ChatCommand | null = message.orchestra && !(previous?.kind === 'user' && previous.orchestra) ? { kind: 'orchestra' } : null
     // Avant le premier message, il n'y a rien à résumer : `/compact` reste une bulle, à laquelle l'agent répond.
     if (isCompaction(prompt, attachments) && conversation.items.some((item) => item.kind === 'user')) {
       push(conversation, { kind: 'compact', id: crypto.randomUUID(), status: 'running', at: Date.now() })
     } else {
-      push(conversation, { kind: 'user', id: crypto.randomUUID(), text: prompt, attachments, at: Date.now(), ...(message.from ? { from: message.from } : {}) })
+      push(conversation, { kind: 'user', id: crypto.randomUUID(), text: prompt, attachments, at: Date.now(), ...(message.from ? { from: message.from } : {}), ...(message.orchestra ? { orchestra: true } : {}) })
     }
     save(chatId)
-    dispatch(chatId, conversation, place, agentPrompt(message), attachments)
+    dispatch(chatId, conversation, place, agentPrompt(message), attachments, briefing)
   }
 
   // Message d'une autre session : l'agent lit de qui il vient, la conversation garde le texte seul.
@@ -731,7 +737,8 @@ export const useConversationsStore = defineStore('conversations', () => {
   function send(chatId: string, place: Place, prompt: string, attachments: Attachment[], other = false, from?: MessageFrom) {
     const conversation = conversations.get(chatId)
     if (!conversation?.loaded) return
-    const message: Queued = { id: crypto.randomUUID(), place, prompt, attachments, ...(from ? { from } : {}) }
+    const orchestra = !from && useOrchestraStore().isOn(chatId)
+    const message: Queued = { id: crypto.randomUUID(), place, prompt, attachments, ...(from ? { from } : {}), ...(orchestra ? { orchestra } : {}) }
     // L'agent attend : le message part, une reprise programmée devient inutile.
     if (conversation.phase === 'idle') {
       cancelResume(chatId)
@@ -741,7 +748,8 @@ export const useConversationsStore = defineStore('conversations', () => {
     conversation.queue = [...conversation.queue, message]
     // `/compact` résume la conversation entière : il attend la fin du tour au lieu de rejoindre la réponse.
     const steering = (useGeneralStore().followUp === 'steer') !== other
-    if (conversation.phase === 'answering' && steering && !isCompaction(prompt, attachments)) steer(chatId, conversation, message)
+    // Les consignes d'Orchestre ne passent qu'à l'ouverture d'un tour : ce message attend la fin de celui-ci.
+    if (conversation.phase === 'answering' && steering && !orchestra && !isCompaction(prompt, attachments)) steer(chatId, conversation, message)
   }
 
   // Message de la file envoyé tout de suite : ajouté à la réponse en cours, ou envoyé si l'agent attend.

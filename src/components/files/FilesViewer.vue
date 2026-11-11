@@ -1,28 +1,69 @@
+<script lang="ts">
+import type { Picture } from '@/components/files/FilesImage.vue'
+
+// Dernière image affichée, gardée d'un fichier à l'autre (le lecteur est recréé à chaque onglet) : la suivante la
+// remplace une fois décodée, sans cadre vide entre les deux.
+let lastImage: { chatId: string; picture: Picture } | null = null
+const lastImageOf = (chatId: string) => (lastImage?.chatId === chatId ? lastImage.picture : null)
+
+// Mêmes extensions que `IMAGES` dans `services/files.rs`.
+const RASTER = /\.(png|jpe?g|gif|webp|avif|ico|bmp)$/i
+
+// Décodée avant d'être posée : l'`<img>` s'affiche aussitôt, dimensions comprises.
+async function decode(src: string) {
+  const image = new Image()
+  image.src = src
+  try {
+    await image.decode()
+    return { width: image.naturalWidth || null, height: image.naturalHeight || null }
+  } catch {
+    return { width: null, height: null }
+  }
+}
+
+// Un SVG sans `width` ni `height` n'a pas de taille propre pour WebKit : celle de sa `viewBox`.
+function svgSize(text: string) {
+  const tag = /<svg\b[^>]*>/i.exec(text)?.[0] ?? ''
+  const attribute = (name: string) => Number.parseFloat(new RegExp(`\\s${name}\\s*=\\s*["']\\s*([\\d.]+)(?:px)?\\s*["']`, 'i').exec(tag)?.[1] ?? '')
+  const box = /\sviewBox\s*=\s*["']([^"']+)["']/i.exec(tag)?.[1]?.trim().split(/[\s,]+/).map(Number) ?? []
+  const width = attribute('width') || box[2] || 0
+  const height = attribute('height') || box[3] || 0
+  return width > 0 && height > 0 ? { width: Math.round(width), height: Math.round(height) } : null
+}
+</script>
+
 <script setup lang="ts">
 import { ChevronRight, CircleAlert, File as FileGlyph, LoaderCircle } from '@/components/ui/icons'
 import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatMarkdown from '@/components/chat/ChatMarkdown.vue'
 import FilesEditor from '@/components/files/FilesEditor.vue'
+import FilesImage from '@/components/files/FilesImage.vue'
+import FilesMenu from '@/components/files/FilesMenu.vue'
 import UiEmpty from '@/components/ui/UiEmpty.vue'
+import UiMoreMenu from '@/components/ui/UiMoreMenu.vue'
+import UiSegmented from '@/components/ui/UiSegmented.vue'
 import { isAppError } from '@/ipc/agent'
 import type { FileContent } from '@/ipc/bindings/FileContent'
 import type { FilesPlace } from '@/ipc/bindings/FilesPlace'
 import { filesRead, filesStat, filesWrite } from '@/ipc/files'
-import { useFilesStore } from '@/stores/files'
+import { parentOf, useFilesStore } from '@/stores/files'
 
 // Enregistré seul peu après la frappe, contre la version lue : si l'agent a réécrit le fichier entre-temps, rien
-// n'est écrasé et le pied de page propose les deux versions. Sans frappe en cours, celle du disque est reprise.
+// n'est écrasé et la ligne d'outils propose les deux versions. Sans frappe en cours, celle du disque est reprise.
 const props = defineProps<{ place: FilesPlace; root: string; file: string }>()
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const store = useFilesStore()
 const browse = computed(() => store.of(props.place.chatId))
 
 const SAVE_DELAY = 600
+// Lecture plus longue que ça : l'indicateur apparaît. En dessous, il ne ferait que clignoter.
+const SLOW_READ = 200
 
 const content = ref<FileContent | null>(null)
 const status = ref<'loading' | 'ready' | 'missing' | 'failed'>('loading')
+const slow = ref(false)
 const error = ref('')
 // Version du disque sur laquelle porte le texte affiché, et ce texte tel qu'il y est.
 let version = ''
@@ -35,6 +76,8 @@ const conflict = ref(false)
 const editor = useTemplateRef('editor')
 
 const name = computed(() => props.file.slice(props.file.lastIndexOf('/') + 1))
+const folder = computed(() => props.file.slice(0, Math.max(0, props.file.lastIndexOf('/'))))
+const text = computed(() => status.value === 'ready' && content.value?.body.kind === 'text')
 const markdown = computed(() => /\.(md|mdx|markdown)$/i.test(name.value))
 const svg = computed(() => /\.svg$/i.test(name.value))
 const previewable = computed(() => content.value?.body.kind === 'text' && (markdown.value || svg.value))
@@ -52,7 +95,47 @@ const parsed = computed(() => {
   if (!closing) return { properties: null, body: text }
   return { properties: rest.slice(0, closing.index).trimEnd(), body: rest.slice(closing.index + closing[0].length) }
 })
-const svgSource = computed(() => (svg.value ? `data:image/svg+xml;charset=utf-8,${encodeURIComponent(draft.value)}` : ''))
+const svgData = (text: string) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(text)}`
+const extension = computed(() => (name.value.includes('.') ? name.value.slice(name.value.lastIndexOf('.') + 1).toUpperCase() : ''))
+
+// ===== Image =====
+const raster = ref<Picture | null>(null)
+const svgPicture = computed<Picture | null>(() => {
+  if (!svg.value) return null
+  const size = svgSize(draft.value)
+  return { src: svgData(draft.value), width: size?.width ?? null, height: size?.height ?? null, bytes: new TextEncoder().encode(draft.value).length, type: 'SVG' }
+})
+// Pendant la lecture d'une image, la précédente reste affichée (ou un cadre vide de même taille).
+const imageLike = computed(() => RASTER.test(name.value) || (svg.value && store.view === 'preview'))
+const previous = lastImageOf(props.place.chatId)
+const shownPicture = computed(() => {
+  if (status.value === 'loading') return imageLike.value ? previous : null
+  if (status.value !== 'ready') return null
+  if (content.value?.body.kind === 'image') return raster.value
+  return showPreview.value && svg.value ? svgPicture.value : null
+})
+
+// ===== Fil d'Ariane =====
+const rootName = computed(() => {
+  const value = props.root.replace(/[\\/]+$/, '')
+  return value.slice(Math.max(value.lastIndexOf('/'), value.lastIndexOf('\\')) + 1)
+})
+// À la racine, le nom est déjà dans l'onglet : seul le dossier de la session reste.
+const crumbs = computed(() => {
+  if (!folder.value) return []
+  const parts = props.file.split('/')
+  return parts.map((label, index) => ({ label, path: parts.slice(0, index + 1).join('/'), last: index === parts.length - 1 }))
+})
+
+// Montre le dossier ou le fichier dans l'arborescence, dossiers parents ouverts.
+function reveal(path: string) {
+  const view = browse.value
+  view.searching = false
+  view.rootOpen = true
+  for (let dir = parentOf(props.file); dir; dir = parentOf(dir)) view.expanded.add(dir)
+  view.selected = path
+  view.selectedFolder = path !== props.file
+}
 
 let timer: ReturnType<typeof setTimeout> | undefined
 let savedTimer: ReturnType<typeof setTimeout> | undefined
@@ -62,14 +145,30 @@ function textOf(result: FileContent) {
   return result.body.kind === 'text' ? result.body.text : ''
 }
 
+let slowTimer: ReturnType<typeof setTimeout> | undefined
+
 async function load() {
   const id = ++request
   clearTimeout(timer)
+  clearTimeout(slowTimer)
   status.value = 'loading'
+  slow.value = false
+  slowTimer = setTimeout(() => (slow.value = true), SLOW_READ)
   conflict.value = false
   try {
     const result = await filesRead(props.place, props.file)
     if (id !== request) return
+    if (result.body.kind === 'image') {
+      const { data } = result.body
+      const payload = data.slice(data.indexOf(',') + 1)
+      const bytes = Math.floor((payload.length * 3) / 4) - (payload.match(/=+$/)?.[0].length ?? 0)
+      const size = await decode(data)
+      if (id !== request) return
+      raster.value = { src: data, ...size, bytes, type: extension.value }
+    } else if (result.body.kind === 'text' && svg.value && store.view === 'preview') {
+      await decode(svgData(result.body.text))
+      if (id !== request) return
+    }
     content.value = result
     version = result.version
     base.value = draft.value = textOf(result)
@@ -79,6 +178,11 @@ async function load() {
     content.value = null
     error.value = isAppError(failure) ? failure.message : String(failure)
     status.value = 'failed'
+  } finally {
+    if (id === request) {
+      clearTimeout(slowTimer)
+      slow.value = false
+    }
   }
 }
 
@@ -169,29 +273,13 @@ onMounted(() => {
   window.addEventListener('focus', check)
 })
 onBeforeUnmount(() => {
+  if (shownPicture.value && status.value === 'ready') lastImage = { chatId: props.place.chatId, picture: shownPicture.value }
   flush()
   request++
   clearTimeout(savedTimer)
+  clearTimeout(slowTimer)
   window.removeEventListener('focus', check)
 })
-
-// ===== Image =====
-const fit = ref(true)
-const size = ref<{ width: number; height: number } | null>(null)
-const bytes = computed(() => {
-  const data = content.value?.body.kind === 'image' ? content.value.body.data : ''
-  const payload = data.slice(data.indexOf(',') + 1)
-  return Math.floor((payload.length * 3) / 4)
-})
-const weight = computed(() => {
-  const value = bytes.value
-  const [amount, unit] = value >= 1024 * 1024 ? [value / 1024 / 1024, 'megabyte'] : [value / 1024, 'kilobyte']
-  return new Intl.NumberFormat(locale.value, { style: 'unit', unit, maximumFractionDigits: 1 }).format(amount)
-})
-function onImageLoad(event: Event) {
-  const image = event.target as HTMLImageElement
-  size.value = { width: image.naturalWidth, height: image.naturalHeight }
-}
 
 const state = computed(() => {
   if (saveError.value) return t('dock.files.saveFailed')
@@ -200,108 +288,68 @@ const state = computed(() => {
   return ''
 })
 
-const toggle = 'rounded px-2 py-0.5 text-[11px]'
-const footer = 'flex h-6 shrink-0 items-center gap-2 border-t border-stroke px-2.5 text-[10.5px] text-muted'
+const views = computed(() => [
+  { value: 'preview' as const, label: t('dock.files.preview') },
+  { value: 'source' as const, label: t('dock.files.source') },
+])
+const crumb = 'min-w-0 truncate rounded px-0.5 hover:text-content focus-visible:outline-2 focus-visible:outline-ring'
 </script>
 
 <template>
   <div class="flex min-h-0 flex-col">
-    <p v-if="status === 'loading'" class="flex items-center gap-1.5 p-3 text-xs text-muted">
-      <LoaderCircle class="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-      {{ t('dock.files.loading') }}
-    </p>
+    <!-- Sous les onglets, à la hauteur de la barre d'outils de l'arborescence : chemin, enregistrement, actions. -->
+    <div class="flex h-9 shrink-0 items-center gap-2 border-b border-stroke ps-2.5 pe-1.5 text-xs text-muted">
+      <nav class="flex min-w-0 flex-1" :aria-label="t('dock.files.location')">
+        <ol class="flex min-w-0 items-center overflow-hidden">
+          <li class="flex min-w-0 items-center" :title="root">
+            <span class="min-w-0 truncate px-0.5">{{ rootName }}</span>
+          </li>
+          <li v-for="item in crumbs" :key="item.path" class="flex min-w-0 items-center" :class="{ 'max-w-[70%] shrink-0': item.last }">
+            <ChevronRight class="size-3 shrink-0 opacity-60" aria-hidden="true" />
+            <button
+              type="button"
+              :class="[crumb, { 'text-content': item.last }]"
+              :aria-current="item.last ? 'page' : undefined"
+              :title="t('dock.files.showInTree', { path: item.path })"
+              @click="reveal(item.path)"
+            >{{ item.label }}</button>
+          </li>
+        </ol>
+      </nav>
+      <template v-if="text && conflict">
+        <span class="shrink-0 text-content" role="status">{{ t('dock.files.conflict') }}</span>
+        <button type="button" class="shrink-0 text-content underline-offset-2 hover:underline" @click="save(true)">{{ t('dock.files.keepMine') }}</button>
+        <button type="button" class="shrink-0 text-content underline-offset-2 hover:underline" @click="takeDisk">{{ t('dock.files.takeDisk') }}</button>
+      </template>
+      <span v-else-if="text" class="max-w-40 shrink-0 truncate text-[11px]" :class="{ 'text-danger': saveError }" :title="saveError || undefined" aria-live="polite">{{ state }}</span>
+      <UiSegmented v-if="previewable" :model-value="store.view" :options="views" :label="t('dock.files.view')" @update:model-value="store.setView" />
+      <UiMoreMenu :label="t('dock.files.actions')" tooltip-side="bottom">
+        <FilesMenu :place="place" :root="root" :target="{ path: file, folder: false }" />
+      </UiMoreMenu>
+    </div>
+    <FilesImage v-if="shownPicture || (status === 'loading' && imageLike)" :picture="shownPicture" :name="name" :busy="slow" class="min-h-0 flex-1" />
+    <template v-else-if="status === 'loading'">
+      <p v-if="slow" class="flex items-center gap-1.5 p-3 text-xs text-muted" role="status">
+        <LoaderCircle class="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+        {{ t('dock.files.loading') }}
+      </p>
+    </template>
     <UiEmpty v-else-if="status === 'missing'" :icon="FileGlyph" :title="t('dock.files.missingTitle')" :description="t('dock.files.missing')" />
     <UiEmpty v-else-if="status === 'failed'" :icon="CircleAlert" :title="t('dock.files.readFailed', { name })" :description="error" />
     <template v-else-if="content">
-      <!-- Image : fond en damier, un clic passe de l'ajustement à la taille réelle. -->
-      <template v-if="content.body.kind === 'image'">
-        <!-- Ajustée en position absolue : dans une grille sans hauteur fixée, `max-h-full` la réduisait à rien. -->
-        <button
-          type="button"
-          class="files-checker relative min-h-0 flex-1 overflow-auto focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
-          :aria-label="fit ? t('dock.files.actualSize') : t('dock.files.fitSize')"
-          @click="fit = !fit"
-        >
-          <img
-            :src="content.body.data"
-            :alt="name"
-            :class="fit ? 'absolute inset-4 m-auto max-h-[calc(100%-2rem)] max-w-[calc(100%-2rem)] object-contain' : 'm-4 max-w-none'"
-            @load="onImageLoad"
-          />
-        </button>
-        <footer :class="footer">
-          <span v-if="size" class="tabular-nums">{{ size.width }} × {{ size.height }}</span>
-          <span>{{ weight }}</span>
-          <span class="flex-1" />
-          <span>{{ fit ? t('dock.files.fitted') : '100 %' }}</span>
-        </footer>
-      </template>
-      <UiEmpty v-else-if="content.body.kind === 'binary'" :icon="FileGlyph" :title="t('dock.files.binaryTitle')" :description="t('dock.files.binary')" />
+      <UiEmpty v-if="content.body.kind === 'binary'" :icon="FileGlyph" :title="t('dock.files.binaryTitle')" :description="t('dock.files.binary')" />
       <UiEmpty v-else-if="content.body.kind === 'tooLarge'" :icon="FileGlyph" :title="t('dock.files.tooLargeTitle')" :description="t('dock.files.tooLarge')" />
-      <template v-else>
-        <div class="relative flex min-h-0 flex-1 flex-col">
-          <div
-            v-if="previewable"
-            class="absolute end-2 top-2 z-20 flex rounded-md border border-content/10 bg-content/10 p-0.5 backdrop-blur-md"
-            role="radiogroup"
-            :aria-label="t('dock.files.view')"
-          >
-            <button
-              type="button"
-              role="radio"
-              :class="[toggle, store.view === 'preview' ? 'bg-selection text-content' : 'text-muted hover:text-content']"
-              :aria-checked="store.view === 'preview'"
-              @click="store.setView('preview')"
-            >{{ t('dock.files.preview') }}</button>
-            <button
-              type="button"
-              role="radio"
-              :class="[toggle, store.view === 'source' ? 'bg-selection text-content' : 'text-muted hover:text-content']"
-              :aria-checked="store.view === 'source'"
-              @click="store.setView('source')"
-            >{{ t('dock.files.source') }}</button>
-          </div>
-          <div v-if="showPreview && markdown" class="min-h-0 flex-1 overflow-y-auto px-6 pt-12 pb-8">
-            <details v-if="parsed.properties !== null" class="group/props mb-6 rounded-lg border border-content/10 bg-content/3">
-              <summary class="flex cursor-pointer list-none items-center gap-1 px-3 py-2 text-xs text-muted">
-                <ChevronRight class="size-3 group-open/props:rotate-90" aria-hidden="true" />
-                {{ t('dock.files.properties') }}
-              </summary>
-              <pre class="border-t border-stroke px-3 py-2 font-mono text-xs leading-5 whitespace-pre-wrap text-muted select-text">{{ parsed.properties }}</pre>
-            </details>
-            <ChatMarkdown :text="parsed.body" />
-          </div>
-          <div v-else-if="showPreview && svg" class="files-checker relative min-h-0 flex-1">
-            <img :src="svgSource" :alt="name" class="absolute inset-4 m-auto max-h-[calc(100%-2rem)] max-w-[calc(100%-2rem)] object-contain" />
-          </div>
-          <FilesEditor v-else ref="editor" :text="draft" :name="name" :label="file" :line="line" @change="onChange" />
-        </div>
-        <footer :class="footer" class="font-mono">
-          <span class="min-w-0 flex-1 truncate" :title="file">{{ file }}</span>
-          <template v-if="conflict">
-            <span class="shrink-0 font-sans text-content" role="status">{{ t('dock.files.conflict') }}</span>
-            <button type="button" class="shrink-0 font-sans text-content underline-offset-2 hover:underline" @click="save(true)">{{ t('dock.files.keepMine') }}</button>
-            <button type="button" class="shrink-0 font-sans text-content underline-offset-2 hover:underline" @click="takeDisk">{{ t('dock.files.takeDisk') }}</button>
-          </template>
-          <span v-else class="max-w-64 shrink-0 truncate font-sans" :class="{ 'text-danger': saveError }" :title="saveError || undefined" aria-live="polite">{{ state }}</span>
-        </footer>
-      </template>
+      <div v-else-if="showPreview && markdown" class="min-h-0 flex-1 overflow-y-auto px-6 pt-6 pb-8">
+        <details v-if="parsed.properties !== null" class="group/props mb-6 rounded-lg border border-content/10 bg-content/3">
+          <summary class="flex cursor-pointer list-none items-center gap-1 px-3 py-2 text-xs text-muted">
+            <ChevronRight class="size-3 group-open/props:rotate-90" aria-hidden="true" />
+            {{ t('dock.files.properties') }}
+          </summary>
+          <pre class="border-t border-stroke px-3 py-2 font-mono text-xs leading-5 whitespace-pre-wrap text-muted select-text">{{ parsed.properties }}</pre>
+        </details>
+        <ChatMarkdown :text="parsed.body" />
+      </div>
+      <FilesEditor v-else-if="content.body.kind === 'text'" ref="editor" :text="draft" :name="name" :label="file" :line="line" @change="onChange" />
     </template>
   </div>
 </template>
-
-<style scoped>
-.files-checker {
-  background-image:
-    linear-gradient(45deg, rgb(128 128 128 / 0.1) 25%, transparent 25%),
-    linear-gradient(-45deg, rgb(128 128 128 / 0.1) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, rgb(128 128 128 / 0.1) 75%),
-    linear-gradient(-45deg, transparent 75%, rgb(128 128 128 / 0.1) 75%);
-  background-size: 16px 16px;
-  background-position:
-    0 0,
-    0 8px,
-    8px -8px,
-    -8px 0;
-}
-</style>

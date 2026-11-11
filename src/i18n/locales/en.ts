@@ -107,6 +107,9 @@ export default {
     right: 'Right panel',
     toggle: 'Show or hide the right panel',
     resize: 'Resize panel',
+    openAside: 'Open to the side',
+    closeAside: 'Remove from the side',
+    resizeAside: 'Resize the split panel',
     session: {
       title: 'Environment',
       environment: 'Environment',
@@ -291,6 +294,7 @@ export default {
       fitSize: "Fit to view",
       fitted: "Fitted",
       closeFile: "Close {name}",
+      openFiles: "Open files",
       collapse: "Collapse all",
       newFile: "New file",
       newFolder: "New folder",
@@ -317,6 +321,9 @@ export default {
       revealFailed: "Cannot show the file",
       copied: "Path copied",
       copyFailed: "Copy failed",
+      location: "File location",
+      showInTree: "Show {path} in the explorer",
+      actions: "File actions",
     },
     tasks: {
       title: 'Tasks',
@@ -542,6 +549,12 @@ export default {
     hint: 'The sign-in page opens in the browser, then a code is pasted here.',
   },
   composer: {
+    orchestra: {
+      label: 'Orchestra',
+      off: 'Leave Orchestra mode',
+      placeholder: 'Describe the work to split…',
+      sent: 'Sent in Orchestra mode',
+    },
     queue: 'Send after the answer',
     steer: 'Add to the current answer',
     label: 'Message',
@@ -582,8 +595,6 @@ export default {
     plus: {
       label: 'Add to message',
       attach: 'Attach files',
-      mention: 'Mention a file',
-      skill: 'Use a skill',
     },
     model: {
       label: 'Model',

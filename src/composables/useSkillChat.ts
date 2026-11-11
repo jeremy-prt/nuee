@@ -27,9 +27,9 @@ export function useSkillChat() {
     }
     const skill = command.kind === 'editSkill' ? skills.find(command.id) : null
     const title =
-      command.kind === 'createSkill'
-        ? t('chat.commands.createSkill')
-        : t('chat.commands.editSkill', { name: skill?.name ?? command.id })
+      command.kind === 'editSkill'
+        ? t('chat.commands.editSkill', { name: skill?.name ?? command.id })
+        : t('chat.commands.createSkill')
     navigation.openChats(null)
     const tab = workspace.openChat(title)
     workspace.startChat(tab.id, title, [])
