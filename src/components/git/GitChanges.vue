@@ -106,7 +106,7 @@ const note = 'px-3 py-6 text-center text-xs text-muted'
               class="flex h-7 items-center gap-1.5 rounded-md border border-stroke px-2.5 text-xs text-content enabled:hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-40"
               data-control
               :disabled="readOnly"
-              @click="start(initRepo.id, $event.detail === 0, '[data-git-run=changes] [data-git-stop]')"
+              @click="start('initRepo', $event.detail === 0, '[data-git-run=changes] [data-git-stop]')"
             >
               <GitBranchPlus class="size-3.5" aria-hidden="true" />
               {{ initRepo.label }}

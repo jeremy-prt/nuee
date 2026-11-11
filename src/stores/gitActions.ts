@@ -21,13 +21,11 @@ import { useWorktreesStore } from '@/stores/worktrees'
 // `message` : écrire le titre du commit des changements, sans commiter (bouton du champ de message du volet Git).
 export type GitAction = 'ship' | 'commitPush' | 'commit' | 'push' | 'initRepo' | 'message'
 
-// Mots cherchés dans le nom des skills de l'utilisateur. null : toujours la consigne générique (« Commiter sans
-// pousser » : le skill de commit de Jérémy pousse aussi). Le skill de `message` n'est jamais lancé, seulement lu.
-const SKILL_WORDS: Record<GitAction, readonly string[] | null> = {
-  ship: ['ship'],
-  commitPush: ['commit'],
-  commit: null,
-  push: null,
+// Seules actions encore faites par un agent : écrire le message (Haiku, aux règles du skill de commit de
+// l'utilisateur, lu sans être lancé) et créer le dépôt. Commit, push et pull sont faits par l'app (demande de Jérémy :
+// ses skills s'invoquent dans la conversation). `ship` et `commitPush` restent pour les séparateurs déjà enregistrés.
+export type AgentAction = Extract<GitAction, 'message' | 'initRepo'>
+const SKILL_WORDS: Record<AgentAction, readonly string[]> = {
   initRepo: ['init', 'repo'],
   message: ['commit'],
 }
@@ -44,7 +42,7 @@ function titleOf(items: readonly ChatItem[]) {
 }
 
 export interface GitRun {
-  action: GitAction
+  action: AgentAction
   folder: string
   projectId: string
   originId: string
@@ -55,6 +53,8 @@ export interface GitRun {
   revealed: boolean
   // `message` : le champ au lancement. Changé depuis, le titre généré ne l'écrase pas.
   draft: string
+  // `message` lancé par Commit champ vide : le titre écrit sert aussitôt au commit, sans passer par le champ.
+  commitAfter: boolean
 }
 
 // Erreur brute d'un échec : ses deux premières lignes, le reste se lit dans la session.
@@ -71,9 +71,9 @@ function brief(error: string) {
 const CHEAP = ['haiku', 'sonnet'] as const
 const EFFORT_ORDER: readonly Effort[] = ['low', 'medium', 'high', 'xhigh', 'max']
 
-// Actions git d'un clic, comme T3 Code mais avec les skills de l'utilisateur. La session cachée qui les fait
-// n'apparaît que si elle attend l'utilisateur ou échoue ; réussie, elle est supprimée et le fil d'origine garde un
-// séparateur. Une action à la fois par dossier.
+// Actions git d'un clic, comme T3 Code : commit, push et pull faits par l'app ; seuls le message de commit et la
+// création du dépôt passent par une session cachée, qui n'apparaît que si elle attend l'utilisateur ou échoue.
+// Réussie, elle est supprimée et le fil d'origine garde un séparateur. Une action à la fois par dossier.
 export const useGitActionsStore = defineStore('gitActions', () => {
   const workspace = useWorkspaceStore()
   const conversations = useConversationsStore()
@@ -102,9 +102,8 @@ export const useGitActionsStore = defineStore('gitActions', () => {
     return folder ? (runs.get(folder) ?? null) : null
   }
 
-  function skillOf(action: GitAction, agent: AgentKind) {
-    const words = SKILL_WORDS[action]
-    return words ? skills.actionSkill(agent, words) : null
+  function skillOf(action: AgentAction, agent: AgentKind) {
+    return skills.actionSkill(agent, SKILL_WORDS[action])
   }
 
   function label(action: GitAction) {
@@ -119,7 +118,7 @@ export const useGitActionsStore = defineStore('gitActions', () => {
     workspace.show(tab.id)
   }
 
-  async function start(action: GitAction, origin: Tab) {
+  async function start(action: AgentAction, origin: Tab, commitAfter = false) {
     const { t } = i18nGlobal()
     const folder = folderOf(origin)
     const project = projects.byId(origin.projectId)
@@ -137,22 +136,21 @@ export const useGitActionsStore = defineStore('gitActions', () => {
     }
     // Réservé avant d'attendre la liste des skills : un double clic ne lance pas deux actions.
     const draft = useGitPanelStore().of(origin.id).message
-    const run: GitRun = { action, folder, projectId: project.id, originId: origin.id, chatId: '', startedAt: Date.now(), revealed: false, draft }
+    const run: GitRun = { action, folder, projectId: project.id, originId: origin.id, chatId: '', startedAt: Date.now(), revealed: false, draft, commitAfter }
     runs.set(folder, run)
     // Relue à chaque action, comme le menu « / » : un skill ajouté entre-temps est vu.
     await skills.loadSkills()
     const skill = skillOf(action, origin.agent)
-    // Un skill de ship s'arrête avant de commiter tant qu'on ne lui a pas dit d'y aller : le clic vaut accord.
     const prompt =
       action === 'message'
         ? [t('gitActions.prompts.message'), skill ? t('gitActions.messageSkill', { path: skill.path }) : ''].filter(Boolean).join(' ')
         : skill
           ? `/${skill.name} ${t('gitActions.go')}`
-          : t(`gitActions.prompts.${action}`)
+          : t('gitActions.prompts.initRepo')
     const worktreePath = origin.worktree ? origin.worktreePath : undefined
     const tab = workspace.addChat(origin.projectId, label(action), worktreePath, origin.id, { agent: origin.agent })
     // Même mode d'autorisation que la session d'origine, jamais plus large.
-    conversations.setOptions(tab.id, { ...source.options, ...economy(action, origin.agent) })
+    conversations.setOptions(tab.id, { ...source.options, ...economy(origin.agent) })
     workspace.startChat(tab.id, prompt, [])
     const place = { cwd: project.path, worktree: tab.worktree, worktreePath: tab.worktreePath, worktreeBase: null }
     conversations.send(tab.id, place, prompt, [])
@@ -163,10 +161,8 @@ export const useGitActionsStore = defineStore('gitActions', () => {
     return true
   }
 
-  // Commiter, pousser ou créer un dépôt suit une procédure : le modèle le moins cher du moment suffit, en effort
-  // bas. Relire avant de pousser demande du jugement : la relecture garde le modèle de la session d'origine.
-  function economy(action: GitAction, agent: AgentKind) {
-    if (action === 'ship') return {}
+  // Écrire un message ou créer un dépôt suit une procédure : le modèle le moins cher du moment suffit, en effort bas.
+  function economy(agent: AgentKind) {
     const models = catalog.get(agent)?.models.filter((model) => !model.legacy) ?? []
     // L'alias exact d'abord : un libellé « Sonnet (1M context) » viendrait sinon avant `sonnet`.
     const pick = (family: string) => models.find((model) => model.value === family) ?? models.find((model) => model.label.toLowerCase().startsWith(family))
@@ -242,10 +238,13 @@ export const useGitActionsStore = defineStore('gitActions', () => {
     // Tour fini sans le résultat attendu : souvent une question posée en texte, à laquelle répondre dans la session.
     if (!done) return reveal(run, 'failed', t('gitActions.unfinished', { action }), t('gitActions.unfinishedBody'), { sticky: true })
     if (run.action === 'message') {
+      await workspace.deleteChat(run.chatId)
+      const origin = workspace.tabs.find((tab) => tab.id === run.originId)
+      if (run.commitAfter && origin) return void (await commitNow(origin, titleOf(items) ?? ''))
       const gitPanel = useGitPanelStore()
       const typed = gitPanel.of(run.originId).message
       if (!typed.trim() || typed === run.draft) gitPanel.setMessage(run.originId, titleOf(items) ?? '')
-      return workspace.deleteChat(run.chatId)
+      return
     }
     const head = await headOf(run)
     const title = t(`gitActions.done.${run.action}`)
@@ -256,9 +255,9 @@ export const useGitActionsStore = defineStore('gitActions', () => {
     await workspace.deleteChat(run.chatId)
   }
 
-  // Commit direct du volet Git, fait par l'app (`worktree_commit`), puis push si demandé : pas d'agent, pas de skill.
+  // Commit direct, fait par l'app (`worktree_commit`) : pas d'agent, pas de skill.
   // Refusé pendant une action de fond dans le même dossier, qui refuse à son tour de démarrer pendant ce temps.
-  async function commitNow(origin: Tab, message: string, push: boolean) {
+  async function commitNow(origin: Tab, message: string) {
     const { t } = i18nGlobal()
     const folder = folderOf(origin)
     const project = projects.byId(origin.projectId)
@@ -281,19 +280,31 @@ export const useGitActionsStore = defineStore('gitActions', () => {
         return false
       }
       useGitPanelStore().setMessage(origin.id, '')
-      if (push) {
-        try {
-          head = await worktreePush(origin.id, project.path)
-        } catch (error) {
-          mark(origin.id, 'commit', head)
-          toasts.push({ kind: 'error', title: t('gitActions.pushFailed'), body: brief(isAppError(error) ? error.message : String(error)), clamp: true })
-          return true
-        }
-      }
-      const action = push ? 'commitPush' : 'commit'
-      toasts.push({ kind: 'success', title: t(`gitActions.done.${action}`), body: [head.subject, head.branch].filter(Boolean).join(' · ') })
-      mark(origin.id, action, head)
+      toasts.push({ kind: 'success', title: t('gitActions.done.commit'), body: [head.subject, head.branch].filter(Boolean).join(' · ') })
+      mark(origin.id, 'commit', head)
       return true
+    } finally {
+      manual.delete(folder)
+      settled[folder] = (settled[folder] ?? 0) + 1
+      await sessionGit.refresh(origin.id, project.path)
+    }
+  }
+
+  // Push direct, jamais forcé : mêmes garde-fous que le commit direct.
+  async function pushNow(origin: Tab) {
+    const { t } = i18nGlobal()
+    const folder = folderOf(origin)
+    const project = projects.byId(origin.projectId)
+    if (!folder || !project || manual.has(folder)) return
+    const busy = runs.get(folder)
+    if (busy) return void toasts.push({ title: t('gitActions.busyTitle'), body: t('gitActions.busy', { action: label(busy.action) }) })
+    manual.add(folder)
+    try {
+      const head = await worktreePush(origin.id, project.path)
+      toasts.push({ kind: 'success', title: t('gitActions.done.push'), body: [head.subject, head.branch].filter(Boolean).join(' · ') })
+      mark(origin.id, 'push', head)
+    } catch (error) {
+      toasts.push({ kind: 'error', title: t('gitActions.pushFailed'), body: brief(isAppError(error) ? error.message : String(error)), clamp: true })
     } finally {
       manual.delete(folder)
       settled[folder] = (settled[folder] ?? 0) + 1
@@ -364,18 +375,12 @@ export const useGitActionsStore = defineStore('gitActions', () => {
       if (created) await Promise.all([useWorktreesStore().load(project), sessionGit.refresh(run.originId, project.path)])
       return created
     }
-    await sessionGit.refresh(run.originId, project.path)
-    const git = sessionGit.states[run.originId]
-    if (!git) return true
-    const clean = git.changes.files === 0 || conversations.find(run.originId)?.phase !== 'idle'
-    if (run.action === 'push') return !git.unpushed
-    if (run.action === 'commit') return clean
-    return clean && !git.unpushed
+    return true
   }
 
   function stop(run: GitRun) {
     conversations.stop(run.chatId)
   }
 
-  return { runs, manual, settled, folderOf, runOf, skillOf, label, start, commitNow, pullNow, stop, open }
+  return { runs, manual, settled, folderOf, runOf, skillOf, label, start, commitNow, pushNow, pullNow, stop, open }
 })

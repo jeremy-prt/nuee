@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CloudDownload, GitBranch } from '@/components/ui/icons'
+import { CloudDownload, CloudUpload, GitBranch } from '@/components/ui/icons'
 import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
@@ -12,11 +12,11 @@ import { useProjectsStore } from '@/stores/projects'
 import { useSessionGitStore } from '@/stores/sessionGit'
 
 // Branche du dossier de la session, en tête des deux modes du volet Git (menu pour en changer quand c'est possible,
-// comme Environnement). Slot : ce qui s'affiche à droite (total des changements), puis le pull direct, avec une
-// pastille quand la branche suivie a des commits à récupérer.
+// comme Environnement). Slot : ce qui s'affiche à droite (total des changements), puis push et pull directs, le pull
+// avec une pastille quand la branche suivie a des commits à récupérer.
 const { t } = useI18n()
 const { chat } = useTerminalChat()
-const { idle, run } = useGitActions()
+const { idle, run, push } = useGitActions()
 const gitActions = useGitActionsStore()
 const { branch, place, canSwitch, branchList, loadBranches, checkout } = useSessionBranch()
 const committing = computed(() => gitActions.manual.has(gitActions.folderOf(chat.value) ?? ''))
@@ -66,6 +66,9 @@ const sections = computed(() => [
     </p>
     <span class="flex-1" />
     <slot />
+    <UiIconButton v-if="chat?.started" :label="push.label" :disabled="push.disabled" class="size-6!" @click="chat && gitActions.pushNow(chat)">
+      <CloudUpload class="size-3" aria-hidden="true" />
+    </UiIconButton>
     <UiIconButton
       v-if="chat?.started"
       :label="pullLabel"

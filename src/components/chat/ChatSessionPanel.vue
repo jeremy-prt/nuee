@@ -60,7 +60,7 @@ import { tasksOf } from '@/utils/tasks'
 const emit = defineEmits<{ close: [] }>()
 const { t, locale } = useI18n()
 const { chat } = useTerminalChat()
-const { phase, idle, git, changed, run, main, others, initRepo, start } = useGitActions()
+const { phase, idle, git, changed, run, commit, push, initRepo, start, runCommit } = useGitActions()
 const STOP = '[data-git-run="session"] [data-git-stop]'
 const { focusView } = useDockFocus()
 const projects = useProjectsStore()
@@ -275,10 +275,9 @@ const separator = 'mx-2 my-1 h-px shrink-0 bg-stroke'
       <div :class="separator" aria-hidden="true" />
       <div data-git-run="session">
         <ChatGitRun v-if="run" :run="run" />
-        <button v-else type="button" :class="action" @click="start(initRepo.id, $event.detail === 0, STOP)">
+        <button v-else type="button" :class="action" @click="start('initRepo', $event.detail === 0, STOP)">
           <GitBranchPlus :class="icon" aria-hidden="true" />
           <span class="min-w-0 flex-1 truncate">{{ initRepo.label }}</span>
-          <span v-if="initRepo.hint" class="shrink-0 text-xs text-muted">{{ initRepo.hint }}</span>
         </button>
       </div>
     </template>
@@ -309,15 +308,8 @@ const separator = 'mx-2 my-1 h-px shrink-0 bg-stroke'
                 </DropdownMenuItem>
               </UiMenuSub>
               <UiMenuSeparator v-if="canSwitch" />
-              <UiMenuItem
-                v-for="item in [main, ...others]"
-                :key="item.id ?? item.label"
-                :label="item.label"
-                :icon="item.icon"
-                :hint="item.hint"
-                :disabled="item.disabled"
-                @select="start(item.id, keyboard, STOP)"
-              />
+              <UiMenuItem :label="commit.label" :icon="commit.icon" :disabled="commit.disabled" @select="runCommit(keyboard, STOP)" />
+              <UiMenuItem :label="push.label" :icon="push.icon" :disabled="push.disabled" @select="chat && gitActionsStore.pushNow(chat)" />
               <UiMenuItem :label="t('dock.changes.pull')" :icon="CloudDownload" :hint="behind ? `↓${behind}` : null" :disabled="!idle" @select="pull" />
             </template>
           </ChatSessionSub>

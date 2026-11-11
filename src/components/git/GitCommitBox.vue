@@ -1,29 +1,23 @@
 <script setup lang="ts">
-import { ChevronDown, GitCommit, LoaderCircle, Sparkles } from '@/components/ui/icons'
-import { DropdownMenuContent, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuTrigger } from 'reka-ui'
+import { GitCommit, LoaderCircle, Sparkles } from '@/components/ui/icons'
 import { computed, nextTick, onMounted, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatGitRun from '@/components/chat/ChatGitRun.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
-import UiMenuItem from '@/components/ui/UiMenuItem.vue'
-import UiMenuSeparator from '@/components/ui/UiMenuSeparator.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { field, fieldText } from '@/components/ui/field'
-import { menuPanel, menuTitle } from '@/components/ui/menuRow'
 import { useGitActions } from '@/composables/useGitActions'
-import { useMenuToggle } from '@/composables/useMenuToggle'
 import { useRefocus } from '@/composables/useRefocus'
 import { useTerminalChat } from '@/composables/useTerminalChat'
 import { useGitActionsStore } from '@/stores/gitActions'
 import { useGitPanelStore } from '@/stores/gitPanel'
 import { useShortcutsStore } from '@/stores/shortcuts'
 
-// Champ de message et bouton de commit du volet Git. Champ vide : le bouton lance l'action de fond avec le skill de
-// l'utilisateur, comme Environnement. Champ rempli : il commite directement avec ce message (l'app, sans agent), et sa
-// flèche propose aussi de pousser, puis les actions par un agent.
+// Champ de message et bouton Commit du volet Git, comme T3 Code : rempli, le commit prend ce message ; vide, Haiku
+// l'écrit d'abord aux règles du skill de commit de l'utilisateur. Push et pull sont sur la ligne de la branche.
 const { t } = useI18n()
 const { chat } = useTerminalChat()
-const { changed, run, main, others, start } = useGitActions()
+const { changed, run, commit, runCommit } = useGitActions()
 const gitActions = useGitActionsStore()
 const gitPanel = useGitPanelStore()
 const shortcuts = useShortcutsStore()
@@ -40,11 +34,6 @@ const readOnly = computed(() => !chat.value?.started)
 const folder = computed(() => gitActions.folderOf(chat.value))
 const committing = computed(() => !!folder.value && gitActions.manual.has(folder.value))
 const commitKey = computed(() => shortcuts.label('sendOther') ?? '')
-
-async function commit(push: boolean) {
-  if (!chat.value || !typed.value || !changed.value || committing.value || run.value) return
-  await gitActions.commitNow(chat.value, message.value, push)
-}
 
 // Le skill de commit de l'utilisateur, s'il en a un, donne ses règles au titre généré.
 const skill = computed(() => (chat.value ? gitActions.skillOf('message', chat.value.agent) : null))
@@ -67,30 +56,15 @@ onMounted(fit)
 function onKeydown(event: KeyboardEvent) {
   if (event.isComposing || !shortcuts.matches(event, 'sendOther')) return
   event.preventDefault()
-  commit(false)
+  runCommit(false, STOP)
 }
 
-const mainLabel = computed(() => (typed.value ? t('dock.changes.commit') : main.value.label))
-const mainDisabled = computed(() => (typed.value ? !changed.value || committing.value : main.value.disabled || committing.value))
-const hasMenu = computed(() => typed.value || others.value.length > 0)
-// Champ rempli : toutes les actions par un agent passent dans le menu, la principale comprise.
-const agentItems = computed(() => (typed.value ? [...(main.value.id ? [main.value] : []), ...others.value] : others.value))
+const help = computed(() => (typed.value ? t('dock.changes.commitHelp', { key: commitKey.value }) : t('dock.changes.commitAuto')))
 // Pendant le commit, le bouton désactivé perd le focus : il revient au champ.
-function runMain(event: MouseEvent) {
-  if (typed.value) refocusAfter(event, () => commit(false), MESSAGE)
-  else start(main.value.id, event.detail === 0, STOP)
+function onCommit(event: MouseEvent) {
+  if (typed.value) refocusAfter(event, () => runCommit(false, STOP), MESSAGE)
+  else runCommit(event.detail === 0, STOP)
 }
-
-let byPointer = false
-const openedBy = (pointer: boolean) => {
-  byPointer = pointer
-}
-const keyboardOpened = () => !byPointer
-function onCloseAutoFocus(event: Event) {
-  if (byPointer) event.preventDefault()
-}
-const { open: menuOpen, onTriggerDown, onOpenChange } = useMenuToggle()
-const group = useTemplateRef('group')
 </script>
 
 <template>
@@ -140,72 +114,19 @@ const group = useTemplateRef('group')
         </span>
       </UiTooltip>
       <!-- Même cadre et même hauteur que le champ : le bouton ne pèse pas plus que lui. -->
-      <div
-        v-else
-        ref="group"
-        class="flex h-7 items-stretch rounded-md border border-stroke text-content"
-        :class="{ 'opacity-40': mainDisabled && !hasMenu }"
-        data-control
-      >
-        <UiTooltip :label="typed ? t('dock.changes.commitHelp', { key: commitKey }) : (main.hint ?? mainLabel)" side="bottom">
-          <button
-            type="button"
-            class="flex min-w-0 flex-1 items-center justify-center gap-1.5 px-2 text-xs font-medium enabled:hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring disabled:text-muted"
-            :class="hasMenu ? 'rounded-s-[5px]' : 'rounded-[5px]'"
-            :disabled="mainDisabled"
-            @click="runMain"
-          >
-            <LoaderCircle v-if="committing" class="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-            <component :is="typed ? GitCommit : main.icon" v-else class="size-3.5 shrink-0" aria-hidden="true" />
-            <span class="truncate">{{ mainLabel }}</span>
-          </button>
-        </UiTooltip>
-        <template v-if="hasMenu">
-          <span class="my-1.5 w-px shrink-0 bg-stroke" aria-hidden="true" />
-          <UiTooltip :label="t('dock.session.gitActions')" side="bottom">
-            <span class="flex">
-              <DropdownMenuRoot :open="menuOpen" :modal="false" @update:open="onOpenChange">
-                <DropdownMenuTrigger
-                  class="grid w-7 place-items-center rounded-e-[5px] text-muted enabled:hover:bg-selection-hover enabled:hover:text-content aria-expanded:bg-selection-hover aria-expanded:text-content focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring disabled:opacity-50"
-                  :disabled="committing"
-                  :aria-label="t('dock.session.gitActions')"
-                  @pointerdown="(openedBy(true), onTriggerDown())"
-                  @keydown="openedBy(false)"
-                >
-                  <ChevronDown class="size-3" aria-hidden="true" />
-                </DropdownMenuTrigger>
-                <DropdownMenuPortal>
-                  <DropdownMenuContent
-                    :reference="group ?? undefined"
-                    align="end"
-                    :side-offset="4"
-                    :collision-padding="8"
-                    :class="[menuPanel, 'max-h-(--reka-dropdown-menu-content-available-height) min-w-56']"
-                    @close-auto-focus="onCloseAutoFocus"
-                  >
-                    <template v-if="typed">
-                      <DropdownMenuLabel :class="menuTitle">{{ t('dock.changes.withMessage') }}</DropdownMenuLabel>
-                      <UiMenuItem :label="t('dock.changes.commit')" :icon="GitCommit" :shortcut="commitKey" :disabled="!changed" @select="refocusAfter(keyboardOpened(), () => commit(false), MESSAGE)" />
-                      <UiMenuItem :label="t('dock.changes.commitPush')" :icon="GitCommit" :disabled="!changed" @select="refocusAfter(keyboardOpened(), () => commit(true), MESSAGE)" />
-                      <UiMenuSeparator v-if="agentItems.length" />
-                    </template>
-                    <DropdownMenuLabel v-if="agentItems.length" :class="menuTitle">{{ t('dock.changes.byAgent') }}</DropdownMenuLabel>
-                    <UiMenuItem
-                      v-for="item in agentItems"
-                      :key="item.id!"
-                      :label="item.label"
-                      :icon="item.icon"
-                      :hint="item.hint"
-                      :disabled="item.disabled"
-                      @select="start(item.id, keyboardOpened(), STOP)"
-                    />
-                  </DropdownMenuContent>
-                </DropdownMenuPortal>
-              </DropdownMenuRoot>
-            </span>
-          </UiTooltip>
-        </template>
-      </div>
+      <UiTooltip v-else :label="help" side="bottom">
+        <button
+          type="button"
+          class="flex h-7 w-full min-w-0 items-center justify-center gap-1.5 rounded-md border border-stroke px-2 text-xs font-medium text-content enabled:hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring disabled:text-muted disabled:opacity-40"
+          data-control
+          :disabled="commit.disabled"
+          @click="onCommit"
+        >
+          <LoaderCircle v-if="committing" class="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+          <GitCommit v-else class="size-3.5 shrink-0" aria-hidden="true" />
+          <span class="truncate">{{ t('dock.changes.commit') }}</span>
+        </button>
+      </UiTooltip>
     </div>
   </div>
 </template>

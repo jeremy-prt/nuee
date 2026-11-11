@@ -46,7 +46,7 @@ const statusIcons = { approval: ShieldQuestion, question: MessageQuestion, done:
         :data-tab-pinned="pinned || undefined"
         :aria-selected="active"
         :aria-label="pinned ? tabTitle(tab) : undefined"
-        class="group relative flex min-w-0 items-center gap-1.5 text-xs focus-visible:outline-2 focus-visible:outline-ring"
+        class="group relative flex min-w-0 items-center gap-1.5 text-xs focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
         :class="[
           pinned
             ? ['pin-card h-5 w-6 justify-center rounded-[5px]', active ? 'text-content' : 'text-muted hover:text-content']
