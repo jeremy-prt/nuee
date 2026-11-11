@@ -3,9 +3,16 @@ import { reactive, watch } from 'vue'
 import { agentCatalog } from '@/ipc/agent'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { Catalog } from '@/ipc/bindings/Catalog'
+import type { Effort } from '@/ipc/bindings/Effort'
 import type { TurnOptions } from '@/ipc/bindings/TurnOptions'
 
 const FAVORITES_KEY = 'nuee.models.favorites.v1'
+const EFFORT_ORDER: Effort[] = ['low', 'medium', 'high', 'xhigh', 'max']
+
+function nearestEffort(efforts: Effort[], target: Effort): Effort | null {
+  const distance = (effort: Effort) => Math.abs(EFFORT_ORDER.indexOf(effort) - EFFORT_ORDER.indexOf(target))
+  return [...efforts].sort((a, b) => distance(a) - distance(b) || EFFORT_ORDER.indexOf(a) - EFFORT_ORDER.indexOf(b))[0] ?? null
+}
 
 function loadFavorites() {
   try {
@@ -60,8 +67,8 @@ export const useCatalogStore = defineStore('catalog', () => {
     return catalog ? (modelOf(catalog, value)?.label ?? null) : null
   }
 
-  // Réglages réellement envoyés : un effort que le modèle ne connaît pas retombe sur l'effort par défaut, le mode
-  // rapide tombe s'il ne l'accepte pas.
+  // Réglages réellement envoyés : un effort que le modèle ne connaît pas retombe sur l'effort par défaut, ou le
+  // plus proche de lui (le plus bas à égalité) ; le mode rapide tombe s'il ne l'accepte pas.
   function resolve(agent: AgentKind, options: TurnOptions): TurnOptions {
     const catalog = catalogs[agent]
     if (!catalog) return options
@@ -70,8 +77,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     const { efforts } = model
     let effort = null
     if (options.effort && efforts.includes(options.effort)) effort = options.effort
-    else if (efforts.includes(catalog.defaultEffort)) effort = catalog.defaultEffort
-    else effort = efforts.at(-1) ?? null
+    else effort = nearestEffort(efforts, catalog.defaultEffort)
     return { mode: options.mode, model: model.value, effort, fast: !!options.fast && model.fast }
   }
 

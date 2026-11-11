@@ -260,7 +260,7 @@ export const MessageSquarePlus = icon(CommentAdd01Icon)
 export const Minimize2 = icon(ArrowShrink02Icon)
 export const Moon = icon(Moon02Icon)
 export const MousePointer = icon(Cursor02Icon)
-// « Cet ordinateur » (choix de Jérémy).
+// « Sans projet » (choix de Jérémy).
 export const NoProject = icon(LaptopIcon)
 export const NotebookPen = icon(NoteEditIcon)
 export const PaintBucket = icon(PaintBucketIcon)

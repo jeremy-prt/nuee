@@ -118,7 +118,7 @@ function restoreMute(value: unknown): Mute | null {
   return { kind: mute.kind as MuteKind, until: typeof mute.until === 'number' ? mute.until : null }
 }
 
-// Réglages des sessions de « Cet ordinateur », qui n'est pas un projet : ceux d'un projet qui ont un sens sans dossier.
+// Réglages des sessions de « Sans projet », qui n'est pas un projet : ceux d'un projet qui ont un sens sans dossier.
 export type ContextSettings = Pick<Project, 'agent' | 'model' | 'effort' | 'muted'>
 const COMPUTER_KEY = 'nuee.computer.v1'
 
@@ -157,6 +157,11 @@ export const useProjectsStore = defineStore('projects', () => {
   const ungrouped = computed(() => projects.value.filter((project) => !project.pinned && !project.group))
   // Ordre de la barre latérale dépliée : épinglés, groupes, puis le reste.
   const ordered = computed(() => [...pinned.value, ...groups.value.flatMap((group) => projectsIn(group.id)), ...ungrouped.value])
+  // Ordre de « Projets en menu » : liste à plat, sans épingles ni groupes, l'alphabet est le seul qu'on retrouve sans chercher.
+  const alphabetical = computed(() => {
+    const collator = new Intl.Collator(i18nGlobal().locale.value, { sensitivity: 'base', numeric: true })
+    return [...ordered.value].sort((a, b) => collator.compare(a.name, b.name))
+  })
   // Groupe qui vient d'être créé : son en-tête passe aussitôt en renommage.
   const editingGroupId = ref<string | null>(null)
   // Absente : pas encore lue.
@@ -192,7 +197,7 @@ export const useProjectsStore = defineStore('projects', () => {
     { deep: true },
   )
 
-  // null : « Cet ordinateur ».
+  // null : « Sans projet ».
   function settingsOf(id: string | null): ContextSettings | null {
     return id === null ? computer : byId(id)
   }
@@ -370,6 +375,7 @@ export const useProjectsStore = defineStore('projects', () => {
     pinned,
     ungrouped,
     ordered,
+    alphabetical,
     editingGroupId,
     projectsIn,
     createGroup,

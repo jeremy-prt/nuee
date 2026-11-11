@@ -45,8 +45,13 @@ function run(toast: Toast) {
         <div class="flex items-start gap-3 p-3 ps-3.5">
           <component :is="KINDS[toast.kind].icon" class="mt-1 size-4 shrink-0" :class="KINDS[toast.kind].tint" aria-hidden="true" />
           <div class="min-w-0 flex-1 py-0.5">
-            <ToastTitle class="truncate text-sm font-medium">{{ toast.title }}</ToastTitle>
-            <ToastDescription class="mt-0.5 text-xs wrap-break-word text-muted">{{ toast.body }}</ToastDescription>
+            <ToastTitle class="text-sm font-medium text-pretty wrap-break-word">{{ toast.title }}</ToastTitle>
+            <ToastDescription
+              v-if="toast.body"
+              class="mt-0.5 text-xs wrap-break-word text-muted"
+              :class="{ 'line-clamp-2 whitespace-pre-line': toast.clamp }"
+              :title="toast.clamp ? toast.body : undefined"
+            >{{ toast.body }}</ToastDescription>
           </div>
           <ToastAction v-if="toast.action" :alt-text="toast.action.label" as-child>
             <UiButton size="sm" @click="run(toast)">{{ toast.action.label }}</UiButton>

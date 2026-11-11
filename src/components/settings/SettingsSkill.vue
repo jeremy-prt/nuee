@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Check, Copy, FolderOpen, Sparkles } from '@/components/ui/icons'
+import { Check, Copy, Sparkles } from '@/components/ui/icons'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import FilesFinderIcon from '@/components/files/FilesFinderIcon.vue'
 import SettingsGroup from '@/components/settings/SettingsGroup.vue'
 import SettingsRow from '@/components/settings/SettingsRow.vue'
 import SettingsSkillsScope from '@/components/settings/SettingsSkillsScope.vue'
@@ -94,13 +95,13 @@ async function remove() {
 
     <SettingsGroup :title="t('settings.skills.file')" :hint="t('settings.skills.fileHint', { agent: store.agentName })">
       <SettingsRow :label="t('settings.skills.location')">
-        <template #hint><span class="font-mono break-all select-text">{{ skill.path }}</span></template>
+        <template #hint><span class="break-all select-text">{{ skill.path }}</span></template>
         <div class="flex items-center gap-1">
           <UiIconButton :label="copied ? t('settings.skills.copied') : t('settings.skills.copyPath')" @click="copy()">
             <component :is="copied ? Check : Copy" class="size-3.5" :class="{ 'text-success': copied }" aria-hidden="true" />
           </UiIconButton>
           <UiIconButton :label="t(revealLabel)" @click="store.reveal(skill)">
-            <FolderOpen class="size-3.5" aria-hidden="true" />
+            <FilesFinderIcon class="size-3.5" />
           </UiIconButton>
         </div>
       </SettingsRow>

@@ -302,7 +302,6 @@ const note = 'px-2 py-1 text-xs text-muted'
           <ChatGitRun v-if="run" :run="run" compact />
           <ChatSessionSplit
             v-else
-            compact
             :label="main.label"
             :menu-label="t('dock.session.gitActions')"
             :disabled="main.disabled"

@@ -71,6 +71,17 @@ pub struct WorktreeChanges {
     pub files: u32,
 }
 
+/// Ce que git dit du dossier d'une session après un commit ou un push, pour l'annoncer sans reprendre le texte de
+/// l'agent. `origin` : adresse du dépôt distant `origin` sans protocole ni identifiants (`github.com/moi/projet`).
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct HeadInfo {
+    pub subject: Option<String>,
+    pub branch: Option<String>,
+    pub origin: Option<String>,
+}
+
 /// État d'un fichier par rapport au dernier commit.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -432,6 +443,28 @@ impl WorktreeService {
         Ok(run(&git, &dir, range, GIT_TIMEOUT)
             .await
             .is_ok_and(|out| out.trim().parse::<u32>().is_ok_and(|count| count > 0)))
+    }
+
+    /// Titre du dernier commit, branche et dépôt distant de `dir`. Chaque champ reste vide si git ne le donne pas
+    /// (dépôt sans commit, HEAD détaché, pas d'`origin`).
+    pub async fn head(&self, project: &Path, dir: &Path) -> Result<HeadInfo, AppError> {
+        let git = require_git()?;
+        let dir = session_dir(&git, project, dir).await?;
+        let subject = run(&git, &dir, &["log", "-1", "--format=%s"], GIT_TIMEOUT)
+            .await
+            .ok()
+            .map(|out| out.trim().to_owned())
+            .filter(|subject| !subject.is_empty());
+        let branch = current_branch(&git, &dir).await.ok().flatten();
+        let origin = run(&git, &dir, &["remote", "get-url", "origin"], GIT_TIMEOUT)
+            .await
+            .ok()
+            .and_then(|url| remote_address(url.trim()));
+        Ok(HeadInfo {
+            subject,
+            branch,
+            origin,
+        })
     }
 
     /// Remet un seul fichier de la liste des changements dans l'état du dernier commit : un fichier ajouté ou non
@@ -857,6 +890,28 @@ async fn current_branch(git: &Path, dir: &Path) -> Result<Option<String>, AppErr
     let out = run(git, dir, &["branch", "--show-current"], GIT_TIMEOUT).await?;
     let name = out.trim();
     Ok((!name.is_empty()).then(|| name.to_owned()))
+}
+
+/// `https://jeton@github.com/moi/projet.git` ou `git@github.com:moi/projet.git` → `github.com/moi/projet`. Un jeton
+/// glissé dans l'adresse ne doit jamais atteindre l'interface. Un chemin local reste tel quel.
+fn remote_address(url: &str) -> Option<String> {
+    let rest = match url.split_once("://") {
+        Some((_, rest)) => rest.to_owned(),
+        None => match url.split_once(':') {
+            // Une lettre seule est un lecteur Windows (`C:\dépôt`), pas un hôte.
+            Some((host, path))
+                if host.len() > 1 && !host.contains(['/', '\\']) && !path.starts_with('/') =>
+            {
+                format!("{host}/{path}")
+            }
+            _ => url.to_owned(),
+        },
+    };
+    let (host, path) = rest.split_once('/').unwrap_or((rest.as_str(), ""));
+    let host = host.rsplit_once('@').map_or(host, |(_, host)| host);
+    let address = format!("{host}/{path}");
+    let address = address.trim_end_matches('/').trim_end_matches(".git");
+    (!address.is_empty()).then(|| address.to_owned())
 }
 
 fn require_git() -> Result<PathBuf, AppError> {
@@ -1295,6 +1350,55 @@ mod tests {
         std::fs::write(repo.join("app/main.txt"), "neuve").expect("modif");
         git(&repo, &["commit", "-qam", "neuve"]);
         assert!(unpushed(), "branche sans suivi");
+    }
+
+    #[test]
+    fn head_gives_the_last_commit_the_branch_and_a_clean_origin() {
+        if git_binary().is_none() {
+            return;
+        }
+        let root = sandbox("head");
+        let service = WorktreeService::new(root.join("worktrees"));
+        let repo = repo(&root);
+        git(&repo, &["switch", "-qc", "ma-branche"]);
+        let head = block_on(service.head(&repo, &repo)).expect("état");
+        assert_eq!(head.subject.as_deref(), Some("départ"));
+        assert_eq!(head.branch.as_deref(), Some("ma-branche"));
+        assert_eq!(head.origin, None);
+
+        git(
+            &repo,
+            &[
+                "remote",
+                "add",
+                "origin",
+                "https://jeton:secret@github.com/moi/projet.git",
+            ],
+        );
+        std::fs::write(repo.join("app/main.txt"), "suite").expect("modif");
+        git(&repo, &["commit", "-qam", "Ajout de la suite"]);
+        let head = block_on(service.head(&repo, &repo)).expect("état");
+        assert_eq!(head.subject.as_deref(), Some("Ajout de la suite"));
+        assert_eq!(head.origin.as_deref(), Some("github.com/moi/projet"));
+
+        assert!(block_on(service.head(&repo, &root.join("ailleurs"))).is_err());
+    }
+
+    #[test]
+    fn remote_addresses_lose_protocol_and_credentials() {
+        assert_eq!(
+            remote_address("git@github.com:moi/projet.git").as_deref(),
+            Some("github.com/moi/projet")
+        );
+        assert_eq!(
+            remote_address("ssh://git@gitlab.com/groupe/projet").as_deref(),
+            Some("gitlab.com/groupe/projet")
+        );
+        assert_eq!(
+            remote_address("https://x-access-token:abc@github.com/moi/projet/").as_deref(),
+            Some("github.com/moi/projet")
+        );
+        assert_eq!(remote_address("").as_deref(), None);
     }
 
     #[test]

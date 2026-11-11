@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
   Bot,
-  ChevronRight,
+  ChevronDown,
   Coffee,
   ExternalLink,
   FileDiff,
@@ -23,13 +23,11 @@ import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatDiffStat from '@/components/chat/ChatDiffStat.vue'
 import ChatGitRun from '@/components/chat/ChatGitRun.vue'
-import ChatSessionMenu from '@/components/chat/ChatSessionMenu.vue'
-import ChatSessionSplit from '@/components/chat/ChatSessionSplit.vue'
+import ChatSessionSub from '@/components/chat/ChatSessionSub.vue'
 import ProjectIcon from '@/components/project/ProjectIcon.vue'
 import ServerMenu from '@/components/server/ServerMenu.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiMenuItem from '@/components/ui/UiMenuItem.vue'
-import UiMenuSeparator from '@/components/ui/UiMenuSeparator.vue'
 import UiSwitch from '@/components/ui/UiSwitch.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { menuIcon, menuLabel, menuRow } from '@/components/ui/menuRow'
@@ -104,12 +102,15 @@ const folder = computed(() => {
   if (!project.value || !tab) return null
   return tab.worktree ? tab.worktreePath : project.value.path
 })
-// Chemin coupé par le milieu s'il est trop long : le nom du dossier reste lisible en entier.
+// Chemin coupé par le milieu s'il est trop long : le nom du dossier reste lisible en entier. Il n'est omis que s'il
+// répète le nom du projet, écrit en tête.
 const folderParts = computed(() => {
   const path = folder.value
   if (!path) return null
   const cut = Math.max(path.lastIndexOf('/', path.length - 2), path.lastIndexOf('\\', path.length - 2)) + 1
-  return { head: path.slice(0, cut), tail: path.slice(cut) }
+  const tail = path.slice(cut)
+  const repeated = !chat.value?.worktree && tail.replace(/[/\\]$/, '') === project.value?.name
+  return { head: path.slice(0, cut), tail: repeated ? null : tail }
 })
 const items = computed(() => (chat.value ? (conversations.find(chat.value.id)?.items ?? []) : []))
 
@@ -240,7 +241,7 @@ const separator = 'mx-2 my-1 h-px shrink-0 bg-stroke'
         <ProjectIcon v-if="project" :project="project" class="size-4 shrink-0 rounded-sm" />
         <NoProject v-else :class="icon" aria-hidden="true" />
         <span class="min-w-0 flex-1 truncate">{{ project?.name ?? t('rail.chats') }}</span>
-        <ChevronRight :class="[icon, { 'rotate-90': open.place }]" aria-hidden="true" />
+        <ChevronDown :class="[icon, { 'rotate-180': open.place }]" aria-hidden="true" />
       </button>
       <!-- Où travaille l'agent. Seule cette machine pour l'instant : l'hôte SSH, annoncé dans `ChatHostPicker`, prendra
            cette ligne avec son nom quand il sera branché. -->
@@ -258,8 +259,8 @@ const separator = 'mx-2 my-1 h-px shrink-0 bg-stroke'
           <dd class="flex min-w-0 flex-1 items-center gap-2.5">
             <component :is="chat.worktree ? FolderTree : Folder" :class="icon" aria-hidden="true" />
             <span class="flex min-w-0 flex-1" dir="ltr">
-              <span class="min-w-4 truncate text-muted">{{ folderParts.head }}</span>
-              <span class="max-w-[calc(100%-1rem)] shrink-0 truncate">{{ folderParts.tail }}</span>
+              <span class="min-w-0 truncate text-muted">{{ folderParts.head }}</span>
+              <span v-if="folderParts.tail" class="max-w-full shrink-0 truncate">{{ folderParts.tail }}</span>
             </span>
           </dd>
           <dd v-if="chat.worktree" class="shrink-0 text-xs text-muted">{{ t('composer.worktree.short') }}</dd>
@@ -267,23 +268,22 @@ const separator = 'mx-2 my-1 h-px shrink-0 bg-stroke'
       </dl>
 
       <template v-if="folder">
-        <ChatSessionMenu>
+        <ChatSessionSub>
           <ExternalLink :class="icon" aria-hidden="true" />
           <span class="min-w-0 flex-1 truncate">{{ t('dock.session.openIn') }}</span>
           <template #menu>
-            <DropdownMenuItem v-for="app in files.editors ?? []" :key="app.id" :text-value="app.name" :class="[menuRow, 'py-1.5']" @select="openIn(app)">
+            <DropdownMenuItem v-for="app in files.editors ?? []" :key="app.id" :text-value="app.name" :class="[menuRow, 'py-1']" @select="openIn(app)">
               <img v-if="app.icon" :src="app.icon" alt="" draggable="false" :class="menuIcon" />
               <ExternalLink v-else :class="menuIcon" aria-hidden="true" />
               <span :class="[menuLabel, 'min-w-0 flex-1']">{{ app.name }}</span>
             </DropdownMenuItem>
-            <UiMenuSeparator v-if="files.editors?.length" />
-            <DropdownMenuItem :text-value="t('dock.session.finder')" :class="[menuRow, 'py-1.5']" @select="reveal">
+            <DropdownMenuItem :text-value="t('dock.session.finder')" :class="[menuRow, 'py-1']" @select="reveal">
               <img v-if="files.finderIcon" :src="files.finderIcon" alt="" draggable="false" :class="menuIcon" />
               <FolderOpen v-else :class="menuIcon" aria-hidden="true" />
               <span :class="[menuLabel, 'min-w-0 flex-1']">{{ t('dock.session.finder') }}</span>
             </DropdownMenuItem>
           </template>
-        </ChatSessionMenu>
+        </ChatSessionSub>
         <ServerMenu row />
       </template>
     </div>
@@ -302,7 +302,7 @@ const separator = 'mx-2 my-1 h-px shrink-0 bg-stroke'
     <template v-else-if="project">
       <div :class="separator" aria-hidden="true" />
       <div class="flex flex-col gap-0.5">
-        <ChatSessionMenu v-if="canSwitch" :label="`${t('composer.branch.label')} ${branch}`" :disabled="!idle || !!run" @open="loadBranches">
+        <ChatSessionSub v-if="canSwitch" :label="`${t('composer.branch.label')} ${branch}`" :disabled="!idle || !!run" @open="loadBranches">
           <GitBranch :class="icon" aria-hidden="true" />
           <span class="min-w-0 flex-1 truncate">{{ branch }}</span>
           <template #menu>
@@ -311,7 +311,7 @@ const separator = 'mx-2 my-1 h-px shrink-0 bg-stroke'
               :key="item.name"
               :text-value="item.name"
               :disabled="item.name === branch"
-              :class="[menuRow, 'py-1.5 data-[disabled]:opacity-100!']"
+              :class="[menuRow, 'py-1 data-[disabled]:opacity-100!']"
               @select="checkout(item.name)"
             >
               <GitBranch :class="[menuIcon, 'text-muted']" aria-hidden="true" />
@@ -319,7 +319,7 @@ const separator = 'mx-2 my-1 h-px shrink-0 bg-stroke'
               <span v-if="item.name === branch" class="mt-0.5 shrink-0 text-[11px] leading-4 text-muted">{{ t('dock.session.current') }}</span>
             </DropdownMenuItem>
           </template>
-        </ChatSessionMenu>
+        </ChatSessionSub>
         <p v-else :class="branch ? row : empty">
           <GitBranch :class="icon" aria-hidden="true" />
           <span class="sr-only">{{ t('composer.branch.label') }}</span>
@@ -328,11 +328,17 @@ const separator = 'mx-2 my-1 h-px shrink-0 bg-stroke'
 
         <div data-git-run="session">
           <ChatGitRun v-if="run" :run="run" />
-          <ChatSessionSplit v-else :menu-label="t('dock.session.gitActions')" :disabled="main.disabled" @run="start(main.id, $event.detail === 0, STOP)">
+          <ChatSessionSub
+            v-else-if="others.length"
+            split
+            :menu-label="t('dock.session.gitActions')"
+            :run-disabled="main.disabled"
+            @run="start(main.id, $event.detail === 0, STOP)"
+          >
             <component :is="main.icon" :class="icon" aria-hidden="true" />
             <span class="min-w-0 flex-1 truncate">{{ main.label }}</span>
             <span v-if="main.hint" class="max-w-32 shrink-0 truncate text-xs text-muted">{{ main.hint }}</span>
-            <template v-if="others.length" #menu="{ keyboard }">
+            <template #menu="{ keyboard }">
               <UiMenuItem
                 v-for="item in others"
                 :key="item.id"
@@ -343,7 +349,12 @@ const separator = 'mx-2 my-1 h-px shrink-0 bg-stroke'
                 @select="start(item.id, keyboard, STOP)"
               />
             </template>
-          </ChatSessionSplit>
+          </ChatSessionSub>
+          <button v-else type="button" :class="[action, 'disabled:text-muted disabled:hover:bg-transparent']" :disabled="main.disabled" @click="start(main.id, $event.detail === 0, STOP)">
+            <component :is="main.icon" :class="icon" aria-hidden="true" />
+            <span class="min-w-0 flex-1 truncate">{{ main.label }}</span>
+            <span v-if="main.hint" class="max-w-32 shrink-0 truncate text-xs text-muted">{{ main.hint }}</span>
+          </button>
         </div>
 
         <button type="button" :class="action" @click="toDock('changes', $event)">
@@ -366,7 +377,7 @@ const separator = 'mx-2 my-1 h-px shrink-0 bg-stroke'
             <span class="block h-full rounded-full" :class="tone" :style="{ width: `${ratio * 100}%` }" />
           </span>
         </template>
-        <ChevronRight :class="[icon, { 'rotate-90': open.context }]" aria-hidden="true" />
+        <ChevronDown :class="[icon, { 'rotate-180': open.context }]" aria-hidden="true" />
       </button>
       <template v-if="open.context">
         <ul v-if="context" class="flex flex-col gap-1.5 px-2 pt-1 pb-2 text-xs">
@@ -384,7 +395,7 @@ const separator = 'mx-2 my-1 h-px shrink-0 bg-stroke'
         <Layers :class="icon" aria-hidden="true" />
         <span class="min-w-0 flex-1 truncate">{{ t('dock.tasks.title') }}</span>
         <span v-if="running.length" class="text-xs text-muted">{{ t('dock.session.running', { n: running.length }, running.length) }}</span>
-        <ChevronRight :class="[icon, { 'rotate-90': open.tasks }]" aria-hidden="true" />
+        <ChevronDown :class="[icon, { 'rotate-180': open.tasks }]" aria-hidden="true" />
       </button>
       <template v-if="open.tasks">
         <!-- Comme l'app Claude : les tâches en cours avec leur durée et ■, un clic mène au volet Tâches. -->
@@ -408,7 +419,7 @@ const separator = 'mx-2 my-1 h-px shrink-0 bg-stroke'
       <button type="button" :class="action" :aria-expanded="open.options" @click="open.options = !open.options">
         <SlidersHorizontal :class="icon" aria-hidden="true" />
         <span class="min-w-0 flex-1 truncate">{{ t('dock.session.options') }}</span>
-        <ChevronRight :class="[icon, { 'rotate-90': open.options }]" aria-hidden="true" />
+        <ChevronDown :class="[icon, { 'rotate-180': open.options }]" aria-hidden="true" />
       </button>
       <template v-if="open.options">
         <!-- Le même réglage que Réglages › Général, raccourci ici comme dans l'app Claude : il vaut pour toute l'app.

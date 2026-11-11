@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { Check, Copy, FolderOpen, Sparkles, X } from '@/components/ui/icons'
+import { Check, Copy, Sparkles, X } from '@/components/ui/icons'
 import { computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatMarkdown from '@/components/chat/ChatMarkdown.vue'
+import FilesFinderIcon from '@/components/files/FilesFinderIcon.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import { isAppError } from '@/ipc/agent'
@@ -112,7 +113,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
         <component :is="copied ? Check : Copy" class="size-3.5" :class="{ 'text-success': copied }" aria-hidden="true" />
       </UiIconButton>
       <UiIconButton :label="t(revealLabel)" @click="store.reveal(skill)">
-        <FolderOpen class="size-3.5" aria-hidden="true" />
+        <FilesFinderIcon class="size-3.5" />
       </UiIconButton>
       <UiIconButton :label="t('dock.close')" @click="close($event)">
         <X class="size-4" aria-hidden="true" />
@@ -144,7 +145,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
       </div>
     </template>
     <div v-else class="min-h-0 flex-1 overflow-y-auto px-4 py-3">
-      <p class="truncate pb-3 font-mono text-xs text-muted select-text" :title="skill.path">{{ skill.path }}</p>
+      <p class="truncate pb-3 text-xs text-muted select-text" :title="skill.path">{{ skill.path }}</p>
       <p v-if="failure" class="text-xs text-danger">{{ failure }}</p>
       <p v-else-if="body === null" class="text-xs text-muted" role="status">{{ t('settings.skills.reading') }}</p>
       <ChatMarkdown v-else :text="body" />

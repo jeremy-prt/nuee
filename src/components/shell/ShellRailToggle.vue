@@ -16,6 +16,7 @@ const layout = useLayoutStore()
     :shortcut="shortcuts.label('toggleRail')"
     aria-controls="shell-rail"
     :aria-expanded="layout.rail.expanded"
+    :class="{ 'text-content!': layout.rail.expanded }"
     @click="layout.toggleRail()"
   >
     <PanelLeft class="size-4" aria-hidden="true" />

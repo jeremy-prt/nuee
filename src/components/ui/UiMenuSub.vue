@@ -1,18 +1,20 @@
 <script setup lang="ts">
 import { ChevronRight } from '@/components/ui/icons'
 import { DropdownMenuPortal, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from 'reka-ui'
-import type { Component } from 'vue'
+import { type Component, inject } from 'vue'
 import { menuIcon, menuLabel, menuPanel, menuRow } from '@/components/ui/menuRow'
+import { hoverMenuArea } from '@/composables/useHoverMenu'
 
 // `value` : le choix en cours, lu à droite du libellé.
 defineProps<{ label: string; icon?: Component; value?: string }>()
+const area = inject(hoverMenuArea, null)
 </script>
 
 <template>
   <DropdownMenuSub>
     <DropdownMenuSubTrigger
       :text-value="label"
-      :class="[menuRow, 'py-1.5 pe-1.5 data-[state=open]:bg-selection-hover']"
+      :class="[menuRow, 'py-1 pe-1.5 data-[state=open]:bg-selection-hover']"
     >
       <component :is="icon" v-if="icon" :class="menuIcon" aria-hidden="true" />
       <span :class="[menuLabel, 'min-w-0 flex-1']">{{ label }}</span>
@@ -23,7 +25,8 @@ defineProps<{ label: string; icon?: Component; value?: string }>()
       <DropdownMenuSubContent
         :side-offset="6"
         :collision-padding="8"
-        :class="[menuPanel.replace('p-1.5', 'p-1'), 'max-h-(--reka-dropdown-menu-content-available-height) max-w-72 min-w-36']"
+        :collision-boundary="(area?.() ?? undefined) as Element | undefined"
+        :class="[menuPanel, 'max-h-(--reka-dropdown-menu-content-available-height) max-w-72 min-w-36']"
       >
         <slot />
       </DropdownMenuSubContent>

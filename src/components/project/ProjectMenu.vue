@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { Archive, FolderInput, FolderOpen, ImageUp, Pencil, Pin, PinOff, Plus, SlidersHorizontal, Trash2 } from '@/components/ui/icons'
+import { Archive, FolderInput, ImageUp, Pencil, Pin, PinOff, Plus, SlidersHorizontal, Trash2 } from '@/components/ui/icons'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import FilesFinderIcon from '@/components/files/FilesFinderIcon.vue'
+import ProjectAgentMenus from '@/components/project/ProjectAgentMenus.vue'
 import ProjectBackgroundMenu from '@/components/project/ProjectBackgroundMenu.vue'
 import ProjectColorChoices from '@/components/project/ProjectColorChoices.vue'
 import ProjectMuteMenu from '@/components/project/ProjectMuteMenu.vue'
@@ -107,9 +109,10 @@ function pickMode(value: string) {
   <UiMenuItem :label="t('menu.rename')" :icon="Pencil" @select="emit('rename')" />
   <UiMenuItem
     :label="t(isMacosApp() ? 'settings.projects.reveal' : 'settings.projects.revealFolder')"
-    :icon="FolderOpen"
+    :icon="FilesFinderIcon"
     @select="actions.reveal(project)"
   />
+  <ProjectAgentMenus :project-id="project.id" />
   <ProjectMuteMenu :settings="project" :project-id="project.id" />
   <UiMenuItem :label="t('menu.projectSettings')" :icon="SlidersHorizontal" @select="actions.openSettings(project)" />
 

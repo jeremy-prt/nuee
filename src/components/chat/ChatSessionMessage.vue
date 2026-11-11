@@ -24,7 +24,8 @@ const source = computed(() => workspace.tabs.find((tab) => tab.id === props.from
 const title = computed(() => source.value?.title ?? props.from.title ?? t('workspace.chatTitle'))
 const agentName = computed(() => agents[source.value?.agent ?? props.agent].name)
 const since = computed(() => (props.at ? formatSince(props.at, clock.now, locale.value) : null))
-const open = ref(true)
+// Une fin de tour arrive repliée : l'orchestrateur en tire sa propre réponse juste dessous.
+const open = ref(!props.from.report)
 const bodyId = useId()
 </script>
 

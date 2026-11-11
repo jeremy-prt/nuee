@@ -2,23 +2,28 @@
 import { ChevronDown } from '@/components/ui/icons'
 import {
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectItemText,
+  SelectLabel,
   SelectPortal,
   SelectRoot,
   SelectTrigger,
   SelectValue,
   SelectViewport,
 } from 'reka-ui'
-import { menuLabel, menuPanel, menuRow } from '@/components/ui/menuRow'
+import { computed } from 'vue'
+import { menuLabel, menuPanel, menuRow, menuTitle } from '@/components/ui/menuRow'
 
+// `group` : titre de la section où ranger l'option (« Anciens modèles »), après celles qui n'en ont pas.
 export interface UiSelectOption {
   value: string
   label: string
   hint?: string
+  group?: string
 }
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     label: string
     options: UiSelectOption[]
@@ -28,6 +33,14 @@ withDefaults(
   { side: 'bottom' },
 )
 const model = defineModel<string>({ required: true })
+
+const sections = computed(() => {
+  const titles = [...new Set(props.options.flatMap((option) => (option.group ? [option.group] : [])))]
+  return [
+    { title: '', options: props.options.filter((option) => !option.group) },
+    ...titles.map((title) => ({ title, options: props.options.filter((option) => option.group === title) })),
+  ].filter((section) => section.options.length)
+})
 
 // Ouvert à la souris, le menu ne rend pas le focus à son bouton : le contour de focus clavier s'y
 // afficherait sans raison. Au clavier, le focus revient au bouton pour continuer à naviguer.
@@ -58,22 +71,25 @@ function onCloseAutoFocus(event: Event) {
         position="popper"
         :side="side"
         :side-offset="6"
-        :class="[menuPanel, 'max-h-(--reka-select-content-available-height) min-w-(--reka-select-trigger-width)']"
+        :class="[menuPanel, 'max-h-[min(20rem,var(--reka-select-content-available-height))] min-w-(--reka-select-trigger-width)']"
         @close-auto-focus="onCloseAutoFocus"
       >
         <SelectViewport class="flex flex-col gap-0.5">
-          <SelectItem
-            v-for="option in options"
-            :key="option.value"
-            :value="option.value"
-            :class="[menuRow, option.hint ? 'py-2' : 'py-1.5']"
-          >
-            <span class="min-w-0 flex-1">
-              <SelectItemText :class="menuLabel">{{ option.label }}</SelectItemText>
-              <!-- Aide des réglages parfois longue : elle passe à la ligne au lieu d'être coupée. -->
-              <span v-if="option.hint" class="block text-[11px] leading-4 text-muted">{{ option.hint }}</span>
-            </span>
-          </SelectItem>
+          <SelectGroup v-for="section in sections" :key="section.title" class="flex flex-col gap-0.5">
+            <SelectLabel v-if="section.title" :class="[menuTitle, 'mt-1']">{{ section.title }}</SelectLabel>
+            <SelectItem
+              v-for="option in section.options"
+              :key="option.value"
+              :value="option.value"
+              :class="[menuRow, option.hint ? 'py-2' : 'py-1']"
+            >
+              <span class="min-w-0 flex-1">
+                <SelectItemText :class="menuLabel">{{ option.label }}</SelectItemText>
+                <!-- Aide des réglages parfois longue : elle passe à la ligne au lieu d'être coupée. -->
+                <span v-if="option.hint" class="block text-[11px] leading-4 text-muted">{{ option.hint }}</span>
+              </span>
+            </SelectItem>
+          </SelectGroup>
         </SelectViewport>
       </SelectContent>
     </SelectPortal>

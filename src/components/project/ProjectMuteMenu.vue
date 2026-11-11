@@ -7,7 +7,7 @@ import UiMenuSub from '@/components/ui/UiMenuSub.vue'
 import { type ContextSettings, type MuteKind, muteEnd, useProjectsStore } from '@/stores/projects'
 import { formatUntil } from '@/utils/duration'
 
-// Sous-menu Notifications d'un projet, ou de « Cet ordinateur » (projectId null).
+// Sous-menu Notifications d'un projet, ou de « Sans projet » (projectId null).
 const props = defineProps<{ settings: ContextSettings; projectId: string | null }>()
 
 const { t, locale } = useI18n()

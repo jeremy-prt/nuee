@@ -50,6 +50,13 @@ const onHover = 'opacity-0 transition-opacity duration-(--hover-duration) group-
 
 const { t, locale } = useI18n()
 const agentParams = computed(() => ({ agent: agents[props.agent].name, command: agents[props.agent].command }))
+const gitDetail = computed(() => {
+  const item = props.item
+  if (item.kind !== 'git') return null
+  if (item.action === 'initRepo') return item.repo
+  if (item.action === 'push') return item.branch ?? item.subject
+  return item.subject ?? item.branch
+})
 const agentsStore = useAgentsStore()
 const signedIn = computed(() => agentsStore.status[props.agent].account !== null)
 // Connexion validée au clavier : son champ disparaît, le focus passe à Renvoyer au lieu de tomber sur la page.
@@ -118,6 +125,14 @@ watch(signedIn, async (now) => {
   <p v-else-if="item.kind === 'resume'" class="my-1 flex items-center gap-3 text-xs text-muted">
     <span class="h-px flex-1 bg-stroke" aria-hidden="true" />
     <span class="max-w-[70%] truncate">{{ item.task ? t('chat.resumed.task', { task: item.task }) : t('chat.resumed.any') }}</span>
+    <span class="h-px flex-1 bg-stroke" aria-hidden="true" />
+  </p>
+  <p v-else-if="item.kind === 'git'" class="my-1 flex items-center gap-3 text-xs text-muted">
+    <span class="h-px flex-1 bg-stroke" aria-hidden="true" />
+    <span class="flex max-w-[85%] min-w-0 gap-1.5" :title="[gitDetail, formatClock(item.at, locale, true)].filter(Boolean).join(' · ')">
+      <span class="shrink-0">{{ t(`chat.git.${item.action}`) }}</span>
+      <span v-if="gitDetail" class="min-w-0 truncate">{{ gitDetail }}</span>
+    </span>
     <span class="h-px flex-1 bg-stroke" aria-hidden="true" />
   </p>
   <template v-else-if="item.kind === 'end'">

@@ -7,7 +7,7 @@ import ChatMessage from '@/components/chat/ChatMessage.vue'
 import ChatSpinner from '@/components/chat/ChatSpinner.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
-import type { ChatItem } from '@/stores/conversations'
+import { type ChatItem, lastTurnIndex } from '@/stores/conversations'
 import { useLayoutStore } from '@/stores/layout'
 import { type ActivityItem, START_SESSION } from '@/utils/activity'
 import { tasksOf } from '@/utils/tasks'
@@ -44,6 +44,7 @@ const lastUser = computed(() => {
   for (let i = props.items.length - 1; i >= 0; i--) if (props.items[i]?.kind === 'user') return i
   return -1
 })
+const lastTurn = computed(() => lastTurnIndex(props.items))
 
 // Une longue conversation ne monte que ses derniers messages ; les plus anciens viennent en remontant, comme dans
 // une messagerie. `start` est l'indice du premier affiché, les indices du modèle restent absolus.
@@ -217,7 +218,7 @@ onMounted(() => {
           :after-text="items[row.index - 1]?.kind === 'text'"
           :answer="row.item.kind === 'end' ? () => turnText(items, row.index) : undefined"
           :rewindable="!running && row.item.kind === 'user' && !!row.item.agentId"
-          :latest="!running && row.index === items.length - 1"
+          :latest="!running && row.index === lastTurn"
           @rewind="emit('rewind', row.item.id)"
           @resend="emit('resend')"
         />
@@ -229,7 +230,7 @@ onMounted(() => {
           :streaming="false"
           after-text
           :answer="() => turnText(items, row.end!.index)"
-          :latest="!running && row.end.index === items.length - 1"
+          :latest="!running && row.end.index === lastTurn"
           @resend="emit('resend')"
         />
       </li>

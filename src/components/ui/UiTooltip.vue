@@ -36,10 +36,11 @@ const placed = computed(() => props.side ?? inherited)
       <TooltipContent
         :side="placed"
         :side-offset="sideOffset"
-        class="z-50 flex items-center gap-2 rounded-md border border-stroke bg-popover backdrop-blur-xl px-2 py-1 text-xs text-content shadow-lg select-none"
+        :collision-padding="8"
+        class="ui-tip z-50 flex max-w-80 items-center gap-3 rounded-md px-2 py-1 text-xs leading-4 font-medium text-content select-none"
       >
-        {{ label }}
-        <kbd v-if="shortcut" class="font-sans text-muted">{{ shortcut }}</kbd>
+        <span class="min-w-0 break-words">{{ label }}</span>
+        <kbd v-if="shortcut" class="ms-auto shrink-0 font-sans font-normal tracking-wide text-muted">{{ shortcut }}</kbd>
       </TooltipContent>
     </TooltipPortal>
   </TooltipRoot>

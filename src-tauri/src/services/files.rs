@@ -1,6 +1,7 @@
 use std::fs;
 use std::io::Read;
 use std::path::{Component, Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::UNIX_EPOCH;
 
 use base64::Engine;
@@ -177,7 +178,10 @@ fn app_icon(app: &Path) -> Option<String> {
                         .is_some_and(|extension| extension == "icns")
                 })
         })?;
-    let out = std::env::temp_dir().join(format!("nuee-editor-{}.png", std::process::id()));
+    // Un nom par appel : deux lectures en même temps ne se volent pas leur fichier.
+    static NEXT: AtomicU64 = AtomicU64::new(0);
+    let call = NEXT.fetch_add(1, Ordering::Relaxed);
+    let out = std::env::temp_dir().join(format!("nuee-editor-{}-{call}.png", std::process::id()));
     let converted = std::process::Command::new("/usr/bin/sips")
         .args(["-s", "format", "png", "-Z", "64"])
         .arg(&icns)

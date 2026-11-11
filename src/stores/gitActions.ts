@@ -2,14 +2,19 @@ import { defineStore } from 'pinia'
 import { reactive, watch } from 'vue'
 import { i18nGlobal } from '@/i18n'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
+import type { Effort } from '@/ipc/bindings/Effort'
+import type { HeadInfo } from '@/ipc/bindings/HeadInfo'
+import { worktreeHead } from '@/ipc/worktree'
 import { type Signal, useAttentionStore } from '@/stores/attention'
-import { type ChatItem, type Conversation, useConversationsStore } from '@/stores/conversations'
+import { useCatalogStore } from '@/stores/catalog'
+import { type Conversation, type GitItem, useConversationsStore } from '@/stores/conversations'
 import { useNavigationStore } from '@/stores/navigation'
 import { useProjectsStore } from '@/stores/projects'
 import { useSessionGitStore } from '@/stores/sessionGit'
 import { useSkillsStore } from '@/stores/skills'
 import { useToastsStore } from '@/stores/toasts'
 import { type Tab, useWorkspaceStore } from '@/stores/workspace'
+import { useWorktreesStore } from '@/stores/worktrees'
 
 export type GitAction = 'ship' | 'commitPush' | 'commit' | 'push' | 'initRepo'
 
@@ -35,30 +40,28 @@ export interface GitRun {
   revealed: boolean
 }
 
-const LAST_LINE = 160
-
-// Dernière ligne utile de la réponse (souvent le titre du commit), sans la mise en forme markdown.
-function lastLine(items: readonly ChatItem[]) {
-  for (let i = items.length - 1; i >= 0; i--) {
-    const item = items[i]
-    if (item?.kind !== 'text') continue
-    const lines = item.text
-      .split('\n')
-      .map((line) => line.replace(/^\s*(?:[-*>#]+\s*)+/, '').replace(/[*_`]/g, '').trim())
-      .filter((line) => line && !/^[-|:\s]+$/.test(line))
-    const line = lines.at(-1)
-    if (line) return line.length > LAST_LINE ? `${line.slice(0, LAST_LINE - 1)}…` : line
-  }
-  return null
+// Erreur brute d'un échec : ses deux premières lignes, le reste se lit dans la session.
+function brief(error: string) {
+  return error
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('\n')
 }
 
+// Familles de modèles pour les actions de fond, de la moins chère à la plus chère.
+const CHEAP = ['haiku', 'sonnet'] as const
+const EFFORT_ORDER: readonly Effort[] = ['low', 'medium', 'high', 'xhigh', 'max']
+
 // Actions git lancées d'un clic (Environnement, Modifications), comme T3 Code mais avec les skills de l'utilisateur :
-// une session cachée, lancée dans le même dossier que celle d'origine, fait le travail. Le fil d'origine ne reçoit rien.
-// Elle n'apparaît (sous sa session d'origine) que si elle attend l'utilisateur ou n'aboutit pas ; réussie, elle est
-// supprimée. Une action à la fois par dossier.
+// une session cachée, lancée dans le même dossier que celle d'origine, fait le travail. Elle n'apparaît (sous sa
+// session d'origine) que si elle attend l'utilisateur ou n'aboutit pas ; réussie, elle est supprimée et le fil
+// d'origine en garde un séparateur, que son agent apprend au message suivant. Une action à la fois par dossier.
 export const useGitActionsStore = defineStore('gitActions', () => {
   const workspace = useWorkspaceStore()
   const conversations = useConversationsStore()
+  const catalog = useCatalogStore()
   const projects = useProjectsStore()
   const sessionGit = useSessionGitStore()
   const skills = useSkillsStore()
@@ -103,6 +106,12 @@ export const useGitActionsStore = defineStore('gitActions', () => {
     const folder = folderOf(origin)
     const project = projects.byId(origin.projectId)
     if (!folder || !project || !origin.started) return false
+    // Sans les réglages de l'origine, la session de fond prendrait ceux du projet, peut-être plus larges.
+    const source = conversations.find(origin.id)
+    if (!source?.loaded) {
+      toasts.push({ title: t('gitActions.notReadyTitle', { action: label(action) }), body: t('gitActions.notReady') })
+      return false
+    }
     const busy = runs.get(folder)
     if (busy) {
       toasts.push({ title: t('gitActions.busyTitle'), body: t('gitActions.busy', { action: label(busy.action) }) })
@@ -114,12 +123,12 @@ export const useGitActionsStore = defineStore('gitActions', () => {
     // Relue à chaque action, comme le menu « / » : un skill ajouté entre-temps est vu.
     await skills.loadSkills()
     const skill = skillOf(action, origin.agent)
-    const prompt = skill ? `/${skill.name}` : t(`gitActions.prompts.${action}`)
-    const options = conversations.find(origin.id)?.options
+    // Un skill de ship s'arrête avant de commiter tant qu'on ne lui a pas dit d'y aller : le clic vaut accord.
+    const prompt = skill ? `/${skill.name} ${t('gitActions.go')}` : t(`gitActions.prompts.${action}`)
     const worktreePath = origin.worktree ? origin.worktreePath : undefined
     const tab = workspace.addChat(origin.projectId, label(action), worktreePath, origin.id, { agent: origin.agent })
-    // Mêmes modèle, effort et mode d'autorisation que la session d'origine, jamais plus large.
-    if (options) conversations.setOptions(tab.id, { ...options })
+    // Même mode d'autorisation que la session d'origine, jamais plus large.
+    conversations.setOptions(tab.id, { ...source.options, ...economy(action, origin.agent) })
     workspace.startChat(tab.id, prompt, [])
     const place = { cwd: project.path, worktree: tab.worktree, worktreePath: tab.worktreePath, worktreeBase: null }
     conversations.send(tab.id, place, prompt, [])
@@ -128,6 +137,19 @@ export const useGitActionsStore = defineStore('gitActions', () => {
     live.chatId = tab.id
     follow(live)
     return true
+  }
+
+  // Commiter, pousser ou créer un dépôt suit une procédure : le modèle le moins cher du moment suffit, en effort
+  // bas. Relire avant de pousser demande du jugement : la relecture garde le modèle de la session d'origine.
+  function economy(action: GitAction, agent: AgentKind) {
+    if (action === 'ship') return {}
+    const models = catalog.get(agent)?.models.filter((model) => !model.legacy) ?? []
+    // L'alias exact d'abord : un libellé « Sonnet (1M context) » viendrait sinon avant `sonnet`.
+    const pick = (family: string) => models.find((model) => model.value === family) ?? models.find((model) => model.label.toLowerCase().startsWith(family))
+    const cheap = CHEAP.map(pick).find(Boolean)
+    if (!cheap) return {}
+    const effort = EFFORT_ORDER.find((level) => cheap.efforts.includes(level)) ?? null
+    return { model: cheap.value, effort, fast: false }
   }
 
   function follow(run: GitRun) {
@@ -155,21 +177,19 @@ export const useGitActionsStore = defineStore('gitActions', () => {
 
   // La session devient visible sous celle d'origine, avec un message qui la fait ouvrir.
   // `sticky` : la session attend l'utilisateur, le message reste jusqu'à ce qu'il l'ouvre ou le ferme.
-  function reveal(run: GitRun, kind: Signal, title: string, body: string, sticky = false) {
+  // Textes des messages toujours écrits par l'app, jamais repris de l'agent (choix de Jérémy). `clamp` : erreur brute.
+  function reveal(run: GitRun, kind: Signal, title: string, body: string, options: { sticky?: boolean; clamp?: boolean } = {}) {
     workspace.reveal(run.chatId)
     run.revealed = true
     const { t } = i18nGlobal()
-    toasts.push({ kind: kind === 'failed' ? 'error' : 'info', title, body, topic: run.chatId, sticky, action: { label: t('attention.open'), run: () => open(run.chatId) } })
+    toasts.push({ kind: kind === 'failed' ? 'error' : 'info', title, body, topic: run.chatId, ...options, action: { label: t('attention.open'), run: () => open(run.chatId) } })
     useAttentionStore().away(run.chatId, kind, title, body, true)
   }
 
   function waiting(run: GitRun, conversation: Conversation) {
     const { t } = i18nGlobal()
-    const approval = conversation.approvals[0]
-    const question = approval?.questions?.[0]?.prompt
-    const kind = question !== undefined ? 'question' : 'approval'
-    const body = question ?? approval?.description ?? approval?.detail ?? lastLine(conversation.items) ?? ''
-    reveal(run, kind, t(`gitActions.${kind}`, { action: label(run.action) }), body, true)
+    const kind = conversation.approvals[0]?.questions?.length ? 'question' : 'approval'
+    reveal(run, kind, t(`gitActions.${kind}`), t('gitActions.actionBody', { action: label(run.action) }), { sticky: true })
   }
 
   async function finish(run: GitRun, conversation: Conversation) {
@@ -179,14 +199,13 @@ export const useGitActionsStore = defineStore('gitActions', () => {
     const items = conversation.items
     const last = items.at(-1)
     const action = label(run.action)
-    const line = lastLine(items)
     const done = await achieved(run)
     end(run)
     // Révélée, la session est une session comme une autre : la fin de son tour prévient par le chemin habituel.
     if (run.revealed) return
     if (last?.kind === 'error' || (last?.kind === 'end' && (last.status === 'failed' || last.status === 'unauthenticated'))) {
-      const error = last.kind === 'error' ? last.error.message : last.error
-      return reveal(run, 'failed', t('gitActions.failed', { action }), error || line || '')
+      const error = brief((last.kind === 'error' ? last.error.message : last.error) ?? '')
+      return reveal(run, 'failed', t('gitActions.failed', { action }), error || t('gitActions.failedBody'), { clamp: !!error })
     }
     if (last?.kind === 'end' && last.status === 'stopped') {
       // Rien d'entamé : la session n'a rien à montrer.
@@ -197,12 +216,44 @@ export const useGitActionsStore = defineStore('gitActions', () => {
       return reveal(run, 'done', t('gitActions.stopped', { action }), t('gitActions.stoppedBody'))
     }
     // Tour fini sans le résultat attendu : souvent une question posée en texte, à laquelle répondre dans la session.
-    if (!done) return reveal(run, 'done', t('gitActions.unfinished', { action }), line ?? t('gitActions.unfinishedBody'), true)
+    if (!done) return reveal(run, 'done', t('gitActions.unfinished', { action }), t('gitActions.unfinishedBody'), { sticky: true })
+    const head = await headOf(run)
     const title = t(`gitActions.done.${run.action}`)
-    const body = line ?? t('gitActions.doneBody')
+    const body = (run.action === 'initRepo' ? head?.origin : [head?.subject, head?.branch].filter(Boolean).join(' · ')) ?? ''
     toasts.push({ kind: 'success', title, body })
     useAttentionStore().away(run.originId, 'done', title, body)
+    mark(run, head)
     await workspace.deleteChat(run.chatId)
+  }
+
+  async function headOf(run: GitRun) {
+    const project = projects.byId(run.projectId)
+    return project ? worktreeHead(run.originId, project.path).catch(() => null) : null
+  }
+
+  // Séparateur dans le fil d'origine, posé entre deux tours : en plein tour, le texte en flux de l'agent s'ajoute au
+  // dernier élément. Son agent l'apprend au message suivant (`conversations.gitNote`).
+  function mark(run: GitRun, head: HeadInfo | null) {
+    const tab = workspace.tabs.find((item) => item.id === run.originId)
+    if (!tab) return
+    conversations.open(tab.id, tab.agent, tab.projectId)
+    const item: GitItem = { kind: 'git', id: crypto.randomUUID(), at: Date.now(), action: run.action, subject: head?.subject ?? null, branch: head?.branch ?? null, repo: head?.origin ?? null }
+    let handled = false
+    // Hors de tout scope : arrêté à la pose, ou quand la session d'origine disparaît avant.
+    const stop = watch(
+      () => {
+        if (!workspace.tabs.some((other) => other.id === tab.id)) return 'gone'
+        const conversation = conversations.find(tab.id)
+        return conversation?.loaded && conversation.phase === 'idle' ? 'ready' : 'waiting'
+      },
+      (state) => {
+        if (state === 'waiting' || handled) return
+        handled = true
+        if (state === 'ready') conversations.note(tab.id, item)
+        queueMicrotask(() => stop())
+      },
+      { immediate: true },
+    )
   }
 
   // L'agent dit avoir fini : l'état git le confirme. Pendant que l'agent d'origine travaille, de nouvelles
@@ -212,7 +263,10 @@ export const useGitActionsStore = defineStore('gitActions', () => {
     if (!project) return true
     if (run.action === 'initRepo') {
       await projects.checkWorktree(project)
-      return projects.support[project.id] !== 'notRepo'
+      const created = projects.support[project.id] !== 'notRepo'
+      // Le dépôt vient de naître : la branche et le reste de l'état git se lisent maintenant, pas au prochain tour.
+      if (created) await Promise.all([useWorktreesStore().load(project), sessionGit.refresh(run.originId, project.path)])
+      return created
     }
     await sessionGit.refresh(run.originId, project.path)
     const git = sessionGit.states[run.originId]

@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ChevronRight, Eye, FolderOpen, RefreshCw, Search, SlidersHorizontal } from '@/components/ui/icons'
+import { ChevronRight, Eye, RefreshCw, Search, SlidersHorizontal } from '@/components/ui/icons'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import FilesFinderIcon from '@/components/files/FilesFinderIcon.vue'
 import SettingsAgentLogo from '@/components/settings/SettingsAgentLogo.vue'
 import SettingsMcpRow from '@/components/settings/SettingsMcpRow.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
@@ -190,7 +191,7 @@ function onFilterKeydown(event: KeyboardEvent) {
                       <Eye class="size-3.5" aria-hidden="true" />
                     </UiIconButton>
                     <UiIconButton inner :label="t(revealLabel)" @click="store.reveal(skill)">
-                      <FolderOpen class="size-3.5" aria-hidden="true" />
+                      <FilesFinderIcon class="size-3.5" />
                     </UiIconButton>
                   </div>
                   <UiIconButton

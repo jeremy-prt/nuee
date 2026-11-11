@@ -116,13 +116,22 @@ function inline(tokens: Token[] = []): VNodeChild[] {
   })
 }
 
+// Comme T3 Code : des traits entre les lignes seulement, cellules aérées, colonnes extérieures au ras du texte. Une
+// grille complète collait ses traits aux pastilles de code.
 function table(token: Tokens.Table) {
   const cell = (tag: 'th' | 'td', item: Tokens.TableCell) =>
-    h(tag, { class: 'border border-stroke px-2 py-1 text-start', style: item.align ? { textAlign: item.align } : undefined }, inline(item.tokens))
+    h(
+      tag,
+      {
+        class: ['border-b border-stroke px-3 text-start align-top first:ps-0 last:pe-0', tag === 'th' ? 'py-2 font-semibold' : 'py-1.5'],
+        style: item.align ? { textAlign: item.align } : undefined,
+      },
+      inline(item.tokens),
+    )
   return h('div', { class: 'my-2 overflow-x-auto' }, [
-    h('table', { class: 'border-collapse text-xs' }, [
+    h('table', { class: 'border-collapse text-[13px]/5' }, [
       h('thead', h('tr', token.header.map((item) => cell('th', item)))),
-      h('tbody', token.rows.map((row) => h('tr', row.map((item) => cell('td', item))))),
+      h('tbody', token.rows.map((row) => h('tr', { class: 'last:*:border-b-0' }, row.map((item) => cell('td', item))))),
     ]),
   ])
 }

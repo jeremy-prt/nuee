@@ -109,7 +109,13 @@ export function useProjectActions() {
   async function archiveChat(tab: Tab) {
     try {
       await workspace.archiveChat(tab.id)
-      toasts.push({ kind: 'success', title: t('chats.archived'), body: t('chats.archivedBody') })
+      // Réversible, donc pas de confirmation : l'annulation est sur le message, le temps qu'il reste affiché.
+      toasts.push({
+        kind: 'success',
+        title: t('chats.archived'),
+        body: t('chats.archivedBody'),
+        action: { label: t('chats.archiveUndo'), run: () => workspace.restoreChat(tab.id).catch((error) => fail(t('chats.restoreFailed'), error)) },
+      })
     } catch (error) {
       fail(t('chats.archiveFailed'), error)
     }

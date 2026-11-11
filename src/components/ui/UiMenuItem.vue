@@ -13,7 +13,7 @@ const emit = defineEmits<{ select: [event: Event] }>()
   <DropdownMenuItem
     :disabled="disabled"
     :text-value="label"
-    :class="[menuRow, 'py-1.5', { 'text-danger! data-[highlighted]:bg-danger/15!': danger }]"
+    :class="[menuRow, 'py-1', { 'text-danger! data-[highlighted]:bg-danger/15!': danger }]"
     @select="emit('select', $event)"
   >
     <component :is="icon" v-if="icon" :class="menuIcon" aria-hidden="true" />

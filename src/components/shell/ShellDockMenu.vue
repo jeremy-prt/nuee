@@ -1,19 +1,21 @@
 <script setup lang="ts">
-import { PanelRight, Plus } from '@/components/ui/icons'
+import { Columns2, Plus, SplitDown } from '@/components/ui/icons'
 import { DropdownMenuContent, DropdownMenuItem, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuTrigger } from 'reka-ui'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { dockIcons } from '@/components/shell/dockIcons'
 import UiMenuItem from '@/components/ui/UiMenuItem.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { menuPanel } from '@/components/ui/menuRow'
 import { useDockOpener } from '@/composables/useDockOpener'
-import { DOCK_VIEWS, type DockView, useLayoutStore } from '@/stores/layout'
+import { DOCK_VIEWS, type DockView, SIDE_BY_SIDE, useLayoutStore } from '@/stores/layout'
 
 // « + » au-dessus du panneau de droite : ouvre un volet ou y ramène ; le navigateur reçoit un onglet de plus. Le bouton
 // au bout d'une ligne l'ouvre à côté du volet affiché. C'est un second élément du menu, pas un bouton dans le premier :
 // les flèches l'atteignent juste après sa ligne.
 const { t } = useI18n()
 const layout = useLayoutStore()
+const beside = computed(() => layout.right.size >= SIDE_BY_SIDE)
 const open = useDockOpener()
 
 const canOpenAside = (view: DockView) => !!layout.right.active && view !== layout.right.active && view !== layout.right.aside
@@ -48,15 +50,15 @@ function onCloseAutoFocus(event: Event) {
                 :class="{ 'pe-9 group-hover/row:bg-selection-hover group-has-[[data-aside][data-highlighted]]/row:bg-selection-hover': canOpenAside(view) }"
                 @select="open(view)"
               />
-              <UiTooltip v-if="canOpenAside(view)" :label="t('dock.openAside')" side="top">
+              <UiTooltip v-if="canOpenAside(view)" :label="t(beside ? 'dock.openAside' : 'dock.openBelow')" side="top">
                 <DropdownMenuItem
                   data-aside
                   text-value=""
-                  :aria-label="t('dock.openAsideView', { view: t(`dock.${view}.title`) })"
+                  :aria-label="t(beside ? 'dock.openAsideView' : 'dock.openBelowView', { view: t(`dock.${view}.title`) })"
                   class="absolute end-1 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-md text-muted opacity-0 outline-none group-hover/row:opacity-100 group-has-[[data-highlighted]]/row:opacity-100 data-[highlighted]:bg-selection-inner data-[highlighted]:text-content"
                   @select="layout.showAside(view)"
                 >
-                  <PanelRight class="size-4" aria-hidden="true" />
+                  <component :is="beside ? Columns2 : SplitDown" class="size-4" aria-hidden="true" />
                 </DropdownMenuItem>
               </UiTooltip>
             </div>

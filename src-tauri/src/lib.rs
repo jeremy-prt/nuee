@@ -217,6 +217,7 @@ pub fn run() {
             commands::worktree::worktree_file_diff,
             commands::worktree::worktree_revert_file,
             commands::worktree::worktree_unpushed,
+            commands::worktree::worktree_head,
             commands::worktree::worktree_create,
             commands::worktree::worktree_remove,
         ])

@@ -36,6 +36,8 @@ interface Item {
 
 const { t } = useI18n()
 const layout = useLayoutStore()
+// Le second volet se pose à côté dans un panneau large, en dessous sinon : libellé et icône le disent.
+const beside = computed(() => layout.right.size >= SIDE_BY_SIDE)
 const browser = useBrowserStore()
 const terminals = useTerminalsStore()
 const shortcuts = useShortcutsStore()
@@ -203,7 +205,7 @@ function split(item: Item, direction: 'right' | 'down') {
           <UiMenuSeparator />
         </template>
         <template v-else-if="layout.right.active && item.view !== layout.right.active">
-          <UiMenuItem :label="t('dock.openAside')" :icon="PanelRight" @select="layout.showAside(item.view)" />
+          <UiMenuItem :label="t(beside ? 'dock.openAside' : 'dock.openBelow')" :icon="beside ? Columns2 : SplitDown" @select="layout.showAside(item.view)" />
           <UiMenuSeparator />
         </template>
         <UiMenuItem :label="t('dock.closeTab')" :icon="X" @select="close(item)" />

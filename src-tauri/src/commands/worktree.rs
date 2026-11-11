@@ -6,7 +6,7 @@ use crate::error::AppError;
 use crate::services::agent::AgentService;
 use crate::services::chat::ChatService;
 use crate::services::worktree::{
-    BranchList, ChangedFiles, FileDiff, Worktree, WorktreeChanges, WorktreeService,
+    BranchList, ChangedFiles, FileDiff, HeadInfo, Worktree, WorktreeChanges, WorktreeService,
     WorktreeSupport, canonical,
 };
 
@@ -111,6 +111,18 @@ pub async fn worktree_unpushed(
 ) -> Result<bool, AppError> {
     let dir = session_dir(&chats, &chat_id, &path)?;
     worktrees.unpushed(&PathBuf::from(path), &dir).await
+}
+
+/// Dernier commit, branche et dépôt distant du dossier de la session.
+#[tauri::command]
+pub async fn worktree_head(
+    chat_id: String,
+    path: String,
+    worktrees: State<'_, WorktreeService>,
+    chats: State<'_, ChatService>,
+) -> Result<HeadInfo, AppError> {
+    let dir = session_dir(&chats, &chat_id, &path)?;
+    worktrees.head(&PathBuf::from(path), &dir).await
 }
 
 /// Remet un fichier de la liste des changements dans l'état du dernier commit.

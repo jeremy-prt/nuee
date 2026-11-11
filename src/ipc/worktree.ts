@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core'
 import type { BranchList } from '@/ipc/bindings/BranchList'
 import type { ChangedFiles } from '@/ipc/bindings/ChangedFiles'
 import type { FileDiff } from '@/ipc/bindings/FileDiff'
+import type { HeadInfo } from '@/ipc/bindings/HeadInfo'
 import type { Worktree } from '@/ipc/bindings/Worktree'
 import type { WorktreeChanges } from '@/ipc/bindings/WorktreeChanges'
 import type { WorktreeSupport } from '@/ipc/bindings/WorktreeSupport'
@@ -46,6 +47,11 @@ export function worktreeRevertFile(chatId: string, path: string, file: string) {
 // Des commits du dossier de la session restent à pousser ; faux sans dépôt distant.
 export function worktreeUnpushed(chatId: string, path: string) {
   return invoke<boolean>('worktree_unpushed', { chatId, path })
+}
+
+// Dernier commit, branche et dépôt distant `origin` du dossier de la session, lus par git.
+export function worktreeHead(chatId: string, path: string) {
+  return invoke<HeadInfo>('worktree_head', { chatId, path })
 }
 
 // Passe le dossier du projet sur une branche existante ; git refuse si des modifications seraient écrasées.

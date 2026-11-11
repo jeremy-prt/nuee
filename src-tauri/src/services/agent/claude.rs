@@ -1329,13 +1329,11 @@ fn catalog_of(response: &Value) -> Option<Catalog> {
                 .map(|row| str_of(&row["value"]).to_owned())
         })
     });
-    let default_effort = user_settings()
-        .and_then(|settings| effort_of(settings["effortLevel"].as_str()?))
-        .unwrap_or(Effort::High);
+    // Moyen pour tous (choix de Jérémy) : `effortLevel` de `settings.json` n'est pas repris.
     Some(Catalog {
         models,
         default_model,
-        default_effort,
+        default_effort: Effort::Medium,
     })
 }
 
@@ -1909,6 +1907,7 @@ mod tests {
             .catalog
             .expect("catalogue");
         assert_eq!(catalog.default_model.as_deref(), Some("opus"));
+        assert_eq!(catalog.default_effort, Effort::Medium);
         let labels: Vec<&str> = catalog
             .models
             .iter()

@@ -18,7 +18,7 @@ const navigation = useNavigationStore()
 const addProject = useAddProject()
 const refocusAfter = useRefocus()
 
-// Le dernier projet ouvert ici, sinon celui de la barre latérale, sinon le premier. '' : « Cet ordinateur ».
+// Le dernier projet ouvert ici, sinon celui de la barre latérale, sinon le premier. '' : « Sans projet ».
 const selected = computed({
   get: () => {
     if (navigation.settingsProjectId === '') return ''
@@ -41,7 +41,7 @@ const project = computed(() => projects.byId(selected.value || null))
     </UiButton>
   </div>
 
-  <!-- « Cet ordinateur » a les réglages d'un projet qui ont un sens sans dossier : agent, modèle, notifications. -->
+  <!-- « Sans projet » a les réglages d'un projet qui ont un sens sans dossier : agent, modèle, notifications. -->
   <template v-if="project || !selected">
     <div data-setting="projects-list" class="flex min-w-0 items-center gap-3 pt-8">
       <ProjectPicker v-model="selected" :label="t('settings.projects.pick')" :none-label="t('rail.chats')" />

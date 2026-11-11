@@ -14,7 +14,7 @@ import { agents } from '@/utils/agents'
 import { formatUntil } from '@/utils/duration'
 
 // Réglages d'un projet qu'on change souvent : sur la page Projets et en tête de la sous-page du projet.
-// id null : ceux de « Cet ordinateur ».
+// id null : ceux de « Sans projet ».
 const props = defineProps<{ id: string | null }>()
 
 const { t, locale } = useI18n()
@@ -39,7 +39,9 @@ watch(agent, (kind) => catalog.load(kind), { immediate: true })
 const resolved = computed(() => catalog.resolve(agent.value, projects.chatOptions(props.id, agent.value)))
 const models = computed(() => catalog.get(agent.value)?.models ?? [])
 const agentOptions = (Object.keys(agents) as AgentKind[]).map((kind) => ({ value: kind, label: agents[kind].name }))
-const modelOptions = computed(() => models.value.map((model) => ({ value: model.value, label: model.label })))
+const modelOptions = computed(() =>
+  models.value.map((model) => ({ value: model.value, label: model.label, group: model.legacy ? t('composer.model.legacy') : undefined })),
+)
 const effortOptions = computed(() =>
   (models.value.find((model) => model.value === resolved.value.model)?.efforts ?? []).map((effort) => ({
     value: effort,

@@ -32,7 +32,7 @@ interface Dock {
   // Onglets de chaque session, comme T3 Code : on les retrouve en revenant sur elle, même après un redémarrage. `open`,
   // `active` et `aside` n'y restent que dans une disposition d'avant `projects`, lue une fois par `adopt`.
   sessions: Record<string, SessionDock>
-  // Disposition commune aux sessions d'un projet ('' : « Cet ordinateur ») : passer de l'une à l'autre ne la change pas.
+  // Disposition commune aux sessions d'un projet ('' : « Sans projet ») : passer de l'une à l'autre ne la change pas.
   projects: Record<string, ProjectDock>
 }
 

@@ -5,11 +5,10 @@ import { useI18n } from 'vue-i18n'
 import SettingsSearch from '@/components/settings/SettingsSearch.vue'
 import ShellDockTabs from '@/components/shell/ShellDockTabs.vue'
 import ShellEnvironment from '@/components/shell/ShellEnvironment.vue'
+import ShellPinnedDeck from '@/components/shell/ShellPinnedDeck.vue'
 import ShellRailToggle from '@/components/shell/ShellRailToggle.vue'
-import ShellTab from '@/components/shell/ShellTab.vue'
 import ShellTabs from '@/components/shell/ShellTabs.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
-import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { useDockFocus } from '@/composables/useDockFocus'
 import { useNewChat } from '@/composables/useNewChat'
 import { isMacosApp } from '@/ipc/system'
@@ -27,7 +26,7 @@ const layout = useLayoutStore()
 const navigation = useNavigationStore()
 const appearance = useAppearanceStore()
 const workspace = useWorkspaceStore()
-const newChat = useNewChat()
+const newTab = useNewChat('tab')
 const browser = useBrowserStore()
 const files = useFilesStore()
 const dockFocus = useDockFocus()
@@ -142,19 +141,11 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
       </template>
 
       <!-- Hors des sessions, les onglets épinglés restent là (choix de Jérémy) : un clic ramène à la session. -->
-      <div
-        v-if="navigation.view !== 'chats' && navigation.view !== 'settings' && workspace.pinnedTabs.length"
-        role="tablist"
-        :aria-label="t('workspace.tabs')"
-        class="flex h-full items-center gap-0.5"
-        data-tauri-drag-region
-      >
-        <ShellTab v-for="tab in workspace.pinnedTabs" :key="tab.id" :tab="tab" :index="-1" :count="0" :rank="null" />
-      </div>
+      <ShellPinnedDeck v-if="navigation.view !== 'chats' && navigation.view !== 'settings'" />
       <template v-if="navigation.view === 'chats'">
         <ShellTabs />
 
-        <UiIconButton :label="t('settings.shortcuts.items.newTab')" :shortcut="shortcuts.label('newTab')" class="ms-0.5" @click="newChat()">
+        <UiIconButton :label="t('settings.shortcuts.items.newTab')" :shortcut="shortcuts.label('newTab')" class="ms-0.5" @click="newTab()">
           <Plus class="size-4" aria-hidden="true" />
         </UiIconButton>
         <span class="flex-1 self-stretch" data-tauri-drag-region />
@@ -204,6 +195,7 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
             :label="t('dock.toggle')"
             :shortcut="shortcuts.label('toggleRightDock')"
             :aria-expanded="layout.right.open"
+            :class="{ 'text-content!': layout.right.open }"
             @click="dockFocus.toggleDock(false)"
           >
             <span class="relative grid place-items-center">

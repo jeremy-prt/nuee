@@ -22,7 +22,7 @@ import { useDraftsStore } from '@/stores/drafts'
 import { useOperatorStore } from '@/stores/operator'
 import { mentionPlaceKey } from '@/stores/mentions'
 import { useToastsStore } from '@/stores/toasts'
-import { type Place, useConversationsStore } from '@/stores/conversations'
+import { lastTurnItem, type Place, useConversationsStore } from '@/stores/conversations'
 import type { Attachment } from '@/ipc/bindings/Attachment'
 import { useProjectsStore } from '@/stores/projects'
 import { useSessionGitStore } from '@/stores/sessionGit'
@@ -70,7 +70,7 @@ const loaded = computed(() => conversation.value?.loaded ?? false)
 // Bandeau de limite tant que le dernier tour s'est arrêté sur elle.
 const limit = computed(() => {
   const current = conversation.value
-  const last = current?.items.at(-1)
+  const last = current && lastTurnItem(current.items)
   return current?.limited && current.phase === 'idle' && last?.kind === 'end' && last.status === 'failed' ? current.limited : null
 })
 const agent = computed(() => props.tab.agent)

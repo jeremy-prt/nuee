@@ -177,32 +177,23 @@ html[data-mode='light'] {
   background-image: linear-gradient(var(--color-stroke), var(--color-stroke));
 }
 
-/* Centre arrondi en haut, du côté où une colonne le borde (choix de Jérémy). L'ombre pleine peint le cadre hors de
-   l'arrondi (l'enveloppe la coupe). Le centre trace lui-même ses traits, courbe comprise : le séparateur voisin
-   (`separator-notch`) n'en trace plus, sinon il serait décalé d'un pixel à côté de la courbe. */
+/* Centre arrondi en haut des deux côtés (choix de Jérémy). L'ombre pleine peint le cadre hors de l'arrondi. Le centre
+   trace ses traits, courbe comprise : le séparateur voisin (`separator-notch`) n'en trace plus, sinon il serait décalé
+   d'un pixel à côté de la courbe. */
 @utility center-card {
   overflow: hidden;
   box-shadow: 0 0 0 100vmax var(--color-chrome);
-  &[data-round-start] {
-    border-start-start-radius: 10px;
-  }
-  &[data-round-end] {
-    border-start-end-radius: 10px;
-  }
+  border-start-start-radius: 10px;
+  border-start-end-radius: 10px;
   &::after {
     content: '';
     position: absolute;
     inset: 0;
     z-index: 20;
     pointer-events: none;
-    border-top: 1px solid var(--color-stroke);
+    border: 1px solid var(--color-stroke);
+    border-bottom: none;
     border-radius: inherit;
-  }
-  &[data-round-start]::after {
-    border-inline-start: 1px solid var(--color-stroke);
-  }
-  &[data-round-end]::after {
-    border-inline-end: 1px solid var(--color-stroke);
   }
 }
 @utility separator-notch {
@@ -374,15 +365,6 @@ html[data-mode='light'] {
   animation: ui-toast-in 240ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .ui-overlay[data-state],
-  [data-state] > .ui-dialog-body,
-  [data-state] > .ui-toast-body,
-  .page-in {
-    animation: none;
-  }
-}
-
 /* Page des réglages qui apparaît (SettingsView) : opacité seule, rien à capturer ni à reflouter. */
 .page-in {
   animation: page-in 140ms ease-out;
@@ -419,6 +401,92 @@ html[data-mode='light'] {
     --motion-close: 0ms;
     --motion-quick: 0ms;
     --motion-move: 0ms;
+  }
+}
+
+/* Onglets épinglés (ShellPinnedDeck), comme monocode : la capsule s'élargit en poussant les onglets voisins, chaque
+   carte glisse de la pile à sa place dans la rangée. */
+.pin-deck {
+  --pin-duration: var(--motion-close);
+  transition:
+    width var(--pin-duration) var(--motion-ease),
+    background-color var(--hover-duration) ease-out;
+}
+.pin-deck.is-open {
+  --pin-duration: var(--motion-open);
+}
+.pin-card-slot {
+  transform-origin: 0 0;
+  transition:
+    transform var(--pin-duration) var(--motion-ease),
+    opacity var(--pin-duration) var(--motion-ease);
+}
+.pin-card-slot .pin-card > :first-child {
+  opacity: var(--pin-ink, 1);
+  transition: opacity var(--pin-duration) var(--motion-ease);
+}
+/* Opaque : dans la pile, les cartes de dessous ne transparaissent pas. */
+.pin-card {
+  background-color: color-mix(in srgb, var(--color-content) 9%, var(--color-overlay));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-content) 10%, transparent),
+    0 1px 2px rgb(0 0 0 / 0.3);
+}
+.pin-card:hover {
+  background-color: color-mix(in srgb, var(--color-content) 15%, var(--color-overlay));
+}
+html[data-mode='light'] .pin-card {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-content) 12%, transparent),
+    0 1px 2px rgb(0 0 0 / 0.1);
+}
+
+/* Infobulle (UiTooltip) : pleine, pas de verre, pour se détacher de tout fond (image, verre, clair ou sombre). Un
+   fondu court au premier survol, rien en passant d'un élément voisin (`instant-open`). */
+.ui-tip {
+  background-color: color-mix(in srgb, var(--color-content) 9%, var(--color-overlay));
+  border: 1px solid color-mix(in srgb, var(--color-content) 14%, transparent);
+  box-shadow:
+    0 6px 16px -4px rgb(0 0 0 / 0.45),
+    0 1px 3px rgb(0 0 0 / 0.3);
+}
+html[data-mode='light'] .ui-tip {
+  background-color: var(--color-overlay);
+  border-color: color-mix(in srgb, var(--color-content) 16%, transparent);
+  box-shadow:
+    0 6px 16px -4px rgb(0 0 0 / 0.18),
+    0 1px 3px rgb(0 0 0 / 0.1);
+}
+@keyframes ui-tip-in {
+  from {
+    opacity: 0;
+    transform: translate(var(--tip-shift, 0), var(--tip-lift, 0));
+  }
+}
+.ui-tip[data-state='delayed-open'] {
+  animation: ui-tip-in var(--hover-duration) ease-out;
+}
+.ui-tip[data-side='bottom'] {
+  --tip-lift: -3px;
+}
+.ui-tip[data-side='top'] {
+  --tip-lift: 3px;
+}
+.ui-tip[data-side='right'] {
+  --tip-shift: -3px;
+}
+.ui-tip[data-side='left'] {
+  --tip-shift: 3px;
+}
+
+/* Après les règles qu'il annule : à spécificité égale, la dernière l'emporte. */
+@media (prefers-reduced-motion: reduce) {
+  .ui-overlay[data-state],
+  [data-state] > .ui-dialog-body,
+  [data-state] > .ui-toast-body,
+  .page-in,
+  .ui-tip[data-state] {
+    animation: none;
   }
 }
 

@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { FolderOpen, GitBranch, MessageSquarePlus, Trash2 } from '@/components/ui/icons'
+import { GitBranch, MessageSquarePlus, Trash2 } from '@/components/ui/icons'
 import { computed, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import FilesFinderIcon from '@/components/files/FilesFinderIcon.vue'
 import SettingsWorktreeDialog from '@/components/settings/SettingsWorktreeDialog.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
@@ -117,14 +118,14 @@ async function remove(tree: Worktree, event: MouseEvent) {
             </p>
             <p class="flex min-w-0 text-xs text-muted">
               <span v-if="tree.main" class="truncate">{{ t('settings.projects.worktrees.projectFolder') }}</span>
-              <span v-else class="truncate font-mono" :title="tree.path">{{ tree.path }}</span>
+              <span v-else class="truncate" :title="tree.path">{{ tree.path }}</span>
               <span v-if="sessionsIn(tree)" class="shrink-0 tabular-nums">&nbsp;· {{ t('settings.projects.worktrees.sessions', { n: sessionsIn(tree) }, sessionsIn(tree)) }}</span>
             </p>
           </div>
           <!-- Visibles au survol ou quand le clavier entre dans la ligne : la liste reste calme. -->
           <div class="flex shrink-0 items-center opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 motion-reduce:transition-none">
             <UiIconButton :label="t(revealLabel)" :disabled="tree.state === 'missing'" @click="reveal(tree)">
-              <FolderOpen class="size-3.5" aria-hidden="true" />
+              <FilesFinderIcon class="size-3.5" />
             </UiIconButton>
             <UiIconButton :label="t('settings.projects.worktrees.newSession')" :disabled="tree.state === 'missing'" @click="openSession(tree)">
               <MessageSquarePlus class="size-3.5" aria-hidden="true" />

@@ -19,6 +19,8 @@ const STORAGE_KEY = 'nuee.skills.v2'
 const AGENT: AgentKind = 'claude'
 const AGENT_NAME = agents[AGENT].name
 const MODES: SkillMode[] = ['on', 'nameOnly', 'userInvocableOnly', 'off']
+// Skill d'une action git : un nom à espace glisserait des arguments dans le message `/<skill> …`.
+const SKILL_NAME = /^[\w.:-]+$/
 // nuee : un réglage ne vaut que pour les chats de Nuée. everywhere : il modifie la config de l'agent.
 export type Scope = 'nuee' | 'everywhere'
 export type Group = 'skills' | 'servers' | 'connectors'
@@ -174,7 +176,7 @@ export const useSkillsStore = defineStore('skills', () => {
     }
     return (
       skills.value
-        .filter((skill) => mode(skill) !== 'off' && words.every((word) => skill.name.toLowerCase().includes(word)))
+        .filter((skill) => mode(skill) !== 'off' && SKILL_NAME.test(skill.name) && words.every((word) => skill.name.toLowerCase().includes(word)))
         .sort((a, b) => rank(a) - rank(b) || a.name.length - b.name.length)[0] ?? null
     )
   }

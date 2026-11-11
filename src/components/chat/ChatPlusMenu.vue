@@ -41,14 +41,14 @@ function onCloseAutoFocus(event: Event) {
             @close-auto-focus="onCloseAutoFocus"
           >
             <DropdownMenuLabel :class="menuTitle">{{ t('composer.plus.label') }}</DropdownMenuLabel>
-            <DropdownMenuItem :text-value="t('composer.plus.attach')" :class="[menuRow, 'py-1.5']" @select="emit('attach')">
+            <DropdownMenuItem :text-value="t('composer.plus.attach')" :class="[menuRow, 'py-1']" @select="emit('attach')">
               <Paperclip :class="[menuIcon, 'rotate-45 text-info']" aria-hidden="true" />
               <span :class="[menuLabel, 'min-w-0 flex-1']">{{ t('composer.plus.attach') }}</span>
             </DropdownMenuItem>
             <DropdownMenuCheckboxItem
               :model-value="orchestra"
               :text-value="t('composer.orchestra.label')"
-              :class="[menuRow, 'py-1.5']"
+              :class="[menuRow, 'py-1']"
               @update:model-value="emit('orchestra', $event === true)"
             >
               <Orchestra :class="[menuIcon, 'text-violet']" aria-hidden="true" />

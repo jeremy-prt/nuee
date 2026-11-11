@@ -4,6 +4,7 @@ import { ListboxContent, ListboxFilter, ListboxItem, ListboxRoot, PopoverContent
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsAgentLogo from '@/components/settings/SettingsAgentLogo.vue'
+import ShellPinnedDeck from '@/components/shell/ShellPinnedDeck.vue'
 import ShellTab from '@/components/shell/ShellTab.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
@@ -19,6 +20,8 @@ const { t } = useI18n()
 const workspace = useWorkspaceStore()
 const { tabTitle } = useTabTitle()
 
+// Épinglés en tête de la bande (`stripTabs`), dans leur pile hors du défilement.
+const pinnedCount = computed(() => workspace.pinnedTabs.length)
 const strip = useTemplateRef<HTMLElement>('strip')
 const overflow = ref(false)
 const atStart = ref(true)
@@ -105,6 +108,7 @@ const item =
 
 <template>
   <div class="flex h-full min-w-0 items-center gap-0.5" data-tauri-drag-region>
+    <ShellPinnedDeck class="me-1" :numbered="numbered" :rank="rank" />
     <UiIconButton v-if="overflow" :label="t('workspace.scrollLeft')" :disabled="atStart" @click="page(-1)">
       <ChevronLeft class="size-3.5" aria-hidden="true" />
     </UiIconButton>
@@ -120,12 +124,12 @@ const item =
     >
       <!-- `index` et `count` ne comptent que les onglets non épinglés : ce sont eux que « Fermer à droite »… parcourt. -->
       <ShellTab
-        v-for="(tab, index) in workspace.stripTabs"
+        v-for="(tab, index) in workspace.stripTabs.slice(pinnedCount)"
         :key="tab.id"
         :tab="tab"
-        :index="index - workspace.pinnedTabs.length"
-        :count="workspace.stripTabs.length - workspace.pinnedTabs.length"
-        :rank="numbered ? rank(index) : null"
+        :index="index"
+        :count="workspace.stripTabs.length - pinnedCount"
+        :rank="numbered ? rank(index + pinnedCount) : null"
       />
     </div>
     <template v-if="overflow">

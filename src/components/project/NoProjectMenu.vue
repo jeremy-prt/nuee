@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { Archive, FolderOpen, Plus } from '@/components/ui/icons'
+import { Archive, Plus } from '@/components/ui/icons'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import FilesFinderIcon from '@/components/files/FilesFinderIcon.vue'
+import ProjectAgentMenus from '@/components/project/ProjectAgentMenus.vue'
 import ProjectMuteMenu from '@/components/project/ProjectMuteMenu.vue'
 import UiMenuItem from '@/components/ui/UiMenuItem.vue'
 import UiMenuSeparator from '@/components/ui/UiMenuSeparator.vue'
@@ -11,7 +13,7 @@ import { isMacosApp } from '@/ipc/system'
 import { useProjectsStore } from '@/stores/projects'
 import { useWorkspaceStore } from '@/stores/workspace'
 
-// Menu de « Cet ordinateur » : ce qui, dans celui d'un projet, garde un sens sans dossier de projet.
+// Menu de « Sans projet » : ce qui, dans celui d'un projet, garde un sens sans dossier de projet.
 const { t } = useI18n()
 const projects = useProjectsStore()
 const workspace = useWorkspaceStore()
@@ -25,9 +27,10 @@ const activeChats = computed(() => workspace.tabsFor(null).some((tab) => tab.sta
   <UiMenuItem :label="t('chats.newChat')" :icon="Plus" @select="newChat(null)" />
   <UiMenuItem
     :label="t(isMacosApp() ? 'settings.projects.reveal' : 'settings.projects.revealFolder')"
-    :icon="FolderOpen"
+    :icon="FilesFinderIcon"
     @select="actions.revealScratch()"
   />
+  <ProjectAgentMenus :project-id="null" />
   <ProjectMuteMenu :settings="projects.computer" :project-id="null" />
   <UiMenuSeparator />
   <UiMenuItem

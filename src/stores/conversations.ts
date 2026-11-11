@@ -24,6 +24,7 @@ import { useAgentsStore } from '@/stores/agents'
 import { type Signal, useAttentionStore } from '@/stores/attention'
 import { useCatalogStore } from '@/stores/catalog'
 import { useGeneralStore } from '@/stores/general'
+import type { GitAction } from '@/stores/gitActions'
 import { useOperatorStore } from '@/stores/operator'
 import { useOrchestraStore } from '@/stores/orchestra'
 import { useProjectsStore } from '@/stores/projects'
@@ -70,10 +71,13 @@ export type ChatItem =
   // tour) ou lancée par l'agent en plein tour (`auto`). before/after : tokens occupés, absents si l'agent ne les a
   // pas donnés.
   | { kind: 'compact'; id: string; status: 'running' | 'done' | 'stopped' | 'failed'; auto?: boolean; before?: number; after?: number; error?: string; at: number }
+  // Action git réussie depuis l'interface (`stores/gitActions.ts`), lue par git. `told` : l'agent l'a apprise.
+  | { kind: 'git'; id: string; at: number; action: GitAction; subject: string | null; branch: string | null; repo: string | null; told?: boolean }
 
 export type CommandItem = Extract<ChatItem, { kind: 'command' }>
 export type CompactItem = Extract<ChatItem, { kind: 'compact' }>
 export type ToolItem = Extract<ChatItem, { kind: 'tool' }>
+export type GitItem = Extract<ChatItem, { kind: 'git' }>
 
 // Tâche lancée par un outil (sous-agent, commande en arrière-plan), suivie sur l'élément de cet outil.
 export interface TaskState {
@@ -184,6 +188,15 @@ function lastIndex(items: readonly ChatItem[], match: (item: ChatItem) => boolea
     if (item && match(item)) return i
   }
   return -1
+}
+
+// Le séparateur d'une action git se pose entre deux tours : la fin du dernier tour est avant lui.
+export function lastTurnIndex(items: readonly ChatItem[]) {
+  return lastIndex(items, (item) => item.kind !== 'git')
+}
+
+export function lastTurnItem(items: readonly ChatItem[]) {
+  return items[lastTurnIndex(items)]
 }
 
 function lastIndexOfTool(items: ChatItem[], id: string) {
@@ -464,7 +477,7 @@ function interruptedText(items: readonly ChatItem[]) {
 function settleInterrupted(saved: ChatItem[]) {
   const items = saved.map((item) => (item.kind === 'compact' && item.status === 'running' ? { ...item, status: 'stopped' as const } : item))
   settleTasks(items)
-  const last = items.at(-1)
+  const last = lastTurnItem(items)
   if (!last || last.kind === 'end' || last.kind === 'error' || last.kind === 'command' || last.kind === 'compact') return items
   settleTools(items, 'failed')
   items.push({ kind: 'end', id: crypto.randomUUID(), status: 'stopped', error: null, durationMs: null })
@@ -692,8 +705,10 @@ export const useConversationsStore = defineStore('conversations', () => {
     } else {
       push(conversation, { kind: 'user', id: crypto.randomUUID(), text: prompt, attachments, at: Date.now(), ...(message.from ? { from: message.from } : {}), ...(message.orchestra ? { orchestra: true } : {}) })
     }
+    const note = gitNote(conversation, message)
+    if (note) tell(conversation, note.ids)
     save(chatId)
-    dispatch(chatId, conversation, place, agentPrompt(message), attachments, briefing)
+    dispatch(chatId, conversation, place, note ? `${note.text}\n\n${agentPrompt(message)}` : agentPrompt(message), attachments, briefing)
   }
 
   // Message d'une autre session : l'agent lit de qui il vient, la conversation garde le texte seul.
@@ -703,13 +718,44 @@ export const useConversationsStore = defineStore('conversations', () => {
     return i18nGlobal().t(from.report ? 'operator.reported' : 'operator.received', params)
   }
 
+  // Actions git faites depuis l'interface que l'agent ignore encore : une note devant le message suivant de
+  // l'utilisateur, jamais dans sa bulle. Pas devant une commande « / », que la CLI ne reconnaîtrait plus.
+  function gitNote(conversation: Conversation, { prompt, from }: Pick<Queued, 'prompt' | 'from'>) {
+    if (from || prompt.trimStart().startsWith('/')) return null
+    const pending = conversation.items.filter((item): item is GitItem => item.kind === 'git' && !item.told)
+    if (!pending.length) return null
+    const { t } = i18nGlobal()
+    const detail = (item: GitItem) => {
+      if (item.action === 'initRepo') return item.repo ? t('operator.git.repo', { repo: item.repo }) : ''
+      if (item.action === 'push') return item.branch ? t('operator.git.branch', { branch: item.branch }) : ''
+      return item.subject ? t('operator.git.commit', { subject: item.subject }) : ''
+    }
+    const text = pending.map((item) => t('operator.git.note', { done: t(`operator.git.done.${item.action}`), detail: detail(item) })).join('\n')
+    return { text, ids: new Set(pending.map((item) => item.id)) }
+  }
+
+  // Enregistré avec la conversation : la note ne repart pas, même après un redémarrage.
+  function tell(conversation: Conversation, ids: Set<string>) {
+    conversation.items = conversation.items.map((item) => (item.kind === 'git' && ids.has(item.id) ? { ...item, told: true } : item))
+  }
+
+  // Élément posé par Nuée hors d'un tour (action git réussie), sans message ni tour d'agent.
+  function note(chatId: string, item: ChatItem) {
+    const conversation = conversations.get(chatId)
+    if (!conversation?.loaded) return
+    push(conversation, item)
+    save(chatId)
+  }
+
   // Le message rejoint la réponse en cours ; trop tard (réponse complète), il reste dans la file.
   async function steer(chatId: string, conversation: Conversation, message: Queued) {
-    const steered = await agentSteer(chatId, agentPrompt(message), message.attachments).catch(() => false)
+    const note = gitNote(conversation, message)
+    const steered = await agentSteer(chatId, note ? `${note.text}\n\n${agentPrompt(message)}` : agentPrompt(message), message.attachments).catch(() => false)
     if (!steered) {
       if (conversation.phase === 'idle') afterTurn(chatId, conversation)
       return
     }
+    if (note) tell(conversation, note.ids)
     conversation.queue = conversation.queue.filter((item) => item.id !== message.id)
     push(conversation, { kind: 'user', id: message.id, text: message.prompt, attachments: message.attachments, steered: true, at: Date.now(), ...(message.from ? { from: message.from } : {}) })
     save(chatId)
@@ -718,7 +764,7 @@ export const useConversationsStore = defineStore('conversations', () => {
   // Fin de tour : la reprise après une limite se programme, sinon le message suivant de la file part.
   // Après un arrêt demandé, la file attend un geste de l'utilisateur.
   function afterTurn(chatId: string, conversation: Conversation) {
-    const last = conversation.items.at(-1)
+    const last = lastTurnItem(conversation.items)
     if (conversation.limited && last?.kind === 'end' && last.status === 'failed') {
       if (useGeneralStore().autoResume) scheduleResume(chatId)
       return
@@ -809,7 +855,7 @@ export const useConversationsStore = defineStore('conversations', () => {
     if (conversation.phase !== 'idle' || conversation.queue.length || conversation.approvals.length || conversation.limited || conversation.resumeAt) return
     if ((conversation.context?.used ?? 0) < IDLE_COMPACT_MIN_TOKENS || !conversation.cacheUntil || Date.now() >= conversation.cacheUntil) return
     // Après un résumé ou un tour arrêté, rien à refaire. Une tâche de fond finira dans le tour suivant, pas dans le résumé.
-    const last = conversation.items.at(-1)
+    const last = lastTurnItem(conversation.items)
     if (last?.kind !== 'end' || last.status !== 'completed') return
     if (conversation.items.some((item) => item.kind === 'tool' && item.task?.status === 'running')) return
     start(chatId, conversation, { place, prompt: '/compact', attachments: [] })
@@ -918,5 +964,5 @@ export const useConversationsStore = defineStore('conversations', () => {
     conversations.delete(chatId)
   }
 
-  return { busy, find, working, itemsOf, create, open, release, setOptions, send, sendNow, unqueue, scheduleResume, cancelResume, begin, warm, approve, answer, stop, stopTask, rewind, remove }
+  return { busy, find, working, itemsOf, create, open, release, setOptions, send, sendNow, unqueue, scheduleResume, cancelResume, begin, note, warm, approve, answer, stop, stopTask, rewind, remove }
 })

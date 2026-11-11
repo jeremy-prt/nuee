@@ -63,6 +63,7 @@ watch(
 )
 const drag = useDragStore()
 const newChat = useNewChat()
+const newTab = useNewChat('tab')
 const shortcuts = useShortcutsStore()
 const dockFocus = useDockFocus()
 const dockClose = useDockClose()
@@ -94,8 +95,8 @@ useColumnSlide()
 const skills = useSkillsStore()
 // Hors des chats, le panneau de droite ne sert qu'à l'aperçu d'un skill dans les réglages.
 const previewedSkill = computed(() => (navigation.view === 'settings' ? skills.previewed : null))
-// Une colonne borde le centre à gauche (barre latérale ou panneau) : son coin s'arrondit.
-const roundStart = computed(() => !menu.value || layout.rail.expanded || layout.moving.rail)
+// Une colonne borde le centre à gauche (barre latérale ou panneau).
+const columnAtStart = computed(() => !menu.value || layout.rail.expanded || layout.moving.rail)
 
 // Raccourcis propres aux chats : sans effet sur les autres vues.
 function inChatsOnly(action: () => void) {
@@ -143,7 +144,7 @@ const actions: [ShortcutId, (event: KeyboardEvent) => void][] = [
   ['toggleExplorer', inChatsOnly(() => dockFocus.toggleView('files'))],
   ['toggleChanges', inChatsOnly(() => dockFocus.toggleView('changes'))],
   ['browserAddress', inChatsOnly(browserAddress)],
-  ['newTab', () => newChat()],
+  ['newTab', () => newTab()],
   ['closeTab', (event) => inChatsOnly(() => dockClose.closeFrom(event.target) || workspace.closeActiveTab())()],
   ['closeAllTabs', inChatsOnly(() => workspace.activeTabId && workspace.closeTabs(workspace.activeTabId, 'all'))],
   ['reopenTab', inChatsOnly(workspace.reopenTab)],
@@ -196,8 +197,8 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <!-- Délai court, comme Paseo (une seconde paraissait lent) ; en passant aussitôt à un bouton voisin, son infobulle vient tout de suite. -->
-  <TooltipProvider :delay-duration="400" :skip-delay-duration="200">
+  <!-- Délais repris de monocode. -->
+  <TooltipProvider :delay-duration="300" :skip-delay-duration="400">
     <h1 class="sr-only">Nuée</h1>
     <div class="flex h-full flex-col">
       <ShellTitleBar />
@@ -247,10 +248,10 @@ onUnmounted(() => {
             >
               <div class="flex min-w-0 flex-1 flex-col overflow-hidden">
                 <!-- Seul le chat prend le fond de la zone centrale : terminal et panneau de droite font partie du cadre. -->
+                <!-- Sans colonne d'un côté, une fine marge y garde l'arrondi visible au bord de la fenêtre. -->
                 <main
                   class="center-card relative isolate min-h-0 flex-1 bg-surface"
-                  :data-round-start="roundStart || undefined"
-                  :data-round-end="dockShown || undefined"
+                  :class="{ 'ms-1.5': !columnAtStart, 'me-1.5': !dockShown }"
                 >
                   <ShellBackground />
                   <WorkspaceView />
@@ -281,8 +282,7 @@ onUnmounted(() => {
               <main
                 id="view-area"
                 class="center-card relative isolate min-w-0 flex-1 bg-surface"
-                :data-round-start="roundStart || undefined"
-                :data-round-end="previewedSkill ? true : undefined"
+                :class="{ 'ms-1.5': !columnAtStart, 'me-1.5': !previewedSkill }"
               >
                 <ShellBackground />
                 <NewWorkspaceView v-if="navigation.view === 'new'" />

@@ -87,6 +87,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     .then((chats) => {
       const known = new Set(chats.map((chat) => chat.id))
       tabs.value = [...chats.map((chat) => ({ ...chat, kind: 'chat' as const })), ...tabs.value.filter((tab) => !known.has(tab.id))]
+      // Les vierges d'un lancement précédent ne sont dans aucun onglet ni dans l'historique : rien n'y ramène.
+      for (const chat of chats) if (!chat.started && !Object.values(layouts).some((layout) => layout.tabs.includes(chat.id))) void deleteChat(chat.id)
       useDraftsStore().prune(new Set(tabs.value.map((tab) => tab.id)))
     })
     .then(() => {
@@ -205,7 +207,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     return tab
   }
 
-  // Comme monocode : un onglet ouvert s'insère juste après l'actif ; les onglets vierges non affichés se ferment.
+  // Comme monocode : un onglet ouvert s'insère juste après l'actif. Afficher une session commencée ferme les
+  // onglets vierges non affichés ; une vierge les laisse, sinon « + » répété n'en garderait qu'un.
   function show(id: string) {
     seenAt[id] = Date.now()
     const layout = current()
@@ -223,12 +226,18 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     } else {
       layout.panes[layout.focused] = id
     }
+    if (!tabs.value.some((tab) => tab.id === id && tab.started)) return
     // Pas seulement l'actif : la vierge de « Nouvel espace de travail » est dans les onglets sans être affichée.
     for (const other of [...layout.tabs]) if (other !== id && isBlank(other) && !layout.panes.includes(other)) closeTab(other, layout)
   }
 
-  // Nouvelle session (« + », ⌘N, ⌘T) : la vierge du contexte plutôt qu'une de plus.
+  // « + » et ⌘T, comme un navigateur : toujours un onglet vierge de plus.
   function newTab() {
+    show(createChat().id)
+  }
+
+  // « Nouvelle session » (⌘N, barre latérale, menu du projet) : la vierge du contexte plutôt qu'une de plus.
+  function showBlank() {
     show(blankChat().id)
   }
 
@@ -264,7 +273,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   // Session vierge du contexte, reprise plutôt que doublée : celle de « Nouvel espace de travail » sert ensuite ici.
   function blankChat() {
-    const id = current().tabs.find((id) => tabs.value.some((tab) => tab.id === id && !tab.started))
+    const layout = current()
+    const unstarted = (id: string | undefined) => tabs.value.some((tab) => tab.id === id && !tab.started)
+    const active = layout.panes[layout.focused]
+    const id = unstarted(active) ? active : layout.tabs.find(unstarted)
     return tabs.value.find((tab) => tab.id === id) ?? createChat()
   }
 
@@ -623,6 +635,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     closeTab,
     closeActiveTab,
     newTab,
+    showBlank,
     reopenTab,
     stepTab,
     goToTab,

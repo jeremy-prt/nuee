@@ -23,6 +23,9 @@ const run = computed(() => (chatId.value && props.block ? runs.get(chatId.value,
 const busy = computed(() => run.value?.status === 'running' || run.value?.status === 'stopping')
 // Largeur des boutons du coin (28 px chacun, 2 px entre eux) : le texte s'estompe dessous.
 const actionsWidth = computed(() => `${(command.value ? 58 : 28) + 8}px`)
+// Texte brut (récapitulatif, markdown cité) : il revient à la ligne. Le vrai code garde ses lignes et défile.
+const PROSE = new Set(['', 'text', 'txt', 'plaintext', 'markdown', 'md'])
+const prose = computed(() => PROSE.has(props.lang?.trim().toLowerCase() ?? ''))
 
 const actions = useTemplateRef('actions')
 
@@ -41,11 +44,12 @@ function toggle() {
 <template>
   <div class="my-2" dir="ltr">
     <div class="group/code relative rounded-md bg-selection/60">
+      <!-- Texte qui revient à la ligne : une cale flottante sous les boutons, la première ligne passe à côté. -->
       <pre
-        class="code-veil overflow-x-auto p-3 font-mono text-xs leading-relaxed group-hover/code:[--veil:0] group-focus-within/code:[--veil:0]"
-        :class="{ '[--veil:0]': busy }"
+        class="code-veil p-3 font-mono text-xs leading-relaxed group-hover/code:[--veil:0] group-focus-within/code:[--veil:0]"
+        :class="[prose ? 'whitespace-pre-wrap wrap-anywhere' : 'overflow-x-auto', { '[--veil:0]': busy }]"
         :style="{ '--veil-width': actionsWidth }"
-      ><code>{{ code }}</code></pre>
+      ><span v-if="prose" class="float-end h-6" :style="{ width: actionsWidth }" aria-hidden="true" /><code>{{ code }}</code></pre>
       <div
         ref="actions"
         class="absolute end-2 top-2 flex gap-0.5 transition-opacity duration-(--hover-duration) group-hover/code:opacity-100 focus-within:opacity-100 motion-reduce:transition-none"

@@ -169,16 +169,15 @@ export const useFilesStore = defineStore('files', () => {
   // Lus une fois : un éditeur installé pendant que l'app tourne apparaît au prochain lancement.
   const editors = ref<EditorApp[] | null>(null)
   const finderIcon = ref<string | null>(null)
-  async function loadEditors() {
-    if (editors.value) return editors.value
-    try {
-      editors.value = await filesEditors()
-    } catch {
-      editors.value = []
-    }
-    // Après les éditeurs : les deux lectures d'icône passent par le même fichier temporaire.
-    finderIcon.value = await filesFinderIcon().catch(() => null)
-    return editors.value
+  // Chaque icône du Finder le demande au montage : un seul chargement, partagé.
+  let editorsLoad: Promise<EditorApp[]> | null = null
+  function loadEditors() {
+    editorsLoad ??= Promise.all([filesEditors().catch(() => []), filesFinderIcon().catch(() => null)]).then(([apps, icon]) => {
+      editors.value = apps
+      finderIcon.value = icon
+      return apps
+    })
+    return editorsLoad
   }
 
   return { of, editing, openFile, pin, closeFile, moved, view, setView, explorerWidth, setExplorerWidth, explorerShown, wantsFocus, requestFocus, clipboard, editors, finderIcon, loadEditors }

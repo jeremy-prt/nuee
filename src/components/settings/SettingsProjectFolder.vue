@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Check, Copy, FolderOpen } from '@/components/ui/icons'
+import { Check, Copy } from '@/components/ui/icons'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import FilesFinderIcon from '@/components/files/FilesFinderIcon.vue'
 import SettingsRow from '@/components/settings/SettingsRow.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import { isAppError } from '@/ipc/agent'
@@ -39,13 +40,13 @@ async function reveal() {
 
 <template>
   <SettingsRow data-setting="project-folder" :label="t('settings.projects.folder')">
-    <template #hint><span class="font-mono break-all select-text">{{ project.path }}</span></template>
+    <template #hint><span class="break-all select-text">{{ project.path }}</span></template>
     <div class="flex items-center gap-1">
       <UiIconButton :label="copied ? t('settings.projects.copied') : t('settings.projects.copyPath')" @click="copyPath">
         <component :is="copied ? Check : Copy" class="size-3.5" :class="{ 'text-success': copied }" aria-hidden="true" />
       </UiIconButton>
       <UiIconButton :label="t(revealLabel)" @click="reveal">
-        <FolderOpen class="size-3.5" aria-hidden="true" />
+        <FilesFinderIcon class="size-3.5" />
       </UiIconButton>
     </div>
   </SettingsRow>

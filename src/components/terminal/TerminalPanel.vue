@@ -18,8 +18,9 @@ const { t } = useI18n()
 const terminals = useTerminalsStore()
 const shortcuts = useShortcutsStore()
 const { chat, place } = useTerminalChat()
-// Shell seul à son invite : le dossier où il travaille.
-const labels = useTerminalLabels(() => (place.value?.worktreePath ?? place.value?.cwd)?.split(/[\\/]/).filter(Boolean).pop() ?? null)
+// Shell seul à son invite : le dossier où il travaille, sinon le nom des sessions sans projet. Jamais « Terminal »,
+// déjà écrit sur l'onglet du volet.
+const labels = useTerminalLabels(() => (place.value?.worktreePath ?? place.value?.cwd)?.split(/[\\/]/).filter(Boolean).pop() ?? t('rail.chats'))
 const area = useTemplateRef('area')
 
 const list = computed(() => (chat.value ? terminals.tabsOf(chat.value.id) : []))

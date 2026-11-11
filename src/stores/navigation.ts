@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, nextTick, ref, watch } from 'vue'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
-import type { WindowStyle } from '@/stores/appearance'
+import { useAppearanceStore, type WindowStyle } from '@/stores/appearance'
 import { useLayoutStore } from '@/stores/layout'
 import { useProjectsStore } from '@/stores/projects'
 import { useSkillsStore } from '@/stores/skills'
@@ -85,7 +85,7 @@ const PANEL_VIEWS: readonly View[] = ['chats', 'github', 'notes']
 
 const PROJECT_KEY = 'nuee.navigation.project'
 
-// Projet affiché au dernier lancement, s'il existe encore ; sinon « Cet ordinateur ».
+// Projet affiché au dernier lancement, s'il existe encore ; sinon « Sans projet ».
 function lastProject() {
   try {
     const id = localStorage.getItem(PROJECT_KEY)
@@ -105,7 +105,7 @@ export const useNavigationStore = defineStore('navigation', () => {
       if (id) localStorage.setItem(PROJECT_KEY, id)
       else localStorage.removeItem(PROJECT_KEY)
     } catch {
-      // Stockage indisponible : le prochain lancement repart sur « Cet ordinateur ».
+      // Stockage indisponible : le prochain lancement repart sur « Sans projet ».
     }
   })
   const settingsSection = ref<SettingsSection>('general')
@@ -144,9 +144,11 @@ export const useNavigationStore = defineStore('navigation', () => {
   // Sens du dernier changement de projet (1 : vers le suivant), repris par l'animation de la barre latérale.
   const projectStep = ref<1 | -1>(1)
 
-  // Chat (sans projet) puis les projets, dans l'ordre de la barre latérale.
+  // « Sans projet » puis les projets, dans l'ordre affiché par la disposition.
   function contexts() {
-    return [null, ...useProjectsStore().ordered.map((project) => project.id)]
+    const projects = useProjectsStore()
+    const order = useAppearanceStore().layout === 'menu' ? projects.alphabetical : projects.ordered
+    return [null, ...order.map((project) => project.id)]
   }
 
   function openChats(id: string | null) {

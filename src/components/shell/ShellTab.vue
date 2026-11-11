@@ -16,7 +16,8 @@ import { useDragStore } from '@/stores/drag'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { type Tab, useWorkspaceStore } from '@/stores/workspace'
 
-const props = defineProps<{ tab: Tab; index: number; count: number; rank: number | null }>()
+const props = withDefaults(defineProps<{ tab: Tab; index: number; count: number; rank: number | null; focusable?: boolean }>(), { focusable: true })
+const emit = defineEmits<{ menu: [open: boolean] }>()
 
 const { t } = useI18n()
 const shortcuts = useShortcutsStore()
@@ -36,19 +37,20 @@ const statusIcons = { approval: ShieldQuestion, question: MessageQuestion, done:
 
 <template>
   <!-- Rétrécit jusqu'à 120 px (l'actif garde son titre lisible), au-delà la bande défile (ShellTabs). -->
-  <UiContextMenu :class="pinned ? 'flex shrink-0' : 'flex max-w-52 min-w-30 flex-[0_1_13rem]'">
+  <UiContextMenu :class="pinned ? 'flex shrink-0' : 'flex max-w-52 min-w-30 flex-[0_1_13rem]'" @update:open="emit('menu', $event)">
     <UiTooltip :label="tabTitle(tab)" :disabled="!pinned">
       <div
         role="tab"
-        tabindex="0"
+        :tabindex="focusable ? 0 : -1"
         :data-tab-id="tab.id"
         :data-tab-pinned="pinned || undefined"
         :aria-selected="active"
         :aria-label="pinned ? tabTitle(tab) : undefined"
-        class="group relative flex h-7 min-w-0 items-center gap-1.5 rounded-md text-xs focus-visible:outline-2 focus-visible:outline-ring"
+        class="group relative flex min-w-0 items-center gap-1.5 text-xs focus-visible:outline-2 focus-visible:outline-ring"
         :class="[
-          pinned ? 'w-8 justify-center' : 'w-full px-2',
-          active ? 'bg-selection text-content' : 'text-muted hover:bg-selection-hover hover:text-content',
+          pinned
+            ? ['pin-card h-5 w-6 justify-center rounded-[5px]', active ? 'text-content' : 'text-muted hover:text-content']
+            : ['h-7 w-full rounded-md px-2', active ? 'bg-selection text-content' : 'text-muted hover:bg-selection-hover hover:text-content'],
           { 'opacity-50': drag.source?.kind === 'tab' && drag.source.id === tab.id },
         ]"
         @pointerdown="!pinned && startTabDrag($event, tab.id)"
@@ -72,6 +74,12 @@ const statusIcons = { approval: ShieldQuestion, question: MessageQuestion, done:
           </span>
           <SettingsAgentLogo v-else :id="tab.agent" small />
         </span>
+        <span
+          v-if="pinned"
+          class="absolute start-1/2 -bottom-[3.5px] h-0.5 -translate-x-1/2 rounded-full"
+          :class="active ? 'w-2.5 bg-signal' : 'w-1.5 bg-content/35 opacity-0 group-hover:opacity-100'"
+          aria-hidden="true"
+        />
         <!-- Comme les sessions : la croix n'occupe pas de place, elle se pose au survol sur la fin du titre, qui s'estompe. -->
         <!-- Fondu calé sur la croix (20 px à 4 px du bord, le titre finit à 8 px) : le texte reste lisible jusqu'à elle. -->
         <span v-if="!pinned" class="truncate group-focus-within:[mask-image:linear-gradient(to_left,transparent_1rem,black_1.375rem)] group-hover:[mask-image:linear-gradient(to_left,transparent_1rem,black_1.375rem)]">{{ tabTitle(tab) }}</span>

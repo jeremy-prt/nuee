@@ -71,7 +71,7 @@ async function importImage() {
     <template #icon><ProjectIcon :project="project" class="size-10 shrink-0" /></template>
     <template v-if="hint" #hint>
       <Translation v-if="hint === 'found' && found?.detected" keypath="settings.projects.iconHints.found" tag="span">
-        <template #path><span class="font-mono break-all">{{ found.detected.path }}</span></template>
+        <template #path><span class="break-all">{{ found.detected.path }}</span></template>
       </Translation>
       <template v-else>{{ t(`settings.projects.iconHints.${hint}`) }}</template>
     </template>

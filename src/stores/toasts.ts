@@ -13,6 +13,8 @@ export interface Toast {
   topic?: string
   // Reste jusqu'à sa fermeture : il attend un geste (répondre dans une session révélée).
   sticky?: boolean
+  // Corps coupé à deux lignes (erreur brute d'un outil).
+  clamp?: boolean
   // Faux dès la fermeture : le message reste dans la liste le temps de son animation de sortie.
   open: boolean
 }

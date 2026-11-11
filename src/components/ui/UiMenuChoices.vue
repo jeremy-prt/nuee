@@ -20,7 +20,7 @@ const emit = defineEmits<{ select: [value: string] }>()
       :key="option.value"
       :value="option.value"
       :disabled="option.disabled"
-      :class="[menuRow, option.hint ? 'py-2' : 'py-1.5']"
+      :class="[menuRow, option.hint ? 'py-2' : 'py-1']"
     >
       <component :is="option.icon" v-if="option.icon" :class="[menuIcon, option.iconClass]" aria-hidden="true" />
       <span class="min-w-0 flex-1">

@@ -54,7 +54,9 @@ const account = computed(() => {
   return [email, plan].filter(Boolean).join(' · ')
 })
 
-const modelOptions = computed(() => models.value.map((model) => ({ value: model.value, label: model.label })))
+const modelOptions = computed(() =>
+  models.value.map((model) => ({ value: model.value, label: model.label, group: model.legacy ? t('composer.model.legacy') : undefined })),
+)
 const effortOptions = computed(() =>
   (models.value.find((model) => model.value === resolved.value.model)?.efforts ?? []).map((effort) => ({
     value: effort,
@@ -121,7 +123,7 @@ async function choosePath(event: MouseEvent) {
         <span v-else-if="status.state === 'missing'" class="text-danger">{{ t('settings.agents.missing', { agent: name }) }}</span>
         <span v-else-if="status.state === 'error'" class="text-danger">{{ t('settings.agents.error', { agent: name, command: agents[kind].command }) }}</span>
         <template v-else>
-          <span class="font-mono break-all">{{ status.path }}</span>
+          <span class="break-all">{{ status.path }}</span>
           · {{ settings.path ? t('settings.agents.custom') : t('settings.agents.found') }}
         </template>
       </template>

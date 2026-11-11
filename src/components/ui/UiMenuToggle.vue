@@ -13,7 +13,7 @@ const model = defineModel<boolean>({ required: true })
     v-model="model"
     :disabled="disabled"
     :text-value="label"
-    class="flex shrink-0 cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-content outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-40 data-[highlighted]:bg-selection-hover"
+    class="flex shrink-0 cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1 text-content outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-40 data-[highlighted]:bg-selection-hover"
     @select.prevent
   >
     <component :is="icon" v-if="icon" :class="[menuIcon, 'mt-0']" aria-hidden="true" />

@@ -39,7 +39,8 @@ const step = computed(() => {
   const git = command && GIT_STEPS.find(([pattern]) => pattern.test(command))
   if (git) return { text: t(`gitActions.steps.${git[1]}`), name: null, command }
   const found = lastStep(items)
-  if (found) return { text: found.description ?? t(`chat.activity.doing.${found.doing}`), name: found.name, command: command || null }
+  // La description que l'agent donne à sa commande est en anglais : nos verbes, elle reste dans l'infobulle.
+  if (found) return { text: t(`chat.activity.doing.${found.doing}`), name: found.name, command: command || found.description || null }
   return { text: t('gitActions.steps.starting'), name: null, command: null }
 })
 
