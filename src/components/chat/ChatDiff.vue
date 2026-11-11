@@ -133,7 +133,7 @@ const columns = computed(() => (props.commentable ? 5 : 4))
                     @keydown="onKeydown"
                   />
                   <div class="flex justify-end gap-1.5">
-                    <UiButton size="xs" variant="ghost" @click="editing = null">{{ t('dock.changes.commentCancel') }}</UiButton>
+                    <UiButton size="xs" @click="editing = null">{{ t('dock.changes.commentCancel') }}</UiButton>
                     <UiButton size="xs" variant="primary" :disabled="!draft.trim()" @click="save">{{ t('dock.changes.commentAdd') }}</UiButton>
                   </div>
                 </div>

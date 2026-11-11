@@ -160,7 +160,7 @@ const field =
           <p v-if="error" class="mt-3 text-xs/relaxed text-danger select-text" role="alert">{{ error }}</p>
 
           <div class="mt-5 flex justify-end gap-2">
-            <UiButton variant="ghost" @click="open = false">{{ t('dialog.cancel') }}</UiButton>
+            <UiButton @click="open = false">{{ t('dialog.cancel') }}</UiButton>
             <UiButton type="submit" variant="primary" :disabled="!branch" :loading="saving">
               {{ t('settings.projects.worktrees.dialog.create') }}
             </UiButton>

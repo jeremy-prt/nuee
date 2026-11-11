@@ -39,7 +39,7 @@ function onOpenAutoFocus(event: Event) {
           <AlertDialogTitle class="text-[15px]/5 font-semibold">{{ dialog.request.title }}</AlertDialogTitle>
           <AlertDialogDescription class="mt-1.5 text-[13px]/[19px] text-muted">{{ dialog.request.message }}</AlertDialogDescription>
           <div class="mt-5 flex justify-end gap-2">
-            <UiButton variant="ghost" @click="dialog.answer(false)">{{ t('dialog.cancel') }}</UiButton>
+            <UiButton @click="dialog.answer(false)">{{ t('dialog.cancel') }}</UiButton>
             <!-- Comme monocode : une suppression se confirme sur un rouge plein, plus lisible que le rouge doux des réglages. -->
             <UiButton
               ref="confirmButton"

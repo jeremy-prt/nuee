@@ -137,7 +137,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
           <template v-if="store.dirty">{{ t('settings.skills.unsaved') }}</template>
           <template v-else-if="saved">{{ t('settings.skills.saved') }}</template>
         </p>
-        <UiButton size="sm" variant="ghost" @click="store.confirmClose(true)">{{ t('settings.skills.closeEditor') }}</UiButton>
+        <UiButton size="sm" @click="store.confirmClose(true)">{{ t('settings.skills.closeEditor') }}</UiButton>
         <UiButton size="sm" variant="primary" :loading="saving" :disabled="!store.dirty" @click="save()">
           {{ t('settings.skills.save') }}
           <kbd v-if="shortcuts.label('saveSkill')" class="font-sans opacity-60" aria-hidden="true">{{ shortcuts.label('saveSkill') }}</kbd>
