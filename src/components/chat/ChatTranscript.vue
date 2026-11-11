@@ -27,6 +27,8 @@ const props = defineProps<{
   parentId?: string | null
   // Le champ de saisie n'est pas vide : la proposition ne met plus de réponse en avant.
   typing?: boolean
+  // Session du pane qui a le focus.
+  active?: boolean
 }>()
 
 const firstUser = computed(() => props.items.findIndex((item) => item.kind === 'user'))
@@ -260,6 +262,7 @@ onMounted(() => {
           :proposal="row.proposal"
           :answerable="!running && row.index > lastUser"
           :typing="typing"
+          :active="active"
           @reply="emit('reply', $event)"
           @dismiss="dismissed = new Set([...dismissed, row.id])"
         />

@@ -11,14 +11,15 @@ import type { Proposal } from '@/utils/activity'
 // Proposition de fin de tour, comme l'app Claude : ce qui est fait, la décision qui reste, une ou deux réponses d'un
 // clic envoyées comme message. La première est mise en avant (⌘↵) tant que le champ est vide ; dès qu'on y écrit, les
 // deux redeviennent égales. `answerable` faux une fois la conversation repartie : la carte reste, sans boutons.
-const props = defineProps<{ proposal: Proposal; answerable: boolean; typing: boolean }>()
+// `active` : session du pane qui a le focus, la seule à répondre à ⌘↵ quand deux sont côte à côte.
+const props = defineProps<{ proposal: Proposal; answerable: boolean; typing: boolean; active: boolean }>()
 const emit = defineEmits<{ reply: [text: string]; dismiss: [] }>()
 
 const { t } = useI18n()
 const shortcuts = useShortcutsStore()
 
 function onKeydown(event: KeyboardEvent) {
-  if (!props.answerable || props.typing || event.defaultPrevented || !shortcuts.matches(event, 'approve')) return
+  if (!props.answerable || !props.active || props.typing || event.defaultPrevented || !shortcuts.matches(event, 'approve')) return
   event.preventDefault()
   event.stopPropagation()
   emit('reply', props.proposal.options[0]!)

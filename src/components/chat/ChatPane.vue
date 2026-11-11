@@ -263,6 +263,7 @@ onMounted(() => {
       @rewind="rewindTo"
       @resend="resend"
       :typing="!!drafts.get(tab.id)?.text.trim()"
+      :active="workspace.activeTabId === tab.id"
       @reply="send($event, [])"
     />
     <!-- Même en-tête que Nouvel espace de travail : titre, puis projet, machine et endroit juste au-dessus du champ. -->
