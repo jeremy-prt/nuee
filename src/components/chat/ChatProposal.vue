@@ -20,10 +20,12 @@ const shortcuts = useShortcutsStore()
 function onKeydown(event: KeyboardEvent) {
   if (!props.answerable || props.typing || event.defaultPrevented || !shortcuts.matches(event, 'approve')) return
   event.preventDefault()
+  event.stopPropagation()
   emit('reply', props.proposal.options[0]!)
 }
-onMounted(() => window.addEventListener('keydown', onKeydown))
-onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
+// En capture : le champ de saisie (vide) prendrait sinon ⌘↵ pour lui.
+onMounted(() => window.addEventListener('keydown', onKeydown, true))
+onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown, true))
 </script>
 
 <template>

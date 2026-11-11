@@ -88,7 +88,7 @@ function restore(value: Partial<Record<keyof Project, unknown>>): Project | null
     agent: typeof value.agent === 'string' && value.agent in agents ? (value.agent as AgentKind) : null,
     model: typeof value.model === 'string' ? value.model : null,
     effort: typeof value.effort === 'string' ? (value.effort as Effort) : null,
-      mode: isMode(value.mode) ? value.mode : null,
+    mode: isMode(value.mode) ? value.mode : null,
     muted: restoreMute(value.muted),
     group: typeof value.group === 'string' ? value.group : null,
     pinned: value.pinned === true,
