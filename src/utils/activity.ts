@@ -106,6 +106,26 @@ export const START_SESSION = 'mcp__nuee__start_session'
 // Plan de l'agent (outil `update_plan` du serveur `nuee`, la CLI n'ayant pas de TodoWrite en mode SDK).
 export const UPDATE_PLAN = 'mcp__nuee__update_plan'
 
+// Proposition de fin de tour (outil `propose_next`) : un résumé, une question, une ou deux réponses d'un clic.
+export const PROPOSE_NEXT = 'mcp__nuee__propose_next'
+export interface Proposal {
+  recap: string | null
+  question: string
+  options: string[]
+}
+
+export function proposalOf(item: ChatItem | undefined): Proposal | null {
+  if (item?.kind !== 'tool' || item.name !== PROPOSE_NEXT || !item.detail?.text) return null
+  try {
+    const value: { recap?: unknown; question?: unknown; options?: unknown } = JSON.parse(item.detail.text)
+    const options = Array.isArray(value.options) ? value.options.filter((option): option is string => typeof option === 'string' && !!option.trim()).slice(0, 2) : []
+    if (typeof value.question !== 'string' || !value.question.trim() || !options.length) return null
+    return { recap: typeof value.recap === 'string' && value.recap.trim() ? value.recap : null, question: value.question, options }
+  } catch {
+    return null
+  }
+}
+
 export type PlanStatus = 'pending' | 'in_progress' | 'completed'
 export interface PlanStep {
   content: string

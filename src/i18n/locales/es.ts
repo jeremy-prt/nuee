@@ -423,6 +423,7 @@ export default {
     },
   },
   chat: {
+    proposal: { label: "Siguiente paso propuesto" },
     plan: {
       title: "Plan",
       earlier: "Plan establecido antes del último mensaje",

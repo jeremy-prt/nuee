@@ -262,6 +262,7 @@ onMounted(() => {
       class="min-h-0 flex-1"
       @rewind="rewindTo"
       @resend="resend"
+      @reply="send($event, [])"
     />
     <!-- Même en-tête que Nouvel espace de travail : titre, puis projet, machine et endroit juste au-dessus du champ. -->
     <div v-else-if="loaded" class="flex flex-1 flex-col items-center justify-end px-6 pb-2">

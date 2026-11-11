@@ -423,6 +423,7 @@ export default {
     },
   },
   chat: {
+    proposal: { label: "建议的下一步" },
     plan: {
       title: "计划",
       earlier: "在最后一条消息之前制定的计划",

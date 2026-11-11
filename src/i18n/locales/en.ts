@@ -421,6 +421,7 @@ export default {
     },
   },
   chat: {
+    proposal: { label: "Suggested next step" },
     plan: {
       title: "Plan",
       earlier: "Plan made before the last message",

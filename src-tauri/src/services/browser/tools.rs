@@ -83,6 +83,16 @@ async fn run(
     args: &Value,
 ) -> Result<Vec<Value>, AppError> {
     // Rien à faire côté Rust : l'interface lit la liste dans l'appel lui-même et l'affiche en carte.
+    if name == "propose_next" {
+        let question = args["question"].as_str().unwrap_or_default().trim();
+        let options = args["options"].as_array().map_or(0, Vec::len);
+        if question.is_empty() || !(1..=2).contains(&options) {
+            return Err(fail("`question` et 1 ou 2 `options` attendus"));
+        }
+        return Ok(vec![text(
+            "Shown to the user. Their choice, if any, arrives as their next message: end your turn now.",
+        )]);
+    }
     if name == "update_plan" {
         let items = args["items"].as_array().map_or(0, Vec::len);
         if items == 0 {
@@ -1031,6 +1041,7 @@ fn instructions(cwd: &Path) -> String {
     let mut text = String::from(BROWSER_INSTRUCTIONS);
     text.push_str(SESSIONS_INSTRUCTIONS);
     text.push_str(PLAN_INSTRUCTIONS);
+    text.push_str(PROPOSE_INSTRUCTIONS);
     if server::auto_verify(cwd) {
         text.push_str(VERIFY_INSTRUCTIONS);
     }
@@ -1054,6 +1065,10 @@ never announce a launch, never quote a session id, never repeat or summarize a r
 const PLAN_INSTRUCTIONS: &str = "\n\nPlan: for any task of three steps or more, call update_plan first with the whole list (one step \
 in_progress), then again each time a step starts or ends, with the whole list. The user sees it as a live checklist: do not also \
 write the plan as a list in your reply.";
+
+const PROPOSE_INSTRUCTIONS: &str = "\n\nNext step: when a turn ends with a real decision for the user (a choice of approach, a go-ahead \
+to apply, commit or publish), call propose_next last with a short recap, the question and one or two replies, then end the turn. \
+Never for a plain answer, never every turn, and do not repeat the question in your reply.";
 
 const VERIFY_INSTRUCTIONS: &str = "\n\nWhen to verify: once the project has a dev server in .claude/launch.json (preview_list shows it), after editing code \
 whose result the browser can show (something the dev server renders, serves or logs), verify it yourself before you reply and share proof; \
@@ -1083,6 +1098,22 @@ fn tool_list() -> Vec<Value> {
                 },
             }),
             &["items"],
+        ),
+        tool(
+            "propose_next",
+            "At the end of a turn that leaves the user a decision, show it as a card with one-click answers. Call it last, then end the turn.",
+            json!({
+                "recap": { "type": "string", "description": "What is now true, in one or two short sentences, in the user's language." },
+                "question": { "type": "string", "description": "The one decision left to the user, short, in the user's language." },
+                "options": {
+                    "type": "array",
+                    "items": { "type": "string", "description": "A reply of 1 to 4 words, written as the user would say it." },
+                    "minItems": 1,
+                    "maxItems": 2,
+                    "description": "Your recommended answer first.",
+                },
+            }),
+            &["question", "options"],
         ),
         tool(
             "list_sessions",

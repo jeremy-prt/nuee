@@ -8,6 +8,7 @@ import UiSelect from '@/components/ui/UiSelect.vue'
 import { useResetToast } from '@/composables/useResetToast'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { Effort } from '@/ipc/bindings/Effort'
+import type { PermissionMode } from '@/ipc/bindings/PermissionMode'
 import { useCatalogStore } from '@/stores/catalog'
 import { type MuteKind, useProjectsStore } from '@/stores/projects'
 import { agents } from '@/utils/agents'
@@ -56,11 +57,18 @@ const effort = computed({
   get: () => resolved.value.effort ?? '',
   set: (value: string) => project.value && (project.value.effort = value as Effort),
 })
-const chosen = computed(() => !!project.value && (project.value.agent !== null || project.value.model !== null || project.value.effort !== null))
+const modeOptions = (['bypass', 'auto', 'ask'] as const).map((value) => ({ value, label: t(`composer.mode.${value}`) }))
+const mode = computed({
+  get: () => resolved.value.mode,
+  set: (value: PermissionMode) => project.value && (project.value.mode = value),
+})
+const chosen = computed(
+  () => !!project.value && (project.value.agent !== null || project.value.model !== null || project.value.effort !== null || project.value.mode !== null),
+)
 
 function resetDefaults(event: MouseEvent) {
   if (!project.value) return
-  Object.assign(project.value, { agent: null, model: null, effort: null })
+  Object.assign(project.value, { agent: null, model: null, effort: null, mode: null })
   resetToast('section')
   // Le bouton disparaît avec ce qu'il rétablissait.
   if (event.detail === 0) document.querySelector<HTMLElement>('[data-setting="project-agent"] button')?.focus()
@@ -96,6 +104,9 @@ const muteHint = computed(() => {
     </SettingsRow>
     <SettingsRow v-if="effortOptions.length" data-setting="project-effort" :label="t('settings.projects.effort')">
       <UiSelect v-model="effort" :label="t('settings.projects.effort')" :options="effortOptions" />
+    </SettingsRow>
+    <SettingsRow data-setting="project-mode" :label="t('composer.mode.label')">
+      <UiSelect v-model="mode" :label="t('composer.mode.label')" :options="modeOptions" />
     </SettingsRow>
   </SettingsGroup>
 

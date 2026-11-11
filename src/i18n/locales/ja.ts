@@ -423,6 +423,7 @@ export default {
     },
   },
   chat: {
+    proposal: { label: "次の提案" },
     plan: {
       title: "プラン",
       earlier: "最後のメッセージより前に立てたプラン",

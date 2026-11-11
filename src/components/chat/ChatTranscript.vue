@@ -5,12 +5,13 @@ import { useI18n } from 'vue-i18n'
 import ChatActivity from '@/components/chat/ChatActivity.vue'
 import ChatMessage from '@/components/chat/ChatMessage.vue'
 import ChatPlan from '@/components/chat/ChatPlan.vue'
+import ChatProposal from '@/components/chat/ChatProposal.vue'
 import ChatSpinner from '@/components/chat/ChatSpinner.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import { type ChatItem, lastTurnIndex } from '@/stores/conversations'
 import { useLayoutStore } from '@/stores/layout'
-import { type ActivityItem, type PlanStep, planOf, START_SESSION, UPDATE_PLAN } from '@/utils/activity'
+import { type ActivityItem, type PlanStep, planOf, PROPOSE_NEXT, type Proposal, proposalOf, START_SESSION, UPDATE_PLAN } from '@/utils/activity'
 import { tasksOf } from '@/utils/tasks'
 import { turnText } from '@/utils/transcript'
 
@@ -36,7 +37,7 @@ const fromSession = (item: ChatItem, index: number) => {
   return shown.kind === 'user' && !!shown.from
 }
 
-const emit = defineEmits<{ rewind: [itemId: string]; resend: [] }>()
+const emit = defineEmits<{ rewind: [itemId: string]; resend: []; reply: [text: string] }>()
 
 const { t } = useI18n()
 const layout = useLayoutStore()
@@ -67,6 +68,7 @@ type Row =
   | { kind: 'item'; item: ChatItem; index: number; end?: { item: ChatItem; index: number } }
   | { kind: 'activity'; id: string; items: ActivityItem[]; index: number }
   | { kind: 'plan'; id: string; steps: PlanStep[]; earlier: boolean }
+  | { kind: 'proposal'; id: string; proposal: Proposal; index: number }
 
 // Dernier plan de l'agent, comme l'app Claude : il se tient en bas du fil, au-dessus de la ligne d'activité, pendant
 // son tour (même fini) ; d'un tour précédent, seulement tant qu'il lui reste une étape et qu'un tour tourne. Sinon il
@@ -91,6 +93,14 @@ const rows = computed(() => {
   shown.value.forEach((item, offset) => {
     // Question qui attend sa réponse : sa carte est au-dessus du champ, sa ligne ferait doublon.
     if (item.kind === 'tool' && item.tool === 'question' && !item.answers && item.status === 'running') return
+    if (item.kind === 'tool' && item.name === PROPOSE_NEXT) {
+      const proposal = proposalOf(item)
+      if (proposal) {
+        close(start.value + offset)
+        out.push({ kind: 'proposal', id: item.id, proposal, index: start.value + offset })
+      }
+      return
+    }
     if (item.kind === 'tool' && item.name === UPDATE_PLAN) {
       if (plan.value && !plan.value.pinned && item.id === plan.value.id) {
         close(start.value + offset)
@@ -115,13 +125,18 @@ const rows = computed(() => {
     const live = props.running && out.at(-1)?.kind === 'activity'
     out.splice(live ? out.length - 1 : out.length, 0, row)
   }
+  // La proposition du dernier tour ferme le fil, sous le plan et la réponse : c'est la suite qu'elle propose.
+  let at = out.length - 1
+  while (at >= 0 && out[at]?.kind !== 'proposal') at--
+  const last = out[at]
+  if (last?.kind === 'proposal' && last.index > lastUser.value && at < out.length - 1) out.push(...out.splice(at, 1))
   return out
 })
 // Les appels au plan, sautés dans le fil, ne séparent pas un texte de sa fin de tour.
 function onlyPlansBetween(from: number, to: number) {
   for (let index = from + 1; index < to; index++) {
     const item = props.items[index]
-    if (item?.kind !== 'tool' || item.name !== UPDATE_PLAN) return false
+    if (item?.kind !== 'tool' || (item.name !== UPDATE_PLAN && item.name !== PROPOSE_NEXT)) return false
   }
   return true
 }
@@ -236,7 +251,8 @@ onMounted(() => {
           'group/answer flex flex-col gap-3': row.kind === 'item' && (!!row.end || row.item.kind === 'end'),
         }"
       >
-        <ChatPlan v-if="row.kind === 'plan'" :steps="row.steps" :earlier="row.earlier" :live="running" :paused="clock?.pausedAt != null" />
+        <ChatProposal v-if="row.kind === 'proposal'" :proposal="row.proposal" :answerable="!running && row.index > lastUser" @reply="emit('reply', $event)" />
+        <ChatPlan v-else-if="row.kind === 'plan'" :steps="row.steps" :earlier="row.earlier" :live="running" :paused="clock?.pausedAt != null" />
         <ChatActivity
           v-else-if="row.kind === 'activity'"
           :items="row.items"

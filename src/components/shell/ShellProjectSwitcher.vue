@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronRight, ChevronsUpDown, NoProject, Plus, Search, Settings, SlidersHorizontal } from '@/components/ui/icons'
+import { ChevronsUpDown, NoProject, Plus, Search, Settings } from '@/components/ui/icons'
 import {
   DropdownMenuContent,
   DropdownMenuPortal,
@@ -14,7 +14,7 @@ import {
   PopoverRoot,
   PopoverTrigger,
 } from 'reka-ui'
-import { computed, nextTick, onBeforeUnmount, ref, toRef, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, ref, toRef, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ProjectIcon from '@/components/project/ProjectIcon.vue'
 import NoProjectMenu from '@/components/project/NoProjectMenu.vue'
@@ -64,40 +64,6 @@ async function addProject() {
   if (project) navigation.openChats(project.id)
 }
 
-// « Réglages rapides » s'ouvre au survol comme un sous-menu ; le délai de fermeture laisse le temps de rejoindre
-// le menu. Ouvert à la souris, il ne prend pas le focus (le champ de recherche le garde).
-const quickOpen = ref(false)
-let quickByPointer = false
-let quickTimer: ReturnType<typeof setTimeout> | undefined
-
-function hoverQuick(inside: boolean) {
-  clearTimeout(quickTimer)
-  quickTimer = setTimeout(
-    () => {
-      if (inside) quickByPointer = true
-      quickOpen.value = inside
-    },
-    inside ? 80 : 250,
-  )
-}
-
-// Un clic sur l'entrée déjà ouverte au survol ne doit pas la refermer.
-function keepQuickOpen(event: MouseEvent) {
-  if (quickOpen.value) event.preventDefault()
-}
-
-// reka rend le focus à la page, pas à l'entrée, quand on referme au clavier (Échap) : on l'y remet.
-const quickTrigger = useTemplateRef<{ $el: HTMLElement }>('quickTrigger')
-function onQuickCloseFocus(event: Event) {
-  event.preventDefault()
-  if (!quickByPointer) quickTrigger.value?.$el.focus()
-}
-
-function openQuickByKeyboard() {
-  quickByPointer = false
-  quickOpen.value = true
-}
-
 // Une seule ligne à la fois a son menu ouvert (clé de `rows`), ancré sur sa roue.
 const rowMenu = ref<string | null>(null)
 const rowRenaming = ref<string | null>(null)
@@ -110,8 +76,6 @@ function toggleRowMenu(key: string, value: boolean) {
 watch(open, (value) => {
   if (value) return
   query.value = ''
-  clearTimeout(quickTimer)
-  quickOpen.value = false
   rowMenu.value = null
   rowRenaming.value = null
 })
@@ -159,7 +123,6 @@ function onTriggerKeydown(event: KeyboardEvent) {
   event.stopPropagation()
   startRename()
 }
-onBeforeUnmount(() => clearTimeout(quickTimer))
 
 // Toutes les lignes à 32 px, contenu centré : la roue des projets les rendait plus hautes que « Sans projet »,
 // et `items-start` de menuRow remontait leur icône.
@@ -288,37 +251,6 @@ const row = [menuRow.replace('items-start', 'items-center'), 'h-8']
               </ListboxContent>
             </ListboxRoot>
             <div class="flex flex-col gap-0.5 border-t border-stroke p-1.5">
-              <DropdownMenuRoot v-model:open="quickOpen" :modal="false">
-                <DropdownMenuTrigger
-                  ref="quickTrigger"
-                  @pointerenter="hoverQuick(true)"
-                  @pointerleave="hoverQuick(false)"
-                  @click.capture="keepQuickOpen"
-                  @keydown="quickByPointer = false"
-                  @keydown.right.prevent="openQuickByKeyboard"
-                  class="flex h-8 w-full items-center gap-2.5 rounded-lg ps-2 pe-1.5 text-[13px] outline-none hover:bg-selection-hover focus-visible:bg-selection-hover aria-expanded:bg-selection-hover"
-                >
-                  <SlidersHorizontal class="size-4 shrink-0 text-muted" aria-hidden="true" />
-                  <span class="min-w-0 flex-1 truncate text-start">{{ t('rail.quickSettings') }}</span>
-                  <ChevronRight class="size-3.5 shrink-0 text-muted rtl:rotate-180" aria-hidden="true" />
-                </DropdownMenuTrigger>
-                <DropdownMenuPortal>
-                  <DropdownMenuContent
-                    side="right"
-                    align="start"
-                    :side-offset="10"
-                    :collision-padding="8"
-                    :class="[menuPanel, 'max-h-(--reka-dropdown-menu-content-available-height) max-w-72 min-w-52']"
-                    @pointerenter="hoverQuick(true)"
-                    @pointerleave="hoverQuick(false)"
-                    @open-auto-focus="quickByPointer && $event.preventDefault()"
-                    @close-auto-focus="onQuickCloseFocus"
-                  >
-                    <ProjectMenu v-if="current" :project="current" @rename="startRename" />
-                    <NoProjectMenu v-else />
-                  </DropdownMenuContent>
-                </DropdownMenuPortal>
-              </DropdownMenuRoot>
               <button
                 type="button"
                 class="flex h-8 w-full items-center gap-2.5 rounded-lg px-2 text-[13px] outline-none hover:bg-selection-hover focus-visible:bg-selection-hover"

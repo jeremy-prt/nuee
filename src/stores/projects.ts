@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, reactive, ref, watch } from 'vue'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { Effort } from '@/ipc/bindings/Effort'
+import type { PermissionMode } from '@/ipc/bindings/PermissionMode'
 import type { ProjectIcons } from '@/ipc/bindings/ProjectIcons'
 import type { TurnOptions } from '@/ipc/bindings/TurnOptions'
 import type { WorktreeSupport } from '@/ipc/bindings/WorktreeSupport'
@@ -43,6 +44,7 @@ export interface Project {
   agent: AgentKind | null
   model: string | null
   effort: Effort | null
+  mode: PermissionMode | null
   muted: Mute | null
   // Groupe de la barre latérale ; null : dans la liste hors groupe.
   group: string | null
@@ -86,6 +88,7 @@ function restore(value: Partial<Record<keyof Project, unknown>>): Project | null
     agent: typeof value.agent === 'string' && value.agent in agents ? (value.agent as AgentKind) : null,
     model: typeof value.model === 'string' ? value.model : null,
     effort: typeof value.effort === 'string' ? (value.effort as Effort) : null,
+      mode: isMode(value.mode) ? value.mode : null,
     muted: restoreMute(value.muted),
     group: typeof value.group === 'string' ? value.group : null,
     pinned: value.pinned === true,
@@ -119,7 +122,9 @@ function restoreMute(value: unknown): Mute | null {
 }
 
 // Réglages des sessions de « Sans projet », qui n'est pas un projet : ceux d'un projet qui ont un sens sans dossier.
-export type ContextSettings = Pick<Project, 'agent' | 'model' | 'effort' | 'muted'>
+export type ContextSettings = Pick<Project, 'agent' | 'model' | 'effort' | 'mode' | 'muted'>
+const isMode = (value: unknown): value is PermissionMode => value === 'bypass' || value === 'auto' || value === 'ask'
+
 const COMPUTER_KEY = 'nuee.computer.v1'
 
 function loadComputer(): ContextSettings {
@@ -129,10 +134,11 @@ function loadComputer(): ContextSettings {
       agent: typeof value.agent === 'string' && value.agent in agents ? (value.agent as AgentKind) : null,
       model: typeof value.model === 'string' ? value.model : null,
       effort: typeof value.effort === 'string' ? (value.effort as Effort) : null,
+      mode: isMode(value.mode) ? value.mode : null,
       muted: restoreMute(value.muted),
     }
   } catch {
-    return { agent: null, model: null, effort: null, muted: null }
+    return { agent: null, model: null, effort: null, mode: null, muted: null }
   }
 }
 
@@ -227,6 +233,7 @@ export const useProjectsStore = defineStore('projects', () => {
       agent: null,
       model: null,
       effort: null,
+      mode: null,
       muted: null,
       group: null,
       pinned: false,
@@ -364,7 +371,7 @@ export const useProjectsStore = defineStore('projects', () => {
     const options = agentSettings.chatDefaults(agent)
     const project = settingsOf(projectId)
     if (!project || chatAgent(projectId) !== agent) return options
-    return { ...options, model: project.model ?? options.model, effort: project.effort ?? options.effort }
+    return { ...options, model: project.model ?? options.model, effort: project.effort ?? options.effort, mode: project.mode ?? options.mode }
   }
 
   return {

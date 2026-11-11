@@ -1139,6 +1139,8 @@ fn detail_of(name: &str, input: &Value) -> Option<ToolDetail> {
         "mcp__nuee__start_session" => (field("prompt"), field("title")),
         // Carte « Plan » : la liste entière, jamais tronquée, que l'interface relit.
         "mcp__nuee__update_plan" => (Some(input["items"].to_string()), None),
+        // Carte de proposition : relue en entier par l'interface.
+        "mcp__nuee__propose_next" => (Some(input.to_string()), None),
         _ => match input.as_object() {
             Some(fields) if !fields.is_empty() => (
                 serde_json::to_string_pretty(input)
