@@ -1007,6 +1007,7 @@ export default {
       serversError: 'Lecture des serveurs MCP impossible. {error}',
       noSkills: 'Aucun skill pour l\'instant.',
       noServers: 'Aucun serveur MCP configuré.',
+      notLinked: "Non connecté ({n}) | Non connectés ({n})",
       noMatch: 'Rien ne correspond à ce filtre.',
       behavior: 'Comportement',
       enabled: 'Activé',

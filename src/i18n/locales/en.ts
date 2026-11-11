@@ -1005,6 +1005,7 @@ export default {
       serversError: 'Could not read the MCP servers. {error}',
       noSkills: 'No skills yet.',
       noServers: 'No MCP server configured.',
+      notLinked: "Not connected ({n})",
       noMatch: 'Nothing matches this filter.',
       behavior: 'Behavior',
       enabled: 'On',

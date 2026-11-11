@@ -36,6 +36,12 @@ const configured = computed(() => store.servers.filter((server) => !server.conne
 const accountConnectors = computed(() => store.servers.filter((server) => server.connector))
 const servers = computed(() => configured.value.filter((server) => matches(server.name, server.target)))
 const connectors = computed(() => accountConnectors.value.filter((server) => matches(server.name, server.target)))
+// Les connecteurs jamais autorisés pour l'agent (souvent la plupart de ceux du compte) restent repliés en bas : on ne
+// voit d'abord que ceux qui servent (demande de Jérémy). Une recherche les montre tous.
+const linked = computed(() => connectors.value.filter((server) => server.status === 'connected' || server.status === 'pending'))
+const unlinked = computed(() => connectors.value.filter((server) => !linked.value.includes(server)))
+const unlinkedOpen = ref(false)
+const showUnlinked = computed(() => unlinkedOpen.value || !!needle.value)
 
 const groups = computed(() => [
   { kind: 'skills' as Group, title: t('settings.skills.skills'), total: store.skills.length, on: store.skills.filter(on).length },
@@ -215,7 +221,21 @@ function onFilterKeydown(event: KeyboardEvent) {
 
             <template v-else-if="group.kind === 'connectors'">
               <p v-if="!connectors.length" class="px-4 py-3 text-xs text-muted">{{ t('settings.skills.noMatch') }}</p>
-              <SettingsMcpRow v-for="server in connectors" :key="server.name" :server="server" />
+              <SettingsMcpRow v-for="server in linked" :key="server.name" :server="server" />
+              <button
+                v-if="unlinked.length && !needle"
+                type="button"
+                class="flex w-full items-center gap-2 px-4 py-3 text-start text-xs text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+                :class="{ 'border-t border-stroke': linked.length }"
+                :aria-expanded="unlinkedOpen"
+                @click="unlinkedOpen = !unlinkedOpen"
+              >
+                <ChevronRight class="size-3.5 shrink-0 transition-transform duration-(--motion-quick) motion-reduce:transition-none" :class="{ 'rotate-90': unlinkedOpen }" aria-hidden="true" />
+                {{ t('settings.skills.notLinked', { n: unlinked.length }, unlinked.length) }}
+              </button>
+              <template v-if="showUnlinked">
+                <SettingsMcpRow v-for="server in unlinked" :key="server.name" :server="server" />
+              </template>
             </template>
 
             <template v-else>

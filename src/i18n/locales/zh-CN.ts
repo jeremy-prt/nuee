@@ -1007,6 +1007,7 @@ export default {
       serversError: '无法读取 MCP 服务器。{error}',
       noSkills: '还没有技能。',
       noServers: '没有配置 MCP 服务器。',
+      notLinked: "未连接（{n}）",
       noMatch: '没有符合此筛选条件的内容。',
       behavior: '行为',
       enabled: '开启',

@@ -1007,6 +1007,7 @@ export default {
       serversError: 'MCP サーバーを読み込めませんでした。{error}',
       noSkills: 'まだスキルがありません。',
       noServers: 'MCP サーバーが設定されていません。',
+      notLinked: "未接続（{n}）",
       noMatch: 'この条件に一致するものはありません。',
       behavior: '動作',
       enabled: 'オン',
