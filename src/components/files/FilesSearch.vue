@@ -3,6 +3,7 @@ import { CaseSensitive, ChevronLeft, File as FileGlyph, LoaderCircle, Regex, Sea
 import { computed, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import FilesIcon from '@/components/files/FilesIcon.vue'
+import ShellDockToolbar from '@/components/shell/ShellDockToolbar.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { useDebounced } from '@/composables/useDebounced'
 import type { FilesPlace } from '@/ipc/bindings/FilesPlace'
@@ -148,14 +149,14 @@ const row = 'flex w-full min-w-0 items-center gap-1.5 rounded-md px-2 text-start
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col">
-    <div class="flex h-9 shrink-0 items-center gap-1 border-b border-stroke px-2">
-      <UiTooltip :label="t('dock.files.backToFiles')" side="bottom">
+    <ShellDockToolbar :label="t('dock.files.searchTitle')">
+      <UiTooltip :label="t('dock.files.backToFiles')">
         <button type="button" :class="toggle" :aria-label="t('dock.files.backToFiles')" @click="emit('close')">
           <ChevronLeft class="size-3.5" aria-hidden="true" />
         </button>
       </UiTooltip>
-      <h3 class="min-w-0 truncate text-xs font-medium">{{ t('dock.files.searchTitle') }}</h3>
-    </div>
+      <h3 class="ms-0.5 min-w-0 truncate text-xs font-medium">{{ t('dock.files.searchTitle') }}</h3>
+    </ShellDockToolbar>
     <div class="p-2">
       <label data-control class="mb-2 flex h-8 items-center gap-1.5 rounded-md border border-stroke bg-selection/50 ps-2 pe-1 focus-within:border-stroke-focus">
         <FileGlyph class="size-3.5 shrink-0 text-muted" aria-hidden="true" />

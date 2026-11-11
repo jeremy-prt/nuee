@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import FilesEditorPane from '@/components/files/FilesEditorPane.vue'
 import FilesSearch from '@/components/files/FilesSearch.vue'
 import FilesTree from '@/components/files/FilesTree.vue'
+import ShellDockToolbar from '@/components/shell/ShellDockToolbar.vue'
 import ShellResizeHandle from '@/components/shell/ShellResizeHandle.vue'
 import UiEmpty from '@/components/ui/UiEmpty.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
@@ -194,30 +195,28 @@ const bar = 'flex h-6 flex-1 items-center justify-center rounded-md text-muted h
     >
       <FilesSearch v-if="browse.searching" :place="place" @close="browse.searching = false" />
       <template v-else>
-        <!-- Infobulles en dessous : au-dessus, elles couvraient la barre de titre et ses onglets, et clignotaient au
-             passage du pointeur entre le bouton, l'infobulle et la poignée voisine. -->
-        <div class="flex h-9 shrink-0 items-center gap-1 border-b border-stroke px-2" role="toolbar" :aria-label="t('dock.files.title')">
-          <UiTooltip :label="t('dock.files.newFile')" side="bottom">
+        <ShellDockToolbar :label="t('dock.files.title')">
+          <UiTooltip :label="t('dock.files.newFile')">
             <button type="button" :class="bar" :aria-label="t('dock.files.newFile')" :disabled="!root || !!failure" @mousedown.prevent @click="create(false)">
               <FilePlus class="size-3.5" aria-hidden="true" />
             </button>
           </UiTooltip>
-          <UiTooltip :label="t('dock.files.newFolder')" side="bottom">
+          <UiTooltip :label="t('dock.files.newFolder')">
             <button type="button" :class="bar" :aria-label="t('dock.files.newFolder')" :disabled="!root || !!failure" @mousedown.prevent @click="create(true)">
               <FolderPlus class="size-3.5" aria-hidden="true" />
             </button>
           </UiTooltip>
-          <UiTooltip :label="t('dock.files.collapse')" side="bottom">
+          <UiTooltip :label="t('dock.files.collapse')">
             <button type="button" :class="bar" :aria-label="t('dock.files.collapse')" :disabled="!browse.expanded.size || !!failure" @mousedown.prevent @click="browse.expanded.clear()">
               <CollapseAll class="size-3.5" aria-hidden="true" />
             </button>
           </UiTooltip>
-          <UiTooltip :label="t('dock.files.search')" side="bottom">
+          <UiTooltip :label="t('dock.files.search')">
             <button type="button" :class="bar" :aria-label="t('dock.files.search')" :disabled="!root || !!failure" @click="browse.searching = true">
               <Search class="size-3.5" aria-hidden="true" />
             </button>
           </UiTooltip>
-        </div>
+        </ShellDockToolbar>
         <UiEmpty
           v-if="failure"
           :icon="failure.missing ? FolderX : CircleAlert"

@@ -4,6 +4,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import BrowserMenu from '@/components/browser/BrowserMenu.vue'
 import ServerMenu from '@/components/server/ServerMenu.vue'
+import ShellDockToolbar from '@/components/shell/ShellDockToolbar.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import type { BrowserTab } from '@/ipc/bindings/BrowserTab'
 import { useBrowserStore } from '@/stores/browser'
@@ -11,7 +12,7 @@ import { useConversationsStore } from '@/stores/conversations'
 import { agents } from '@/utils/agents'
 
 // Précédent, suivant, recharger, l'adresse de l'onglet (sans onglet, l'adresse tapée en ouvre un), puis les serveurs du
-// projet et le menu du navigateur. Pas de bordure : la barre se fond dans le panneau, comme dans T3 Code.
+// projet et le menu du navigateur. Infobulles au-dessus : la page native, posée par-dessus Nuée, cacherait celles du bas.
 const props = defineProps<{ chatId: string; tab: BrowserTab | null }>()
 
 const { t } = useI18n()
@@ -58,7 +59,7 @@ function reload() {
 </script>
 
 <template>
-  <div class="flex h-10 shrink-0 items-center gap-0.5 ps-2 pe-2">
+  <ShellDockToolbar :label="t('dock.browser.title')" tooltip-side="top">
     <UiIconButton :label="t('dock.browser.back')" :disabled="!tab?.canBack" @click="tab && browser.history(tab.id, 'back')">
       <ChevronLeft class="size-4 rtl:rotate-180" aria-hidden="true" />
     </UiIconButton>
@@ -98,7 +99,9 @@ function reload() {
       <span class="truncate">{{ action }}</span>
       <span class="sr-only">{{ agentName }}</span>
     </span>
-    <ServerMenu />
-    <BrowserMenu />
-  </div>
+    <template #end>
+      <ServerMenu />
+      <BrowserMenu />
+    </template>
+  </ShellDockToolbar>
 </template>

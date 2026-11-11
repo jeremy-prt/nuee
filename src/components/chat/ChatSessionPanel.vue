@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Bot, ChevronRight, Coffee, Folder, FolderOpen, FolderTree, GitBranch, Layers, NoProject, RemoteControl, Square, SquareTerminal, X } from '@/components/ui/icons'
+import { Bot, ChevronRight, Coffee, ExternalLink, Folder, FolderOpen, FolderTree, GitBranch, Layers, NoProject, RemoteControl, Square, SquareTerminal, X } from '@/components/ui/icons'
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatDiffStat from '@/components/chat/ChatDiffStat.vue'
@@ -16,9 +16,11 @@ import { useProgressiveList } from '@/composables/useProgressiveList'
 import { useTerminalChat } from '@/composables/useTerminalChat'
 import { isAppError } from '@/ipc/agent'
 import type { WorktreeChanges } from '@/ipc/bindings/WorktreeChanges'
+import { filesOpenEditor } from '@/ipc/files'
 import { projectReveal } from '@/ipc/project'
 import { worktreeChanges } from '@/ipc/worktree'
 import { type TaskState, type ToolItem, useConversationsStore } from '@/stores/conversations'
+import { useFilesStore } from '@/stores/files'
 import { useGeneralStore } from '@/stores/general'
 import { useLayoutStore } from '@/stores/layout'
 import { useProjectsStore } from '@/stores/projects'
@@ -44,6 +46,8 @@ const machine = useMachineName()
 const layout = useLayoutStore()
 const general = useGeneralStore()
 const skills = useSkillsStore()
+const files = useFilesStore()
+files.loadEditors()
 
 // Sections repliées, mémorisées en local : simple confort, rien de grave si la lecture échoue.
 const COLLAPSED_KEY = 'nuee.sessionPanel.v3'
@@ -185,6 +189,19 @@ async function reveal() {
   }
 }
 
+// Le premier éditeur détecté, dans l'ordre du menu « Ouvrir avec » de l'Explorateur.
+const editor = computed(() => files.editors?.[0] ?? null)
+async function openEditor() {
+  const tab = chat.value
+  const app = editor.value
+  if (!tab || !app || !project.value) return
+  try {
+    await filesOpenEditor({ chatId: tab.id, path: project.value.path, worktree: tab.worktree ? tab.worktreePath : null }, '', app.id)
+  } catch (error) {
+    toasts.push({ kind: 'error', title: t('dock.files.openFailed', { editor: app.name }), body: isAppError(error) ? error.message : String(error) })
+  }
+}
+
 const row = 'flex h-8 w-full min-w-0 items-center gap-2.5 rounded-lg px-2 text-start text-[13px]'
 const action = `${row} hover:bg-selection-hover focus-visible:outline-2 focus-visible:outline-ring`
 const title = 'flex h-7 w-full items-center gap-1 rounded-lg px-2 text-start text-xs font-medium text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-ring'
@@ -208,9 +225,16 @@ const empty = `${row} text-muted`
         <div v-if="folder" :class="row">
           <ProjectIcon v-if="project" :project="project" class="size-4 shrink-0 rounded-sm" />
           <span class="min-w-0 flex-1 truncate">{{ project?.name }}</span>
-          <UiIconButton :label="t('settings.projects.reveal')" class="-me-1.5" @click="reveal">
-            <FolderOpen class="size-3.5" aria-hidden="true" />
-          </UiIconButton>
+          <span class="-me-1.5 flex">
+            <UiIconButton v-if="editor" :label="t('dock.session.openIn', { editor: editor.name })" @click="openEditor">
+              <img v-if="editor.icon" :src="editor.icon" alt="" draggable="false" class="size-4" />
+              <ExternalLink v-else class="size-3.5" aria-hidden="true" />
+            </UiIconButton>
+            <UiIconButton :label="t('settings.projects.reveal')" @click="reveal">
+              <img v-if="files.finderIcon" :src="files.finderIcon" alt="" draggable="false" class="size-4" />
+              <FolderOpen v-else class="size-3.5" aria-hidden="true" />
+            </UiIconButton>
+          </span>
         </div>
         <p v-else :class="row">
           <ProjectIcon v-if="project" :project="project" class="size-4 shrink-0 rounded-sm" />

@@ -42,7 +42,6 @@ import FilesImage from '@/components/files/FilesImage.vue'
 import FilesMenu from '@/components/files/FilesMenu.vue'
 import UiEmpty from '@/components/ui/UiEmpty.vue'
 import UiMoreMenu from '@/components/ui/UiMoreMenu.vue'
-import UiSegmented from '@/components/ui/UiSegmented.vue'
 import { isAppError } from '@/ipc/agent'
 import type { FileContent } from '@/ipc/bindings/FileContent'
 import type { FilesPlace } from '@/ipc/bindings/FilesPlace'
@@ -288,10 +287,6 @@ const state = computed(() => {
   return ''
 })
 
-const views = computed(() => [
-  { value: 'preview' as const, label: t('dock.files.preview') },
-  { value: 'source' as const, label: t('dock.files.source') },
-])
 const crumb = 'min-w-0 truncate rounded px-0.5 hover:text-content focus-visible:outline-2 focus-visible:outline-ring'
 </script>
 
@@ -322,7 +317,6 @@ const crumb = 'min-w-0 truncate rounded px-0.5 hover:text-content focus-visible:
         <button type="button" class="shrink-0 text-content underline-offset-2 hover:underline" @click="takeDisk">{{ t('dock.files.takeDisk') }}</button>
       </template>
       <span v-else-if="text" class="max-w-40 shrink-0 truncate text-[11px]" :class="{ 'text-danger': saveError }" :title="saveError || undefined" aria-live="polite">{{ state }}</span>
-      <UiSegmented v-if="previewable" :model-value="store.view" :options="views" :label="t('dock.files.view')" @update:model-value="store.setView" />
       <UiMoreMenu :label="t('dock.files.actions')" tooltip-side="bottom">
         <FilesMenu :place="place" :root="root" :target="{ path: file, folder: false }" />
       </UiMoreMenu>

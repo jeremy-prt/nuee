@@ -45,6 +45,10 @@ export function filesEditors() {
   return invoke<EditorApp[]>('files_editors')
 }
 
+export function filesFinderIcon() {
+  return invoke<string | null>('files_finder_icon')
+}
+
 export function filesOpenEditor(place: FilesPlace, file: string, editor: Editor) {
   return invoke<void>('files_open_editor', { place, file, editor })
 }

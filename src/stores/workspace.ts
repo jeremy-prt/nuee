@@ -246,8 +246,6 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (!shown && latest && isRecent(latest.id)) return show(latest.id)
     const blank = blankChat()
     show(blank.id)
-    // Comme une nouvelle session : le panneau de droite s'ouvrira au premier message.
-    useLayoutStore().right.open = false
   }
 
   // Session vierge du contexte, reprise plutôt que doublée : celle de « Nouvel espace de travail » sert ensuite ici.

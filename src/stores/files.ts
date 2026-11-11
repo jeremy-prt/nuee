@@ -3,7 +3,7 @@ import { reactive, ref } from 'vue'
 import type { DirEntry } from '@/ipc/bindings/DirEntry'
 import type { EditorApp } from '@/ipc/bindings/EditorApp'
 import type { GitMark } from '@/ipc/bindings/GitMark'
-import { filesEditors } from '@/ipc/files'
+import { filesEditors, filesFinderIcon } from '@/ipc/files'
 
 // Fichier ou dossier visé par un menu ; le dossier de la session a le chemin vide.
 export interface FileTarget {
@@ -168,6 +168,7 @@ export const useFilesStore = defineStore('files', () => {
 
   // Lus une fois : un éditeur installé pendant que l'app tourne apparaît au prochain lancement.
   const editors = ref<EditorApp[] | null>(null)
+  const finderIcon = ref<string | null>(null)
   async function loadEditors() {
     if (editors.value) return editors.value
     try {
@@ -175,8 +176,10 @@ export const useFilesStore = defineStore('files', () => {
     } catch {
       editors.value = []
     }
+    // Après les éditeurs : les deux lectures d'icône passent par le même fichier temporaire.
+    finderIcon.value = await filesFinderIcon().catch(() => null)
     return editors.value
   }
 
-  return { of, editing, openFile, pin, closeFile, moved, view, setView, explorerWidth, setExplorerWidth, explorerShown, wantsFocus, requestFocus, clipboard, editors, loadEditors }
+  return { of, editing, openFile, pin, closeFile, moved, view, setView, explorerWidth, setExplorerWidth, explorerShown, wantsFocus, requestFocus, clipboard, editors, finderIcon, loadEditors }
 })

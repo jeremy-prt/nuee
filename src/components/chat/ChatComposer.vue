@@ -306,7 +306,7 @@ function onKeydown(event: KeyboardEvent) {
 
 <template>
   <!-- Le menu des skills est hors du cadre flouté : un flou imbriqué ne verrait que le cadre derrière lui. -->
-  <form ref="form" class="relative" @submit.prevent="submit()">
+  <form ref="form" class="relative" :data-composer="chatId" @submit.prevent="submit()">
     <div
       class="@container rounded-2xl border bg-selection/50 backdrop-blur-sm"
       :class="[

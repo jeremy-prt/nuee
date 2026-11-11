@@ -73,6 +73,7 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
       class="flex shrink-0 items-center self-stretch"
       :style="{ width: `${leftZone}px`, paddingInlineStart: `${lights}px` }"
       data-tauri-drag-region
+      data-slide-zone
     >
       <ShellRailToggle />
     </div>
@@ -82,6 +83,7 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
       class="flex shrink-0 items-center justify-end self-stretch pe-2"
       :style="{ width: `${spacer}px` }"
       data-tauri-drag-region
+      data-slide-zone
     >
       <UiIconButton
         v-if="panelOpen && spacer >= TOGGLE"
@@ -162,37 +164,42 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
           <ShellEnvironment />
         </span>
         <!-- Comme Orca et l'app Claude : panneau ouvert, ses volets se choisissent au-dessus de lui, dans une zone calée
-             sur sa largeur (poignée comprise) ; `-me-2` annule la marge de la barre ; le bouton qui l'ouvre reste tout à droite. -->
+             sur sa largeur (poignée comprise) ; `-me-2` annule la marge de la barre ; le bouton qui l'ouvre reste tout à droite.
+             Quand le panneau glisse (`useColumnSlide`), ses onglets suivent son bord. -->
         <div
-          class="relative -me-2 flex shrink-0 items-center gap-0.5 self-stretch pe-3.5"
+          class="relative -me-2 flex shrink-0 items-center justify-end gap-0.5 self-stretch pe-3.5"
           :style="layout.right.open ? { width: `${layout.right.size + 1}px` } : undefined"
           data-tauri-drag-region
+          data-slide-zone
         >
-          <template v-if="layout.right.open">
-            <!-- Fichier ouvert dans l'Explorateur : ses onglets passent ici, au-dessus de l'éditeur (`FilesEditorPane`),
-                 comme T3 Code qui range les fichiers ouverts dans la barre du panneau. Toujours présent, panneau
-                 ouvert : un Teleport ne cherche sa cible qu'à sa création. -->
-            <div
-              id="dock-editor-tabs"
-              class="h-full min-w-0 shrink-0 items-center ps-2 pe-2"
-              :class="editorWidth ? 'flex' : 'hidden'"
-              :style="{ width: `${editorWidth}px` }"
-              data-tauri-drag-region
-            />
-            <template v-if="editorWidth">
-              <!-- Le trait entre l'éditeur et l'arborescence monte jusqu'en haut (choix de Jérémy) et s'allume avec leur
-                   poignée, restée dans le panneau. -->
-              <span
-                class="pointer-events-none absolute inset-y-0 w-px bg-stroke [:root:has([data-explorer-handle]:active)_&]:bg-edge-hover [:root:has([data-explorer-handle]:active)_&]:shadow-[1px_0_0_0_var(--color-edge-hover)] [:root:has([data-explorer-handle]:focus-visible)_&]:bg-ring [:root:has([data-explorer-handle]:focus-visible)_&]:shadow-[1px_0_0_0_var(--color-ring)] [:root:has([data-explorer-handle]:hover)_&]:bg-edge-hover [:root:has([data-explorer-handle]:hover)_&]:shadow-[1px_0_0_0_var(--color-edge-hover)]"
-                :style="{ insetInlineStart: `${editorWidth}px` }"
-                aria-hidden="true"
+          <!-- La zone coupe les onglets avant le bouton : en glissant, ils ne passent jamais dessus. -->
+          <div v-if="layout.right.open || layout.moving.dock" class="flex min-w-0 flex-1 self-stretch" data-slide-clip data-tauri-drag-region>
+            <div class="flex min-w-0 flex-1 items-center self-stretch" data-slide-content data-tauri-drag-region>
+              <!-- Fichier ouvert dans l'Explorateur : ses onglets passent ici, au-dessus de l'éditeur (`FilesEditorPane`),
+                   comme T3 Code qui range les fichiers ouverts dans la barre du panneau. Toujours présent, panneau
+                   ouvert : un Teleport ne cherche sa cible qu'à sa création. -->
+              <div
+                id="dock-editor-tabs"
+                class="h-full min-w-0 shrink-0 items-center ps-2 pe-2"
+                :class="editorWidth ? 'flex' : 'hidden'"
+                :style="{ width: `${editorWidth}px` }"
+                data-tauri-drag-region
               />
-            </template>
-            <!-- Comme T3 Code : les onglets des volets ouverts, puis leur « + », puis un vide qui les sépare du bouton du
-                 panneau et laisse de quoi déplacer la fenêtre. -->
-            <ShellDockTabs class="ms-2 min-w-0" />
-            <span class="min-w-3 flex-1 self-stretch" data-tauri-drag-region />
-          </template>
+              <template v-if="editorWidth">
+                <!-- Le trait entre l'éditeur et l'arborescence monte jusqu'en haut (choix de Jérémy) et s'allume avec leur
+                     poignée, restée dans le panneau. -->
+                <span
+                  class="pointer-events-none absolute inset-y-0 w-px bg-stroke [:root:has([data-explorer-handle]:active)_&]:bg-edge-hover [:root:has([data-explorer-handle]:active)_&]:shadow-[1px_0_0_0_var(--color-edge-hover)] [:root:has([data-explorer-handle]:focus-visible)_&]:bg-ring [:root:has([data-explorer-handle]:focus-visible)_&]:shadow-[1px_0_0_0_var(--color-ring)] [:root:has([data-explorer-handle]:hover)_&]:bg-edge-hover [:root:has([data-explorer-handle]:hover)_&]:shadow-[1px_0_0_0_var(--color-edge-hover)]"
+                  :style="{ insetInlineStart: `${editorWidth}px` }"
+                  aria-hidden="true"
+                />
+              </template>
+              <!-- Comme T3 Code : les onglets des volets ouverts, puis leur « + », puis un vide qui les sépare du bouton du
+                   panneau et laisse de quoi déplacer la fenêtre. -->
+              <ShellDockTabs class="ms-2 min-w-0" />
+              <span class="min-w-3 flex-1 self-stretch" data-tauri-drag-region />
+            </div>
+          </div>
           <UiIconButton
             :label="t('dock.toggle')"
             :shortcut="shortcuts.label('toggleRightDock')"

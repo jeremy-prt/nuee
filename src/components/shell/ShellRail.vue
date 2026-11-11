@@ -43,6 +43,8 @@ const appearance = useAppearanceStore()
 
 // « Projets en menu » : un projet à la fois, choisi en haut, ses sessions dessous. Repliée, la barre disparaît.
 const menu = computed(() => appearance.layout === 'menu')
+// Repliée, la barre garde son contenu déplié le temps de glisser : les libellés se coupent au bord au lieu de sauter.
+const expanded = computed(() => layout.rail.expanded || layout.moving.rail)
 // Même marge à droite qu'à gauche (choix de Jérémy) : plus de carte au centre pour en fournir une.
 const edge = 'pe-2'
 // Glissé seulement à un vrai changement de projet : au lancement, une fenêtre en arrière-plan figerait
@@ -108,88 +110,110 @@ function footerLabel(id: (typeof footer)[number]['id']) {
   <aside
     id="shell-rail"
     class="flex shrink-0 flex-col overflow-hidden bg-chrome"
-    :style="{ width: `${layout.rail.expanded ? layout.rail.width : RAIL_COLLAPSED_WIDTH}px` }"
+    :style="{ width: `${expanded ? layout.rail.width : RAIL_COLLAPSED_WIDTH}px` }"
+    data-slide-column="rail"
   >
-    <template v-if="menu && navigation.view !== 'settings'">
-      <nav class="flex shrink-0 flex-col gap-0.5 ps-2 pe-2 pt-1" :aria-label="t('rail.label')">
-        <ShellRailItem
-          v-for="item in pages"
-          :key="item.view"
-          :icon="item.icon"
-          :label="t(`rail.${item.view}`)"
-          :shortcut="'shortcut' in item ? shortcuts.label(item.shortcut) : undefined"
-          expanded
-          :active="navigation.view === item.view"
-          @click="navigation.go(item.view)"
-        />
-      </nav>
-      <div class="ms-4 me-2.5 mt-3 mb-2 h-px shrink-0 bg-stroke" />
-      <!-- Hiérarchie par la taille, sans trait (il prenait de la largeur) : le projet, l'environnement, en gros ;
-           puis « Sessions » avec tri et nouvelle session ; puis les dates, plus discrètes. -->
-      <section class="flex min-h-0 flex-1 flex-col" aria-labelledby="sidebar-sessions">
-        <!-- Menu du projet au clic droit sur sa ligne (ShellProjectSwitcher), sans « … » qui chargeait la ligne. -->
-        <div class="flex shrink-0 ps-2 pe-2 *:min-w-0 *:flex-1"><ShellProjectSwitcher /></div>
-        <div class="mt-2 flex h-8 shrink-0 items-center ps-4 pe-2">
-          <h2 id="sidebar-sessions" class="min-w-0 flex-1 truncate text-[13px] font-semibold text-content/80">{{ t('chats.recent') }}</h2>
-          <ShellChatSort />
-          <UiIconButton :label="t('chats.newChat')" :shortcut="shortcuts.label('newChat')" @click="newChat()">
-            <Plus class="size-4" aria-hidden="true" />
-          </UiIconButton>
-        </div>
-        <div
-          :key="navigation.projectId ?? ''"
-          class="mb-2 min-h-0 flex-1 overflow-y-auto ps-2 pe-2"
-          :class="{ 'project-slide': sliding }"
-          :data-step="navigation.projectStep"
-        >
-          <ShellChatList />
-        </div>
-      </section>
-    </template>
-    <nav
-      v-else
-      class="flex min-h-0 flex-1 flex-col gap-0.5 overflow-x-hidden overflow-y-auto py-2 ps-2"
-      :class="edge"
-      :aria-label="navigation.view === 'settings' ? t('settings.nav') : t('rail.label')"
-    >
-      <SettingsNav v-if="navigation.view === 'settings'" :focus-current="byKeyboard" />
-      <template v-else>
-        <ShellRailItem
-          v-for="item in pages"
-          :key="item.view"
-          :icon="item.icon"
-          :label="t(`rail.${item.view}`)"
-          :shortcut="'shortcut' in item ? shortcuts.label(item.shortcut) : undefined"
-          :expanded="layout.rail.expanded"
-          :active="navigation.view === item.view"
-          @click="navigation.go(item.view)"
-        />
-
-        <div class="my-3 h-px shrink-0 bg-stroke" />
-        <ShellRailItem
-          :label="t('rail.chats')"
-          :expanded="layout.rail.expanded"
-          :active="navigation.view === 'chats' && navigation.projectId === null"
-          @click="navigation.openChats(null)"
-        >
-          <template #icon><NoProject class="size-4 shrink-0" aria-hidden="true" /></template>
-        </ShellRailItem>
-
-        <template v-if="projects.pinned.length">
-          <div data-pinned-heading class="mt-3 flex h-8 shrink-0 items-center ps-2">
-            <p v-if="layout.rail.expanded" class="min-w-0 flex-1 truncate text-xs font-medium whitespace-nowrap text-muted">
-              {{ t('rail.pinned') }}
-            </p>
+    <div class="flex min-h-0 flex-1 flex-col" data-slide-content>
+      <template v-if="menu && navigation.view !== 'settings'">
+        <nav class="flex shrink-0 flex-col gap-0.5 ps-2 pe-2 pt-1" :aria-label="t('rail.label')">
+          <ShellRailItem
+            v-for="item in pages"
+            :key="item.view"
+            :icon="item.icon"
+            :label="t(`rail.${item.view}`)"
+            :shortcut="'shortcut' in item ? shortcuts.label(item.shortcut) : undefined"
+            expanded
+            :active="navigation.view === item.view"
+            @click="navigation.go(item.view)"
+          />
+        </nav>
+        <div class="ms-4 me-2.5 mt-3 mb-2 h-px shrink-0 bg-stroke" />
+        <!-- Hiérarchie par la taille, sans trait (il prenait de la largeur) : le projet, l'environnement, en gros ;
+             puis « Sessions » avec tri et nouvelle session ; puis les dates, plus discrètes. -->
+        <section class="flex min-h-0 flex-1 flex-col" aria-labelledby="sidebar-sessions">
+          <!-- Menu du projet au clic droit sur sa ligne (ShellProjectSwitcher), sans « … » qui chargeait la ligne. -->
+          <div class="flex shrink-0 ps-2 pe-2 *:min-w-0 *:flex-1"><ShellProjectSwitcher /></div>
+          <div class="mt-2 flex h-8 shrink-0 items-center ps-4 pe-2">
+            <h2 id="sidebar-sessions" class="min-w-0 flex-1 truncate text-[13px] font-semibold text-content/80">{{ t('chats.recent') }}</h2>
+            <ShellChatSort />
+            <UiIconButton :label="t('chats.newChat')" :shortcut="shortcuts.label('newChat')" @click="newChat()">
+              <Plus class="size-4" aria-hidden="true" />
+            </UiIconButton>
           </div>
-          <ShellProjectItem v-for="project in projects.pinned" :key="project.id" :project="project" />
-        </template>
+          <div
+            :key="navigation.projectId ?? ''"
+            class="mb-2 min-h-0 flex-1 overflow-y-auto ps-2 pe-2"
+            :class="{ 'project-slide': sliding }"
+            :data-step="navigation.projectStep"
+          >
+            <ShellChatList />
+          </div>
+        </section>
+      </template>
+      <nav
+        v-else
+        class="flex min-h-0 flex-1 flex-col gap-0.5 overflow-x-hidden overflow-y-auto py-2 ps-2"
+        :class="edge"
+        :aria-label="navigation.view === 'settings' ? t('settings.nav') : t('rail.label')"
+      >
+        <SettingsNav v-if="navigation.view === 'settings'" :focus-current="byKeyboard" />
+        <template v-else>
+          <ShellRailItem
+            v-for="item in pages"
+            :key="item.view"
+            :icon="item.icon"
+            :label="t(`rail.${item.view}`)"
+            :shortcut="'shortcut' in item ? shortcuts.label(item.shortcut) : undefined"
+            :expanded="expanded"
+            :active="navigation.view === item.view"
+            @click="navigation.go(item.view)"
+          />
 
-        <!-- Section à part, comme monocode : un groupe ne contient que des projets. Repliée, la barre n'a pas la
-             place des groupes : leurs projets passent à la suite dans Projets. -->
-        <template v-if="layout.rail.expanded && projects.groups.length">
-          <div class="mt-3 flex h-8 shrink-0 items-center ps-2">
-            <p class="min-w-0 flex-1 truncate text-xs font-medium whitespace-nowrap text-muted">{{ t('rail.groups') }}</p>
-            <UiTooltip :label="t('groups.create')" side="top" :side-offset="8">
+          <div class="my-3 h-px shrink-0 bg-stroke" />
+          <ShellRailItem
+            :label="t('rail.chats')"
+            :expanded="expanded"
+            :active="navigation.view === 'chats' && navigation.projectId === null"
+            @click="navigation.openChats(null)"
+          >
+            <template #icon><NoProject class="size-4 shrink-0" aria-hidden="true" /></template>
+          </ShellRailItem>
+
+          <template v-if="projects.pinned.length">
+            <div data-pinned-heading class="mt-3 flex h-8 shrink-0 items-center ps-2">
+              <p v-if="expanded" class="min-w-0 flex-1 truncate text-xs font-medium whitespace-nowrap text-muted">
+                {{ t('rail.pinned') }}
+              </p>
+            </div>
+            <ShellProjectItem v-for="project in projects.pinned" :key="project.id" :project="project" />
+          </template>
+
+          <!-- Section à part, comme monocode : un groupe ne contient que des projets. Repliée, la barre n'a pas la
+               place des groupes : leurs projets passent à la suite dans Projets. -->
+          <template v-if="expanded && projects.groups.length">
+            <div class="mt-3 flex h-8 shrink-0 items-center ps-2">
+              <p class="min-w-0 flex-1 truncate text-xs font-medium whitespace-nowrap text-muted">{{ t('rail.groups') }}</p>
+              <UiTooltip :label="t('groups.create')" side="top" :side-offset="8">
+                <button
+                  type="button"
+                  class="grid size-7 shrink-0 place-items-center rounded-md text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+                  :aria-label="t('groups.create')"
+                  @click="projects.createGroup()"
+                >
+                  <FolderPlus class="size-4" aria-hidden="true" />
+                </button>
+              </UiTooltip>
+            </div>
+            <ShellProjectGroup v-for="group in projects.groups" :key="group.id" :group="group" />
+          </template>
+
+          <!-- Même hauteur dans les deux états : les projets en dessous ne bougent pas au repli. -->
+          <div data-projects-heading class="mt-3 flex h-8 shrink-0 items-center" :class="{ 'ps-2': expanded }">
+            <p v-if="expanded" class="min-w-0 flex-1 truncate text-xs font-medium whitespace-nowrap text-muted">
+              {{ t('rail.projects') }}
+            </p>
+            <!-- Tant qu'aucun groupe n'existe, sa section n'a pas d'en-tête : le bouton de création est ici. -->
+            <UiTooltip v-if="expanded && !projects.groups.length" :label="t('groups.create')" side="top" :side-offset="8">
               <button
                 type="button"
                 class="grid size-7 shrink-0 place-items-center rounded-md text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
@@ -199,88 +223,69 @@ function footerLabel(id: (typeof footer)[number]['id']) {
                 <FolderPlus class="size-4" aria-hidden="true" />
               </button>
             </UiTooltip>
+            <UiTooltip :label="t('rail.addProject')" :side="expanded ? 'top' : 'right'" :side-offset="8">
+              <button
+                type="button"
+                class="grid shrink-0 place-items-center rounded-md text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+                :class="expanded ? 'size-7' : 'size-8'"
+                :aria-label="t('rail.addProject')"
+                @click="addProject()"
+              >
+                <Plus class="size-4" aria-hidden="true" />
+              </button>
+            </UiTooltip>
           </div>
-          <ShellProjectGroup v-for="group in projects.groups" :key="group.id" :group="group" />
-        </template>
-
-        <!-- Même hauteur dans les deux états : les projets en dessous ne bougent pas au repli. -->
-        <div data-projects-heading class="mt-3 flex h-8 shrink-0 items-center" :class="{ 'ps-2': layout.rail.expanded }">
-          <p v-if="layout.rail.expanded" class="min-w-0 flex-1 truncate text-xs font-medium whitespace-nowrap text-muted">
-            {{ t('rail.projects') }}
-          </p>
-          <!-- Tant qu'aucun groupe n'existe, sa section n'a pas d'en-tête : le bouton de création est ici. -->
-          <UiTooltip v-if="layout.rail.expanded && !projects.groups.length" :label="t('groups.create')" side="top" :side-offset="8">
-            <button
-              type="button"
-              class="grid size-7 shrink-0 place-items-center rounded-md text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
-              :aria-label="t('groups.create')"
-              @click="projects.createGroup()"
-            >
-              <FolderPlus class="size-4" aria-hidden="true" />
-            </button>
-          </UiTooltip>
-          <UiTooltip :label="t('rail.addProject')" :side="layout.rail.expanded ? 'top' : 'right'" :side-offset="8">
-            <button
-              type="button"
-              class="grid shrink-0 place-items-center rounded-md text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
-              :class="layout.rail.expanded ? 'size-7' : 'size-8'"
-              :aria-label="t('rail.addProject')"
-              @click="addProject()"
-            >
-              <Plus class="size-4" aria-hidden="true" />
-            </button>
-          </UiTooltip>
-        </div>
-        <template v-if="!layout.rail.expanded">
-          <template v-for="group in projects.groups" :key="group.id">
-            <ShellProjectItem v-for="project in projects.projectsIn(group.id)" :key="project.id" :project="project" />
+          <template v-if="!expanded">
+            <template v-for="group in projects.groups" :key="group.id">
+              <ShellProjectItem v-for="project in projects.projectsIn(group.id)" :key="project.id" :project="project" />
+            </template>
           </template>
+          <ShellProjectItem v-for="project in projects.ungrouped" :key="project.id" :project="project" />
         </template>
-        <ShellProjectItem v-for="project in projects.ungrouped" :key="project.id" :project="project" />
-      </template>
-    </nav>
+      </nav>
 
-    <div v-if="navigation.view === 'settings'" class="shrink-0 py-2 ps-2" :class="edge">
-      <ShellRailItem
-        :icon="ArrowLeft"
-        :label="t('settings.back')"
-        :expanded="layout.rail.expanded"
-        @click="closeSettings($event)"
-      />
-    </div>
-    <!-- Dépliée : une ligne (Réglages et Quota à gauche, Mises à jour à droite). Repliée : une colonne de 48 px. -->
-    <div
-      v-else
-      class="flex shrink-0 gap-0.5 py-2 ps-2"
-      :class="[layout.rail.expanded ? 'flex-row' : 'flex-col', edge]"
-    >
-      <template v-for="(item, index) in footer" :key="item.id">
-        <span v-if="layout.rail.expanded && index === footer.length - 1" class="flex-1" />
-        <UiTooltip
-          :label="footerLabel(item.id)"
-          :shortcut="'shortcut' in item ? shortcuts.label(item.shortcut) : undefined"
-          :side="layout.rail.expanded ? 'top' : 'right'"
-          :side-offset="8"
-        >
-          <button
-            ref="footerButtons"
-            type="button"
-            :data-view="item.id"
-            class="relative grid size-8 shrink-0 place-items-center rounded-md focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
-            :class="navigation.view === item.id ? 'bg-selection text-content' : 'text-muted hover:bg-selection-hover hover:text-content'"
-            :aria-label="footerLabel(item.id)"
-            :aria-current="navigation.view === item.id ? 'page' : undefined"
-            @click="openFooter(item.open, $event)"
+      <div v-if="navigation.view === 'settings'" class="shrink-0 py-2 ps-2" :class="edge">
+        <ShellRailItem
+          :icon="ArrowLeft"
+          :label="t('settings.back')"
+          :expanded="expanded"
+          @click="closeSettings($event)"
+        />
+      </div>
+      <!-- Dépliée : une ligne (Réglages et Quota à gauche, Mises à jour à droite). Repliée : une colonne de 48 px. -->
+      <div
+        v-else
+        class="flex shrink-0 gap-0.5 py-2 ps-2"
+        :class="[expanded ? 'flex-row' : 'flex-col', edge]"
+      >
+        <template v-for="(item, index) in footer" :key="item.id">
+          <span v-if="expanded && index === footer.length - 1" class="flex-1" />
+          <UiTooltip
+            :label="footerLabel(item.id)"
+            :shortcut="'shortcut' in item ? shortcuts.label(item.shortcut) : undefined"
+            :side="expanded ? 'top' : 'right'"
+            :side-offset="8"
           >
-            <component :is="item.icon" class="size-4" aria-hidden="true" />
-            <span
-              v-if="item.id === 'updates' && updates.status === 'available'"
-              class="absolute end-1.5 top-1.5 size-1.5 rounded-full bg-signal"
-              aria-hidden="true"
-            />
-          </button>
-        </UiTooltip>
-      </template>
+            <button
+              ref="footerButtons"
+              type="button"
+              :data-view="item.id"
+              class="relative grid size-8 shrink-0 place-items-center rounded-md focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+              :class="navigation.view === item.id ? 'bg-selection text-content' : 'text-muted hover:bg-selection-hover hover:text-content'"
+              :aria-label="footerLabel(item.id)"
+              :aria-current="navigation.view === item.id ? 'page' : undefined"
+              @click="openFooter(item.open, $event)"
+            >
+              <component :is="item.icon" class="size-4" aria-hidden="true" />
+              <span
+                v-if="item.id === 'updates' && updates.status === 'available'"
+                class="absolute end-1.5 top-1.5 size-1.5 rounded-full bg-signal"
+                aria-hidden="true"
+              />
+            </button>
+          </UiTooltip>
+        </template>
+      </div>
     </div>
   </aside>
 </template>

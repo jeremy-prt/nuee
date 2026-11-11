@@ -123,6 +123,14 @@ pub async fn files_editors() -> Vec<EditorApp> {
 }
 
 #[tauri::command]
+pub async fn files_finder_icon() -> Option<String> {
+    tauri::async_runtime::spawn_blocking(files::finder_icon)
+        .await
+        .ok()
+        .flatten()
+}
+
+#[tauri::command]
 pub async fn files_open_editor(
     app: AppHandle,
     place: FilesPlace,

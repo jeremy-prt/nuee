@@ -6,6 +6,7 @@ import { Terminal } from '@xterm/xterm'
 import { computed, onBeforeUnmount, onMounted, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ServerStatusDot from '@/components/server/ServerStatusDot.vue'
+import ShellDockToolbar from '@/components/shell/ShellDockToolbar.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import { useTerminalChat } from '@/composables/useTerminalChat'
 import { useAppearanceStore } from '@/stores/appearance'
@@ -88,19 +89,22 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col">
-    <div class="flex h-9 shrink-0 items-center gap-2 border-b border-stroke ps-4 pe-3.5 text-xs">
-      <ServerStatusDot v-if="server" :status="server.status" class="size-3" />
-      <span class="truncate text-content">{{ t('dock.servers.logsOf', { name }) }}</span>
-      <span class="truncate text-muted">{{ state }}</span>
-      <span class="flex-1" />
-      <UiIconButton v-if="server && !server.external" :label="alive ? t('dock.servers.stop') : t('dock.servers.start')" @click="toggle">
-        <Stop v-if="alive" class="size-3.5" aria-hidden="true" />
-        <Play v-else class="size-3.5" aria-hidden="true" />
-      </UiIconButton>
-      <UiIconButton :label="t('dock.servers.closeLogs')" @click="servers.hide()">
-        <X class="size-3.5" aria-hidden="true" />
-      </UiIconButton>
-    </div>
+    <ShellDockToolbar :label="t('dock.servers.logsOf', { name })">
+      <span class="flex min-w-0 items-center gap-2 ps-1 text-xs">
+        <ServerStatusDot v-if="server" :status="server.status" class="size-3" />
+        <span class="truncate text-content">{{ t('dock.servers.logsOf', { name }) }}</span>
+        <span class="truncate text-muted">{{ state }}</span>
+      </span>
+      <template #end>
+        <UiIconButton v-if="server && !server.external" :label="alive ? t('dock.servers.stop') : t('dock.servers.start')" @click="toggle">
+          <Stop v-if="alive" class="size-3.5" aria-hidden="true" />
+          <Play v-else class="size-3.5" aria-hidden="true" />
+        </UiIconButton>
+        <UiIconButton :label="t('dock.servers.closeLogs')" @click="servers.hide()">
+          <X class="size-3.5" aria-hidden="true" />
+        </UiIconButton>
+      </template>
+    </ShellDockToolbar>
     <div class="relative min-h-0 flex-1">
       <div ref="host" class="logs-host absolute inset-0 p-2 pe-1" role="log" :aria-label="t('dock.servers.logsOf', { name })" />
     </div>

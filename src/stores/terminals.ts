@@ -21,7 +21,7 @@ export interface TerminalTab {
 export type SplitDirection = 'right' | 'down'
 
 // Comme iTerm et T3 Code : au-delà, les volets deviennent trop étroits pour servir.
-const MAX_SPLIT = 4
+export const MAX_SPLIT = 4
 
 interface Instance {
   term: Terminal
@@ -70,14 +70,14 @@ export const useTerminalsStore = defineStore('terminals', () => {
   }
 
   // `group` : partage l'onglet de ce groupe (split) ; sinon un nouvel onglet.
-  function create(chatId: string, place: Place, group?: string) {
+  function create(chatId: string, place: Place, group?: string, focus = true) {
     const list = (tabs[chatId] ??= [])
     const key = crypto.randomUUID()
     list.push({ key, number: Math.max(0, ...list.map((item) => item.number)) + 1, group: group ?? key })
     instances.set(key, build())
     pending.set(key, { chatId, place })
     active[chatId] = key
-    wantsFocus.value = true
+    if (focus) wantsFocus.value = true
   }
 
   // Partage l'onglet du shell actif : un shell de plus, à droite ou en bas.
@@ -170,6 +170,11 @@ export const useTerminalsStore = defineStore('terminals', () => {
     instances.get(key)?.term.focus()
   }
 
+  // Comme ⌘K de Terminal.app : l'historique part, la ligne en cours reste.
+  function clear(key: string) {
+    instances.get(key)?.term.clear()
+  }
+
   async function close(chatId: string, key: string) {
     const instance = instances.get(key)
     if (!instance) return
@@ -226,7 +231,7 @@ export const useTerminalsStore = defineStore('terminals', () => {
     wantsFocus.value = true
   }
 
-  return { tabs, active, splits, wantsFocus, tabsOf, groupsOf, create, split, attach, fit, focus, close, closeChat, command, requestFocus }
+  return { tabs, active, splits, wantsFocus, tabsOf, groupsOf, create, split, attach, fit, focus, clear, close, closeChat, command, requestFocus }
 })
 
 // Palette ANSI de Brume (et de monocode) : ces couleurs viennent des programmes, pas de l'interface. En clair,

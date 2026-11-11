@@ -181,7 +181,7 @@ onMounted(() => {
 <template>
   <!-- Le bas s'estompe sous le champ de saisie au lieu d'être coupé net. -->
   <div ref="scroller" class="overflow-y-auto mask-b-from-[calc(100%-1.5rem)]" @scroll.passive="onScroll">
-    <ol class="mx-auto flex max-w-(--chat-width) flex-col gap-3 px-6 py-6" role="log" :aria-busy="running || limit < PAGE" :aria-label="t('chat.transcript')">
+    <ol class="mx-auto flex max-w-(--chat-width) flex-col gap-3 px-6 py-6" data-slide-rows role="log" :aria-busy="running || limit < PAGE" :aria-label="t('chat.transcript')">
       <li v-if="start" class="flex justify-center">
         <button
           type="button"
@@ -194,6 +194,7 @@ onMounted(() => {
       <li
         v-for="(row, offset) in rows"
         :key="row.kind === 'item' ? row.item.id : row.id"
+        :data-user-row="(row.kind === 'item' && row.item.kind === 'user') || undefined"
         :class="{
           'group flex flex-col items-end gap-1': row.kind === 'item' && row.item.kind === 'user' && !fromSession(row.item, row.index),
           'group/answer flex flex-col gap-3': row.kind === 'item' && (!!row.end || row.item.kind === 'end'),

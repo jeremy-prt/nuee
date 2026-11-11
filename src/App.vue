@@ -14,6 +14,7 @@ import UiToasts from '@/components/ui/UiToasts.vue'
 import AgentUpdateNotice from '@/components/agent/AgentUpdateNotice.vue'
 import { useDockClose } from '@/composables/useDockClose'
 import { useDockFocus } from '@/composables/useDockFocus'
+import { useColumnSlide } from '@/composables/useColumnSlide'
 import { useNewChat } from '@/composables/useNewChat'
 import { appQuit, onQuitRequested } from '@/ipc/app'
 import { isTauriApp } from '@/ipc/system'
@@ -43,18 +44,19 @@ const { t } = useI18n()
 const layout = useLayoutStore()
 const navigation = useNavigationStore()
 const workspace = useWorkspaceStore()
-// Le panneau de droite suit la session affichée : on retrouve le sien en revenant, et chaque changement s'enregistre.
+// Le panneau de droite garde la disposition du projet et montre les onglets de la session affichée ; chaque changement
+// s'enregistre.
 watch(
   () => workspace.activeTabId,
   (id) => {
     if (!id) return
-    const tab = workspace.tabs.find((item) => item.id === id)
-    layout.restore(id, !tab?.started)
+    const projectId = workspace.tabs.find((item) => item.id === id)?.projectId ?? navigation.projectId
+    layout.restore(id, projectId, workspace.tabsFor(projectId).map((tab) => tab.id))
   },
   { immediate: true },
 )
 watch(
-  () => [layout.right.open, layout.right.active, layout.right.aside, [...layout.right.tabs]],
+  () => [layout.right.open, layout.right.active, layout.right.aside, layout.right.asideRatio, [...layout.right.tabs]],
   () => {
     if (workspace.activeTabId) layout.remember(workspace.activeTabId)
   },
@@ -86,11 +88,14 @@ watch(inChats, (now) => now && (chatsVisited.value = true), { immediate: true })
 const menu = computed(() => appearance.layout === 'menu')
 const panelShown = computed(() => !menu.value && navigation.hasPanel && layout.panel.open)
 const showRightDock = computed(() => layout.right.open)
+// Une colonne qui se ferme reste affichée le temps de glisser.
+const dockShown = computed(() => showRightDock.value || layout.moving.dock)
+useColumnSlide()
 const skills = useSkillsStore()
 // Hors des chats, le panneau de droite ne sert qu'à l'aperçu d'un skill dans les réglages.
 const previewedSkill = computed(() => (navigation.view === 'settings' ? skills.previewed : null))
 // Une colonne borde le centre à gauche (barre latérale ou panneau) : son coin s'arrondit.
-const roundStart = computed(() => !menu.value || layout.rail.expanded)
+const roundStart = computed(() => !menu.value || layout.rail.expanded || layout.moving.rail)
 
 // Raccourcis propres aux chats : sans effet sur les autres vues.
 function inChatsOnly(action: () => void) {
@@ -107,13 +112,6 @@ function browserAddress() {
 
 function togglePanel() {
   if (navigation.hasPanel && !menu.value) layout.togglePanel()
-}
-
-// La session vierge du nouveau pane prend le focus : sans l'état du panneau de droite, `restore` le fermerait.
-function splitPane() {
-  const from = workspace.activeTabId
-  workspace.split()
-  if (workspace.activeTabId && workspace.activeTabId !== from) layout.remember(workspace.activeTabId)
 }
 
 // La liste des projets est en haut de la barre latérale : elle s'ouvre au besoin.
@@ -151,7 +149,7 @@ const actions: [ShortcutId, (event: KeyboardEvent) => void][] = [
   ['nextTab', inChatsOnly(() => workspace.stepTab(1))],
   ['previousTab', inChatsOnly(() => workspace.stepTab(-1))],
   ['goToTab', (event) => inChatsOnly(() => workspace.goToTab(Number(event.code.slice(-1))))()],
-  ['split', inChatsOnly(splitPane)],
+  ['split', inChatsOnly(workspace.split)],
   ['rename', inChatsOnly(renameActive)],
   ['settings', () => navigation.go('settings')],
   ['zoomIn', () => appearance.stepZoom(1)],
@@ -204,7 +202,7 @@ onUnmounted(() => {
       <ShellTitleBar />
       <div class="flex min-h-0 flex-1">
         <template v-if="menu">
-          <template v-if="layout.rail.expanded">
+          <template v-if="layout.rail.expanded || layout.moving.rail">
             <ShellRail />
             <ShellResizeHandle
               v-model="layout.rail.width"
@@ -218,7 +216,7 @@ onUnmounted(() => {
         <template v-else>
           <ShellRail />
           <ShellResizeHandle
-            v-if="layout.rail.expanded"
+            v-if="layout.rail.expanded || layout.moving.rail"
             v-model="layout.rail.width"
             v-bind="SIZES.rail"
             orientation="vertical"
@@ -228,7 +226,7 @@ onUnmounted(() => {
           <div v-else class="separator w-px shrink-0" :class="{ 'separator-notch': !panelShown }" />
         </template>
 
-        <template v-if="panelShown">
+        <template v-if="panelShown || layout.moving.panel">
           <ShellSidePanel :style="{ width: `${layout.panel.width}px` }" />
           <ShellResizeHandle
             v-model="layout.panel.width"
@@ -251,13 +249,13 @@ onUnmounted(() => {
                 <main
                   class="center-card relative isolate min-h-0 flex-1 bg-surface"
                   :data-round-start="roundStart || undefined"
-                  :data-round-end="showRightDock || undefined"
+                  :data-round-end="dockShown || undefined"
                 >
                   <ShellBackground />
                   <WorkspaceView />
                 </main>
               </div>
-              <template v-if="showRightDock && inChats">
+              <template v-if="dockShown && inChats">
                 <ShellResizeHandle
                   v-model="layout.right.size"
                   v-bind="SIZES.right"
@@ -266,8 +264,14 @@ onUnmounted(() => {
                   class="separator-notch"
                   :label="t('dock.resize')"
                 />
-                <div class="flex min-h-0 flex-col bg-chrome" :style="{ width: `${layout.right.size}px` }" :aria-label="t('dock.right')" role="region">
-                  <ShellDockSplit class="min-h-0 flex-1" />
+                <div
+                  class="flex min-h-0 flex-col bg-chrome"
+                  :style="{ width: `${layout.right.size}px` }"
+                  :aria-label="t('dock.right')"
+                  role="region"
+                  data-slide-column="dock"
+                >
+                  <ShellDockSplit class="min-h-0 flex-1" data-slide-content />
                 </div>
               </template>
             </div>

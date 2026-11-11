@@ -124,8 +124,7 @@ function split(item: Item, direction: 'right' | 'down') {
         role="tab"
         :aria-selected="isActive(item)"
         :title="item.page?.url ?? item.label"
-        class="flex h-full min-w-0 items-center gap-1.5 rounded-md focus-visible:outline-2 focus-visible:outline-ring"
-        :class="isPrimary(item) ? 'px-2' : 'w-7 justify-center'"
+        class="flex h-full min-w-0 items-center rounded-md px-[7px] focus-visible:outline-2 focus-visible:outline-ring"
         @click="select(item)"
         @auxclick.middle="close(item)"
         @keydown.delete="close(item)"
@@ -141,14 +140,18 @@ function split(item: Item, direction: 'right' | 'down') {
           />
         </span>
         <span v-if="item.page && browser.agent[item.page.id]" class="sr-only">{{ t('dock.browser.agentBusy') }}</span>
-        <!-- Comme monocode : seul l'onglet actif montre son titre, les autres leur icône. La croix se pose au survol
-             sur la fin du titre, qui s'estompe. -->
-        <span v-if="!isPrimary(item)" class="sr-only">{{ item.label }}</span>
-        <span
-          v-else
-          class="truncate group-focus-within/tab:[mask-image:linear-gradient(to_left,transparent_1rem,black_1.375rem)] group-hover/tab:[mask-image:linear-gradient(to_left,transparent_1rem,black_1.375rem)]"
-          >{{ item.label }}</span
-        >
+        <!-- Comme monocode : seul l'onglet actif montre son titre, les autres leur icône ; le titre s'ouvre et se referme
+             en largeur (`.dock-tab-label`). La croix se pose au survol sur la fin du titre, qui s'estompe. -->
+        <span class="dock-tab-label min-w-0" :data-open="isPrimary(item) || undefined">
+          <span
+            class="min-w-0 truncate ps-1.5 pe-px"
+            :class="{
+              'group-focus-within/tab:[mask-image:linear-gradient(to_left,transparent_1rem,black_1.375rem)] group-hover/tab:[mask-image:linear-gradient(to_left,transparent_1rem,black_1.375rem)]':
+                isPrimary(item),
+            }"
+            >{{ item.label }}</span
+          >
+        </span>
       </button>
       <button
         v-if="isPrimary(item)"

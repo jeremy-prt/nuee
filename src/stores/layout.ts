@@ -8,6 +8,8 @@ export const DOCK_VIEWS: DockView[] = ['browser', 'terminal', 'files', 'changes'
 
 export type SessionSort = 'activity' | 'created' | 'name'
 
+export type SlideColumn = 'rail' | 'panel' | 'dock'
+
 // Panneau de droite en onglets, comme T3 Code : les volets ouverts en onglets ; `null` montre le lanceur « Ouvrir un
 // volet ». Environnement n'en fait pas partie, c'est un panneau flottant (`ShellEnvironment`).
 interface Dock {
@@ -22,10 +24,27 @@ interface Dock {
   // Second volet affiché à côté de `active` (panneau partagé en deux zones), et la part qu'il occupe.
   aside: DockView | null
   asideRatio: number
-  // Dernier choix de l'utilisateur (panneau ouvert ou fermé de sa main) : sert aux sessions jamais vues.
+  // Dernier choix de l'utilisateur (panneau ouvert ou fermé de sa main) : sert aux projets jamais vus.
   preferOpen: boolean
-  // Onglets de chaque session, comme T3 Code : on les retrouve en revenant sur elle, même après un redémarrage.
-  sessions: Record<string, { open: boolean; tabs: DockView[]; active?: DockView | null; aside?: DockView | null }>
+  // Onglets de chaque session, comme T3 Code : on les retrouve en revenant sur elle, même après un redémarrage. `open`,
+  // `active` et `aside` n'y restent que dans une disposition d'avant `projects`, lue une fois par `adopt`.
+  sessions: Record<string, SessionDock>
+  // Disposition commune aux sessions d'un projet ('' : « Cet ordinateur ») : passer de l'une à l'autre ne la change pas.
+  projects: Record<string, ProjectDock>
+}
+
+interface SessionDock {
+  tabs: DockView[]
+  open?: boolean
+  active?: DockView | null
+  aside?: DockView | null
+}
+
+interface ProjectDock {
+  open: boolean
+  active: DockView | null
+  aside: DockView | null
+  asideRatio: number
 }
 
 // Panneau partagé : côte à côte dès cette largeur, empilé en dessous (le panneau fait 360 px par défaut).
@@ -85,7 +104,7 @@ function defaults(): LayoutState {
   return {
     rail: { expanded: true, width: SIZES.rail.defaultSize },
     panel: { open: true, width: SIZES.panel.defaultSize },
-    right: { open: false, size: SIZES.right.defaultSize, width: null, editorWidth: null, tabs: [], active: null, aside: null, asideRatio: 0.5, preferOpen: true, sessions: {} },
+    right: { open: false, size: SIZES.right.defaultSize, width: null, editorWidth: null, tabs: [], active: null, aside: null, asideRatio: 0.5, preferOpen: true, sessions: {}, projects: {} },
     sessionSort: 'activity',
     sessionGroups: false,
     sessionCompact: true,
@@ -106,10 +125,20 @@ function load(): LayoutState {
     state.right.active = validActive(state.right.active, state.right.tabs)
     state.right.aside = validAside(state.right.aside, state.right.tabs, state.right.active)
     for (const [id, saved] of Object.entries(state.right.sessions)) {
-      const legacy = saved as { open: boolean; tabs?: DockView[]; panes?: DockView[]; active?: DockView | null; aside?: DockView | null }
+      const legacy = saved as SessionDock & { panes?: DockView[] }
       const tabs = tabsOf(legacy.tabs ?? legacy.panes ?? [])
+      if (legacy.open === undefined) {
+        state.right.sessions[id] = { tabs }
+        continue
+      }
       const active = validActive(legacy.active, tabs)
       state.right.sessions[id] = { open: !!legacy.open, tabs, active, aside: validAside(legacy.aside, tabs, active) }
+    }
+    for (const [group, saved] of Object.entries(state.right.projects)) {
+      const active = DOCK_VIEWS.includes(saved.active!) ? saved.active : null
+      const aside = active && saved.aside !== active && DOCK_VIEWS.includes(saved.aside!) ? saved.aside : null
+      const ratio = Number.isFinite(saved.asideRatio) ? Math.min(0.9, Math.max(0.1, saved.asideRatio)) : 0.5
+      state.right.projects[group] = { open: !!saved.open, active, aside, asideRatio: ratio }
     }
     delete (state.right as { panes?: unknown }).panes
     delete (state.right as { split?: unknown }).split
@@ -196,24 +225,53 @@ export const useLayoutStore = defineStore('layout', () => {
     dock.preferOpen = dock.open
   }
 
+  // Session affichée et son projet : `remember` range ses onglets sous elle, la disposition sous le projet.
+  let viewing: { chatId: string; group: string } | null = null
+
   function remember(chatId: string) {
-    const sessions = state.right.sessions
+    const dock = state.right
+    const sessions = dock.sessions
     delete sessions[chatId]
-    sessions[chatId] = { open: state.right.open, tabs: [...state.right.tabs], active: state.right.active, aside: state.right.aside }
+    sessions[chatId] = { tabs: [...dock.tabs] }
     const ids = Object.keys(sessions)
     for (const id of ids.slice(0, Math.max(0, ids.length - MAX_SESSIONS))) delete sessions[id]
+    if (viewing?.chatId !== chatId) return
+    dock.projects[viewing.group] = { open: dock.open, active: dock.active, aside: dock.aside, asideRatio: dock.asideRatio }
   }
 
-  // Une conversation retrouve ses volets et celui qu'elle montrait, sinon le premier. Jamais vue, elle ne s'ouvre
-  // d'office que si elle a un onglet à montrer, jamais sur un lanceur vide. Une vierge qui a déjà son état (celle de ⌘D
-  // en hérite) le garde.
-  function restore(chatId: string, blank: boolean) {
-    const saved = state.right.sessions[chatId]
+  // Projet jamais vu depuis la disposition par projet : celle de sa dernière session vue (enregistrée par session
+  // avant), sinon fermé, ou ouvert sur le premier onglet de la session si l'utilisateur laisse le panneau ouvert.
+  function adopt(group: string, members: readonly string[], tabs: readonly DockView[]): ProjectDock {
     const dock = state.right
-    dock.tabs = tabsOf(saved?.tabs ?? [])
-    dock.active = validActive(saved?.active, dock.tabs) ?? dock.tabs[0] ?? null
-    dock.aside = validAside(saved?.aside, dock.tabs, dock.active)
-    dock.open = saved ? saved.open : !blank && dock.preferOpen && dock.tabs.length > 0
+    const ids = new Set(members)
+    const seen = Object.entries(dock.sessions).filter(([id, saved]) => ids.has(id) && saved.open !== undefined)
+    const last = seen.at(-1)?.[1]
+    let layout: ProjectDock
+    if (last) {
+      const active = validActive(last.active, last.tabs) ?? last.tabs[0] ?? null
+      layout = { open: !!last.open, active, aside: validAside(last.aside, last.tabs, active), asideRatio: dock.asideRatio }
+    } else {
+      layout = { open: dock.preferOpen && tabs.length > 0, active: tabs[0] ?? null, aside: null, asideRatio: dock.asideRatio }
+    }
+    for (const [id, saved] of seen) dock.sessions[id] = { tabs: saved.tabs }
+    dock.projects[group] = layout
+    return layout
+  }
+
+  // La session montre la disposition de son projet avec son propre contenu. Un volet du projet qu'elle n'a pas encore
+  // devient un de ses onglets, vide : rien n'est copié d'une session à l'autre. Une session vierge suit la même règle.
+  function restore(chatId: string, projectId: string | null, members: readonly string[]) {
+    const dock = state.right
+    const group = projectId ?? ''
+    const tabs = tabsOf(dock.sessions[chatId]?.tabs ?? [])
+    const layout = dock.projects[group] ?? adopt(group, members, tabs)
+    for (const view of [layout.active, layout.aside]) if (view && !tabs.includes(view)) tabs.push(view)
+    viewing = { chatId, group }
+    dock.tabs = tabs
+    dock.active = layout.active
+    dock.aside = validAside(layout.aside, tabs, layout.active)
+    dock.asideRatio = layout.asideRatio
+    dock.open = layout.open
   }
 
   function forget(chatId: string) {
@@ -252,9 +310,10 @@ export const useLayoutStore = defineStore('layout', () => {
     if (!dock.tabs.includes(view)) dock.tabs.push(view)
   }
 
-  // Même chose pour une session qui n'est pas à l'écran : on le retrouve en revenant sur elle.
+  // Même chose pour une session qui n'est pas à l'écran : on le retrouve en revenant sur elle, la disposition ne
+  // bouge pas.
   function addView(chatId: string, view: DockView) {
-    const saved = state.right.sessions[chatId] ?? { open: false, tabs: [] as DockView[], active: null }
+    const saved = state.right.sessions[chatId] ?? { tabs: [] }
     state.right.sessions[chatId] = { ...saved, tabs: tabsOf([...saved.tabs, view]) }
   }
 
@@ -288,6 +347,9 @@ export const useLayoutStore = defineStore('layout', () => {
     dock.preferOpen = dock.open
   }
 
+  // Colonne qui glisse (`useColumnSlide`) : celle qui se ferme reste affichée jusqu'à la fin du mouvement.
+  const moving = reactive<Record<SlideColumn, boolean>>({ rail: false, panel: false, dock: false })
+
   // Fichier à déplier dans le volet Modifications (chemin absolu), hors de l'état enregistré.
   const changesFocus = ref<string | null>(null)
 
@@ -304,6 +366,7 @@ export const useLayoutStore = defineStore('layout', () => {
 
   return {
     ...toRefs(state),
+    moving,
     changesFocus,
     setEditing,
     spans,

@@ -8,6 +8,7 @@ import type { PaneRect } from '@/ipc/bindings/PaneRect'
 import { browserPlace, browserSnapshot } from '@/ipc/browser'
 import { useAppearanceStore } from '@/stores/appearance'
 import { useBrowserStore } from '@/stores/browser'
+import { useLayoutStore } from '@/stores/layout'
 
 // Place réservée à la page : la WKWebView native est posée par-dessus, au même endroit. Rien de Nuée ne peut passer
 // au-dessus d'elle : quand un menu, une confirmation ou un message la chevauche, la page cède la place à sa capture.
@@ -23,6 +24,7 @@ const CHECK_EVERY = 300
 const { t } = useI18n()
 const appearance = useAppearanceStore()
 const browser = useBrowserStore()
+const layout = useLayoutStore()
 const host = useTemplateRef('host')
 const frozen = ref<string | null>(null)
 const covered = ref(false)
@@ -41,7 +43,8 @@ function rect(): PaneRect | null {
 
 function place(force = false) {
   const id = props.tab.id
-  const visible = !covered.value && !props.tab.error
+  // Pendant que le panneau glisse, la page native ne suivrait pas son bord : elle attend la fin, cachée.
+  const visible = !covered.value && !props.tab.error && !layout.moving.dock
   const target = visible ? rect() : null
   const key = `${id}:${JSON.stringify(target)}`
   if (!force && key === last) return
@@ -95,6 +98,7 @@ watch(covered, async (now) => {
 })
 
 watch(() => [props.tab.error, appearance.zoomFactor], () => place(true))
+watch(() => layout.moving.dock, () => place(true), { flush: 'post' })
 
 let resize: ResizeObserver | null = null
 let mutations: MutationObserver | null = null

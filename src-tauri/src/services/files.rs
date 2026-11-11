@@ -192,6 +192,13 @@ fn app_icon(app: &Path) -> Option<String> {
     Some(format!("data:image/png;base64,{}", STANDARD.encode(bytes?)))
 }
 
+/// Icône du Finder pour le bouton « Afficher dans le Finder » (macOS seulement).
+pub fn finder_icon() -> Option<String> {
+    cfg!(target_os = "macos")
+        .then(|| app_icon(Path::new("/System/Library/CoreServices/Finder.app")))
+        .flatten()
+}
+
 /// Éditeurs présents sur la machine, dans l'ordre de la liste.
 pub fn editors() -> Vec<EditorApp> {
     EDITORS

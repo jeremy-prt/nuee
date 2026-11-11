@@ -31,6 +31,7 @@ import FolderXIcon from '@hugeicons/core-free-icons/FolderXIcon'
 import CaseSensitiveIcon from '@hugeicons/core-free-icons/CaseSensitiveIcon'
 import LetterSpacingIcon from '@hugeicons/core-free-icons/LetterSpacingIcon'
 import RegexIcon from '@hugeicons/core-free-icons/RegexIcon'
+import EraserIcon from '@hugeicons/core-free-icons/EraserIcon'
 import FileAddIcon from '@hugeicons/core-free-icons/FileAddIcon'
 import Link01Icon from '@hugeicons/core-free-icons/Link01Icon'
 import ScissorIcon from '@hugeicons/core-free-icons/ScissorIcon'
@@ -78,7 +79,7 @@ import LicenseIcon from '@hugeicons/core-free-icons/LicenseIcon'
 import LinkSquare02Icon from '@hugeicons/core-free-icons/LinkSquare02Icon'
 import Loading03Icon from '@hugeicons/core-free-icons/Loading03Icon'
 import LogsIcon from '@hugeicons/core-free-icons/LogsIcon'
-import MagicWand01Icon from '@hugeicons/core-free-icons/MagicWand01Icon'
+import HierarchyCircle01Icon from '@hugeicons/core-free-icons/HierarchyCircle01Icon'
 import Moon02Icon from '@hugeicons/core-free-icons/Moon02Icon'
 import MoreHorizontalIcon from '@hugeicons/core-free-icons/MoreHorizontalIcon'
 import NoteEditIcon from '@hugeicons/core-free-icons/NoteEditIcon'
@@ -198,6 +199,7 @@ export const Scissors = icon(ScissorIcon)
 export const CornerDownRight = icon(ArrowTurnForwardIcon)
 export const Download = icon(Download04Icon)
 export const Ellipsis = icon(MoreHorizontalIcon)
+export const Eraser = icon(EraserIcon)
 export const ExternalLink = icon(LinkSquare02Icon)
 export const Eye = icon(ViewIcon)
 export const File = icon(File01Icon)
@@ -240,7 +242,7 @@ export const Info = icon(InformationCircleIcon)
 export const Keyboard = icon(KeyboardIcon)
 export const Layers = icon(LayerIcon)
 export const LayoutList = icon(LeftToRightListBulletIcon)
-export const Orchestra = icon(MagicWand01Icon)
+export const Orchestra = icon(HierarchyCircle01Icon)
 export const SplitDown = icon(LayoutTwoRowIcon)
 export const LoaderCircle = icon(Loading03Icon)
 export const Logs = icon(LogsIcon)

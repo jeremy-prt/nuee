@@ -149,6 +149,7 @@ pub fn run() {
             commands::files::files_stat,
             commands::files::files_write,
             commands::files::files_editors,
+            commands::files::files_finder_icon,
             commands::files::files_open_editor,
             commands::files::files_reveal,
             commands::files::files_create,

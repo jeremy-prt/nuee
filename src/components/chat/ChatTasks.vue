@@ -4,6 +4,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatSpinner from '@/components/chat/ChatSpinner.vue'
 import ChatTaskOutput from '@/components/chat/ChatTaskOutput.vue'
+import ShellDockToolbar from '@/components/shell/ShellDockToolbar.vue'
 import UiEmpty from '@/components/ui/UiEmpty.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import { type TaskState, useConversationsStore } from '@/stores/conversations'
@@ -67,6 +68,12 @@ function duration(task: TaskState) {
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col">
+    <ShellDockToolbar :label="t('dock.tasks.title')">
+      <h2 class="flex min-w-0 items-center gap-1.5 ps-1 text-xs font-medium">
+        <span class="truncate">{{ t('dock.tasks.title') }}</span>
+        <span v-if="tab && tasks.length" class="font-normal text-muted tabular-nums">{{ tasks.length }}</span>
+      </h2>
+    </ShellDockToolbar>
     <div v-if="tab && tasks.length" class="min-h-0 flex-1 overflow-y-auto p-2 text-xs">
       <template v-for="group in [{ id: 'running', items: running }, { id: 'done', items: done }]" :key="group.id">
         <section v-if="group.items.length" class="mb-2">

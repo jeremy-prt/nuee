@@ -4,6 +4,7 @@ import {
   Copy,
   CopyPlus,
   ExternalLink,
+  Eye,
   FilePlus,
   FolderOpen,
   FolderPlus,
@@ -14,9 +15,11 @@ import {
   SquareTerminal,
   Trash2,
 } from '@/components/ui/icons'
+import { DropdownMenuCheckboxItem } from 'reka-ui'
 import { computed, type FunctionalComponent, h } from 'vue'
 import { useI18n } from 'vue-i18n'
 import UiMenuItem from '@/components/ui/UiMenuItem.vue'
+import { menuIcon, menuLabel, menuRow } from '@/components/ui/menuRow'
 import UiMenuSeparator from '@/components/ui/UiMenuSeparator.vue'
 import UiMenuSub from '@/components/ui/UiMenuSub.vue'
 import type { FilesPlace } from '@/ipc/bindings/FilesPlace'
@@ -57,6 +60,17 @@ const name = computed(() => props.target.path.slice(props.target.path.lastIndexO
 // Dossier où créer ou coller : le dossier visé, sinon celui du fichier.
 const folder = computed(() => (props.target.folder ? props.target.path : parentOf(props.target.path)))
 const absolute = (relative: string) => (relative ? `${props.root.replace(/[\\/]+$/, '')}/${relative}` : props.root)
+
+const previewable = computed(() => !props.target.folder && /\.(md|mdx|markdown|svg)$/i.test(name.value))
+// Un markdown ou un SVG pas encore ouvert n'est pas affiché en source : choisir l'aperçu l'ouvre ainsi.
+const previewed = computed(() => previewable.value && files.view === 'preview' && browse.value.tabs.includes(props.target.path))
+
+function togglePreview() {
+  if (!browse.value.tabs.includes(props.target.path)) {
+    files.openFile(props.place.chatId, props.target.path, { pin: true })
+    files.setView('preview')
+  } else files.setView(previewed.value ? 'source' : 'preview')
+}
 
 const clip = computed(() => (files.clipboard?.chatId === props.place.chatId ? files.clipboard : null))
 // Un dossier ne se colle ni dans lui-même ni dans l'un de ses sous-dossiers.
@@ -161,6 +175,10 @@ async function reveal() {
   <UiMenuItem :label="t('dock.files.rename')" :icon="Pencil" :disabled="isRoot" @select="browse.editing = { kind: 'rename', path: target.path, folder: target.folder }" />
   <UiMenuItem :label="t('dock.files.delete')" :icon="Trash2" danger :disabled="isRoot" @select="remove" />
   <UiMenuSeparator />
+  <DropdownMenuCheckboxItem v-if="previewable" :model-value="previewed" :text-value="t('dock.files.preview')" :class="[menuRow, 'py-1.5']" @select="togglePreview">
+    <Eye :class="menuIcon" aria-hidden="true" />
+    <span :class="[menuLabel, 'min-w-0 flex-1']">{{ t('dock.files.preview') }}</span>
+  </DropdownMenuCheckboxItem>
   <UiMenuItem :label="t('dock.files.attach')" :icon="Clip" @select="drafts.requestAttach(place.chatId, [absolute(target.path)])" />
   <UiMenuSub v-if="files.editors?.length" :label="t('dock.files.openWith')" :icon="ExternalLink">
     <UiMenuItem v-for="editor in files.editors" :key="editor.id" :label="editor.name" :icon="logo(editor.icon)" @select="openIn(editor)" />

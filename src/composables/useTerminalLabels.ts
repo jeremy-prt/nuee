@@ -4,10 +4,10 @@ import { useTerminalChat } from '@/composables/useTerminalChat'
 import { useTerminalsStore } from '@/stores/terminals'
 
 // Comme VS Code et T3 Code : la commande qui tourne (« pnpm », « node »), sinon « Terminal », numéroté dès qu'il y en
-// a plusieurs. Le nom du shell ou le dossier, les mêmes pour tous, n'apprennent rien.
+// a plusieurs. `idle` : libellé d'un shell seul à son invite, là où « Terminal » répéterait l'onglet du volet.
 const POLL = 1500
 
-export function useTerminalLabels() {
+export function useTerminalLabels(idle?: () => string | null) {
   const { t } = useI18n()
   const terminals = useTerminalsStore()
   const { chat } = useTerminalChat()
@@ -26,7 +26,7 @@ export function useTerminalLabels() {
     Object.fromEntries(
       list.value.map((tab) => [
         tab.key,
-        commands[tab.key] ?? (list.value.length > 1 ? t('dock.terminal.tab', { n: tab.number }) : t('dock.terminal.title')),
+        commands[tab.key] ?? (list.value.length > 1 ? t('dock.terminal.tab', { n: tab.number }) : (idle?.() ?? t('dock.terminal.title'))),
       ]),
     ) as Record<string, string>,
   )

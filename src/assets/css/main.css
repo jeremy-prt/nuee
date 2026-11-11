@@ -402,6 +402,79 @@ html[data-mode='light'] {
   content-visibility: hidden;
 }
 
+/* Mouvements des colonnes, du champ de saisie et des onglets du panneau, lus aussi par `utils/motion.ts`. Durées de
+   monocode (240 ms à l'ouverture, 200 à la fermeture) ; sa courbe faisait les deux tiers du trajet en deux images et
+   la fermeture paraissait sèche : ease-out cubique, qui étale le mouvement sur toute la durée. */
+:root {
+  --motion-ease: cubic-bezier(0.33, 1, 0.68, 1);
+  --motion-open: 240ms;
+  --motion-close: 200ms;
+  --motion-quick: 180ms;
+  --motion-move: 260ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-open: 0ms;
+    --motion-close: 0ms;
+    --motion-quick: 0ms;
+    --motion-move: 0ms;
+  }
+}
+
+/* Colonne qui s'ouvre ou se ferme (`useColumnSlide`) : seule sa largeur s'anime. Son contenu garde sa largeur finale,
+   collé au bord qui bouge, et ne se remet pas en page à chaque image. */
+[data-sliding] {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Zone de la barre de titre : ses onglets sont coupés avant le bouton qui reste, jamais par-dessus. */
+[data-sliding] > [data-slide-clip] {
+  position: relative;
+  overflow: hidden;
+}
+
+[data-sliding] > [data-slide-content],
+[data-sliding] > [data-slide-clip] > [data-slide-content] {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: var(--slide-content);
+}
+
+[data-sliding='end'] > [data-slide-content] {
+  inset-inline-start: auto;
+  inset-inline-end: 0;
+}
+
+/* Onglet du panneau de droite : le titre de l'actif s'ouvre en largeur, celui qu'il remplace se referme. */
+.dock-tab-label {
+  display: grid;
+  grid-template-columns: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-columns var(--motion-quick) var(--motion-ease),
+    opacity var(--motion-quick) var(--motion-ease);
+}
+
+.dock-tab-label[data-open] {
+  grid-template-columns: 1fr;
+  opacity: 1;
+}
+
+/* Carte qui arrive au-dessus du champ de saisie (autorisation, question, limite). */
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.card-in {
+  animation: card-in var(--motion-quick) var(--motion-ease);
+}
+
 /* Réglage trouvé par la recherche : une ligne s'allume puis s'éteint, un bloc de cartes s'entoure d'un anneau. */
 @keyframes setting-found-block {
   0%,

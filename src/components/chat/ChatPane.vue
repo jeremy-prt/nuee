@@ -11,6 +11,7 @@ import type { WorktreeChoice } from '@/components/chat/ChatWorktreePicker.vue'
 import ChatQuestion from '@/components/chat/ChatQuestion.vue'
 import ChatQueue from '@/components/chat/ChatQueue.vue'
 import ChatTranscript from '@/components/chat/ChatTranscript.vue'
+import { useComposerLaunch } from '@/composables/useComposerLaunch'
 import { useFileDrop } from '@/composables/useFileDrop'
 import { isAppError } from '@/ipc/agent'
 import { worktreeCheckout } from '@/ipc/worktree'
@@ -128,6 +129,8 @@ async function checkout(branch: string) {
   await worktrees.load(project.value)
 }
 
+const launch = useComposerLaunch()
+
 function send(prompt: string, attachments: Attachment[], other = false) {
   operator.userSpoke(props.tab.id)
   const first = !items.value.some((item) => item.kind === 'user')
@@ -138,6 +141,8 @@ function send(prompt: string, attachments: Attachment[], other = false) {
   conversations.send(props.tab.id, place.value, prompt, attachments, other)
   if (first) {
     worktrees.setBase(props.tab.id, null)
+    // Après les changements d'état : l'arrivée se lit une fois leur rendu fait, le DOM n'a pas encore bougé.
+    launch(props.tab.id)
   }
 }
 
@@ -213,7 +218,7 @@ onMounted(() => {
 
 <template>
   <!-- Le champ reste le même élément quand la conversation démarre : il garde le focus. -->
-  <div ref="pane" class="relative flex flex-col">
+  <div ref="pane" class="relative flex flex-col" data-chat-pane>
     <ChatTranscript
       v-if="items.length"
       :items="items"
@@ -253,21 +258,21 @@ onMounted(() => {
       <ChatQuestion
         v-if="approval?.questions"
         :key="approval.id"
-        class="w-full max-w-(--chat-width)"
+        class="card-in w-full max-w-(--chat-width)"
         :questions="approval.questions"
         @answer="conversations.answer(tab.id, approval.id, $event)"
       />
       <ChatApproval
         v-else-if="approval"
         :key="approval.id"
-        class="w-full max-w-(--chat-width)"
+        class="card-in w-full max-w-(--chat-width)"
         :approval="approval"
         :agent-name="agents[agent].name"
         @answer="conversations.approve(tab.id, approval.id, $event)"
       />
       <ChatLimit
         v-if="limit"
-        class="w-full max-w-(--chat-width)"
+        class="card-in w-full max-w-(--chat-width)"
         :resets-at="limit.resetsAt"
         :resume-at="conversation?.resumeAt ?? null"
         @schedule="conversations.scheduleResume(tab.id)"
