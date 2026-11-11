@@ -1,15 +1,19 @@
 <script setup lang="ts">
-import { GitBranch } from '@/components/ui/icons'
+import { CloudDownload, GitBranch } from '@/components/ui/icons'
 import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiMenu from '@/components/ui/UiMenu.vue'
 import { useGitActions } from '@/composables/useGitActions'
 import { useSessionBranch } from '@/composables/useSessionBranch'
 import { useTerminalChat } from '@/composables/useTerminalChat'
 import { useGitActionsStore } from '@/stores/gitActions'
+import { useProjectsStore } from '@/stores/projects'
+import { useSessionGitStore } from '@/stores/sessionGit'
 
 // Branche du dossier de la session, en tête des deux modes du volet Git (menu pour en changer quand c'est possible,
-// comme Environnement). Slot : ce qui s'affiche à droite (total des changements).
+// comme Environnement). Slot : ce qui s'affiche à droite (total des changements), puis le pull direct, avec une
+// pastille quand la branche suivie a des commits à récupérer.
 const { t } = useI18n()
 const { chat } = useTerminalChat()
 const { idle, run } = useGitActions()
@@ -18,6 +22,19 @@ const { branch, place, canSwitch, branchList, loadBranches, checkout } = useSess
 const committing = computed(() => gitActions.manual.has(gitActions.folderOf(chat.value) ?? ''))
 
 watch([place, branch], () => loadBranches(), { immediate: true })
+
+const sessionGit = useSessionGitStore()
+const projects = useProjectsStore()
+const path = computed(() => projects.byId(chat.value?.projectId ?? null)?.path ?? null)
+const behind = computed(() => (chat.value ? (sessionGit.behind[chat.value.id] ?? 0) : 0))
+watch(
+  [() => chat.value?.id, path],
+  ([id, root]) => {
+    if (id && root) sessionGit.checkBehind(id, root)
+  },
+  { immediate: true },
+)
+const pullLabel = computed(() => (behind.value ? t('dock.changes.pullBehind', { n: behind.value }, behind.value) : t('dock.changes.pull')))
 const sections = computed(() => [
   {
     id: 'branch',
@@ -49,5 +66,15 @@ const sections = computed(() => [
     </p>
     <span class="flex-1" />
     <slot />
+    <UiIconButton
+      v-if="chat?.started"
+      :label="pullLabel"
+      :disabled="!idle || !!run || committing"
+      class="relative -me-1 size-6!"
+      @click="chat && gitActions.pullNow(chat)"
+    >
+      <CloudDownload class="size-3" aria-hidden="true" />
+      <span v-if="behind" class="absolute end-0.5 top-0.5 size-1.5 rounded-full bg-signal" aria-hidden="true" />
+    </UiIconButton>
   </div>
 </template>

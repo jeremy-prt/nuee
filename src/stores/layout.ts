@@ -35,10 +35,10 @@ interface Dock {
   asideRatio: number
   // Dernier choix de l'utilisateur (panneau ouvert ou fermé de sa main) : sert aux projets jamais vus.
   preferOpen: boolean
-  // Onglets de chaque session, comme T3 Code : on les retrouve en revenant sur elle, même après un redémarrage. `open`,
-  // `active` et `aside` n'y restent que dans une disposition d'avant `projects`, lue une fois par `adopt`.
+  // Onglets et panneau ouvert ou fermé de chaque session, comme T3 Code : on les retrouve en revenant sur elle, même
+  // après un redémarrage. `active` et `aside` n'y restent que dans une disposition d'avant `projects`, lue par `adopt`.
   sessions: Record<string, SessionDock>
-  // Disposition commune aux sessions d'un projet ('' : « Sans projet ») : passer de l'une à l'autre ne la change pas.
+  // Volets affichés, communs aux sessions d'un projet ('' : « Sans projet »). `open` n'y sert qu'à une session jamais vue.
   projects: Record<string, ProjectDock>
   // Mode du volet Git par projet, comme le reste de la disposition.
   gitModes: Record<string, GitMode>
@@ -138,8 +138,8 @@ function load(): LayoutState {
     for (const [id, saved] of Object.entries(state.right.sessions)) {
       const legacy = saved as SessionDock & { panes?: DockView[] }
       const tabs = tabsOf(legacy.tabs ?? legacy.panes ?? [])
-      if (legacy.open === undefined) {
-        state.right.sessions[id] = { tabs }
+      if (!('active' in legacy)) {
+        state.right.sessions[id] = typeof legacy.open === 'boolean' ? { tabs, open: legacy.open } : { tabs }
         continue
       }
       const active = validActive(legacy.active, tabs)
@@ -255,17 +255,18 @@ export const useLayoutStore = defineStore('layout', () => {
     },
   )
 
-  // Session affichée et son projet : `remember` range ses onglets sous elle, la disposition sous le projet.
+  // Session affichée et son projet : `remember` range ses onglets et l'ouverture sous elle, la disposition sous le projet.
   let viewing: { chatId: string; group: string } | null = null
 
+  // Seulement la session que `restore` a montrée : un enregistrement passé avant lui rangerait l'état de la précédente.
   function remember(chatId: string) {
+    if (viewing?.chatId !== chatId) return
     const dock = state.right
     const sessions = dock.sessions
     delete sessions[chatId]
-    sessions[chatId] = { tabs: [...dock.tabs] }
+    sessions[chatId] = { tabs: [...dock.tabs], open: dock.open }
     const ids = Object.keys(sessions)
     for (const id of ids.slice(0, Math.max(0, ids.length - MAX_SESSIONS))) delete sessions[id]
-    if (viewing?.chatId !== chatId) return
     dock.projects[viewing.group] = { open: dock.open, active: dock.active, aside: dock.aside, asideRatio: dock.asideRatio }
   }
 
@@ -274,7 +275,7 @@ export const useLayoutStore = defineStore('layout', () => {
   function adopt(group: string, members: readonly string[], tabs: readonly DockView[]): ProjectDock {
     const dock = state.right
     const ids = new Set(members)
-    const seen = Object.entries(dock.sessions).filter(([id, saved]) => ids.has(id) && saved.open !== undefined)
+    const seen = Object.entries(dock.sessions).filter(([id, saved]) => ids.has(id) && 'active' in saved)
     const last = seen.at(-1)?.[1]
     let layout: ProjectDock
     if (last) {
@@ -283,17 +284,19 @@ export const useLayoutStore = defineStore('layout', () => {
     } else {
       layout = { open: dock.preferOpen && tabs.length > 0, active: tabs[0] ?? null, aside: null, asideRatio: dock.asideRatio }
     }
-    for (const [id, saved] of seen) dock.sessions[id] = { tabs: saved.tabs }
+    for (const [id, saved] of seen) dock.sessions[id] = { tabs: saved.tabs, open: !!saved.open }
     dock.projects[group] = layout
     return layout
   }
 
   // La session montre la disposition de son projet avec son propre contenu. Un volet du projet qu'elle n'a pas encore
-  // devient un de ses onglets, vide : rien n'est copié d'une session à l'autre. Une session vierge suit la même règle.
-  function restore(chatId: string, projectId: string | null, members: readonly string[]) {
+  // devient un de ses onglets, vide : rien n'est copié d'une session à l'autre. Ouvert ou fermé : celui de la session,
+  // celui du projet si elle n'a jamais été vue, toujours fermé pour une vierge (demande de Jérémy).
+  function restore(chatId: string, projectId: string | null, members: readonly string[], blank = false) {
     const dock = state.right
     const group = projectId ?? ''
-    const tabs = tabsOf(dock.sessions[chatId]?.tabs ?? [])
+    const saved = dock.sessions[chatId]
+    const tabs = tabsOf(saved?.tabs ?? [])
     const layout = dock.projects[group] ?? adopt(group, members, tabs)
     for (const view of [layout.active, layout.aside]) if (view && !tabs.includes(view)) tabs.push(view)
     viewing = { chatId, group }
@@ -301,7 +304,7 @@ export const useLayoutStore = defineStore('layout', () => {
     dock.active = layout.active
     dock.aside = validAside(layout.aside, tabs, layout.active)
     dock.asideRatio = layout.asideRatio
-    dock.open = layout.open
+    dock.open = !blank && (saved?.open ?? layout.open)
     zone.value = 'start'
   }
 

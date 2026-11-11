@@ -5,7 +5,7 @@ import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { Effort } from '@/ipc/bindings/Effort'
 import type { HeadInfo } from '@/ipc/bindings/HeadInfo'
 import { isAppError } from '@/ipc/agent'
-import { worktreeCommit, worktreeHead, worktreePush } from '@/ipc/worktree'
+import { worktreeCommit, worktreeHead, worktreePull, worktreePush } from '@/ipc/worktree'
 import { type Signal, useAttentionStore } from '@/stores/attention'
 import { useCatalogStore } from '@/stores/catalog'
 import { type ChatItem, type Conversation, type GitItem, useConversationsStore } from '@/stores/conversations'
@@ -301,6 +301,27 @@ export const useGitActionsStore = defineStore('gitActions', () => {
     }
   }
 
+  // Pull direct, sans agent ni skill (demande de Jérémy) : mêmes garde-fous que le commit direct.
+  async function pullNow(origin: Tab) {
+    const { t } = i18nGlobal()
+    const folder = folderOf(origin)
+    const project = projects.byId(origin.projectId)
+    if (!folder || !project || manual.has(folder)) return
+    const busy = runs.get(folder)
+    if (busy) return void toasts.push({ title: t('gitActions.busyTitle'), body: t('gitActions.busy', { action: label(busy.action) }) })
+    manual.add(folder)
+    try {
+      const head = await worktreePull(origin.id, project.path)
+      toasts.push({ kind: 'success', title: t('gitActions.done.pull'), body: [head.subject, head.branch].filter(Boolean).join(' · ') })
+    } catch (error) {
+      toasts.push({ kind: 'error', title: t('gitActions.pullFailed'), body: brief(isAppError(error) ? error.message : String(error)), clamp: true })
+    } finally {
+      manual.delete(folder)
+      settled[folder] = (settled[folder] ?? 0) + 1
+      await Promise.all([sessionGit.refresh(origin.id, project.path), sessionGit.checkBehind(origin.id, project.path, true)])
+    }
+  }
+
   async function headOf(run: GitRun) {
     const project = projects.byId(run.projectId)
     return project ? worktreeHead(run.originId, project.path).catch(() => null) : null
@@ -356,5 +377,5 @@ export const useGitActionsStore = defineStore('gitActions', () => {
     conversations.stop(run.chatId)
   }
 
-  return { runs, manual, settled, folderOf, runOf, skillOf, label, start, commitNow, stop, open }
+  return { runs, manual, settled, folderOf, runOf, skillOf, label, start, commitNow, pullNow, stop, open }
 })

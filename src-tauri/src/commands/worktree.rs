@@ -194,6 +194,30 @@ pub async fn worktree_push(
     worktrees.push(&PathBuf::from(path), &dir).await
 }
 
+/// Commits de la branche suivie que le dossier de la session n'a pas encore (fetch compris).
+#[tauri::command]
+pub async fn worktree_behind(
+    chat_id: String,
+    path: String,
+    worktrees: State<'_, WorktreeService>,
+    chats: State<'_, ChatService>,
+) -> Result<u32, AppError> {
+    let dir = session_dir(&chats, &chat_id, &path)?;
+    worktrees.behind(&PathBuf::from(path), &dir).await
+}
+
+/// Pull de la branche courante du dossier de la session, en avance rapide seulement.
+#[tauri::command]
+pub async fn worktree_pull(
+    chat_id: String,
+    path: String,
+    worktrees: State<'_, WorktreeService>,
+    chats: State<'_, ChatService>,
+) -> Result<HeadInfo, AppError> {
+    let dir = write_dir(&chats, &chat_id, &path)?;
+    worktrees.pull(&PathBuf::from(path), &dir).await
+}
+
 /// Une page du journal de la branche courante.
 #[tauri::command]
 pub async fn worktree_log(

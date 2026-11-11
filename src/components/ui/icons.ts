@@ -23,6 +23,7 @@ import ChartColumnIcon from '@hugeicons/core-free-icons/ChartColumnIcon'
 import CheckmarkCircle02Icon from '@hugeicons/core-free-icons/CheckmarkCircle02Icon'
 import Clock01Icon from '@hugeicons/core-free-icons/Clock01Icon'
 import Coffee02Icon from '@hugeicons/core-free-icons/Coffee02Icon'
+import CloudDownloadIcon from '@hugeicons/core-free-icons/CloudDownloadIcon'
 import CloudUploadIcon from '@hugeicons/core-free-icons/CloudUploadIcon'
 import CommentAdd01Icon from '@hugeicons/core-free-icons/CommentAdd01Icon'
 import ComputerTerminal01Icon from '@hugeicons/core-free-icons/ComputerTerminal01Icon'
@@ -190,6 +191,7 @@ export const ChevronsUpDown = icon(ChevronsUpDownGlyph)
 export const CircleAlert = icon(AlertCircleIcon)
 export const CircleCheck = icon(CheckmarkCircle02Icon)
 export const Clock = icon(Clock01Icon)
+export const CloudDownload = icon(CloudDownloadIcon)
 export const CloudUpload = icon(CloudUploadIcon)
 export const Coffee = icon(Coffee02Icon)
 export const Columns2 = icon(LayoutTwoColumnIcon)

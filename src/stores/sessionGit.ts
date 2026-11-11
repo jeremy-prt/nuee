@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { reactive } from 'vue'
 import type { WorktreeChanges } from '@/ipc/bindings/WorktreeChanges'
-import { worktreeChanges, worktreeUnpushed } from '@/ipc/worktree'
+import { worktreeBehind, worktreeChanges, worktreeUnpushed } from '@/ipc/worktree'
 
 export interface SessionGit {
   changes: WorktreeChanges
@@ -24,5 +24,14 @@ export const useSessionGitStore = defineStore('sessionGit', () => {
     }
   }
 
-  return { states, refresh }
+  // Commits à récupérer par pull. Le fetch passe par le réseau : une fois par minute au plus, sauf après un pull.
+  const behind = reactive<Record<string, number>>({})
+  const checkedAt: Record<string, number> = {}
+  async function checkBehind(chatId: string, path: string, force = false) {
+    if (!force && Date.now() - (checkedAt[chatId] ?? 0) < 60_000) return
+    checkedAt[chatId] = Date.now()
+    behind[chatId] = await worktreeBehind(chatId, path).catch(() => 0)
+  }
+
+  return { states, refresh, behind, checkBehind }
 })

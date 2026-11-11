@@ -170,8 +170,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       for (const id of left.panes) seenAt[id] = Date.now()
       for (const id of [...left.tabs]) if (isBlank(id)) closeTab(id, left)
     }
-    // « Nouvel espace de travail » n'est plus une page à part : une session vierge parmi les onglets, avec le panneau
-    // de droite du projet, pour que rien ne surgisse au premier message (demande de Jérémy).
+    // « Nouvel espace de travail » n'est plus une page à part : une session vierge parmi les onglets, panneau de droite
+    // fermé, pour que rien ne surgisse au premier message (demande de Jérémy).
     if (navigation.view === 'new') {
       fresh = true
       navigation.go('chats')
@@ -342,6 +342,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     show(createChat().id)
   }
 
+  // Une session vierge part panneau de droite fermé : `restore` s'en charge au changement d'onglet, ceci couvre la
+  // vierge déjà affichée, reprise par `blankChat`.
+  function closeDock() {
+    useLayoutStore().right.open = false
+  }
+
   // « Nouvelle session » du menu d'un projet, ou « + » et ⌘T hors des sessions : la vierge du contexte plutôt qu'une
   // de plus.
   function showBlank() {
@@ -371,15 +377,15 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     visited.add(contextKey.value)
     if (fresh) {
       fresh = false
-      return show(blankChat().id)
+      show(blankChat().id)
+      return closeDock()
     }
     const layout = current()
     const shown = layout.panes[layout.focused]
     if (shown && (!arriving || isRecent(shown))) return
     const latest = contextChats.value.reduce<Tab | null>((best, tab) => (!best || tab.updatedAt > best.updatedAt ? tab : best), null)
     if (!shown && latest && isRecent(latest.id)) return show(latest.id)
-    const blank = blankChat()
-    show(blank.id)
+    show(blankChat().id)
   }
 
   // Session vierge du contexte, reprise plutôt que doublée : celle de « Nouvel espace de travail » sert ensuite ici.

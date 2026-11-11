@@ -2,6 +2,7 @@
 import {
   Bot,
   ChevronDown,
+  CloudDownload,
   Coffee,
   ExternalLink,
   Folder,
@@ -10,7 +11,6 @@ import {
   Gauge,
   GitBranch,
   GitBranchPlus,
-  GitCompare,
   Layers,
   NoProject,
   RemoteControl,
@@ -28,8 +28,9 @@ import ProjectIcon from '@/components/project/ProjectIcon.vue'
 import ServerMenu from '@/components/server/ServerMenu.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiMenuItem from '@/components/ui/UiMenuItem.vue'
-import UiSwitch from '@/components/ui/UiSwitch.vue'
-import UiTooltip from '@/components/ui/UiTooltip.vue'
+import UiMenuSeparator from '@/components/ui/UiMenuSeparator.vue'
+import UiMenuSub from '@/components/ui/UiMenuSub.vue'
+import UiMenuToggle from '@/components/ui/UiMenuToggle.vue'
 import { menuIcon, menuLabel, menuRow } from '@/components/ui/menuRow'
 import { useDockFocus } from '@/composables/useDockFocus'
 import { useGitActions } from '@/composables/useGitActions'
@@ -43,8 +44,10 @@ import { projectReveal } from '@/ipc/project'
 import { type TaskState, type ToolItem, useConversationsStore } from '@/stores/conversations'
 import { useFilesStore } from '@/stores/files'
 import { useGeneralStore } from '@/stores/general'
-import { type DockView, useLayoutStore } from '@/stores/layout'
+import { useLayoutStore } from '@/stores/layout'
+import { useGitActionsStore } from '@/stores/gitActions'
 import { useProjectsStore } from '@/stores/projects'
+import { useSessionGitStore } from '@/stores/sessionGit'
 import { useToastsStore } from '@/stores/toasts'
 import { useWorktreesStore } from '@/stores/worktrees'
 import { contextFormats, contextRatio, contextRows } from '@/utils/context'
@@ -61,6 +64,8 @@ const { phase, idle, git, changed, run, main, others, initRepo, start } = useGit
 const STOP = '[data-git-run="session"] [data-git-stop]'
 const { focusView } = useDockFocus()
 const projects = useProjectsStore()
+const sessionGit = useSessionGitStore()
+const gitActionsStore = useGitActionsStore()
 const worktrees = useWorktreesStore()
 const conversations = useConversationsStore()
 const toasts = useToastsStore()
@@ -72,7 +77,7 @@ files.loadEditors()
 
 // Détails repliés par défaut, état retenu en local : simple confort, rien de grave si la lecture échoue.
 const OPEN_KEY = 'nuee.sessionPanel.v4'
-const groups = ['place', 'context', 'tasks', 'options'] as const
+const groups = ['place'] as const
 type Group = (typeof groups)[number]
 const open = reactive<Record<Group, boolean>>(Object.fromEntries(groups.map((name) => [name, false])) as Record<Group, boolean>)
 try {
@@ -112,11 +117,18 @@ const folderParts = computed(() => {
 const items = computed(() => (chat.value ? (conversations.find(chat.value.id)?.items ?? []) : []))
 
 // Le panneau s'ouvre par-dessus le reste : ce qui mène à un volet le referme, et le clavier y suit.
-function toDock(view: DockView, event: MouseEvent, path?: string) {
-  if (view === 'changes') layout.showChanges(path ?? null)
-  else layout.showView(view)
+// Commits à récupérer, relus à l'ouverture du sous-menu git (fetch au plus une fois par minute).
+const behind = computed(() => (chat.value ? (sessionGit.behind[chat.value.id] ?? 0) : 0))
+function toTasks(keyboard: boolean) {
+  layout.showView('tasks')
   emit('close')
-  if (event.detail === 0) focusView(view)
+  if (keyboard) focusView('tasks')
+}
+function checkBehind() {
+  if (chat.value && project.value) sessionGit.checkBehind(chat.value.id, project.value.path)
+}
+function pull() {
+  if (chat.value) gitActionsStore.pullNow(chat.value)
 }
 
 // ===== Éditeur et Finder =====
@@ -273,73 +285,51 @@ const separator = 'mx-2 my-1 h-px shrink-0 bg-stroke'
     <template v-else-if="project">
       <div :class="separator" aria-hidden="true" />
       <div class="flex flex-col gap-0.5">
-        <ChatSessionSub v-if="canSwitch" :label="`${t('composer.branch.label')} ${branch}`" :disabled="!idle || !!run" @open="loadBranches">
-          <GitBranch :class="icon" aria-hidden="true" />
-          <span class="min-w-0 flex-1 truncate">{{ branch }}</span>
-          <template #menu>
-            <DropdownMenuItem
-              v-for="item in branchList"
-              :key="item.name"
-              :text-value="item.name"
-              :disabled="item.name === branch"
-              :class="[menuRow, 'py-1 data-[disabled]:opacity-100!']"
-              @select="checkout(item.name)"
-            >
-              <GitBranch :class="[menuIcon, 'text-muted']" aria-hidden="true" />
-              <span :class="[menuLabel, 'min-w-0 flex-1', { 'text-muted': item.name === branch }]">{{ item.name }}</span>
-              <span v-if="item.name === branch" class="mt-0.5 shrink-0 text-[11px] leading-4 text-muted">{{ t('dock.session.current') }}</span>
-            </DropdownMenuItem>
-          </template>
-        </ChatSessionSub>
-        <p v-else :class="branch ? row : empty">
-          <GitBranch :class="icon" aria-hidden="true" />
-          <span class="sr-only">{{ t('composer.branch.label') }}</span>
-          <span class="min-w-0 flex-1 truncate">{{ branch ?? t('dock.session.noBranch') }}</span>
-        </p>
-
+        <!-- Tout git sur une ligne, comme T3 Code (demande de Jérémy) : la branche et le total des changements ; au
+             survol, changer de branche, les actions git et le volet Git. Une action en cours prend la place de la ligne. -->
         <div data-git-run="session">
           <ChatGitRun v-if="run" :run="run" />
-          <ChatSessionSub
-            v-else-if="others.length"
-            split
-            :menu-label="t('dock.session.gitActions')"
-            :run-disabled="main.disabled"
-            @run="start(main.id, $event.detail === 0, STOP)"
-          >
-            <component :is="main.icon" :class="icon" aria-hidden="true" />
-            <span class="min-w-0 flex-1 truncate">{{ main.label }}</span>
-            <span v-if="main.hint" class="max-w-32 shrink-0 truncate text-xs text-muted">{{ main.hint }}</span>
+          <ChatSessionSub v-else :label="`${t('composer.branch.label')} ${branch ?? t('dock.session.noBranch')}`" @open="(open) => open && (loadBranches(), checkBehind())">
+            <GitBranch :class="icon" aria-hidden="true" />
+            <span class="min-w-0 flex-1 truncate" :class="{ 'text-muted': !branch }">{{ branch ?? t('dock.session.noBranch') }}</span>
+            <ChatDiffStat v-if="git && changed" :added="git.changes.added" :removed="git.changes.removed" plain class="text-xs" />
             <template #menu="{ keyboard }">
+              <UiMenuSub v-if="canSwitch" :label="t('composer.branch.label')" :icon="GitBranch" :value="branch ?? undefined">
+                <DropdownMenuItem
+                  v-for="item in branchList"
+                  :key="item.name"
+                  :text-value="item.name"
+                  :disabled="item.name === branch || !idle"
+                  :class="[menuRow, 'py-1', { 'data-[disabled]:opacity-100!': item.name === branch }]"
+                  @select="checkout(item.name)"
+                >
+                  <GitBranch :class="[menuIcon, 'text-muted']" aria-hidden="true" />
+                  <span :class="[menuLabel, 'min-w-0 flex-1', { 'text-muted': item.name === branch }]">{{ item.name }}</span>
+                  <span v-if="item.name === branch" class="mt-0.5 shrink-0 text-[11px] leading-4 text-muted">{{ t('dock.session.current') }}</span>
+                </DropdownMenuItem>
+              </UiMenuSub>
+              <UiMenuSeparator v-if="canSwitch" />
               <UiMenuItem
-                v-for="item in others"
-                :key="item.id"
+                v-for="item in [main, ...others]"
+                :key="item.id ?? item.label"
                 :label="item.label"
                 :icon="item.icon"
                 :hint="item.hint"
                 :disabled="item.disabled"
                 @select="start(item.id, keyboard, STOP)"
               />
+              <UiMenuItem :label="t('dock.changes.pull')" :icon="CloudDownload" :hint="behind ? `↓${behind}` : null" :disabled="!idle" @select="pull" />
             </template>
           </ChatSessionSub>
-          <button v-else type="button" :class="[action, 'disabled:text-muted disabled:hover:bg-transparent']" :disabled="main.disabled" @click="start(main.id, $event.detail === 0, STOP)">
-            <component :is="main.icon" :class="icon" aria-hidden="true" />
-            <span class="min-w-0 flex-1 truncate">{{ main.label }}</span>
-            <span v-if="main.hint" class="max-w-32 shrink-0 truncate text-xs text-muted">{{ main.hint }}</span>
-          </button>
         </div>
-
-        <button type="button" :class="action" @click="toDock('changes', $event)">
-          <GitCompare :class="icon" aria-hidden="true" />
-          <span class="min-w-0 flex-1 truncate">{{ t('dock.changes.title') }}</span>
-          <ChatDiffStat v-if="git && changed" :added="git.changes.added" :removed="git.changes.removed" plain class="text-xs" />
-        </button>
       </div>
     </template>
 
     <div :class="separator" aria-hidden="true" />
     <div class="flex flex-col gap-0.5">
-      <!-- Comme l'app Claude : la jauge reste sur la ligne repliée. -->
-      <button type="button" :class="action" :aria-expanded="open.context" @click="open.context = !open.context">
+      <!-- Comme les lignes au-dessus (demande de Jérémy) : le détail s'ouvre sur le côté au survol ; la jauge reste
+           sur la ligne. -->
+      <ChatSessionSub :label="t('dock.session.context')">
         <Gauge :class="icon" aria-hidden="true" />
         <span class="min-w-0 flex-1 truncate">{{ t('dock.session.context') }}</span>
         <template v-if="context">
@@ -348,70 +338,50 @@ const separator = 'mx-2 my-1 h-px shrink-0 bg-stroke'
             <span class="block h-full rounded-full" :class="tone.bar" :style="{ width: `${ratio * 100}%` }" />
           </span>
         </template>
-        <ChevronDown :class="[icon, { 'rotate-180': open.context }]" aria-hidden="true" />
-      </button>
-      <template v-if="open.context">
-        <ul v-if="context" class="flex flex-col gap-1.5 px-2 pt-1 pb-2 text-xs">
-          <li v-for="item in categories" :key="item.name" class="flex items-center gap-2" :class="{ 'text-muted': item.kind === 'deferred' }">
-            <span class="size-2.5 shrink-0 rounded-sm" :class="item.color" aria-hidden="true" />
-            <span class="min-w-0 flex-1 truncate">{{ item.name }}</span>
-            <span class="text-muted tabular-nums">{{ formats.tokens.format(item.tokens) }}</span>
-            <span class="w-12 text-end tabular-nums">{{ item.share }}</span>
-          </li>
-        </ul>
-        <p v-else :class="empty">{{ t('dock.session.noContext') }}</p>
-      </template>
+        <template #menu>
+          <ul v-if="context" class="flex w-64 flex-col gap-1.5 px-2 py-1.5 text-xs">
+            <li v-for="item in categories" :key="item.name" class="flex items-center gap-2" :class="{ 'text-muted': item.kind === 'deferred' }">
+              <span class="size-2.5 shrink-0 rounded-sm" :class="item.color" aria-hidden="true" />
+              <span class="min-w-0 flex-1 truncate">{{ item.name }}</span>
+              <span class="text-muted tabular-nums">{{ formats.tokens.format(item.tokens) }}</span>
+              <span class="w-12 text-end tabular-nums">{{ item.share }}</span>
+            </li>
+          </ul>
+          <p v-else class="px-2 py-1.5 text-xs text-muted">{{ t('dock.session.noContext') }}</p>
+        </template>
+      </ChatSessionSub>
 
-      <button type="button" :class="action" :aria-expanded="open.tasks" @click="open.tasks = !open.tasks">
+      <ChatSessionSub :label="t('dock.tasks.title')">
         <Layers :class="icon" aria-hidden="true" />
         <span class="min-w-0 flex-1 truncate">{{ t('dock.tasks.title') }}</span>
         <span v-if="running.length" class="text-xs text-muted">{{ t('dock.session.running', { n: running.length }, running.length) }}</span>
-        <ChevronDown :class="[icon, { 'rotate-180': open.tasks }]" aria-hidden="true" />
-      </button>
-      <template v-if="open.tasks">
-        <!-- Comme l'app Claude : les tâches en cours avec leur durée et ■, un clic mène au volet Tâches. -->
-        <div v-for="{ tool, task } in running" :key="task.id" class="flex items-center gap-1">
-          <button type="button" :class="[action, 'min-w-0 flex-1']" :title="taskName(tool, task)" @click="toDock('tasks', $event)">
-            <component :is="task.kind === 'command' ? SquareTerminal : Bot" :class="icon" aria-hidden="true" />
-            <span class="min-w-0 flex-1 truncate">{{ taskName(tool, task) }}</span>
-            <span v-if="task.startedAt" class="shrink-0 text-muted tabular-nums">{{ formatDuration(now - task.startedAt, locale) }}</span>
-          </button>
-          <UiIconButton :label="t('dock.tasks.stop')" class="size-6!" @click="conversations.stopTask(chat.id, task.id)">
-            <Square class="size-3" aria-hidden="true" />
-          </UiIconButton>
-        </div>
-        <button v-if="finished" type="button" :class="[action, 'text-muted']" @click="toDock('tasks', $event)">
-          <span class="size-4 shrink-0" aria-hidden="true" />
-          <span class="flex-1">{{ t('dock.session.finished', { n: finished }, finished) }}</span>
-        </button>
-        <p v-if="!tasks.length" :class="empty">{{ t('dock.session.noTasks') }}</p>
-      </template>
+        <template #menu="{ keyboard }">
+          <!-- Comme l'app Claude : les tâches en cours avec leur durée et ■, un clic mène au volet Tâches. -->
+          <div v-for="{ tool, task } in running" :key="task.id" class="group/row flex items-center gap-1">
+            <DropdownMenuItem :text-value="taskName(tool, task)" :class="[menuRow, 'min-w-0 flex-1 py-1']" @select="toTasks(keyboard)">
+              <component :is="task.kind === 'command' ? SquareTerminal : Bot" :class="[menuIcon, 'text-muted']" aria-hidden="true" />
+              <span :class="[menuLabel, 'min-w-0 flex-1']">{{ taskName(tool, task) }}</span>
+              <span v-if="task.startedAt" class="mt-0.5 shrink-0 text-muted tabular-nums">{{ formatDuration(now - task.startedAt, locale) }}</span>
+            </DropdownMenuItem>
+            <UiIconButton :label="t('dock.tasks.stop')" class="size-6!" @click="conversations.stopTask(chat.id, task.id)">
+              <Square class="size-3" aria-hidden="true" />
+            </UiIconButton>
+          </div>
+          <UiMenuItem v-if="finished" :label="t('dock.session.finished', { n: finished }, finished)" @select="toTasks(keyboard)" />
+          <p v-if="!tasks.length" class="px-2 py-1.5 text-xs text-muted">{{ t('dock.session.noTasks') }}</p>
+        </template>
+      </ChatSessionSub>
 
-      <button type="button" :class="action" :aria-expanded="open.options" @click="open.options = !open.options">
+      <ChatSessionSub :label="t('dock.session.options')">
         <SlidersHorizontal :class="icon" aria-hidden="true" />
         <span class="min-w-0 flex-1 truncate">{{ t('dock.session.options') }}</span>
-        <ChevronDown :class="[icon, { 'rotate-180': open.options }]" aria-hidden="true" />
-      </button>
-      <template v-if="open.options">
-        <!-- Le même réglage que Réglages › Général, raccourci ici comme dans l'app Claude : il vaut pour toute l'app.
-             L'infobulle sur l'interrupteur seul, posée sur une enveloppe : elle écraserait son `data-state`. -->
-        <div :class="row">
-          <Coffee :class="icon" aria-hidden="true" />
-          <span class="min-w-0 flex-1 truncate" aria-hidden="true">{{ t('dock.session.keepAwake') }}</span>
-          <UiTooltip :label="t('dock.session.keepAwakeHelp')" side="bottom">
-            <span class="flex">
-              <UiSwitch v-model="general.keepAwake" :label="t('settings.general.system.keepAwake')" />
-            </span>
-          </UiTooltip>
-        </div>
-        <UiTooltip :label="t('dock.session.soon')" side="bottom">
-          <div :class="row">
-            <RemoteControl :class="icon" aria-hidden="true" />
-            <span class="min-w-0 flex-1 truncate text-muted" aria-hidden="true">{{ t('dock.session.remoteControl') }}</span>
-            <UiSwitch :model-value="false" :label="`${t('dock.session.remoteControl')} · ${t('dock.session.soon')}`" disabled class="pointer-events-none" />
-          </div>
-        </UiTooltip>
-      </template>
+        <template #menu>
+          <!-- Le même réglage que Réglages › Général, raccourci ici comme dans l'app Claude : il vaut pour toute l'app. -->
+          <UiMenuToggle v-model="general.keepAwake" :label="t('dock.session.keepAwake')" :icon="Coffee" />
+          <p class="ps-8.5 pe-2 pb-1 text-[11px] leading-4 text-muted">{{ t('dock.session.keepAwakeHelp') }}</p>
+          <UiMenuToggle :model-value="false" :label="`${t('dock.session.remoteControl')} · ${t('dock.session.soon')}`" :icon="RemoteControl" disabled />
+        </template>
+      </ChatSessionSub>
     </div>
   </div>
   <p v-else class="flex flex-1 items-center justify-center p-6 text-center text-sm text-muted">{{ t('dock.session.empty') }}</p>

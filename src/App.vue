@@ -44,14 +44,15 @@ const { t } = useI18n()
 const layout = useLayoutStore()
 const navigation = useNavigationStore()
 const workspace = useWorkspaceStore()
-// Le panneau de droite garde la disposition du projet et montre les onglets de la session affichée ; chaque changement
-// s'enregistre.
+// Le panneau de droite garde la disposition du projet et montre les onglets de la session affichée, ouvert ou fermé
+// comme elle l'a laissé ; chaque changement s'enregistre.
 watch(
   () => workspace.activeTabId,
   (id) => {
     if (!id) return
-    const projectId = workspace.tabs.find((item) => item.id === id)?.projectId ?? navigation.projectId
-    layout.restore(id, projectId, workspace.tabsFor(projectId).map((tab) => tab.id))
+    const tab = workspace.tabs.find((item) => item.id === id)
+    const projectId = tab?.projectId ?? navigation.projectId
+    layout.restore(id, projectId, workspace.tabsFor(projectId).map((item) => item.id), !!tab && !tab.started)
   },
   { immediate: true },
 )

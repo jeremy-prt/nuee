@@ -219,6 +219,8 @@ pub fn run() {
             commands::worktree::worktree_revert_all,
             commands::worktree::worktree_commit,
             commands::worktree::worktree_push,
+            commands::worktree::worktree_pull,
+            commands::worktree::worktree_behind,
             commands::worktree::worktree_log,
             commands::worktree::worktree_commit_files,
             commands::worktree::worktree_commit_diff,

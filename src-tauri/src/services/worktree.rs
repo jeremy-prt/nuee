@@ -466,6 +466,42 @@ impl WorktreeService {
             .is_ok_and(|out| out.trim().parse::<u32>().is_ok_and(|count| count > 0)))
     }
 
+    /// Commits de la branche suivie que `dir` n'a pas encore, après un `fetch` discret (sans réseau, l'échec est
+    /// ignoré et le compte part du dernier fetch). 0 sans branche suivie.
+    pub async fn behind(&self, project: &Path, dir: &Path) -> Result<u32, AppError> {
+        let Some(git) = git_binary() else {
+            return Ok(0);
+        };
+        let Ok(dir) = session_dir(&git, project, dir).await else {
+            return Ok(0);
+        };
+        let upstream = ["rev-parse", "--verify", "--quiet", "@{upstream}"];
+        if run(&git, &dir, &upstream, GIT_TIMEOUT).await.is_err() {
+            return Ok(0);
+        }
+        let _ = run(&git, &dir, &["fetch", "--quiet", "--no-tags"], LONG_TIMEOUT).await;
+        let count = ["rev-list", "--count", "HEAD..@{upstream}"];
+        Ok(run(&git, &dir, &count, GIT_TIMEOUT)
+            .await
+            .ok()
+            .and_then(|out| out.trim().parse().ok())
+            .unwrap_or(0))
+    }
+
+    /// Récupère la branche suivie en avance rapide seulement : jamais de fusion ni de rebase faits en douce, git
+    /// refuse et l'erreur remonte si les deux branches ont divergé.
+    pub async fn pull(&self, project: &Path, dir: &Path) -> Result<HeadInfo, AppError> {
+        let git = require_git()?;
+        let cwd = session_dir(&git, project, dir).await?;
+        if current_branch(&git, &cwd).await?.is_none() {
+            return Err(AppError::Git(
+                "HEAD détaché : aucune branche à mettre à jour".into(),
+            ));
+        }
+        run(&git, &cwd, &["pull", "--ff-only", "--quiet"], LONG_TIMEOUT).await?;
+        self.head(project, dir).await
+    }
+
     /// Titre du dernier commit, branche et dépôt distant de `dir`. Chaque champ reste vide si git ne le donne pas
     /// (dépôt sans commit, HEAD détaché, pas d'`origin`).
     pub async fn head(&self, project: &Path, dir: &Path) -> Result<HeadInfo, AppError> {
@@ -2250,6 +2286,47 @@ mod tests {
         std::fs::write(repo.join("app/main.txt"), "neuve").expect("modif");
         git(&repo, &["commit", "-qam", "neuve"]);
         assert!(unpushed(), "branche sans suivi");
+    }
+
+    #[test]
+    fn behind_counts_remote_commits_and_pull_fast_forwards_only() {
+        if git_binary().is_none() {
+            return;
+        }
+        let root = sandbox("pull");
+        let service = WorktreeService::new(root.join("worktrees"));
+        let repo = repo(&root);
+        let behind = || block_on(service.behind(&repo, &repo)).expect("compte");
+        assert_eq!(behind(), 0, "sans branche suivie");
+
+        let remote = root.join("remote.git");
+        git(&root, &["init", "-q", "--bare", "-b", "main", "remote.git"]);
+        git(
+            &repo,
+            &["remote", "add", "origin", &remote.to_string_lossy()],
+        );
+        git(&repo, &["push", "-q", "-u", "origin", "HEAD"]);
+        let other = root.join("other");
+        git(&root, &["clone", "-q", &remote.to_string_lossy(), "other"]);
+        std::fs::write(other.join("app/main.txt"), "ailleurs").expect("modif");
+        git(&other, &["commit", "-qam", "ailleurs"]);
+        git(&other, &["push", "-q"]);
+        assert_eq!(behind(), 1, "le fetch voit le commit poussé ailleurs");
+
+        let head = block_on(service.pull(&repo, &repo)).expect("pull");
+        assert_eq!(head.subject.as_deref(), Some("ailleurs"));
+        assert_eq!(behind(), 0);
+
+        std::fs::write(other.join("app/main.txt"), "encore").expect("modif");
+        git(&other, &["commit", "-qam", "encore"]);
+        git(&other, &["push", "-q"]);
+        identity(&repo);
+        std::fs::write(repo.join("app/main.txt"), "ici").expect("modif");
+        git(&repo, &["commit", "-qam", "ici"]);
+        assert!(
+            block_on(service.pull(&repo, &repo)).is_err(),
+            "branches divergées : pas de fusion en douce"
+        );
     }
 
     #[test]

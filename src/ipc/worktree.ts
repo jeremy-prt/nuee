@@ -63,6 +63,16 @@ export function worktreePush(chatId: string, path: string) {
   return invoke<HeadInfo>('worktree_push', { chatId, path })
 }
 
+// Pull de la branche courante en avance rapide seulement ; refusé si elle a divergé de sa branche suivie.
+export function worktreePull(chatId: string, path: string) {
+  return invoke<HeadInfo>('worktree_pull', { chatId, path })
+}
+
+// Commits de la branche suivie pas encore récupérés, après un fetch discret ; 0 sans branche suivie.
+export function worktreeBehind(chatId: string, path: string) {
+  return invoke<number>('worktree_behind', { chatId, path })
+}
+
 // Journal de la branche courante, 50 commits à partir de `skip` ; `query` filtre les titres, une page peut revenir
 // vide avec une suite.
 export function worktreeLog(chatId: string, path: string, skip: number, query: string | null) {
