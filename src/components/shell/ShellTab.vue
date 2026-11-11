@@ -72,7 +72,7 @@ const statusIcons = { approval: ShieldQuestion, question: MessageQuestion, done:
           <span v-else-if="attention.isUnseen(tab.id)" class="size-1.5 shrink-0 rounded-full bg-signal">
             <span class="sr-only">{{ t('attention.unseen') }}</span>
           </span>
-          <SettingsAgentLogo v-else :id="tab.agent" small />
+          <SettingsAgentLogo v-else :id="tab.agent" tiny />
         </span>
         <span
           v-if="pinned"
@@ -81,8 +81,9 @@ const statusIcons = { approval: ShieldQuestion, question: MessageQuestion, done:
           aria-hidden="true"
         />
         <!-- Comme les sessions : la croix n'occupe pas de place, elle se pose au survol sur la fin du titre, qui s'estompe. -->
-        <!-- Fondu calé sur la croix (20 px à 4 px du bord, le titre finit à 8 px) : le texte reste lisible jusqu'à elle. -->
-        <span v-if="!pinned" class="truncate group-focus-within:[mask-image:linear-gradient(to_left,transparent_1rem,black_1.375rem)] group-hover:[mask-image:linear-gradient(to_left,transparent_1rem,black_1.375rem)]">{{ tabTitle(tab) }}</span>
+        <!-- Fondu fini 4 px avant la croix (20 px à 4 px du bord), sur toute la largeur de l'onglet : un
+             titre court, loin de la croix, reste entier. -->
+        <span v-if="!pinned" class="min-w-0 flex-1 truncate group-focus-within:[mask-image:linear-gradient(to_left,transparent_1.5rem,black_2rem)] group-hover:[mask-image:linear-gradient(to_left,transparent_1.5rem,black_2rem)]">{{ tabTitle(tab) }}</span>
         <UiTooltip v-if="!pinned" :label="t('workspace.closeTab')" :shortcut="shortcuts.label('closeTab')">
           <button
             type="button"
@@ -105,7 +106,6 @@ const statusIcons = { approval: ShieldQuestion, question: MessageQuestion, done:
       <UiMenuItem :label="t('workspace.closeTab')" :icon="X" :shortcut="shortcuts.label('closeTab')" @select="workspace.closeTab(tab.id)" />
       <UiMenuItem :label="t('workspace.closeOthers')" :disabled="count < 2" @select="workspace.closeTabs(tab.id, 'others')" />
       <UiMenuItem :label="t('workspace.closeRight')" :disabled="index === count - 1" @select="workspace.closeTabs(tab.id, 'right')" />
-      <UiMenuItem :label="t('workspace.closeLeft')" :disabled="index === 0" @select="workspace.closeTabs(tab.id, 'left')" />
       <UiMenuSeparator />
       <UiMenuItem :label="t('workspace.closeAll')" @select="workspace.closeTabs(tab.id, 'all')" />
     </template>

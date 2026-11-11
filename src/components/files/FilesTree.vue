@@ -17,7 +17,6 @@ import { useToastsStore } from '@/stores/toasts'
 // Arborescence du dossier de la session, comme l'explorateur de monocode : le dossier en tête, puis ses dossiers et
 // ses fichiers, chaque dossier lu à son ouverture (`browse.dirs`, tenu à jour par le panneau). État git en lettre et
 // en couleur, comme le volet Git (`GitFileList`) ; un dossier qui contient des changements prend un point.
-// Rust confond encore non suivi et ajouté (`GitMark`) : les deux sortent en A.
 const props = defineProps<{ place: FilesPlace; root: string; rootName: string }>()
 
 const { t } = useI18n()
@@ -63,8 +62,13 @@ const folderMarks = computed(() => {
   }
   return marks
 })
-const LETTER: Record<GitMark, string> = { modified: 'M', added: 'A', renamed: 'R' }
-const TONE: Record<GitMark, string> = { modified: 'text-warning', added: 'text-success', renamed: 'text-violet' }
+const LETTER: Record<GitMark, string> = { modified: 'M', untracked: 'U', added: 'A', renamed: 'R' }
+const TONE: Record<GitMark, string> = {
+  modified: 'text-warning',
+  untracked: 'text-info',
+  added: 'text-success',
+  renamed: 'text-violet',
+}
 function gitMark(item: Extract<Row, { kind: 'entry' }>) {
   const mark = item.folder ? folderMarks.value.get(item.path) : browse.value.marks.get(item.path)
   if (!mark) return null

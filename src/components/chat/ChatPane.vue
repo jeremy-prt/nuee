@@ -11,6 +11,8 @@ import type { WorktreeChoice } from '@/components/chat/ChatWorktreePicker.vue'
 import ChatQuestion from '@/components/chat/ChatQuestion.vue'
 import ChatQueue from '@/components/chat/ChatQueue.vue'
 import ChatTranscript from '@/components/chat/ChatTranscript.vue'
+import ProjectPicker from '@/components/project/ProjectPicker.vue'
+import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { useComposerLaunch } from '@/composables/useComposerLaunch'
 import { useFileDrop } from '@/composables/useFileDrop'
 import { isAppError } from '@/ipc/agent'
@@ -19,6 +21,7 @@ import { useCatalogStore } from '@/stores/catalog'
 import { codeRunPlaceKey } from '@/stores/codeRuns'
 import { useDialogStore } from '@/stores/dialog'
 import { useDraftsStore } from '@/stores/drafts'
+import { useNavigationStore } from '@/stores/navigation'
 import { useOperatorStore } from '@/stores/operator'
 import { mentionPlaceKey } from '@/stores/mentions'
 import { useToastsStore } from '@/stores/toasts'
@@ -47,6 +50,17 @@ const projects = useProjectsStore()
 const conversations = useConversationsStore()
 const catalog = useCatalogStore()
 const workspace = useWorkspaceStore()
+const navigation = useNavigationStore()
+// Session vierge seule à l'écran : c'est « Nouvel espace de travail », le projet s'y choisit. En changer ouvre une
+// session vierge dans l'autre projet.
+const pickProject = computed(() => !props.tab.started && workspace.panes.length < 2 && navigation.view === 'chats')
+const context = computed({
+  get: () => navigation.projectId ?? '',
+  set: (id: string) => {
+    navigation.projectId = id || null
+    navigation.go('new')
+  },
+})
 const worktrees = useWorktreesStore()
 const dialog = useDialogStore()
 const toasts = useToastsStore()
@@ -267,12 +281,20 @@ onMounted(() => {
           @checkout="checkout"
         >
           <template v-if="$slots.project" #project><slot name="project" /></template>
+          <template v-else-if="pickProject" #project>
+            <UiTooltip :label="t('composer.project')">
+              <span class="flex min-w-0">
+                <ProjectPicker v-model="context" badge :label="t('rail.switchProject')" :none-label="t('rail.chats')" />
+              </span>
+            </UiTooltip>
+          </template>
         </ChatPlaceRow>
       </div>
     </div>
     <div v-else class="flex-1" />
-    <!-- La demande s'affiche au-dessus du champ sans le démonter : un brouillon en cours reste. -->
-    <div class="flex flex-col items-center gap-2 px-6" :class="items.length ? 'pb-4' : 'flex-1 justify-start pb-16'">
+    <!-- La demande s'affiche au-dessus du champ sans le démonter : un brouillon en cours reste. Session commencée pas
+         encore chargée : le champ est déjà en bas, sinon il passait par le milieu de l'écran le temps de la lecture. -->
+    <div class="flex flex-col items-center gap-2 px-6" :class="items.length || tab.started ? 'pb-4' : 'flex-1 justify-start pb-16'">
       <ChatQuestion
         v-if="approval?.questions"
         :key="approval.id"

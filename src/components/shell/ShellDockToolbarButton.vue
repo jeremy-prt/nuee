@@ -2,18 +2,19 @@
 import { LoaderCircle } from '@/components/ui/icons'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 
-// Bouton d'icône d'une ligne d'outils de volet (Explorateur, Git) : les boutons se partagent la largeur à parts égales.
-// `pressed` défini : bouton à bascule, annoncé par `aria-pressed` (mode du volet, recherche ouverte).
+// Bouton d'une ligne d'outils de volet (Explorateur, Git), à la taille des boutons du Terminal et du Navigateur.
+// `pressed` défini : bouton à bascule, annoncé par `aria-pressed` (mode du volet, recherche ouverte). `labeled` : son
+// texte est affiché, pas d'infobulle.
 defineOptions({ inheritAttrs: false })
-withDefaults(defineProps<{ label: string; pressed?: boolean; loading?: boolean; disabled?: boolean }>(), { pressed: undefined })
+withDefaults(defineProps<{ label: string; pressed?: boolean; loading?: boolean; disabled?: boolean; labeled?: boolean }>(), { pressed: undefined })
 </script>
 
 <template>
-  <UiTooltip :label="label">
+  <UiTooltip :label="label" :disabled="labeled">
     <button
       v-bind="$attrs"
       type="button"
-      class="flex h-6 min-w-0 flex-1 items-center justify-center rounded-md focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none"
+      class="flex h-7 min-w-7 shrink-0 items-center justify-center gap-1.5 rounded-md px-1.5 text-xs focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none"
       :class="[pressed ? 'bg-selection text-content' : 'text-muted hover:bg-selection-hover hover:text-content', { 'disabled:opacity-40': !loading }]"
       :aria-label="label"
       :aria-pressed="pressed"

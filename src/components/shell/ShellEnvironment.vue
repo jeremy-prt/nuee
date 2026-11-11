@@ -9,7 +9,8 @@ import { useTerminalChat } from '@/composables/useTerminalChat'
 import { useSessionGitStore } from '@/stores/sessionGit'
 
 // Environnement de la session en panneau flottant, comme T3 Code et l'app Claude : il s'ouvre par-dessus, sans prendre
-// la place d'un volet.
+// la place d'un volet. Masqué avant le premier message : le formulaire de nouvelle session montre déjà le projet,
+// la machine et la branche.
 const { t } = useI18n()
 const { chat } = useTerminalChat()
 const sessionGit = useSessionGitStore()
@@ -36,7 +37,7 @@ function onCloseAutoFocus(event: Event) {
 </script>
 
 <template>
-  <UiTooltip :label="label">
+  <UiTooltip v-if="chat?.started" :label="t('dock.session.title')">
     <span class="flex">
       <PopoverRoot v-model:open="open">
         <PopoverTrigger

@@ -26,7 +26,7 @@ const servers = useServersStore()
 const layout = useLayoutStore()
 const { chat } = useTerminalChat()
 const toolbars = ref(0)
-provide(DOCK_ZONE, { zone: computed(() => props.zone), toolbars })
+provide(DOCK_ZONE, { zone: computed(() => props.zone), view: computed(() => props.view), toolbars })
 
 // Clic ou focus dans une zone : c'est là que s'affichera le prochain volet choisi.
 function enter() {
@@ -59,6 +59,6 @@ const logs = computed(() => {
     <BrowserPane v-else-if="view === 'browser' && chat" />
     <UiEmpty v-else :icon="dockIcons[view]" :title="t('dock.files.emptyTitle')" :description="t('dock.files.empty')" />
     <!-- Volet sans ligne d'outils (état vide) : sa croix se pose à la même place. -->
-    <ShellDockZoneClose v-if="layout.right.aside && !toolbars" :zone="zone" class="absolute end-1.5 top-1" />
+    <ShellDockZoneClose v-if="!toolbars" :zone="zone" :view="view" class="absolute end-1.5 top-1" />
   </section>
 </template>

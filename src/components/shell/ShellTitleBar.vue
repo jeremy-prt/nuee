@@ -149,7 +149,7 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
           <Plus class="size-4" aria-hidden="true" />
         </UiIconButton>
         <span class="flex-1 self-stretch" data-tauri-drag-region />
-        <!-- Environnement n'est pas un volet : un panneau flottant (choix de Jérémy), toujours là. Comme le bouton des
+        <!-- Environnement n'est pas un volet : un panneau flottant (choix de Jérémy). Comme le bouton des
              détails de T3 Code, il reste du côté de la session, à gauche des onglets du panneau. -->
         <span class="flex shrink-0" :class="{ 'me-1': layout.right.open }">
           <ShellEnvironment />

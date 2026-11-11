@@ -63,6 +63,25 @@ const SEED_LENGTH = 50
 const DAY = 86_400_000
 const PURGE_EVERY = 3_600_000
 const RESUME_WITHIN = 3_600_000
+// Comme Arc : un onglet fini et pas regardé depuis 12 h se ferme seul (rouvrable par ⌘⇧T ou la liste).
+const IDLE_CLOSE = 12 * 3_600_000
+// Comme Conductor : au-delà, le plus ancien onglet fini se ferme.
+const MAX_TABS = 10
+const TABS_KEY = 'nuee.workspace.tabs.v1'
+
+interface SavedTabs {
+  layouts: Record<string, PaneLayout>
+  seen: Record<string, number>
+}
+
+function loadSavedTabs(): SavedTabs | null {
+  try {
+    const saved = JSON.parse(localStorage.getItem(TABS_KEY) ?? 'null') as SavedTabs | null
+    return saved && typeof saved.layouts === 'object' ? { layouts: saved.layouts, seen: saved.seen ?? {} } : null
+  } catch {
+    return null
+  }
+}
 
 // Titre affiché tout de suite, le temps que l'agent en propose un meilleur.
 function titleSeed(prompt: string, attachments: Attachment[]) {
@@ -83,11 +102,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   // En mémoire seulement : après un redémarrage, une action interrompue réapparaît sous sa session d'origine.
   const hidden = reactive(new Set<string>())
 
-  // Onglets non repris au lancement (choix de Jérémy) : l'app repart sur « Nouvel espace de travail ».
+  // Onglets repris au lancement, comme monocode (choix de Jérémy, 11/11) : seulement les sessions commencées et non
+  // archivées. L'app s'ouvre ensuite sur une session vierge du dernier projet (« Nouvel espace de travail »).
   chatList()
     .then((chats) => {
       const known = new Set(chats.map((chat) => chat.id))
       tabs.value = [...chats.map((chat) => ({ ...chat, kind: 'chat' as const })), ...tabs.value.filter((tab) => !known.has(tab.id))]
+      restoreTabs(new Set(chats.filter((chat) => chat.started && !chat.archived).map((chat) => chat.id)))
       // Les vierges d'un lancement précédent ne sont dans aucun onglet ni dans l'historique : rien n'y ramène.
       for (const chat of chats) if (!chat.started && !Object.values(layouts).some((layout) => layout.tabs.includes(chat.id))) void deleteChat(chat.id)
       useDraftsStore().prune(new Set(tabs.value.map((tab) => tab.id)))
@@ -96,10 +117,47 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       tidy()
       setInterval(tidy, PURGE_EVERY)
       ready.value = true
+      watch(layouts, saveTabs, { deep: true })
     })
     .catch((error) => console.error('historique', error))
 
   const contextKey = computed(() => navigation.projectId ?? '')
+
+  function restoreTabs(usable: Set<string>) {
+    const saved = loadSavedTabs()
+    if (!saved) return
+    Object.assign(seenAt, saved.seen)
+    for (const [key, layout] of Object.entries(saved.layouts)) {
+      const kept = (layout.tabs ?? []).filter((id) => usable.has(id))
+      if (!kept.length) continue
+      const target = layoutOf(key)
+      target.tabs = [...kept, ...target.tabs.filter((id) => !kept.includes(id))]
+      if (target.panes.length) continue
+      target.panes = (layout.panes ?? []).filter((id) => kept.includes(id))
+      target.focused = Math.min(layout.focused ?? 0, Math.max(0, target.panes.length - 1))
+    }
+  }
+
+  // Regroupé : glisser un onglet change la liste à chaque mouvement.
+  let saveTimer = 0
+  function saveTabs() {
+    clearTimeout(saveTimer)
+    saveTimer = window.setTimeout(() => {
+      const started = (id: string) => tabs.value.some((tab) => tab.id === id && tab.started && !tab.archived)
+      const saved: SavedTabs = { layouts: {}, seen: {} }
+      for (const [key, layout] of Object.entries(layouts)) {
+        const kept = layout.tabs.filter(started)
+        if (!kept.length) continue
+        saved.layouts[key] = { tabs: kept, panes: layout.panes.filter(started), focused: layout.focused }
+        for (const id of kept) if (seenAt[id]) saved.seen[id] = seenAt[id]
+      }
+      try {
+        localStorage.setItem(TABS_KEY, JSON.stringify(saved))
+      } catch {
+        // Stockage indisponible : les onglets ne seront pas repris, rien de plus.
+      }
+    }, 300)
+  }
 
   // Une session vierge quittée sans brouillon est fermée au départ, pour ne pas retomber dessus au retour. Rien
   // avant le chargement de l'historique : `land` ouvrirait une session neuve au lieu de la dernière.
@@ -112,8 +170,16 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       for (const id of left.panes) seenAt[id] = Date.now()
       for (const id of [...left.tabs]) if (isBlank(id)) closeTab(id, left)
     }
+    // « Nouvel espace de travail » n'est plus une page à part : une session vierge parmi les onglets, avec le panneau
+    // de droite du projet, pour que rien ne surgisse au premier message (demande de Jérémy).
+    if (navigation.view === 'new') {
+      fresh = true
+      navigation.go('chats')
+      return
+    }
     land(switched)
   })
+  let fresh = false
 
   function layoutOf(key: string) {
     layouts[key] ??= { tabs: [], panes: [], focused: 0 }
@@ -227,9 +293,48 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     } else {
       layout.panes[layout.focused] = id
     }
+    capTabs(layout)
     if (!tabs.value.some((tab) => tab.id === id && tab.started)) return
     // Pas seulement l'actif : la vierge de « Nouvel espace de travail » est dans les onglets sans être affichée.
     for (const other of [...layout.tabs]) if (other !== id && isBlank(other) && !layout.panes.includes(other)) closeTab(other, layout)
+  }
+
+  // Onglet qu'on peut fermer sans perdre de travail en cours : ni affiché, ni épinglé, agent au repos, rien en attente.
+  function closable(id: string, layout: PaneLayout) {
+    if (layout.panes.includes(id) || isTabPinned(id) || conversations.working(id)) return false
+    const conversation = conversations.find(id)
+    return !conversation?.approvals.length && (conversation?.phase ?? 'idle') === 'idle'
+  }
+
+  function lastSeen(id: string) {
+    return Math.max(seenAt[id] ?? 0, tabs.value.find((tab) => tab.id === id)?.updatedAt ?? 0)
+  }
+
+  function capTabs(layout: PaneLayout) {
+    const open = layout.tabs.filter((id) => !isTabPinned(id))
+    const extra = open.length - MAX_TABS
+    if (extra <= 0) return
+    const oldest = open.filter((id) => closable(id, layout)).sort((a, b) => lastSeen(a) - lastSeen(b))
+    for (const id of oldest.slice(0, extra)) closeTab(id, layout)
+  }
+
+  function closeIdleTabs() {
+    const limit = Date.now() - IDLE_CLOSE
+    for (const layout of Object.values(layouts)) {
+      for (const id of [...layout.tabs]) if (closable(id, layout) && !isBlank(id) && lastSeen(id) < limit) closeTab(id, layout)
+    }
+  }
+
+  // Clic dans la liste, comme monocode : la session prend la place de l'onglet affiché s'il est vierge ou fini et pas
+  // épinglé ; ⌘clic (`newTab`) ou un onglet occupé l'ouvrent à côté, comme un navigateur.
+  function openFromList(id: string, newTab = false) {
+    const layout = current()
+    const active = layout.panes[layout.focused]
+    if (newTab || !active || active === id || layout.tabs.includes(id) || !(isBlank(active) || closable(active, { ...layout, panes: [] }))) return show(id)
+    seenAt[id] = Date.now()
+    layout.tabs.splice(layout.tabs.indexOf(active) + 1, 0, id)
+    layout.panes[layout.focused] = id
+    closeTab(active, layout)
   }
 
   // « + » (bande d'onglets, barre latérale) et ⌘T, comme un navigateur : toujours un onglet vierge de plus.
@@ -264,6 +369,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (navigation.view !== 'chats') return
     const arriving = switched || !visited.has(contextKey.value)
     visited.add(contextKey.value)
+    if (fresh) {
+      fresh = false
+      return show(blankChat().id)
+    }
     const layout = current()
     const shown = layout.panes[layout.focused]
     if (shown && (!arriving || isRecent(shown))) return
@@ -359,11 +468,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   // Menu d'un onglet, comme monocode : les autres, ceux d'un côté, ou tous. Jamais les épinglés.
-  function closeTabs(id: string, which: 'others' | 'right' | 'left' | 'all') {
+  function closeTabs(id: string, which: 'others' | 'right' | 'all') {
     const open = current().tabs.filter((other) => !isTabPinned(other))
     const index = open.indexOf(id)
     const targets = open.filter((other, i) =>
-      which === 'all' ? true : which === 'others' ? other !== id : which === 'right' ? i > index : i < index,
+      which === 'all' ? true : which === 'others' ? other !== id : i > index,
     )
     for (const target of targets) closeTab(target)
   }
@@ -518,6 +627,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   async function tidy() {
+    closeIdleTabs()
     await autoArchive()
     await purgeArchives()
   }
@@ -629,6 +739,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     archivedChats,
     tabsFor,
     show,
+    openFromList,
     openChat,
     addChat,
     blankChat,

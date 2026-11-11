@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { Copy, GitCommit, LoaderCircle, Search, X } from '@/components/ui/icons'
+import { Copy, GitCommit, LoaderCircle, RefreshCw, Search, X } from '@/components/ui/icons'
 import { computed, inject, nextTick, onBeforeUnmount, reactive, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import GitBranchRow from '@/components/git/GitBranchRow.vue'
 import GitDiffBody from '@/components/git/GitDiffBody.vue'
 import GitFileList from '@/components/git/GitFileList.vue'
 import UiContextMenu from '@/components/ui/UiContextMenu.vue'
+import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiMenuItem from '@/components/ui/UiMenuItem.vue'
 import UiMoreMenu from '@/components/ui/UiMoreMenu.vue'
 import { field, fieldText } from '@/components/ui/field'
@@ -21,9 +22,10 @@ import { useToastsStore } from '@/stores/toasts'
 
 // Mode Historique du volet Git, comme monocode : les commits de la branche courante en chronologie, 50 à la fois, la
 // suite au défilement (une page de recherche peut revenir vide avec une suite, le témoin la demande aussitôt). Un clic
-// montre les fichiers du commit, un fichier son diff à gauche (`side`) ou dessous. Recherche : `searching`.
+// montre les fichiers du commit, un fichier son diff à gauche (`side`) ou dessous. Rechercher et actualiser sont
+// sur la ligne de la branche, le champ s'ouvre dessous.
 const props = defineProps<{ side: boolean }>()
-const searching = defineModel<boolean>('searching', { default: false })
+const searching = ref(false)
 
 const { t, locale } = useI18n()
 const changes = inject(GIT_CHANGES)!
@@ -87,7 +89,7 @@ async function refresh() {
   await reload()
   toasts.push({ title: t('feedback.listRefreshed'), body: next.value === null ? t('dock.changes.history.count', { n: commits.value.length }, commits.value.length) : (commits.value[0]?.subject ?? '') })
 }
-defineExpose({ refresh, loading: computed(() => busy.value && !commits.value.length) })
+const refreshing = computed(() => busy.value && !commits.value.length)
 
 // Fermer la recherche vide le champ ; l'ouvrir y met le focus.
 const searchField = useTemplateRef('searchField')
@@ -196,7 +198,16 @@ const note = 'px-3 py-6 text-center text-xs text-muted'
     <p v-else-if="changes.status.value === 'notRepo'" :class="note">{{ t('dock.changes.notRepo') }}</p>
     <template v-else>
       <div class="flex shrink-0 flex-col gap-1.5 border-b border-stroke p-2">
-        <GitBranchRow />
+        <GitBranchRow>
+          <span class="-me-1 flex shrink-0 items-center">
+            <UiIconButton :label="t('dock.changes.history.search')" :active="searching" :aria-pressed="searching" class="size-6!" @click="searching = !searching">
+              <Search class="size-3" aria-hidden="true" />
+            </UiIconButton>
+            <UiIconButton :label="t('dock.changes.refresh')" :loading="refreshing" class="size-6!" @click="refresh">
+              <RefreshCw class="size-3" aria-hidden="true" />
+            </UiIconButton>
+          </span>
+        </GitBranchRow>
         <label v-if="searching" :class="field" data-control>
           <Search class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
           <input

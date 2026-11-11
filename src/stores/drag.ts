@@ -12,6 +12,7 @@ export type DragSource =
 
 export type DropTarget =
   | { kind: 'pane'; index: number; side: 'left' | 'right' | 'center' }
+  | { kind: 'tabOrder'; before: string | null }
   | { kind: 'project'; group: string | null; pinned: boolean; before: string | null }
   | { kind: 'chat'; pinned: boolean; before: string | null }
   | { kind: 'dock'; at: DockZone }
@@ -23,6 +24,10 @@ export interface PreviewRect {
   height: number
   // Trait d'insertion entre deux lignes (réordonner), plutôt qu'un cadre (déposer dans une zone).
   line?: boolean
+  // Trait vertical entre deux onglets de la barre.
+  vertical?: boolean
+  // Ce que fera le dépôt, écrit dans le cadre comme les zones du panneau de droite.
+  label?: string
 }
 
 export const useDragStore = defineStore('drag', () => {

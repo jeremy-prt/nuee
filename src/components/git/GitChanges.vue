@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { GitBranchPlus, Undo } from '@/components/ui/icons'
+import { GitBranchPlus, RefreshCw, Undo } from '@/components/ui/icons'
 import { computed, inject, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatDiffStat from '@/components/chat/ChatDiffStat.vue'
@@ -16,9 +16,10 @@ import type { ChangedFile } from '@/ipc/bindings/ChangedFile'
 import type { ChangedFiles } from '@/ipc/bindings/ChangedFiles'
 import { useGitPanelStore, workKey } from '@/stores/gitPanel'
 import { useLayoutStore } from '@/stores/layout'
+import { useToastsStore } from '@/stores/toasts'
 
-// Mode Changements du volet Git, comme monocode : la branche, le champ et le bouton de commit, puis les fichiers non
-// commités. `side` : un clic ouvre le diff à gauche de la liste ; sinon (panneau étroit ou partagé) il se déplie sous
+// Mode Changements du volet Git, comme monocode : la branche, les fichiers non commités, puis le champ et le bouton
+// de commit en bas. `side` : un clic ouvre le diff à gauche de la liste ; sinon (panneau étroit ou partagé) il se déplie sous
 // la ligne.
 const props = defineProps<{ side: boolean }>()
 
@@ -28,6 +29,12 @@ const { chat, files, status, readOnly } = changes
 const { run, initRepo, start } = useGitActions()
 const gitPanel = useGitPanelStore()
 const layout = useLayoutStore()
+const toasts = useToastsStore()
+
+async function refresh() {
+  await changes.refresh()
+  toasts.push({ title: t('feedback.listRefreshed'), body: t('dock.session.files', { n: files.value.length }, files.value.length) })
+}
 
 const view = computed(() => (chat.value ? gitPanel.of(chat.value.id) : null))
 const active = computed(() => {
@@ -120,8 +127,15 @@ const note = 'px-3 py-6 text-center text-xs text-muted'
               <ChatDiffStat :added="changes.added.value" :removed="changes.removed.value" plain class="text-[11px]" />
             </span>
           </span>
+          <span class="-me-1 flex shrink-0 items-center">
+            <UiIconButton :label="t('dock.changes.revertAll')" :disabled="!files.length || changes.acting.value" class="size-6!" @click="changes.revertAll()">
+              <Undo class="size-3" aria-hidden="true" />
+            </UiIconButton>
+            <UiIconButton :label="t('dock.changes.refresh')" :loading="changes.loading.value" class="size-6!" @click="refresh">
+              <RefreshCw class="size-3" aria-hidden="true" />
+            </UiIconButton>
+          </span>
         </GitBranchRow>
-        <GitCommitBox />
       </div>
 
       <div ref="list" class="min-h-0 flex-1 overflow-y-auto p-2">
@@ -152,6 +166,7 @@ const note = 'px-3 py-6 text-center text-xs text-muted'
           </template>
         </GitFileList>
       </div>
+      <GitCommitBox class="shrink-0 border-t border-stroke p-2" />
     </template>
   </div>
 </template>

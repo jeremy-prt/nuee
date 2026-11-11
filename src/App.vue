@@ -307,14 +307,20 @@ onUnmounted(() => {
     </div>
 
     <div
-      v-if="drag.preview?.line"
+      v-if="drag.preview?.vertical"
+      class="pointer-events-none fixed z-50 w-0.5 -translate-x-1/2 rounded-full bg-ring transition-all duration-100 ease-out motion-reduce:transition-none"
+      :style="{ left: `${drag.preview.left}px`, top: `${drag.preview.top}px`, height: `${drag.preview.height}px` }"
+      aria-hidden="true"
+    />
+    <div
+      v-else-if="drag.preview?.line"
       class="pointer-events-none fixed z-50 h-0.5 -translate-y-1/2 rounded-full bg-ring transition-all duration-100 ease-out motion-reduce:transition-none"
       :style="{ left: `${drag.preview.left + 4}px`, top: `${drag.preview.top}px`, width: `${drag.preview.width - 8}px` }"
       aria-hidden="true"
     />
     <div
       v-else-if="drag.preview"
-      class="pointer-events-none fixed z-50 rounded-lg border-2 border-ring bg-signal/15 transition-all duration-100 ease-out motion-reduce:transition-none"
+      class="pointer-events-none fixed z-50 grid place-items-center rounded-lg border border-ring bg-canvas/80 text-xs text-content transition-all duration-100 ease-out motion-reduce:transition-none"
       :style="{
         left: `${drag.preview.left + 4}px`,
         top: `${drag.preview.top + 4}px`,
@@ -322,7 +328,11 @@ onUnmounted(() => {
         height: `${drag.preview.height - 8}px`,
       }"
       aria-hidden="true"
-    />
+    >
+      <!-- Même cadre que les zones du panneau de droite (ShellDockSplit) : fond allumé et ce que fera le dépôt. -->
+      <span class="absolute inset-0 rounded-lg bg-signal/15" />
+      <span v-if="drag.preview.label" class="relative">{{ drag.preview.label }}</span>
+    </div>
     <div
       v-if="drag.ghost"
       class="ui-glass pointer-events-none fixed z-50 max-w-56 truncate rounded-md px-2.5 py-1 text-[13px] text-content shadow-lg"

@@ -13,7 +13,7 @@ import ArrowTurnBackwardIcon from '@hugeicons/core-free-icons/ArrowTurnBackwardI
 import ArrowTurnForwardIcon from '@hugeicons/core-free-icons/ArrowTurnForwardIcon'
 import ArrowUp02Icon from '@hugeicons/core-free-icons/ArrowUp02Icon'
 import AtSignIcon from '@hugeicons/core-free-icons/AtSignIcon'
-import Attachment02Icon from '@hugeicons/core-free-icons/Attachment02Icon'
+import Attachment01Icon from '@hugeicons/core-free-icons/Attachment01Icon'
 import BotIcon from '@hugeicons/core-free-icons/BotIcon'
 import BrainIcon from '@hugeicons/core-free-icons/BrainIcon'
 import BubbleChatQuestionIcon from '@hugeicons/core-free-icons/BubbleChatQuestionIcon'
@@ -271,7 +271,7 @@ export const Palette = icon(PaintBoardIcon)
 export const PanelBottom = icon(LayoutBottomIcon)
 export const PanelLeft = icon(PanelLeftGlyph)
 export const PanelRight = icon(PanelRightGlyph)
-export const Paperclip = icon(Attachment02Icon)
+export const Paperclip = icon(Attachment01Icon)
 export const Pencil = icon(PencilEdit02Icon)
 export const Pin = icon(PinIcon)
 export const PinOff = icon(PinOffIcon)

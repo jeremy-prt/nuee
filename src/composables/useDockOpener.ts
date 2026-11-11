@@ -3,7 +3,7 @@ import { useBrowserStore } from '@/stores/browser'
 import { type DockView, useLayoutStore } from '@/stores/layout'
 import { useTerminalsStore } from '@/stores/terminals'
 
-// Ouvre un volet depuis le lanceur ou le « + ». Navigateur ou terminal déjà ouvert reçoit un onglet de plus, comme
+// Ouvre un volet depuis le lanceur ou son icône dans la barre. Navigateur ou terminal déjà ouvert reçoit un onglet de plus, comme
 // dans T3 Code.
 export function useDockOpener() {
   const layout = useLayoutStore()

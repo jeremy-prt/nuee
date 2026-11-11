@@ -29,6 +29,8 @@
   --color-signal-text: color-mix(in srgb, var(--color-signal) 70%, white);
   --color-on-signal: hsl(0 0% 100%);
   --color-danger: hsl(0 72% 65%);
+  /* Texte sur un fond `danger` plein (confirmation d'une suppression). */
+  --color-on-danger: hsl(0 0% 100%);
   --color-success: hsl(145 50% 55%);
   --color-warning: hsl(40 90% 60%);
   --color-info: hsl(210 85% 65%);
@@ -519,7 +521,9 @@ html[data-mode='light'] .ui-tip {
 /* Onglet du panneau de droite : le titre de l'actif s'ouvre en largeur, celui qu'il remplace se referme. */
 .dock-tab-label {
   display: grid;
-  grid-template-columns: 0fr;
+  /* minmax(0, …) : sinon la marge du titre replié élargit l'onglet et décentre son icône. */
+  grid-template-columns: minmax(0, 0fr);
+  overflow: hidden;
   opacity: 0;
   transition:
     grid-template-columns var(--motion-quick) var(--motion-ease),
@@ -527,7 +531,7 @@ html[data-mode='light'] .ui-tip {
 }
 
 .dock-tab-label[data-open] {
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   opacity: 1;
 }
 
@@ -798,7 +802,7 @@ html[data-mode='light'] .ui-tip {
 }
 
 @utility fade-under-two {
-  mask-image: linear-gradient(to left, transparent 2.875rem, black 3.375rem);
+  mask-image: linear-gradient(to left, transparent 3.375rem, black 3.875rem);
 }
 
 /* Bloc de code (`ChatCodeBlock`) : la première ligne s'estompe sous les boutons du coin, le fond du bloc reste
@@ -847,6 +851,9 @@ html[data-mode='light'] .ui-tip {
   html.is-dragging,
   html.is-dragging * {
     cursor: grabbing !important;
+    /* Sinon le glisser sélectionne le texte qu'il survole. */
+    -webkit-user-select: none !important;
+    user-select: none !important;
   }
 
   :is(
@@ -877,6 +884,12 @@ html[data-mode='light'] .ui-tip {
     transition:
       scale 120ms ease-out,
       var(--hover-transition);
+  }
+
+  /* Bouton plein (envoyer, arrêter) : le relief commun s'y perdait, trait et ombre plus marqués. */
+  [data-control='solid'] {
+    --control-highlight: rgb(255 255 255 / 0.28);
+    --control-shadow: rgb(0 0 0 / 0.45);
   }
 
   /* Pas sur un bouton qui ouvre une liste : elle se placerait sous le bouton rétréci, puis décalée. */

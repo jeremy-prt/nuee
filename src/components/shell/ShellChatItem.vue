@@ -59,8 +59,10 @@ const orchestrating = computed(() => orchestra.isOn(props.tab.id))
 // Sans état, la carte donne l'heure de la dernière activité.
 const sessionStatus = useSessionStatus()
 const status = computed(() => sessionStatus(props.tab.id))
-// Une session au repos s'efface : celles qui travaillent, attendent ou viennent de finir ressortent.
-const quiet = computed(() => !status.value && !active.value)
+// Une session au repos s'efface : celles qui travaillent, attendent, viennent de finir ou sont ouvertes en onglet
+// ressortent.
+const opened = computed(() => workspace.contextTabs.some((item) => item.id === props.tab.id))
+const quiet = computed(() => !status.value && !active.value && !opened.value)
 const titleTone = computed(() => (quiet.value && !menuOpen.value ? 'text-muted group-hover/row:text-content group-focus-within/row:text-content' : ''))
 
 const since = computed(() => formatSince(props.tab.updatedAt, clock.now, locale.value, layout.sessionCompact))
@@ -78,9 +80,10 @@ const chevronShown = computed(() => (menuOpen.value ? '' : 'opacity-0 group-focu
 const hideUnder = computed(() => (menuOpen.value ? 'hidden' : 'group-focus-within:hidden group-hover:hidden'))
 
 // Le chat peut venir d'un autre contexte (recherche) : on bascule d'abord sur son projet.
-function select() {
+// ⌘clic : un onglet de plus, comme un navigateur ; sinon la session prend la place de l'onglet affiché s'il est libre.
+function select(event?: MouseEvent) {
   navigation.openChats(props.tab.projectId)
-  workspace.show(props.tab.id)
+  workspace.openFromList(props.tab.id, !!event?.metaKey)
 }
 
 function startRename(from: HTMLElement | null = null) {
@@ -148,7 +151,7 @@ watch(
             <CircleCheck v-else-if="status === 'done'" class="size-3.5" aria-hidden="true" />
             <CircleAlert v-else-if="status" class="size-3.5" aria-hidden="true" />
             <Orchestra v-else-if="orchestrating" class="size-3.5 text-violet" aria-hidden="true" />
-            <SettingsAgentLogo v-else :id="tab.agent" small />
+            <SettingsAgentLogo v-else :id="tab.agent" tiny />
             <span v-if="status" class="sr-only">{{ t(`chats.status.${status}`) }}</span>
             <span v-else-if="orchestrating" class="sr-only">{{ t('composer.orchestra.label') }}</span>
           </span>
@@ -163,6 +166,7 @@ watch(
           <template v-else>
             <span class="flex min-w-0 flex-1 items-center gap-1" :class="[fadeUnder, { [keepClear]: group }]">
               <span class="min-w-0 truncate text-[13px]/5" :class="titleTone">{{ tabTitle(tab) }}</span>
+              <span v-if="opened && !active" class="sr-only">, {{ t('chats.openInTab') }}</span>
               <span v-if="group" class="-m-0.5 grid size-4 shrink-0 place-items-center text-muted hover:text-content" :class="chevronShown" aria-hidden="true" @click.stop="emit('toggle')" @dblclick.stop @pointerdown.stop>
                 <component :is="group.open ? ChevronDown : ChevronRight" class="size-3" />
               </span>
@@ -177,7 +181,7 @@ watch(
               <Orchestra class="size-3 shrink-0 text-violet" aria-hidden="true" />
               <span class="sr-only">{{ t('composer.orchestra.label') }}</span>
             </template>
-            <SettingsAgentLogo v-else :id="tab.agent" small class="-my-0.5 -ms-0.5 -me-0.5" />
+            <SettingsAgentLogo v-else :id="tab.agent" tiny />
             <span class="min-w-0 flex-1 truncate">{{ model ?? agents[tab.agent].name }}</span>
             <span v-if="status" class="flex shrink-0 items-center gap-1" :class="sessionStatusColor[status]">
               <ChatSpinner v-if="status === 'working'" :agent="tab.agent" inherit class="text-xs" />
@@ -200,6 +204,7 @@ watch(
             />
             <span v-else class="flex min-w-0 flex-1 items-center gap-1" :class="{ [fadeUnder]: !branch, [keepClear]: group }">
               <span class="min-w-0 truncate text-[13px]/5 font-medium" :class="titleTone">{{ tabTitle(tab) }}</span>
+              <span v-if="opened && !active" class="sr-only">, {{ t('chats.openInTab') }}</span>
               <span v-if="group" class="-m-0.5 grid size-4 shrink-0 place-items-center text-muted hover:text-content" :class="chevronShown" aria-hidden="true" @click.stop="emit('toggle')" @dblclick.stop @pointerdown.stop>
                 <component :is="group.open ? ChevronDown : ChevronRight" class="size-3" />
               </span>

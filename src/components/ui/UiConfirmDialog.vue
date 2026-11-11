@@ -32,15 +32,21 @@ function onOpenAutoFocus(event: Event) {
       <AlertDialogOverlay class="ui-overlay fixed inset-0 z-50 bg-black/50" />
       <AlertDialogContent
         v-if="dialog.request"
-        class="ui-glass ui-glass-raised fixed inset-0 z-50 m-auto h-fit w-[min(25rem,calc(100%-2rem))] rounded-xl text-content outline-none select-none"
+        class="ui-glass ui-glass-raised fixed inset-0 z-50 m-auto h-fit w-[min(22.5rem,calc(100%-2rem))] rounded-2xl text-content outline-none select-none"
         @open-auto-focus="onOpenAutoFocus"
       >
         <div class="ui-dialog-body p-5">
-          <AlertDialogTitle class="text-sm font-semibold">{{ dialog.request.title }}</AlertDialogTitle>
-          <AlertDialogDescription class="mt-1.5 text-sm/relaxed text-muted">{{ dialog.request.message }}</AlertDialogDescription>
+          <AlertDialogTitle class="text-[15px]/5 font-semibold">{{ dialog.request.title }}</AlertDialogTitle>
+          <AlertDialogDescription class="mt-1.5 text-[13px]/[19px] text-muted">{{ dialog.request.message }}</AlertDialogDescription>
           <div class="mt-5 flex justify-end gap-2">
             <UiButton variant="ghost" @click="dialog.answer(false)">{{ t('dialog.cancel') }}</UiButton>
-            <UiButton ref="confirmButton" :variant="dialog.request.danger ? 'danger' : 'primary'" @click="dialog.answer(true)">
+            <!-- Comme monocode : une suppression se confirme sur un rouge plein, plus lisible que le rouge doux des réglages. -->
+            <UiButton
+              ref="confirmButton"
+              :variant="dialog.request.danger ? 'danger' : 'primary'"
+              :class="{ 'bg-danger! text-on-danger! enabled:hover:bg-danger/85!': dialog.request.danger }"
+              @click="dialog.answer(true)"
+            >
               {{ dialog.request.confirmLabel }}
             </UiButton>
           </div>

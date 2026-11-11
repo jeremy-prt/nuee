@@ -166,7 +166,7 @@ const item =
                   </label>
                   <ListboxContent class="flex max-h-80 flex-col gap-0.5 overflow-y-auto p-1">
                     <ListboxItem v-for="tab in listed" :key="tab.id" :value="tab.id" :class="item">
-                      <SettingsAgentLogo :id="tab.agent" small />
+                      <SettingsAgentLogo :id="tab.agent" tiny />
                       <span class="min-w-0 flex-1 truncate">{{ tabTitle(tab) }}</span>
                     </ListboxItem>
                   </ListboxContent>

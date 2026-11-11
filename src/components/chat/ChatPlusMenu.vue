@@ -42,7 +42,7 @@ function onCloseAutoFocus(event: Event) {
           >
             <DropdownMenuLabel :class="menuTitle">{{ t('composer.plus.label') }}</DropdownMenuLabel>
             <DropdownMenuItem :text-value="t('composer.plus.attach')" :class="[menuRow, 'py-1']" @select="emit('attach')">
-              <Paperclip :class="[menuIcon, 'rotate-45 text-info']" aria-hidden="true" />
+              <Paperclip :class="[menuIcon, 'text-info']" aria-hidden="true" />
               <span :class="[menuLabel, 'min-w-0 flex-1']">{{ t('composer.plus.attach') }}</span>
             </DropdownMenuItem>
             <DropdownMenuCheckboxItem

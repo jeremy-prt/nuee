@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { FileDiff, History, RefreshCw, Search, SendHorizontal, Undo } from '@/components/ui/icons'
-import { computed, provide, ref, useTemplateRef, watch } from 'vue'
+import { FileDiff, History, SendHorizontal } from '@/components/ui/icons'
+import { computed, provide, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import GitChanges from '@/components/git/GitChanges.vue'
 import GitDiffPane from '@/components/git/GitDiffPane.vue'
@@ -14,17 +14,15 @@ import { GIT_CHANGES, useGitChanges } from '@/composables/useGitChanges'
 import { EXPLORER } from '@/stores/files'
 import { useGitPanelStore } from '@/stores/gitPanel'
 import { type GitMode, useLayoutStore } from '@/stores/layout'
-import { useToastsStore } from '@/stores/toasts'
 
 // Volet Git, comme VS Code et monocode : modes Changements et Historique, retenus par projet. Un diff s'ouvre à gauche
 // de la liste, ou se déplie sous sa ligne si le panneau est partagé ou trop étroit.
 const { t } = useI18n()
 const layout = useLayoutStore()
 const gitPanel = useGitPanelStore()
-const toasts = useToastsStore()
 const changes = useGitChanges()
 provide(GIT_CHANGES, changes)
-const { chat, files } = changes
+const { chat } = changes
 
 // Assez pour lire un diff à côté d'une liste de largeur minimale.
 const SIDE_MIN = 560
@@ -50,17 +48,6 @@ const sideMode = computed(() => layout.spans('changes') && !layout.right.aside &
 const sideShown = computed(() => sideMode.value && tabs.value.length > 0)
 track(() => sideShown.value)
 
-// ===== Ligne d'outils =====
-// Les boutons des modes restent en place d'un mode à l'autre : le focus clavier ne se perd pas en changeant de mode.
-const usable = computed(() => !!changes.project.value && !changes.pending.value && changes.status.value !== 'notRepo')
-const history = useTemplateRef('history')
-const searching = ref(false)
-watch(mode, () => (searching.value = false))
-
-async function refreshChanges() {
-  await changes.refresh()
-  toasts.push({ title: t('feedback.listRefreshed'), body: t('dock.session.files', { n: files.value.length }, files.value.length) })
-}
 </script>
 
 <template>
@@ -76,28 +63,14 @@ async function refreshChanges() {
       :aria-label="t('dock.changes.title')"
     >
       <ShellDockToolbar :label="t('dock.changes.title')">
-        <ShellDockToolbarButton :label="t('dock.changes.modes.changes')" :pressed="mode === 'changes'" @click="mode = 'changes'">
+        <ShellDockToolbarButton :label="t('dock.changes.modes.changes')" labeled :pressed="mode === 'changes'" @click="mode = 'changes'">
           <FileDiff class="size-3.5" aria-hidden="true" />
+          {{ t('dock.changes.modes.changes') }}
         </ShellDockToolbarButton>
-        <ShellDockToolbarButton :label="t('dock.changes.modes.history')" :pressed="mode === 'history'" @click="mode = 'history'">
+        <ShellDockToolbarButton :label="t('dock.changes.modes.history')" labeled :pressed="mode === 'history'" @click="mode = 'history'">
           <History class="size-3.5" aria-hidden="true" />
+          {{ t('dock.changes.modes.history') }}
         </ShellDockToolbarButton>
-        <template v-if="mode === 'changes'">
-          <ShellDockToolbarButton :label="t('dock.changes.revertAll')" :disabled="!usable || !files.length || changes.acting.value" @click="changes.revertAll()">
-            <Undo class="size-3.5" aria-hidden="true" />
-          </ShellDockToolbarButton>
-          <ShellDockToolbarButton :label="t('dock.changes.refresh')" :disabled="!usable" :loading="changes.loading.value" @click="refreshChanges">
-            <RefreshCw class="size-3.5" aria-hidden="true" />
-          </ShellDockToolbarButton>
-        </template>
-        <template v-else>
-          <ShellDockToolbarButton :label="t('dock.changes.history.search')" :pressed="searching" :disabled="!usable" @click="searching = !searching">
-            <Search class="size-3.5" aria-hidden="true" />
-          </ShellDockToolbarButton>
-          <ShellDockToolbarButton :label="t('dock.changes.refresh')" :disabled="!usable" :loading="history?.loading" @click="history?.refresh()">
-            <RefreshCw class="size-3.5" aria-hidden="true" />
-          </ShellDockToolbarButton>
-        </template>
         <template v-if="mode === 'changes' && changes.allComments.value.length" #end>
           <UiTooltip :label="changes.sendLabel.value">
             <button
@@ -113,7 +86,7 @@ async function refreshChanges() {
         </template>
       </ShellDockToolbar>
       <GitChanges v-if="mode === 'changes'" :side="sideMode" />
-      <GitHistory v-else ref="history" v-model:searching="searching" :side="sideMode" />
+      <GitHistory v-else :side="sideMode" />
     </section>
   </div>
 </template>

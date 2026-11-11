@@ -163,18 +163,25 @@ function create(dir: boolean) {
       <FilesSearch v-if="browse.searching" :place="place" @close="browse.searching = false" />
       <template v-else>
         <ShellDockToolbar :label="t('dock.files.title')">
-          <ShellDockToolbarButton :label="t('dock.files.newFile')" :disabled="!root || !!failure" @mousedown.prevent @click="create(false)">
-            <FilePlus class="size-3.5" aria-hidden="true" />
-          </ShellDockToolbarButton>
-          <ShellDockToolbarButton :label="t('dock.files.newFolder')" :disabled="!root || !!failure" @mousedown.prevent @click="create(true)">
-            <FolderPlus class="size-3.5" aria-hidden="true" />
-          </ShellDockToolbarButton>
-          <ShellDockToolbarButton :label="t('dock.files.collapse')" :disabled="!browse.expanded.size || !!failure" @mousedown.prevent @click="browse.expanded.clear()">
-            <CollapseAll class="size-3.5" aria-hidden="true" />
-          </ShellDockToolbarButton>
-          <ShellDockToolbarButton :label="t('dock.files.search')" :disabled="!root || !!failure" @click="browse.searching = true">
-            <Search class="size-3.5" aria-hidden="true" />
-          </ShellDockToolbarButton>
+          <!-- Comme le Terminal et Git : ce qu'on regarde à gauche, les actions à droite. -->
+          <p v-if="root" class="flex h-7 min-w-0 items-center gap-1.5 px-1.5 text-xs text-content">
+            <FolderTree class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
+            <span class="truncate">{{ rootName }}</span>
+          </p>
+          <template #end>
+            <ShellDockToolbarButton :label="t('dock.files.newFile')" :disabled="!root || !!failure" @mousedown.prevent @click="create(false)">
+              <FilePlus class="size-3.5" aria-hidden="true" />
+            </ShellDockToolbarButton>
+            <ShellDockToolbarButton :label="t('dock.files.newFolder')" :disabled="!root || !!failure" @mousedown.prevent @click="create(true)">
+              <FolderPlus class="size-3.5" aria-hidden="true" />
+            </ShellDockToolbarButton>
+            <ShellDockToolbarButton :label="t('dock.files.collapse')" :disabled="!browse.expanded.size || !!failure" @mousedown.prevent @click="browse.expanded.clear()">
+              <CollapseAll class="size-3.5" aria-hidden="true" />
+            </ShellDockToolbarButton>
+            <ShellDockToolbarButton :label="t('dock.files.search')" :disabled="!root || !!failure" @click="browse.searching = true">
+              <Search class="size-3.5" aria-hidden="true" />
+            </ShellDockToolbarButton>
+          </template>
         </ShellDockToolbar>
         <UiEmpty
           v-if="failure"

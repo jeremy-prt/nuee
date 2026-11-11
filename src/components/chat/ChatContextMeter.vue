@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from 'reka-ui'
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
@@ -8,7 +8,8 @@ import type { ContextUsage } from '@/ipc/bindings/ContextUsage'
 import { contextFormats, contextRatio, contextRows } from '@/utils/context'
 import { contextTone } from '@/utils/level'
 
-const props = defineProps<{ usage: ContextUsage; disabled: boolean }>()
+// `usage` null : pas encore mesuré, l'anneau reste vide puis se remplit en glissant quand le relevé arrive.
+const props = defineProps<{ usage: ContextUsage | null; disabled: boolean }>()
 const emit = defineEmits<{ compact: [] }>()
 
 const { t, locale } = useI18n()
@@ -19,13 +20,17 @@ const STROKE = 2
 const RADIUS = (SIZE - STROKE) / 2
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS
 
-const ratio = computed(() => contextRatio(props.usage))
+const ratio = computed(() => (props.usage ? contextRatio(props.usage) : 0))
+// Part de vide puis glisse jusqu'à sa valeur : le relevé arrivé ne saute pas aux yeux.
+const filled = ref(false)
+onMounted(() => requestAnimationFrame(() => (filled.value = true)))
+const shown = computed(() => (filled.value ? ratio.value : 0))
 const tone = computed(() => contextTone(ratio.value))
 
 const formats = computed(() => contextFormats(locale.value))
 const percent = computed(() => formats.value.percent.format(ratio.value))
-const tokens = computed(() => ({ used: formats.value.tokens.format(props.usage.used), window: formats.value.tokens.format(props.usage.window) }))
-const rows = computed(() => contextRows(props.usage, formats.value))
+const tokens = computed(() => ({ used: formats.value.tokens.format(props.usage?.used ?? 0), window: formats.value.tokens.format(props.usage?.window ?? 0) }))
+const rows = computed(() => (props.usage ? contextRows(props.usage, formats.value) : null))
 
 function compact() {
   open.value = false
@@ -35,7 +40,14 @@ function compact() {
 
 <template>
   <!-- Comme UiMenu : l'infobulle enveloppe tout, sinon reka y rattache la position du panneau. -->
-  <UiTooltip :label="t('composer.context.summary', { percent, ...tokens })" side="top" :disabled="open">
+  <UiTooltip v-if="!usage" :label="t('dock.session.noContext')" side="top">
+    <span class="grid size-7 shrink-0 place-items-center text-muted" role="img" :aria-label="t('dock.session.noContext')">
+      <svg :width="SIZE" :height="SIZE" :viewBox="`0 0 ${SIZE} ${SIZE}`" aria-hidden="true">
+        <circle :cx="SIZE / 2" :cy="SIZE / 2" :r="RADIUS" fill="none" stroke="currentColor" :stroke-width="STROKE" opacity="0.25" />
+      </svg>
+    </span>
+  </UiTooltip>
+  <UiTooltip v-else :label="t('composer.context.summary', { percent, ...tokens })" side="top" :disabled="open">
     <span class="flex shrink-0">
       <PopoverRoot v-model:open="open">
         <PopoverTrigger
@@ -44,18 +56,18 @@ function compact() {
         >
           <svg :width="SIZE" :height="SIZE" :viewBox="`0 0 ${SIZE} ${SIZE}`" :class="tone.text" aria-hidden="true">
             <circle :cx="SIZE / 2" :cy="SIZE / 2" :r="RADIUS" fill="none" stroke="currentColor" :stroke-width="STROKE" opacity="0.25" />
-            <!-- Un bout arrondi laisserait un point sur un anneau vide. -->
+            <!-- Toujours là pour glisser depuis zéro ; un bout arrondi laisserait un point sur un anneau vide. -->
             <circle
-              v-if="ratio > 0"
               :cx="SIZE / 2"
               :cy="SIZE / 2"
               :r="RADIUS"
               fill="none"
               stroke="currentColor"
               :stroke-width="STROKE"
-              stroke-linecap="round"
+              :stroke-linecap="shown > 0 ? 'round' : 'butt'"
+              class="transition-[stroke-dashoffset] duration-500 ease-out motion-reduce:transition-none"
               :stroke-dasharray="CIRCUMFERENCE"
-              :stroke-dashoffset="CIRCUMFERENCE * (1 - ratio)"
+              :stroke-dashoffset="CIRCUMFERENCE * (1 - shown)"
               :transform="`rotate(-90 ${SIZE / 2} ${SIZE / 2})`"
             />
           </svg>
@@ -68,14 +80,14 @@ function compact() {
               <span class="text-muted tabular-nums">{{ tokens.used }} / {{ tokens.window }}</span>
             </p>
             <div class="mt-2 flex h-1.5 gap-px overflow-hidden rounded-full bg-content/10" aria-hidden="true">
-              <span v-for="row in rows.filled" :key="row.name" class="h-full shrink-0" :class="row.color" :style="{ width: row.width }" />
+              <span v-for="row in rows!.filled" :key="row.name" class="h-full shrink-0" :class="row.color" :style="{ width: row.width }" />
             </div>
             <ul v-if="usage.categories.length" class="mt-3 flex flex-col gap-1.5">
               <li
-                v-for="row in [...rows.filled, ...rows.free, ...rows.deferred]"
+                v-for="row in [...rows!.filled, ...rows!.free, ...rows!.deferred]"
                 :key="row.name"
                 class="flex items-center gap-2"
-                :class="{ 'text-muted': row.kind === 'deferred', 'mt-1.5': row === rows.deferred[0] }"
+                :class="{ 'text-muted': row.kind === 'deferred', 'mt-1.5': row === rows!.deferred[0] }"
               >
                 <span class="size-2.5 shrink-0 rounded-sm" :class="row.color" aria-hidden="true" />
                 <span class="min-w-0 flex-1 truncate">{{ row.name }}</span>

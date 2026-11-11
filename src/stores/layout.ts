@@ -88,7 +88,7 @@ export const SIZES = {
   // Même largeur dans les deux dispositions : en « Projets en menu », la barre porte aussi les sessions.
   rail: { min: 180, max: 420, defaultSize: 240 },
   panel: { min: 200, max: 420, defaultSize: 240 },
-  right: { min: 280, max: 800, defaultSize: 360 },
+  right: { min: 280, max: 800, defaultSize: 480 },
 }
 
 // Ancienne largeur par défaut, enregistrée telle quelle avant `width` : elle repasse à la nouvelle.
@@ -383,7 +383,8 @@ export const useLayoutStore = defineStore('layout', () => {
     state.right.sessions[chatId] = { ...saved, tabs: tabsOf([...saved.tabs, view]) }
   }
 
-  // Le dernier volet fermé laisse le lanceur. Panneau partagé : la zone qui reste prend toute la place.
+  // Le volet fermé laisse le lanceur, pas son voisin (choix de Jérémy). Panneau partagé : la zone qui reste prend toute
+  // la place.
   function closeView(view: DockView) {
     const dock = state.right
     const index = dock.tabs.indexOf(view)
@@ -391,11 +392,11 @@ export const useLayoutStore = defineStore('layout', () => {
     dock.tabs.splice(index, 1)
     if (dock.aside === view) dock.aside = null
     if (dock.active !== view) return
-    dock.active = dock.aside ?? dock.tabs[index] ?? dock.tabs[index - 1] ?? null
+    dock.active = dock.aside ?? null
     dock.aside = null
   }
 
-  // « + » : le lanceur, sans fermer de volet.
+  // Onglet affiché recliqué : le lanceur, sans fermer de volet.
   function showLauncher() {
     state.right.active = null
     state.right.open = true

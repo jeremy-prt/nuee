@@ -958,6 +958,7 @@ fn natural(a: &str, b: &str) -> std::cmp::Ordering {
 #[ts(export)]
 pub enum GitMark {
     Modified,
+    Untracked,
     Added,
     Renamed,
 }
@@ -972,7 +973,7 @@ pub struct FileMark {
 }
 
 /// État git des fichiers du dossier de la session, pour colorer l'arbre comme monocode (modifié en jaune, nouveau
-/// en vert). Vide hors dépôt. Les fichiers supprimés ne sont pas dans l'arbre, ils sont laissés de côté.
+/// en vert, non suivi en bleu). Vide hors dépôt. Les fichiers supprimés ne sont pas dans l'arbre, ils sont laissés de côté.
 pub async fn marks(root: &Path) -> Result<Vec<FileMark>, AppError> {
     let root = root_of(root)?;
     let Some(git) = crate::services::worktree::git_binary() else {
@@ -1006,7 +1007,8 @@ fn parse_marks(listed: &str, prefix: &str) -> Vec<FileMark> {
             fields.next();
         }
         let mark = match (x, y) {
-            (b'?', b'?') | (b'A', _) => GitMark::Added,
+            (b'?', b'?') => GitMark::Untracked,
+            (b'A', _) => GitMark::Added,
             (b'R', _) | (b'C', _) => GitMark::Renamed,
             (b'D', _) | (_, b'D') => continue,
             _ => GitMark::Modified,
@@ -1202,8 +1204,7 @@ mod tests {
 
     #[test]
     fn git_marks_follow_the_session_folder() {
-        let listed =
-            " M app/a.ts\0?? app/new.ts\0R  app/b.ts\0app/old.ts\0 D app/gone.ts\0M  other/c.ts\0";
+        let listed = " M app/a.ts\0?? app/new.ts\0A  app/staged.ts\0R  app/b.ts\0app/old.ts\0 D app/gone.ts\0M  other/c.ts\0";
         let marks = parse_marks(listed, "app/");
         let found: Vec<_> = marks
             .iter()
@@ -1213,7 +1214,8 @@ mod tests {
             found,
             [
                 ("a.ts", GitMark::Modified),
-                ("new.ts", GitMark::Added),
+                ("new.ts", GitMark::Untracked),
+                ("staged.ts", GitMark::Added),
                 ("b.ts", GitMark::Renamed)
             ]
         );

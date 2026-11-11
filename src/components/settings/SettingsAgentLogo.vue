@@ -17,12 +17,13 @@ const logos = {
   grok: { src: grok, mono: true, padded: false },
 }
 
-const props = defineProps<{ id: keyof typeof logos; muted?: boolean; small?: boolean }>()
+// `tiny` : à la place d'une icône d'état de 14 px (liste des sessions, onglets), même encombrement qu'elle.
+const props = defineProps<{ id: keyof typeof logos; muted?: boolean; small?: boolean; tiny?: boolean }>()
 
-const box = computed(() => (props.small ? 'size-5' : 'size-6'))
+const box = computed(() => (props.tiny ? 'size-4' : props.small ? 'size-5' : 'size-6'))
 const size = computed(() => {
   if (logos[props.id].padded) return box.value
-  return props.small ? 'size-3.75' : 'size-4.5'
+  return props.tiny ? 'size-3.25' : props.small ? 'size-3.75' : 'size-4.5'
 })
 </script>
 

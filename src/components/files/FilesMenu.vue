@@ -48,8 +48,6 @@ const toasts = useToastsStore()
 files.loadEditors()
 
 // Logo de l'app installée, posé à la place d'une icône de menu (les classes de taille passent par `attrs`).
-// Trombone penché, plus lisible que le glyphe droit (choix de Jérémy).
-const Clip: FunctionalComponent = (_, { attrs }) => h(Paperclip, { ...attrs, class: [attrs.class, 'rotate-45'] })
 
 const logo = (src: string | null): FunctionalComponent | undefined =>
   src ? (_, { attrs }) => h('img', { src, alt: '', draggable: false, ...attrs }) : undefined
@@ -179,7 +177,7 @@ async function reveal() {
     <Eye :class="menuIcon" aria-hidden="true" />
     <span :class="[menuLabel, 'min-w-0 flex-1']">{{ t('dock.files.preview') }}</span>
   </DropdownMenuCheckboxItem>
-  <UiMenuItem :label="t('dock.files.attach')" :icon="Clip" @select="drafts.requestAttach(place.chatId, [absolute(target.path)])" />
+  <UiMenuItem :label="t('dock.files.attach')" :icon="Paperclip" @select="drafts.requestAttach(place.chatId, [absolute(target.path)])" />
   <UiMenuSub v-if="files.editors?.length" :label="t('dock.files.openWith')" :icon="ExternalLink">
     <UiMenuItem v-for="editor in files.editors" :key="editor.id" :label="editor.name" :icon="logo(editor.icon)" @select="openIn(editor)" />
   </UiMenuSub>

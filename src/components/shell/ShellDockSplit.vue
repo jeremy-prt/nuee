@@ -100,7 +100,7 @@ const target = computed(() => (drag.target?.kind === 'dock' ? drag.target.at : n
     <!-- Mêmes proportions que les zones : la zone visée s'allume, comme le dépôt d'un onglet dans VS Code. -->
     <div
       v-if="drops.length"
-      class="pointer-events-none absolute inset-0 z-10 flex animate-[ui-fade-in_var(--motion-quick)_var(--motion-ease)]"
+      class="pointer-events-none absolute inset-0 z-10 flex bg-canvas animate-[ui-fade-in_var(--motion-quick)_var(--motion-ease)]"
       :class="beside ? 'flex-row' : 'flex-col'"
     >
       <template v-for="drop in drops" :key="drop.zone">
@@ -113,7 +113,7 @@ const target = computed(() => (drag.target?.kind === 'dock' ? drag.target.at : n
         >
           <div
             v-if="drop.label"
-            class="relative grid flex-1 place-items-center overflow-hidden rounded-lg border bg-canvas/90 p-3 text-center text-xs transition-colors duration-(--motion-quick)"
+            class="relative grid flex-1 place-items-center overflow-hidden rounded-lg border p-3 text-center text-xs transition-colors duration-(--motion-quick)"
             :class="target === drop.zone ? 'border-ring text-content' : 'border-dashed border-muted/40 text-muted'"
           >
             <span class="absolute inset-0 bg-signal/15 transition-opacity duration-(--motion-quick)" :class="{ 'opacity-0': target !== drop.zone }" />

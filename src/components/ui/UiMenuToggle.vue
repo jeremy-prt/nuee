@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { DropdownMenuCheckboxItem } from 'reka-ui'
 import type { Component } from 'vue'
-import { menuIcon, menuLabel } from '@/components/ui/menuRow'
+import { menuIcon, menuIconSlot, menuLabel } from '@/components/ui/menuRow'
 
 // Option oui/non d'un menu, l'interrupteur dessiné à droite. Le menu reste ouvert pour en régler plusieurs.
 defineProps<{ label: string; icon?: Component; disabled?: boolean }>()
@@ -17,6 +17,7 @@ const model = defineModel<boolean>({ required: true })
     @select.prevent
   >
     <component :is="icon" v-if="icon" :class="[menuIcon, 'mt-0']" aria-hidden="true" />
+    <span v-else :class="[menuIconSlot, 'mt-0']" aria-hidden="true" />
     <span :class="[menuLabel, 'min-w-0 flex-1']">{{ label }}</span>
     <span
       class="ms-3 inline-flex h-4 w-7 shrink-0 items-center rounded-full p-0.5 transition-colors duration-200 motion-reduce:transition-none"

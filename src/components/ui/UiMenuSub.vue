@@ -2,7 +2,7 @@
 import { ChevronRight } from '@/components/ui/icons'
 import { DropdownMenuPortal, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from 'reka-ui'
 import { type Component, inject } from 'vue'
-import { menuIcon, menuLabel, menuPanel, menuRow } from '@/components/ui/menuRow'
+import { menuIcon, menuIconSlot, menuLabel, menuPanel, menuRow } from '@/components/ui/menuRow'
 import { hoverMenuArea } from '@/composables/useHoverMenu'
 
 // `value` : le choix en cours, lu à droite du libellé.
@@ -17,6 +17,7 @@ const area = inject(hoverMenuArea, null)
       :class="[menuRow, 'py-1 pe-1.5 data-[state=open]:bg-selection-hover']"
     >
       <component :is="icon" v-if="icon" :class="menuIcon" aria-hidden="true" />
+      <span v-else :class="menuIconSlot" aria-hidden="true" />
       <span :class="[menuLabel, 'min-w-0 flex-1']">{{ label }}</span>
       <span v-if="value" class="mt-0.5 truncate text-muted">{{ value }}</span>
       <ChevronRight class="mt-[3px] size-3.5 shrink-0 text-muted rtl:rotate-180" aria-hidden="true" />

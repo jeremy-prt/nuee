@@ -380,20 +380,6 @@ function onKeydown(event: KeyboardEvent) {
           @attach="pick"
           @orchestra="setOrchestra"
         />
-        <!-- Mode Orchestre : son icône et une croix pour en sortir, sans libellé qui prendrait la barre. -->
-        <UiTooltip v-if="orchestrating" :label="t('composer.orchestra.off')" side="top">
-          <button
-            ref="orchestraChip"
-            type="button"
-            :disabled="disabled"
-            class="flex h-7 shrink-0 items-center gap-1 rounded-md bg-violet/15 px-1.5 text-violet hover:bg-violet/25 focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-40"
-            :aria-label="t('composer.orchestra.off')"
-            @click="setOrchestra(false, $event)"
-          >
-            <Orchestra class="size-3.5" aria-hidden="true" />
-            <X class="size-3 opacity-70" aria-hidden="true" />
-          </button>
-        </UiTooltip>
         <ChatModelPicker
           v-model="chosenModel"
           v-model:effort="chosenEffort"
@@ -413,14 +399,29 @@ function onKeydown(event: KeyboardEvent) {
           <component :is="modeLook.icon" class="size-3.5 shrink-0" :class="modeLook.iconClass" aria-hidden="true" />
           <span class="@max-sm:sr-only">{{ t(`composer.mode.${options.mode}`) }}</span>
         </UiMenu>
+        <!-- Mode Orchestre : son icône et une croix pour en sortir, sans libellé qui prendrait la barre ; après le mode (choix de Jérémy). -->
+        <UiTooltip v-if="orchestrating" :label="t('composer.orchestra.off')" side="top">
+          <button
+            ref="orchestraChip"
+            type="button"
+            :disabled="disabled"
+            class="flex h-7 shrink-0 items-center gap-1 rounded-md bg-violet/15 px-1.5 text-violet hover:bg-violet/25 focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-40"
+            :aria-label="t('composer.orchestra.off')"
+            @click="setOrchestra(false, $event)"
+          >
+            <Orchestra class="size-3.5" aria-hidden="true" />
+            <X class="size-3 opacity-70" aria-hidden="true" />
+          </button>
+        </UiTooltip>
         <span class="flex-1" />
         <!-- État de la conversation, à côté de l'envoi ; à gauche, les réglages du prochain message. -->
-        <ChatContextMeter v-if="context" :usage="context" :disabled="disabled || running || !compactable" class="me-1" @compact="emit('compact')" />
+        <ChatContextMeter :usage="context ?? null" :disabled="disabled || running || !compactable" class="me-1" @compact="emit('compact')" />
         <!-- Pendant une réponse : le message attend la fin du tour ou la rejoint, selon Réglages › Général. -->
         <UiTooltip v-if="running && canSend" :label="t(general.followUp === 'steer' ? 'composer.steer' : 'composer.queue')" :shortcut="shortcuts.label('send')" side="top">
           <button
             type="submit"
             :disabled="disabled"
+            data-control="solid"
             class="me-1 grid size-7 shrink-0 place-items-center rounded-full bg-selection text-content hover:bg-content/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             :aria-label="t(general.followUp === 'steer' ? 'composer.steer' : 'composer.queue')"
           >
@@ -430,6 +431,7 @@ function onKeydown(event: KeyboardEvent) {
         <UiTooltip v-if="running" :label="t('composer.stop')" side="top">
           <button
             type="button"
+            data-control="solid"
             class="grid size-7 shrink-0 place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             :class="approving ? 'bg-selection text-content hover:bg-content/20' : 'bg-danger text-canvas hover:opacity-90'"
             :aria-label="t('composer.stop')"
@@ -442,6 +444,7 @@ function onKeydown(event: KeyboardEvent) {
           <button
             type="submit"
             :disabled="disabled || !canSend"
+            data-control="solid"
             class="grid size-7 shrink-0 place-items-center rounded-full bg-accent text-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring enabled:hover:opacity-90 disabled:bg-content/12 disabled:text-muted"
             :aria-label="t('composer.send')"
           >

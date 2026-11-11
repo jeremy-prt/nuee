@@ -4,7 +4,10 @@
 export const menuRow =
   'flex shrink-0 cursor-pointer items-start gap-2.5 rounded-lg px-2 text-content outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-40 data-[highlighted]:not-data-[state=checked]:bg-selection-hover data-[state=checked]:bg-selection'
 export const menuPanel = 'ui-pop z-50 flex flex-col gap-0.5 overflow-y-auto p-1 text-xs text-content select-none'
-export const menuIcon = 'mt-0.5 size-4 shrink-0'
+// `menu-icon` (sans style) : un menu qui en contient une garde la place de l'icône sur ses lignes qui n'en ont pas
+// (`menuIconSlot`), pour aligner les libellés.
+export const menuIcon = 'menu-icon mt-0.5 size-4 shrink-0'
+export const menuIconSlot = 'mt-0.5 hidden size-4 shrink-0 [:is([role=menu],[role=listbox]):has(.menu-icon)_&]:block'
 export const menuLabel = 'block truncate text-[13px] leading-5'
 export const menuHint = 'block truncate text-[11px] leading-4 text-muted'
 // Plus proche de ses lignes que du haut du menu, pour se lire avec elles.

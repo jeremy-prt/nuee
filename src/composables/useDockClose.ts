@@ -87,5 +87,5 @@ export function useDockClose() {
     return true
   }
 
-  return { close, closeFrom }
+  return { close, closeFrom, shownTab }
 }
