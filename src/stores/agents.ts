@@ -151,7 +151,7 @@ export const useAgentsStore = defineStore('agents', () => {
       if (current !== attempt) return
       await detect(kind, true)
       const { t } = i18nGlobal()
-      useToastsStore().push({ kind: 'success', title: t('agentLogin.done', { agent: agents[kind].name }), body: t('agentLogin.doneBody') })
+      useToastsStore().push({ kind: 'success', title: t('agentLogin.done', { agent: agents[kind].name }), body: '' })
     } catch (error) {
       if (current === attempt) loginError.value = { kind, message: failure(error) }
     } finally {
@@ -249,7 +249,7 @@ export const useAgentsStore = defineStore('agents', () => {
       return useToastsStore().push({ kind: 'error', title: t('feedback.refreshFailed'), body: t('settings.agents.error', { agent: name, command: agents[kind].command }) })
     }
     if (current.state !== 'found') {
-      const body = settings[kind].path ? t('feedback.pathMissing', { path: settings[kind].path }) : t('settings.install.notInstalled', { tool: name })
+      const body = settings[kind].path ? t('feedback.pathMissing', { path: settings[kind].path }) : ''
       return useToastsStore().push({ kind: 'warning', title: t('feedback.agentMissing', { agent: name }), body })
     }
     const version = t('settings.agents.versionShort', { version: current.version })

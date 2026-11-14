@@ -2,7 +2,6 @@
 import { ImagePlus } from '@/components/ui/icons'
 import { ref, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
-import SettingsBackgroundFit from '@/components/settings/SettingsBackgroundFit.vue'
 import SettingsBackgroundOptions from '@/components/settings/SettingsBackgroundOptions.vue'
 import SettingsBackgroundThumb from '@/components/settings/SettingsBackgroundThumb.vue'
 import SettingsHeading from '@/components/settings/SettingsHeading.vue'
@@ -98,7 +97,6 @@ const { over } = useFileDrop(zone, (paths) => use(paths[0]!), true)
         <UiButton v-else size="sm" :loading="importing" @click="choose()">{{ t('settings.background.choose') }}</UiButton>
       </div>
       <template v-if="appearance.background.path">
-        <SettingsBackgroundFit :path="appearance.background.path" />
         <SettingsBackgroundOptions :path="appearance.background.path" />
       </template>
     </div>

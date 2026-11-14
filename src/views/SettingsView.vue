@@ -10,6 +10,7 @@ import SettingsAppearance from '@/components/settings/SettingsAppearance.vue'
 import SettingsAnimations from '@/components/settings/SettingsAnimations.vue'
 import SettingsArchive from '@/components/settings/SettingsArchive.vue'
 import SettingsBackground from '@/components/settings/SettingsBackground.vue'
+import SettingsBackgroundFit from '@/components/settings/SettingsBackgroundFit.vue'
 import SettingsGithub from '@/components/settings/SettingsGithub.vue'
 import SettingsIntegrations from '@/components/settings/SettingsIntegrations.vue'
 import SettingsGlass from '@/components/settings/SettingsGlass.vue'
@@ -49,6 +50,7 @@ import {
   skillOfDetail,
   useNavigationStore,
 } from '@/stores/navigation'
+import { useAppearanceStore } from '@/stores/appearance'
 import { useProjectsStore } from '@/stores/projects'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { useSkillsStore } from '@/stores/skills'
@@ -58,6 +60,7 @@ import { useWorktreesStore } from '@/stores/worktrees'
 const { t } = useI18n()
 const resetToast = useResetToast()
 const navigation = useNavigationStore()
+const appearance = useAppearanceStore()
 const shortcuts = useShortcutsStore()
 const skills = useSkillsStore()
 const skillChat = useSkillChat()
@@ -179,7 +182,10 @@ onUnmounted(() => {
             />
             <template v-else>{{ settingsDetailTitle(navigation.settingsDetail, t) }}</template>
           </h2>
-          <UiButton v-if="worktreesProject()" variant="primary" class="ms-auto" data-worktree-create @click="worktrees.creating = true">
+          <div v-if="navigation.settingsDetail === 'background' && appearance.background.path" class="ms-auto">
+            <SettingsBackgroundFit :path="appearance.background.path" />
+          </div>
+          <UiButton v-else-if="worktreesProject()" variant="primary" class="ms-auto" data-worktree-create @click="worktrees.creating = true">
             <Plus class="size-4" aria-hidden="true" />{{ t('settings.projects.worktrees.create') }}
           </UiButton>
         </div>

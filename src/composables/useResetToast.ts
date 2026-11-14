@@ -6,5 +6,5 @@ export function useResetToast() {
   const { t } = useI18n()
   const toasts = useToastsStore()
   return (what: 'shortcuts' | 'section' | 'all') =>
-    toasts.push({ kind: 'success', title: t(`feedback.reset.${what}`), body: t(`feedback.reset.${what}Body`) })
+    toasts.push({ kind: 'success', title: t(`feedback.reset.${what}`), body: '' })
 }

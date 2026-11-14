@@ -314,7 +314,7 @@ export const useSkillsStore = defineStore('skills', () => {
     if (previewed.value?.id === skill.id) close(true)
     delete prefs.skills[skill.id]
     skills.value = skills.value.filter((item) => item.id !== skill.id)
-    useToastsStore().push({ kind: 'success', title: t('settings.skills.deleted', { name: skill.name }), body: t('settings.skills.deletedBody') })
+    useToastsStore().push({ kind: 'success', title: t('settings.skills.deleted', { name: skill.name }), body: '' })
     return true
   }
 

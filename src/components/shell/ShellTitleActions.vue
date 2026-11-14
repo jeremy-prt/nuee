@@ -24,7 +24,6 @@ const { chat, place } = useTerminalChat()
 
 // Pas d'état sans dossier git : `sessionGit.refresh` l'efface.
 const changes = computed(() => (chat.value ? sessionGit.states[chat.value.id]?.changes : undefined))
-const clean = computed(() => !changes.value?.files)
 // Première lecture plus lente que 150 ms : une pastille de squelette tient la place du compteur.
 const slow = useSlow(() => !!chat.value && !changes.value && sessionGit.loading.has(chat.value.id))
 const counter = computed(() =>
@@ -59,8 +58,8 @@ function openSearch() {
         :aria-label="counter"
         @click="openChanges"
       >
-        <span :class="clean ? 'text-muted' : 'text-success'">+{{ changes.added }}</span>
-        <span :class="clean ? 'text-muted' : 'text-danger'">−{{ changes.removed }}</span>
+        <span class="text-success">+{{ changes.added }}</span>
+        <span class="text-danger">−{{ changes.removed }}</span>
       </button>
     </UiTooltip>
     <span v-else-if="slow" class="skeleton mx-1.5 h-2.5 w-12 rounded-full" role="status" :aria-label="t('dock.changes.modes.changes')" />
