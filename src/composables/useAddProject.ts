@@ -1,14 +1,7 @@
-import { useI18n } from 'vue-i18n'
-import { pickFolder } from '@/ipc/dialog'
-import { useProjectsStore } from '@/stores/projects'
+import { useAddProjectStore } from '@/stores/addProject'
 
-// Sélecteur de dossier natif (il permet aussi d'en créer un) : rend le projet ajouté, ou déjà connu.
+// Ouvre « Ajouter un projet » (dossier de l'ordinateur ou clone GitHub) : rend le projet ajouté, ou déjà connu.
 export function useAddProject() {
-  const { t } = useI18n()
-  const projects = useProjectsStore()
-
-  return async function addProject() {
-    const path = await pickFolder(t('rail.pickProject'))
-    return path ? projects.add(path) : null
-  }
+  const store = useAddProjectStore()
+  return () => store.request()
 }

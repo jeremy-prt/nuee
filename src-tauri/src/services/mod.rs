@@ -6,6 +6,7 @@ pub mod browser;
 pub mod chat;
 pub mod files;
 pub mod github;
+pub mod github_clone;
 pub mod install;
 pub mod note;
 pub mod notification;

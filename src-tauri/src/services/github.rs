@@ -16,7 +16,7 @@ use crate::error::AppError;
 use crate::services::agent::process;
 use crate::utils::shell_env;
 
-const BINARY: &str = "gh";
+pub(crate) const BINARY: &str = "gh";
 /// Seul hôte où Nuée ajoute un compte ; ceux d'un autre hôte (Enterprise) s'affichent tels que gh les donne.
 const HOST: &str = "github.com";
 const STATUS_TIMEOUT: Duration = Duration::from_secs(5);
@@ -338,7 +338,7 @@ async fn status_of(program: &Path) -> Result<GithubStatus, AppError> {
 }
 
 /// Sans terminal ni question : une invite bloquerait gh, ses traces de débogage finiraient sur stderr.
-fn command(program: &Path, args: &[&str]) -> Command {
+pub(crate) fn command(program: &Path, args: &[&str]) -> Command {
     let mut command = Command::new(program);
     command
         .args(args)

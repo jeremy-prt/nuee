@@ -9,6 +9,7 @@ import ShellRail from '@/components/shell/ShellRail.vue'
 import ShellResizeHandle from '@/components/shell/ShellResizeHandle.vue'
 import ShellSidePanel from '@/components/shell/ShellSidePanel.vue'
 import ShellTitleBar from '@/components/shell/ShellTitleBar.vue'
+import ProjectAddDialog from '@/components/project/ProjectAddDialog.vue'
 import UiConfirmDialog from '@/components/ui/UiConfirmDialog.vue'
 import UiToasts from '@/components/ui/UiToasts.vue'
 import UiTextMenu from '@/components/ui/UiTextMenu.vue'
@@ -348,6 +349,7 @@ onUnmounted(() => {
       {{ drag.ghost.label }}
     </div>
     <UiConfirmDialog />
+    <ProjectAddDialog />
     <UiToasts />
     <UiTextMenu />
   </TooltipProvider>

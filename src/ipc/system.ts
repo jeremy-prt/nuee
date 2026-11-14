@@ -1,4 +1,5 @@
 import { getVersion } from '@tauri-apps/api/app'
+import { homeDir } from '@tauri-apps/api/path'
 import { invoke, isTauri } from '@tauri-apps/api/core'
 import { openUrl } from '@tauri-apps/plugin-opener'
 
@@ -27,4 +28,8 @@ export function isMacosApp() {
 // Vide si le système ne le donne pas.
 export function systemMachineName() {
   return invoke<string>('system_machine_name')
+}
+
+export function homeFolder() {
+  return homeDir()
 }

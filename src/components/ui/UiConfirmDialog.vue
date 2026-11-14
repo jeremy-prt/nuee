@@ -29,7 +29,7 @@ function onOpenAutoFocus(event: Event) {
 <template>
   <AlertDialogRoot :open="dialog.open" @update:open="(open) => open || dialog.answer(false)">
     <AlertDialogPortal>
-      <AlertDialogOverlay class="ui-overlay fixed inset-0 z-50 bg-black/50" />
+      <AlertDialogOverlay class="ui-overlay fixed inset-0 z-50 bg-black/40" />
       <AlertDialogContent
         v-if="dialog.request"
         class="ui-glass ui-glass-raised fixed inset-0 z-50 m-auto h-fit w-[min(22.5rem,calc(100%-2rem))] rounded-2xl text-content outline-none select-none"

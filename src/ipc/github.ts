@@ -1,6 +1,8 @@
 import { Channel, invoke } from '@tauri-apps/api/core'
 import type { GithubDeviceCode } from '@/ipc/bindings/GithubDeviceCode'
 import type { GithubStatus } from '@/ipc/bindings/GithubStatus'
+import type { CloneProgress } from '@/ipc/bindings/CloneProgress'
+import type { GithubRepo } from '@/ipc/bindings/GithubRepo'
 
 // Version de gh et ses comptes, lus par `gh auth status` : aucun jeton ne traverse l'IPC.
 export function githubStatus() {
@@ -30,4 +32,18 @@ export function githubLoginOpen() {
 
 export function githubLoginCancel() {
   return invoke<void>('github_login_cancel')
+}
+
+// Dépôts accessibles au compte actif de gh (les siens, ses collaborations, ses organisations), du plus récent au plus ancien.
+export function githubRepos() {
+  return invoke<GithubRepo[]>('github_repos')
+}
+
+// `gh repo clone` dans `parent/name` ; rend le chemin créé. Annulé ou raté, le dossier est retiré.
+export function githubClone(repo: string, parent: string, name: string, onProgress: (progress: CloneProgress) => void) {
+  return invoke<string>('github_clone', { repo, parent, name, onProgress: new Channel<CloneProgress>(onProgress) })
+}
+
+export function githubCloneCancel() {
+  return invoke<void>('github_clone_cancel')
 }

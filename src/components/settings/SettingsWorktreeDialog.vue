@@ -91,9 +91,9 @@ const field =
 <template>
   <DialogRoot v-model:open="open">
     <DialogPortal>
-      <DialogOverlay class="ui-overlay fixed inset-0 z-50 bg-black/50" />
+      <DialogOverlay class="ui-overlay fixed inset-0 z-50 bg-black/40" />
       <DialogContent
-        class="ui-glass ui-glass-raised fixed inset-0 z-50 m-auto h-fit w-[min(27rem,calc(100%-2rem))] rounded-xl text-content outline-none select-none"
+        class="ui-glass ui-glass-raised fixed inset-0 z-50 m-auto h-fit w-[min(27rem,calc(100%-2rem))] rounded-2xl text-content outline-none select-none"
         @open-auto-focus="onOpenAutoFocus"
       >
         <form class="ui-dialog-body p-5" @submit.prevent="submit">

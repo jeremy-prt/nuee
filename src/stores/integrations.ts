@@ -80,18 +80,31 @@ export const useIntegrationsStore = defineStore('integrations', () => {
   }
 
   function loadAvatars(accounts: GithubAccount[]) {
-    for (const account of accounts) {
-      if (account.host !== 'github.com' || !account.login || avatars.has(account.login)) continue
-      githubAvatar(account.login)
-        .then((avatar) => {
-          if (avatar) avatars.set(account.login, avatar)
-        })
-        .catch((failure) => console.error('avatar', failure))
-    }
+    for (const account of accounts) if (account.host === 'github.com') requestAvatar(account.login)
+  }
+
+  // Compte ou organisation de github.com : son avatar est lu une fois.
+  const asked = new Set<string>()
+  function requestAvatar(login: string) {
+    if (!login || avatars.has(login) || asked.has(login)) return
+    asked.add(login)
+    githubAvatar(login)
+      .then((avatar) => {
+        if (avatar) avatars.set(login, avatar)
+        else asked.delete(login)
+      })
+      .catch((failure) => {
+        asked.delete(login)
+        console.error('avatar', failure)
+      })
+  }
+
+  function avatarOf(login: string) {
+    return avatars.get(login) ?? null
   }
 
   function avatar(account: GithubAccount) {
-    return account.host === 'github.com' ? (avatars.get(account.login) ?? null) : null
+    return account.host === 'github.com' ? avatarOf(account.login) : null
   }
 
   function used(account: GithubAccount) {
@@ -122,7 +135,8 @@ export const useIntegrationsStore = defineStore('integrations', () => {
     toasts.push({ kind: 'success', title: t('feedback.githubRefreshed'), body: t('settings.github.accountsCount', count) })
   }
 
-  async function makeActive(account: GithubAccount) {
+  // `notify` : message de réussite, utile dans Réglages, pas là où le changement se voit déjà.
+  async function makeActive(account: GithubAccount, notify = true) {
     if (switching.value) return
     switching.value = accountKey(account)
     const { t } = i18nGlobal()
@@ -133,7 +147,7 @@ export const useIntegrationsStore = defineStore('integrations', () => {
       checking.value = false
       github.value = status
       error.value = null
-      useToastsStore().push({ kind: 'success', title: t('settings.github.switched'), body: t('settings.github.switchedBody', { login: account.login }) })
+      if (notify) useToastsStore().push({ kind: 'success', title: t('settings.github.switched'), body: t('settings.github.switchedBody', { login: account.login }) })
     } catch (failure) {
       useToastsStore().push({ kind: 'error', title: t('settings.github.switchFailed'), body: message(failure) })
     } finally {
@@ -177,5 +191,5 @@ export const useIntegrationsStore = defineStore('integrations', () => {
     }
   }
 
-  return { github, checking, error, prefs, login, loginError, switching, load, refresh, reset, avatar, used, setUsed, makeActive, connect, cancelLogin, openLoginPage }
+  return { github, checking, error, prefs, login, loginError, switching, load, refresh, reset, avatar, avatarOf, requestAvatar, used, setUsed, makeActive, connect, cancelLogin, openLoginPage }
 })

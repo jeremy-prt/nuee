@@ -90,6 +90,7 @@ pub fn run() {
             app.manage(WorktreeService::new(data.join("worktrees")));
             app.manage(PowerService::default());
             app.manage(GithubService::default());
+            app.manage(services::github_clone::CloneService::default());
             app.manage(TerminalService::default());
             app.manage(ServerService::default());
             app.manage(services::files::FilesService::default());
@@ -173,6 +174,9 @@ pub fn run() {
             commands::github::github_switch,
             commands::github::github_login_open,
             commands::github::github_login_cancel,
+            commands::github::github_repos,
+            commands::github::github_clone,
+            commands::github::github_clone_cancel,
             commands::install::install_open,
             commands::mcp::mcp_status,
             commands::mcp::mcp_check,
@@ -245,6 +249,7 @@ pub fn run() {
                 app.state::<AgentService>().stop_all();
                 app.state::<AgentService>().cancel_login();
                 app.state::<GithubService>().cancel_login();
+                app.state::<services::github_clone::CloneService>().cancel();
                 app.state::<TerminalService>().close_all();
                 app.state::<ServerService>().shutdown();
             }
