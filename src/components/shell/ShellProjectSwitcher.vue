@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronsUpDown, NoProject, Plus, Search, Settings } from '@/components/ui/icons'
+import { ChevronDown, NoProject, Plus, Search, Settings } from '@/components/ui/icons'
 import {
   DropdownMenuContent,
   DropdownMenuPortal,
@@ -151,7 +151,7 @@ const row = [menuRow.replace('items-start', 'items-center'), 'h-8']
           <ProjectIcon v-if="current" :project="current" class="size-4.5 shrink-0 rounded-sm" />
           <NoProject v-else class="size-4 shrink-0 text-muted" aria-hidden="true" />
           <span class="min-w-0 truncate">{{ current?.name ?? noneLabel }}</span>
-          <ChevronsUpDown class="ms-auto size-3.5 shrink-0 text-muted" aria-hidden="true" />
+          <ChevronDown class="ms-auto size-3.5 shrink-0 text-muted" aria-hidden="true" />
         </PopoverTrigger>
         <PopoverPortal>
           <PopoverContent

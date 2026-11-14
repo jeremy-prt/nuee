@@ -119,7 +119,7 @@ watch(
   <div v-if="workspace.contextChats.length" data-chat-list>
     <!-- Sans épinglée, la section n'apparaît que pendant le glisser d'une session, pour l'y déposer. -->
     <div v-if="pinned.length || drag.source?.kind === 'chat'" data-chat-zone="pinned">
-      <h2 class="flex h-7 items-center gap-1.5 px-2 text-[11px] text-muted">
+      <h2 class="flex h-7 items-center gap-1.5 px-2 text-xs font-semibold text-muted">
         <Pin class="size-3" aria-hidden="true" />{{ t('chats.pinned') }}
       </h2>
       <ul class="space-y-0.5">
@@ -128,18 +128,19 @@ watch(
     </div>
     <div data-chat-zone="recent">
       <template v-for="(group, index) in groups" :key="group.id ?? 'all'">
-        <h2 v-if="group.id" :class="{ 'mt-3': index || pinned.length }">
+        <h2 v-if="group.id" :class="{ 'mt-4': index || pinned.length }">
           <button
             type="button"
-            class="group/head flex h-7 w-full items-center gap-1 rounded-md px-2 text-[11px] font-medium text-content/60 hover:text-content focus-visible:outline-2 focus-visible:outline-ring"
+            class="group/head flex h-7 w-full items-center gap-1.5 rounded-md px-2 text-xs font-semibold text-muted hover:text-content/75 focus-visible:outline-2 focus-visible:outline-ring"
             :aria-expanded="!isCollapsed(group.id)"
             :aria-controls="`chat-group-${group.id}`"
             @click="toggleGroup(group.id)"
           >
-            <span class="min-w-0 flex-1 truncate text-start">{{ t(`chats.groups.${group.id}`) }}</span>
-            <span class="font-normal text-muted tabular-nums">{{ counts.get(group.id) }}</span>
+            <span class="min-w-0 truncate text-start">{{ t(`chats.groups.${group.id}`) }}</span>
+            <span class="flex-1 text-start font-normal text-muted/70 tabular-nums">{{ counts.get(group.id) }}</span>
+            <!-- Flèche au survol seulement : au repos, le titre et son nombre suffisent. -->
             <ChevronDown
-              class="size-3 shrink-0 text-muted transition-transform duration-150 motion-reduce:transition-none"
+              class="size-3 shrink-0 text-muted opacity-0 transition duration-150 group-hover/head:opacity-100 group-focus-visible/head:opacity-100 motion-reduce:transition-none"
               :class="{ '-rotate-90 rtl:rotate-90': isCollapsed(group.id) }"
               aria-hidden="true"
             />
@@ -147,7 +148,7 @@ watch(
         </h2>
         <!-- Tri par nom : un titre seulement pour séparer des épinglées, et pas deux « Sessions » de suite. -->
         <template v-else-if="pinned.length && group.tabs.length">
-          <h2 class="mt-3 flex h-7 items-center px-2 text-[11px] text-muted">{{ t('chats.recent') }}</h2>
+          <h2 class="mt-4 flex h-7 items-center px-2 text-xs font-semibold text-muted">{{ t('chats.recent') }}</h2>
         </template>
         <ul v-if="!group.id || !isCollapsed(group.id)" :id="group.id ? `chat-group-${group.id}` : undefined" class="space-y-0.5">
           <li v-for="tab in group.tabs" :key="tab.id" :data-chat-id="tab.id"><ShellChatGroup :tab="tab" /></li>

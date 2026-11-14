@@ -144,7 +144,22 @@ watch(
         v-on="renaming ? {} : { click: select, dblclick: () => startRename(), keydown: onKeydown, pointerdown: (e: PointerEvent) => startChatDrag(e, tab.id) }"
       >
         <template v-if="layout.sessionCompact">
-          <span class="grid size-4 shrink-0 place-items-center" :class="status && sessionStatusColor[status]">
+          <!-- Session avec imbriquées : la flèche prend la place de l'icône au survol, comme l'app Claude. -->
+          <span
+            v-if="group"
+            class="absolute start-2 z-10 size-4 place-items-center text-muted hover:text-content"
+            :class="menuOpen ? 'grid' : 'hidden group-focus-within/row:grid group-hover/row:grid'"
+            aria-hidden="true"
+            @click.stop="emit('toggle')"
+            @dblclick.stop
+            @pointerdown.stop
+          >
+            <component :is="group.open ? ChevronDown : ChevronRight" class="size-3.5" :class="{ 'rtl:rotate-180': !group.open }" />
+          </span>
+          <span
+            class="grid size-4 shrink-0 place-items-center"
+            :class="[status && sessionStatusColor[status], group && (menuOpen ? 'invisible' : 'group-focus-within/row:invisible group-hover/row:invisible')]"
+          >
             <ChatSpinner v-if="status === 'working'" :agent="tab.agent" inherit class="text-xs" />
             <ShieldQuestion v-else-if="status === 'approval'" class="size-3.5" aria-hidden="true" />
             <MessageQuestion v-else-if="status === 'question'" class="size-3.5" aria-hidden="true" />
@@ -164,12 +179,9 @@ watch(
             @cancel="stopRename()"
           />
           <template v-else>
-            <span class="flex min-w-0 flex-1 items-center gap-1" :class="[fadeUnder, { [keepClear]: group }]">
+            <span class="flex min-w-0 flex-1 items-center gap-1" :class="fadeUnder">
               <span class="min-w-0 truncate text-[13px]/5" :class="titleTone">{{ tabTitle(tab) }}</span>
               <span v-if="opened && !active" class="sr-only">, {{ t('chats.openInTab') }}</span>
-              <span v-if="group" class="-m-0.5 grid size-4 shrink-0 place-items-center text-muted hover:text-content" :class="chevronShown" aria-hidden="true" @click.stop="emit('toggle')" @dblclick.stop @pointerdown.stop>
-                <component :is="group.open ? ChevronDown : ChevronRight" class="size-3" />
-              </span>
             </span>
             <span v-if="group?.unread && !group.open" class="size-1.5 shrink-0 rounded-full bg-signal"><span class="sr-only">, {{ t('chats.nested.unread', { n: group.unread }) }},</span></span>
             <span class="shrink-0 text-[11px] text-muted" :class="hideUnder">{{ since }}</span>

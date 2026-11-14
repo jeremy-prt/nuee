@@ -89,8 +89,8 @@ export const RAIL_COLLAPSED_WIDTH = 48
 
 export const SIZES = {
   // Même largeur dans les deux dispositions : en « Projets en menu », la barre porte aussi les sessions.
-  rail: { min: 180, max: 420, defaultSize: 240 },
-  panel: { min: 200, max: 420, defaultSize: 240 },
+  rail: { min: 180, max: 420, defaultSize: 264 },
+  panel: { min: 200, max: 420, defaultSize: 264 },
   right: { min: 280, max: 800, defaultSize: 480 },
 }
 

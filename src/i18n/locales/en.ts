@@ -27,7 +27,7 @@ export default {
     sort: { label: 'Sort sessions', title: 'Sort by', activity: 'Last activity', created: 'Creation date', name: 'Name', groupsTitle: 'Group by', noGroups: 'None', byDate: 'Date', byStatus: 'Status', compact: 'Compact view' },
     groups: { today: 'Today', yesterday: 'Yesterday', week: 'Last 7 days', month: 'Last 30 days', older: 'Older', status: { waiting: 'Needs input', failed: 'Error', working: 'Working', done: 'Done', idle: 'Idle' } },
     recent: 'Sessions',
-    nested: { count: '{n} nested session | {n} nested sessions', unread: 'Unread: {n}' },
+    nested: { count: '{n} nested', unread: 'Unread: {n}' },
     renameLabel: 'Session name',
     openInTab: "Open in a tab",
     renameFailed: 'Could not rename the session',

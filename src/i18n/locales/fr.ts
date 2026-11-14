@@ -29,7 +29,7 @@ export default {
     sort: { label: 'Trier les sessions', title: 'Trier par', activity: 'Dernière activité', created: 'Date de création', name: 'Nom', groupsTitle: 'Regrouper par', noGroups: 'Aucun', byDate: 'Date', byStatus: 'Statut', compact: 'Affichage compact' },
     groups: { today: 'Aujourd\'hui', yesterday: 'Hier', week: '7 derniers jours', month: '30 derniers jours', older: 'Plus anciennes', status: { waiting: 'Réponse attendue', failed: 'Erreur', working: 'En cours', done: 'Terminées', idle: 'Inactives' } },
     recent: 'Sessions',
-    nested: { count: '{n} session imbriquée | {n} sessions imbriquées', unread: 'Non lues : {n}' },
+    nested: { count: '{n} imbriquée | {n} imbriquées', unread: 'Non lues : {n}' },
     renameLabel: 'Nom de la session',
     openInTab: "Ouverte dans un onglet",
     renameFailed: 'Impossible de renommer la session',

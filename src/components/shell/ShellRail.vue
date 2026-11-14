@@ -128,13 +128,12 @@ function footerLabel(id: (typeof footer)[number]['id']) {
           />
         </nav>
         <div class="ms-4 me-2.5 mt-3 mb-2 h-px shrink-0 bg-stroke" />
-        <!-- Hiérarchie par la taille, sans trait (il prenait de la largeur) : le projet, l'environnement, en gros ;
-             puis « Sessions » avec tri et nouvelle session ; puis les dates, plus discrètes. -->
-        <section class="flex min-h-0 flex-1 flex-col" aria-labelledby="sidebar-sessions">
+        <!-- Hiérarchie par la taille, sans trait (il prenait de la largeur) : le projet en gros, puis les groupes, plus discrets. -->
+        <section class="flex min-h-0 flex-1 flex-col" :aria-label="t('chats.recent')">
           <!-- Menu du projet au clic droit sur sa ligne (ShellProjectSwitcher), sans « … » qui chargeait la ligne. -->
-          <div class="flex shrink-0 ps-2 pe-2 *:min-w-0 *:flex-1"><ShellProjectSwitcher /></div>
-          <div class="mt-2 flex h-8 shrink-0 items-center ps-4 pe-2">
-            <h2 id="sidebar-sessions" class="min-w-0 flex-1 truncate text-[13px] font-semibold text-content/80">{{ t('chats.recent') }}</h2>
+          <!-- Pas de titre « Sessions » : filtre et nouvelle session se rangent sur la ligne du projet, comme l'app Claude. -->
+          <div class="flex shrink-0 items-center gap-0.5 ps-2 pe-2">
+            <div class="min-w-0 flex-1"><ShellProjectSwitcher /></div>
             <ShellChatSort />
             <UiIconButton :label="t('chats.newChat')" :shortcut="shortcuts.label('newTab')" @click="newChat()">
               <Plus class="size-4" aria-hidden="true" />
@@ -142,7 +141,7 @@ function footerLabel(id: (typeof footer)[number]['id']) {
           </div>
           <div
             :key="navigation.projectId ?? ''"
-            class="mb-2 min-h-0 flex-1 overflow-y-auto ps-2 pe-2"
+            class="mt-2 mb-2 min-h-0 flex-1 overflow-y-auto ps-2 pe-2"
             :class="{ 'project-slide': sliding }"
             :data-step="navigation.projectStep"
           >

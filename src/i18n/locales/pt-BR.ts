@@ -29,7 +29,7 @@ export default {
     sort: { label: 'Ordenar sessões', title: 'Ordenar por', activity: 'Última atividade', created: 'Data de criação', name: 'Nome', groupsTitle: 'Agrupar por', noGroups: 'Nenhum', byDate: 'Data', byStatus: 'Status', compact: 'Exibição compacta' },
     groups: { today: 'Hoje', yesterday: 'Ontem', week: 'Últimos 7 dias', month: 'Últimos 30 dias', older: 'Mais antigas', status: { waiting: 'Aguardando resposta', failed: 'Erro', working: 'Em andamento', done: 'Concluídas', idle: 'Inativas' } },
     recent: 'Sessões',
-    nested: { count: '{n} sessão aninhada | {n} sessões aninhadas', unread: 'Não lidas: {n}' },
+    nested: { count: '{n} aninhada | {n} aninhadas', unread: 'Não lidas: {n}' },
     renameLabel: 'Nome da sessão',
     openInTab: "Aberta em uma aba",
     renameFailed: 'Não foi possível renomear a sessão',
