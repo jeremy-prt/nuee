@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { type Component, computed, ref, useTemplateRef, watch } from 'vue'
 
-export type Suggestion = { key: string; label: string; hint?: string; icon?: Component; iconProps?: Record<string, unknown> }
+// `tone` : couleur du libellé, la même que le jeton une fois dans le champ (skill en rose, note en jaune).
+export type Suggestion = { key: string; label: string; hint?: string; icon?: Component; iconProps?: Record<string, unknown>; tone?: string }
 
 // Liste qui s'ouvre au-dessus du champ de saisie (menus « / » et « @ ») ; le champ garde le focus et lui passe ses touches.
 // `query` : ce qui est tapé après le déclencheur, null hors de lui. Échap ferme la liste jusqu'à la frappe suivante.
@@ -75,7 +76,7 @@ defineExpose({ open, activeId, keydown })
       >
         <span class="flex max-w-1/2 shrink-0 items-center gap-2 truncate">
           <component :is="item.icon" v-if="item.icon" v-bind="item.iconProps" class="size-3.5 shrink-0" aria-hidden="true" />
-          <span class="truncate">{{ item.label }}</span>
+          <span class="truncate" :class="item.tone">{{ item.label }}</span>
         </span>
         <span v-if="item.hint" class="min-w-0 flex-1 truncate text-muted">{{ item.hint }}</span>
       </li>

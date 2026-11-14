@@ -2,7 +2,9 @@
 import { Plus, Search, Trash2 } from '@/components/ui/icons'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import NotesMenu from '@/components/notes/NotesMenu.vue'
 import ProjectPicker from '@/components/project/ProjectPicker.vue'
+import UiContextMenu from '@/components/ui/UiContextMenu.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
@@ -77,39 +79,42 @@ const projectName = (id: string | null) => projects.byId(id)?.name ?? t('notes.f
     <div v-else-if="notes.loaded" class="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
       <ul v-if="shown.length" class="flex flex-col gap-0.5">
         <!-- group/row : la ligne garde son survol quand le pointeur passe sur la corbeille, posée par-dessus l'heure. -->
-        <li v-for="note in shown" :key="note.id" class="group/row relative">
-          <button
-            type="button"
-            class="flex w-full flex-col gap-0.5 rounded-md px-2 py-1.5 text-start focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
-            :class="note.id === notes.selectedId ? 'bg-selection' : 'group-hover/row:bg-selection-hover'"
-            :aria-current="note.id === notes.selectedId || undefined"
-            @click="notes.selectedId = note.id"
-          >
-            <span class="flex w-full items-baseline gap-2">
-              <span class="min-w-0 flex-1 truncate text-[13px] font-medium" :class="{ 'text-muted': !note.title }">{{ note.title || t('notes.untitled') }}</span>
-              <span
-                class="shrink-0 text-[11px] text-muted tabular-nums transition-opacity duration-(--hover-duration) group-hover/row:opacity-0 group-focus-within/row:opacity-0 motion-reduce:transition-none"
-              >
-                {{ formatSince(note.updatedAt, clock.now, locale, true) }}
+        <li v-for="note in shown" :key="note.id">
+          <UiContextMenu class="group/row relative">
+            <button
+              type="button"
+              class="flex w-full flex-col gap-0.5 rounded-md px-2 py-1.5 text-start focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+              :class="note.id === notes.selectedId ? 'bg-selection' : 'group-hover/row:bg-selection-hover'"
+              :aria-current="note.id === notes.selectedId || undefined"
+              @click="notes.selectedId = note.id"
+            >
+              <span class="flex w-full items-baseline gap-2">
+                <span class="min-w-0 flex-1 truncate text-[13px] font-medium" :class="{ 'text-muted': !note.title }">{{ note.title || t('notes.untitled') }}</span>
+                <span
+                  class="shrink-0 text-[11px] text-muted tabular-nums transition-opacity duration-(--hover-duration) group-hover/row:opacity-0 group-focus-within/row:opacity-0 motion-reduce:transition-none"
+                >
+                  {{ formatSince(note.updatedAt, clock.now, locale, true) }}
+                </span>
               </span>
-            </span>
-            <span v-if="searching" class="truncate text-[11px] text-muted">{{ projectName(note.projectId) }}</span>
-            <span v-else class="line-clamp-2 text-xs text-muted">{{ notePreview(note.body) || t('notes.emptyBody') }}</span>
-          </button>
-          <div
-            class="absolute end-1 top-1 opacity-0 transition-opacity duration-(--hover-duration) ease-out group-hover/row:opacity-100 focus-within:opacity-100 motion-reduce:transition-none"
-          >
-            <UiTooltip :label="t('notes.delete.action')">
-              <button
-                type="button"
-                class="grid size-6 place-items-center rounded-sm text-muted hover:bg-danger/15 hover:text-danger focus-visible:outline-2 focus-visible:outline-ring"
-                :aria-label="t('notes.delete.label', { title: note.title || t('notes.untitled') })"
-                @click="notes.confirmRemove(note.id)"
-              >
-                <Trash2 class="size-3.5" aria-hidden="true" />
-              </button>
-            </UiTooltip>
-          </div>
+              <span v-if="searching" class="truncate text-[11px] text-muted">{{ projectName(note.projectId) }}</span>
+              <span v-else class="line-clamp-2 text-xs text-muted">{{ notePreview(note.body) || t('notes.emptyBody') }}</span>
+            </button>
+            <div
+              class="absolute end-1 top-1 opacity-0 transition-opacity duration-(--hover-duration) ease-out group-hover/row:opacity-100 focus-within:opacity-100 motion-reduce:transition-none"
+            >
+              <UiTooltip :label="t('notes.delete.action')">
+                <button
+                  type="button"
+                  class="grid size-6 place-items-center rounded-sm text-muted hover:bg-danger/15 hover:text-danger focus-visible:outline-2 focus-visible:outline-ring"
+                  :aria-label="t('notes.delete.label', { title: note.title || t('notes.untitled') })"
+                  @click="notes.confirmRemove(note.id)"
+                >
+                  <Trash2 class="size-3.5" aria-hidden="true" />
+                </button>
+              </UiTooltip>
+            </div>
+            <template #menu><NotesMenu :note="note" /></template>
+          </UiContextMenu>
         </li>
       </ul>
       <div v-if="more" :key="limit" ref="sentinel" class="h-px" aria-hidden="true" />

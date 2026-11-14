@@ -54,11 +54,11 @@
   --color-violet: hsl(262 80% 72%);
   /* Effort Max : corail chaud, distinct du violet d'Orchestre et sans jaune. */
   --color-max: oklch(72% 0.17 32);
-  /* Skill et `@fichier` dans le champ de saisie (couleurs de monocode). */
-  --color-skill: hsl(48 78% 59%);
+  /* Skill, `@fichier` et `#note` dans le champ de saisie : jaune pour les notes (comme des Post-it), rose pour les
+     skills (choix de Jérémy), bleu de monocode pour les fichiers. */
+  --color-skill: hsl(330 78% 72%);
   --color-mention: hsl(199 89% 60%);
-  /* `@note/…` : une teinte à elle, loin du jaune des skills, du bleu des fichiers et du violet d'Orchestre. */
-  --color-note: hsl(330 78% 72%);
+  --color-note: hsl(48 78% 59%);
   /* Fonds des barres et panneaux (chrome) et de la zone centrale (surface) : voir le style de fenêtre plus bas. */
   --color-chrome: var(--color-canvas);
   --color-surface: var(--color-canvas);
@@ -136,9 +136,9 @@ html[data-mode='light'] {
   --color-orange: hsl(16 72% 46%);
   --color-violet: hsl(262 58% 54%);
   --color-max: oklch(57% 0.2 32);
-  --color-skill: hsl(40 88% 36%);
+  --color-skill: hsl(330 64% 44%);
   --color-mention: hsl(199 86% 38%);
-  --color-note: hsl(330 64% 44%);
+  --color-note: hsl(40 88% 36%);
   --project-slate: oklch(0.55 0.03 260);
   --project-blue: oklch(0.55 0.15 250);
   --project-teal: oklch(0.56 0.1 195);

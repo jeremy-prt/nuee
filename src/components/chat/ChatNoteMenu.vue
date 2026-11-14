@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { NotebookPen } from '@/components/ui/icons'
 import { computed, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatSuggest from '@/components/chat/ChatSuggest.vue'
@@ -38,8 +37,7 @@ const items = computed(() => {
     key: note.slug!,
     label: note.title,
     hint: projects.byId(note.projectId)?.name ?? t('notes.free'),
-    icon: NotebookPen,
-    iconProps: { class: 'text-note' },
+    tone: 'text-note',
   }))
 })
 

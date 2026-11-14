@@ -23,7 +23,7 @@ const items = computed(() => {
     const score = matchScore(wanted, [searchField(skill.name, 0), searchField(skill.description, 2)])
     return score === null ? [] : [{ skill, score }]
   })
-  return scored.sort((a, b) => a.score - b.score).map(({ skill }) => ({ key: skill.name, label: `/${skill.name}`, hint: skill.description }))
+  return scored.sort((a, b) => a.score - b.score).map(({ skill }) => ({ key: skill.name, label: `/${skill.name}`, hint: skill.description, tone: 'text-skill' }))
 })
 
 watch(
