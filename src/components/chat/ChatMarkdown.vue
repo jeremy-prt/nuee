@@ -143,11 +143,17 @@ const props = defineProps<{ text: string; streaming?: boolean; runs?: string }>(
 // bloc de code, garde ses blocs déjà lus. Le texte fini est relu en entier (une liste coupée en deux se recolle).
 let head = { text: '', tokens: [] as Token[] }
 
+// Un seul passage : relancer une regex sur tout le début à chaque ligne vide devenait lent dans un long bloc de code.
 function safeCut(text: string) {
-  for (let at = text.lastIndexOf('\n\n'); at > 0; at = text.lastIndexOf('\n\n', at - 1)) {
-    if ((text.slice(0, at).match(/^(```|~~~)/gm)?.length ?? 0) % 2 === 0) return at + 2
+  let fenced = false
+  let cut = 0
+  let start = 0
+  for (const line of text.split('\n')) {
+    if (line === '' && start > 1 && start < text.length && !fenced) cut = start + 1
+    if (line.startsWith('```') || line.startsWith('~~~')) fenced = !fenced
+    start += line.length + 1
   }
-  return 0
+  return cut
 }
 
 const tokens = computed(() => {

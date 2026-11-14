@@ -177,8 +177,9 @@ const SAVE_DELAY = 600
 // cache. Après, le message suivant relirait toute la conversation au prix fort ; le résumé, lui, lit encore le cache.
 const IDLE_COMPACT_MIN_TOKENS = 200_000
 const IDLE_COMPACT_LEAD = 2 * 60_000
-// Chaque écriture resérialise tout l'historique (plusieurs Mo avec des sorties d'outils) : espacées pendant une réponse.
-const STREAM_SAVE_DELAY = 5000
+// Chaque écriture resérialise tout l'historique (plusieurs Mo avec des sorties d'outils) : espacées pendant une réponse,
+// la fin du tour enregistre de toute façon tout de suite.
+const STREAM_SAVE_DELAY = 15_000
 const RESUME_MARGIN = 5000
 
 // findLastIndex n'est pas dans la lib TS du projet (ES2022).

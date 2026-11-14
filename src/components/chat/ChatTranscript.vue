@@ -32,9 +32,14 @@ const props = defineProps<{
 }>()
 
 const firstUser = computed(() => props.items.findIndex((item) => item.kind === 'user'))
-function shownItem(item: ChatItem, index: number): ChatItem {
-  if (!props.parentId || index !== firstUser.value || item.kind !== 'user' || item.from) return item
+// Copie calculée une fois : refaite à chaque rendu, elle redessinait cette bulle à chaque image du flux.
+const parentTask = computed<ChatItem | null>(() => {
+  const item = props.items[firstUser.value]
+  if (!props.parentId || item?.kind !== 'user' || item.from) return null
   return { ...item, from: { id: props.parentId, title: null, task: true } }
+})
+function shownItem(item: ChatItem, index: number): ChatItem {
+  return index === firstUser.value && parentTask.value ? parentTask.value : item
 }
 const fromSession = (item: ChatItem, index: number) => {
   const shown = shownItem(item, index)
@@ -76,12 +81,42 @@ type Row =
   | { kind: 'plan'; id: string; steps: PlanStep[]; earlier: boolean }
   | { kind: 'proposal'; id: string; proposal: Proposal; index: number }
 
+// Les éléments inchangés gardent leur objet d'une image à l'autre (`items` n'est jamais muté) : une ligne d'activité, un
+// plan ou une proposition identiques reprennent le même objet, et leur composant ne se redessine pas à chaque image.
+const runs = new Map<string, ActivityItem[]>()
+function sameRun(id: string, items: ActivityItem[]) {
+  const previous = runs.get(id)
+  if (previous?.length === items.length && previous.every((item, i) => item === items[i])) return previous
+  runs.set(id, items)
+  return items
+}
+const parsed = new Map<string, { text: string | null | undefined; plan: PlanStep[] | null; proposal: Proposal | null }>()
+function parsedOf(item: ChatItem | undefined) {
+  if (item?.kind !== 'tool') return null
+  const text = item.detail?.text
+  const known = parsed.get(item.id)
+  if (known?.text === text) return known
+  const entry = { text, plan: planOf(item), proposal: proposalOf(item) }
+  parsed.set(item.id, entry)
+  return entry
+}
+// Une fonction par fin de tour, gardée : une fonction neuve à chaque rendu redessinait chaque fin de tour.
+const answers = new Map<number, () => string>()
+function answerAt(index: number) {
+  let answer = answers.get(index)
+  if (!answer) {
+    answer = () => turnText(props.items, index)
+    answers.set(index, answer)
+  }
+  return answer
+}
+
 // Dernier plan de l'agent, comme l'app Claude : il se tient en bas du fil, au-dessus de la ligne d'activité, pendant
 // son tour ; d'un tour précédent, seulement tant qu'il lui reste une étape et qu'un tour tourne. Fini et le tour
 // terminé, il disparaît, comme la liste de Claude Code ; inachevé, il reste à l'endroit de sa dernière mise à jour.
 const plan = computed(() => {
   for (let index = props.items.length - 1; index >= 0; index--) {
-    const steps = planOf(props.items[index])
+    const steps = parsedOf(props.items[index])?.plan
     if (steps) return { id: props.items[index]!.id, index, steps, pinned: index > lastUser.value || (props.running && steps.some((step) => step.status !== 'completed')), done: steps.every((step) => step.status === 'completed') }
   }
   return null
@@ -92,7 +127,7 @@ const rows = computed(() => {
   const close = (index: number) => {
     const first = run.find((item) => item.kind === 'tool')
     const tools = run.filter((item) => item.kind === 'tool').length
-    if (tools > 1 && first) out.push({ kind: 'activity', id: first.id, items: run, index: index - run.length })
+    if (tools > 1 && first) out.push({ kind: 'activity', id: first.id, items: sameRun(first.id, run), index: index - run.length })
     else run.forEach((item, offset) => item.kind === 'tool' && out.push({ kind: 'item', item, index: index - run.length + offset }))
     run = []
   }
@@ -100,7 +135,7 @@ const rows = computed(() => {
     // Question qui attend sa réponse : sa carte est au-dessus du champ, sa ligne ferait doublon.
     if (item.kind === 'tool' && item.tool === 'question' && !item.answers && item.status === 'running') return
     if (item.kind === 'tool' && item.name === PROPOSE_NEXT) {
-      const proposal = proposalOf(item)
+      const proposal = parsedOf(item)?.proposal
       if (proposal && !dismissed.value.has(item.id)) {
         close(start.value + offset)
         out.push({ kind: 'proposal', id: item.id, proposal, index: start.value + offset })
@@ -124,7 +159,7 @@ const rows = computed(() => {
     }
   })
   const first = run.find((item) => item.kind === 'tool') ?? run[0]
-  if (props.running && first) out.push({ kind: 'activity', id: first.id, items: run, index: props.items.length - run.length })
+  if (props.running && first) out.push({ kind: 'activity', id: first.id, items: sameRun(first.id, run), index: props.items.length - run.length })
   else close(props.items.length)
   if (plan.value?.pinned && !(plan.value.done && !props.running)) {
     const row: Row = { kind: 'plan', id: plan.value.id, steps: plan.value.steps, earlier: plan.value.index < lastUser.value }
@@ -284,7 +319,7 @@ onMounted(() => {
           :running="running"
           :streaming="running && row.index > lastUser"
           :after-text="items[row.index - 1]?.kind === 'text'"
-          :answer="row.item.kind === 'end' ? () => turnText(items, row.index) : undefined"
+          :answer="row.item.kind === 'end' ? answerAt(row.index) : undefined"
           :rewindable="!running && row.item.kind === 'user' && !!row.item.agentId"
           :latest="!running && row.index === lastTurn"
           @rewind="emit('rewind', row.item.id)"
@@ -297,7 +332,7 @@ onMounted(() => {
           :running="running"
           :streaming="false"
           after-text
-          :answer="() => turnText(items, row.end!.index)"
+          :answer="answerAt(row.end.index)"
           :latest="!running && row.end.index === lastTurn"
           @resend="emit('resend')"
         />

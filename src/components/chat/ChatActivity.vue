@@ -27,10 +27,21 @@ const { t, locale } = useI18n()
 const open = ref(false)
 const live = computed(() => !!props.clock)
 
+// Créé une fois par langue : chaque ligne d'activité en recréait un à chaque calcul.
+const listFormats = new Map<string, Intl.ListFormat>()
+function listFormat(locale: string) {
+  let format = listFormats.get(locale)
+  if (!format) {
+    format = new Intl.ListFormat(locale, { type: 'conjunction' })
+    listFormats.set(locale, format)
+  }
+  return format
+}
+
 // « Exécuté 4 commandes (1 échec), créé, lu et modifié notes.txt » : le nom de fichier ressort.
 const summary = computed(() => {
   const { parts, added, removed, failedFiles } = summarize(props.items)
-  const list = new Intl.ListFormat(locale.value, { type: 'conjunction' })
+  const list = listFormat(locale.value)
   const segments = parts.map((part) => {
     if (part.kind === 'count') {
       const failed = part.failed ? ` ${t('chat.activity.failed', { n: part.failed }, part.failed)}` : null
