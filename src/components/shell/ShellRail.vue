@@ -23,7 +23,6 @@ import ShellRailItem from '@/components/shell/ShellRailItem.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { useAddProject } from '@/composables/useAddProject'
-import { useNewChat } from '@/composables/useNewChat'
 import { useAppearanceStore } from '@/stores/appearance'
 import { RAIL_COLLAPSED_WIDTH, useLayoutStore } from '@/stores/layout'
 import { useNavigationStore } from '@/stores/navigation'
@@ -38,7 +37,6 @@ const navigation = useNavigationStore()
 const projects = useProjectsStore()
 const updates = useUpdatesStore()
 const pickProject = useAddProject()
-const newChat = useNewChat('tab')
 const appearance = useAppearanceStore()
 
 // « Projets en menu » : un projet à la fois, choisi en haut, ses sessions dessous. Repliée, la barre disparaît.
@@ -131,13 +129,10 @@ function footerLabel(id: (typeof footer)[number]['id']) {
         <!-- Hiérarchie par la taille, sans trait (il prenait de la largeur) : le projet en gros, puis les groupes, plus discrets. -->
         <section class="flex min-h-0 flex-1 flex-col" :aria-label="t('chats.recent')">
           <!-- Menu du projet au clic droit sur sa ligne (ShellProjectSwitcher), sans « … » qui chargeait la ligne. -->
-          <!-- Pas de titre « Sessions » : filtre et nouvelle session se rangent sur la ligne du projet, comme l'app Claude. -->
+          <!-- Pas de titre « Sessions » ni de « + » : une seule entrée, « Nouvelle session » en haut, comme l'app Claude. -->
           <div class="flex shrink-0 items-center gap-0.5 ps-2 pe-2">
             <div class="min-w-0 flex-1"><ShellProjectSwitcher /></div>
             <ShellChatSort />
-            <UiIconButton :label="t('chats.newChat')" :shortcut="shortcuts.label('newTab')" @click="newChat()">
-              <Plus class="size-4" aria-hidden="true" />
-            </UiIconButton>
           </div>
           <div
             :key="navigation.projectId ?? ''"

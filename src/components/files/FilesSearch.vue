@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { CaseSensitive, CircleAlert, LoaderCircle, Regex, Search, WholeWord } from '@/components/ui/icons'
-import { computed, onMounted, ref, useTemplateRef, watch } from 'vue'
+import { CaseSensitive, CircleAlert, File as FileGlyph, LoaderCircle, Regex, Search, WholeWord } from '@/components/ui/icons'
+import { computed, nextTick, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import FilesIcon from '@/components/files/FilesIcon.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
@@ -10,31 +10,59 @@ import type { FilesPlace } from '@/ipc/bindings/FilesPlace'
 import type { SearchResults } from '@/ipc/bindings/SearchResults'
 import { filesList, filesSearch } from '@/ipc/files'
 import { parentOf, useFilesStore } from '@/stores/files'
+import { motion } from '@/utils/motion'
 import { normalize } from '@/utils/search'
 
-// Recherche du volet Explorateur : un champ qui se déroule sous la ligne d'outils (demande de Jérémy), sans quitter la
-// page. Le même texte trouve les fichiers par leur nom puis les lignes qui le contiennent ; champ vide, l'arborescence
-// (slot) reste dessous. Un clic ouvre le fichier, à la ligne pour un résultat de contenu.
+// Recherche du volet Explorateur : deux champs qui se déroulent sous la ligne d'outils, sans quitter la page (demande de
+// Jérémy). Le nom filtre les fichiers, le texte cherche dans leur contenu (limité aux fichiers que filtre le nom).
+// Champs vides, l'arborescence (slot) reste dessous. Un clic ouvre le fichier, à la ligne pour un résultat de contenu.
 const props = defineProps<{ place: FilesPlace }>()
 const emit = defineEmits<{ close: [] }>()
 
 const { t } = useI18n()
 const store = useFilesStore()
 
+const nameQuery = ref('')
 const query = ref('')
 const caseSensitive = ref(false)
 const wholeWord = ref(false)
 const regex = ref(false)
 const searched = useDebounced(query, 200)
-const nameSearched = useDebounced(query, 100)
+const nameSearched = useDebounced(nameQuery, 100)
 const results = ref<SearchResults | null>(null)
 const loading = ref(false)
 const failed = ref(false)
 const input = useTemplateRef('input')
+const drop = useTemplateRef('drop')
+const below = useTemplateRef('below')
 // Liste complète, lue seulement ici : l'arbre ne lit que ses dossiers ouverts.
 const files = ref<string[]>([])
-onMounted(() => {
+// Déroulé en transform seulement (les champs se dévoilent, ce qui est dessous glisse) : animer la hauteur relayoutait
+// toute l'arborescence à chaque image, d'où les à-coups.
+function slide(open: boolean) {
+  const height = drop.value?.offsetHeight ?? 0
+  const timing = { ...motion(open ? 'open' : 'close'), fill: 'both' as const }
+  if (!height || !timing.duration) return Promise.resolve()
+  const reveal = [{ clipPath: 'inset(0 0 100% 0)', opacity: 0 }, { clipPath: 'inset(0 0 0 0)', opacity: 1 }]
+  const push = [{ transform: `translateY(${-height}px)` }, { transform: 'none' }]
+  const order = open ? 'normal' : 'reverse'
+  const animations = [drop.value?.animate(reveal, { ...timing, direction: order }), below.value?.animate(push, { ...timing, direction: order })]
+  return Promise.all(animations.map((animation) => animation?.finished.catch(() => {})))
+}
+
+let closing = false
+async function close() {
+  if (closing) return
+  closing = true
+  await slide(false)
+  emit('close')
+}
+defineExpose({ close })
+
+onMounted(async () => {
   input.value?.focus()
+  await nextTick()
+  slide(true)
   filesList(props.place)
     .then((listed) => (files.value = listed.files))
     .catch(() => {})
@@ -44,13 +72,17 @@ const nameOf = (file: string) => file.slice(file.lastIndexOf('/') + 1)
 const NAMES = 20
 
 const nameNeedle = computed(() => normalize(nameSearched.value).replaceAll(' ', ''))
+const nameMatches = (file: string) => {
+  const needle = nameNeedle.value
+  return !needle || normalize(file).replaceAll(' ', '').includes(needle)
+}
 // Le nom avant le chemin : « main » trouve d'abord main.ts, puis ce qui est rangé dans un dossier main.
 const named = computed(() => {
   const needle = nameNeedle.value
-  if (!needle) return []
+  if (!needle || searched.value) return []
   const byName = (file: string) => normalize(nameOf(file)).replaceAll(' ', '').includes(needle)
   return files.value
-    .filter((file) => normalize(file).replaceAll(' ', '').includes(needle))
+    .filter(nameMatches)
     .sort((a, b) => Number(byName(b)) - Number(byName(a)) || nameOf(a).length - nameOf(b).length)
     .sort((a, b) => nameOf(a).length - nameOf(b).length)
     .slice(0, NAMES)
@@ -58,7 +90,7 @@ const named = computed(() => {
 
 const groups = computed(() => {
   const byFile = new Map<string, SearchResults['matches']>()
-  for (const match of results.value?.matches ?? []) byFile.set(match.path, [...(byFile.get(match.path) ?? []), match])
+  for (const match of (results.value?.matches ?? []).filter((item) => nameMatches(item.path))) byFile.set(match.path, [...(byFile.get(match.path) ?? []), match])
   return [...byFile.entries()].map(([path, matches]) => ({ path, matches }))
 })
 
@@ -124,14 +156,15 @@ function open(path: string, line?: number) {
   store.openFile(props.place.chatId, path, { line })
 }
 
-function onKeydown(event: KeyboardEvent) {
+function onKeydown(event: KeyboardEvent, which: 'name' | 'text') {
+  const target = which === 'name' ? nameQuery : query
   if (event.key === 'Escape') {
     event.stopPropagation()
-    if (query.value) query.value = ''
-    else emit('close')
+    if (target.value) target.value = ''
+    else close()
   } else if (event.key === 'Enter') {
     const first = groups.value[0]?.matches[0]
-    if (named.value[0]) open(named.value[0])
+    if (which === 'name' && named.value[0]) open(named.value[0])
     else if (first) open(first.path, first.line)
   }
 }
@@ -143,13 +176,28 @@ const row = 'flex w-full min-w-0 items-center gap-1.5 rounded-md px-2 text-start
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col">
-    <!-- Se déroule à l'ouverture (`files-search-drop`, main.css). -->
-    <div class="files-search-drop shrink-0">
+    <div ref="drop" class="shrink-0">
       <div class="flex flex-col gap-1.5 p-2">
+        <label data-control :class="field">
+          <FileGlyph class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
+          <input
+            ref="input"
+            v-model="nameQuery"
+            type="text"
+            :class="fieldText"
+            :placeholder="t('dock.files.namePlaceholder')"
+            :aria-label="t('dock.files.namePlaceholder')"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
+            writingsuggestions="false"
+            @keydown="onKeydown($event, 'name')"
+          />
+        </label>
         <label data-control :class="field">
           <Search class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
           <input
-            ref="input"
             v-model="query"
             type="text"
             :class="fieldText"
@@ -160,7 +208,7 @@ const row = 'flex w-full min-w-0 items-center gap-1.5 rounded-md px-2 text-start
             autocapitalize="off"
             spellcheck="false"
             writingsuggestions="false"
-            @keydown="onKeydown"
+            @keydown="onKeydown($event, 'text')"
           />
           <span class="-me-1.5 flex shrink-0">
             <UiTooltip :label="t('dock.files.matchCase')">
@@ -193,7 +241,11 @@ const row = 'flex w-full min-w-0 items-center gap-1.5 rounded-md px-2 text-start
       </div>
     </div>
 
-    <slot v-if="!query.trim()" />
+    <!-- Coupé à son cadre : ce qui glisse dessous ne passe jamais sur les champs (un fond les cacherait mais doublerait
+         celui, translucide, du panneau). -->
+    <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div ref="below" class="flex min-h-0 flex-1 flex-col">
+    <slot v-if="!query.trim() && !nameQuery.trim()" />
     <div v-else class="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
       <section v-if="named.length" class="mb-2" :aria-label="t('dock.files.byName')">
         <h4 class="px-2 pb-1 text-[11px] font-medium text-muted">{{ t('dock.files.byName') }}</h4>
@@ -224,6 +276,8 @@ const row = 'flex w-full min-w-0 items-center gap-1.5 rounded-md px-2 text-start
           <span class="min-w-0 flex-1 truncate whitespace-pre">{{ parts(match.preview).before }}<mark v-if="parts(match.preview).hit" class="rounded-sm bg-signal/35 text-content">{{ parts(match.preview).hit }}</mark>{{ parts(match.preview).after }}</span>
         </button>
       </section>
+    </div>
+    </div>
     </div>
   </div>
 </template>

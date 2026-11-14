@@ -34,7 +34,8 @@
   /* Bord de colonne survolé pour l'élargir : un gris, pas le signal (choix de Jérémy). Opaque : là où la poignée
      et la barre de titre se chevauchent, un gris transparent s'additionnerait en point clair. */
   /* Survol d'une poignée : un trait d'un pixel à peine éclairci, comme l'app Divin (choix de Jérémy). */
-  --color-edge-hover: color-mix(in srgb, var(--color-content) 22%, var(--color-canvas));
+  /* Poignée survolée ou tirée : assez franche pour se voir sur une image de fond. */
+  --color-edge-hover: color-mix(in srgb, var(--color-signal) 70%, var(--color-canvas));
   /* Accent (bouton principal, liens) et signal (interrupteur allumé, non lu, actif) : la même couleur, posée par
      stores/appearance.ts. Deux noms pour garder la porte ouverte à un signal distinct. */
   --color-accent: hsl(240 0% 92%);
@@ -124,7 +125,7 @@ html[data-mode='light'] {
   --color-selection-hover: color-mix(in srgb, var(--color-content) 4.5%, transparent);
   --color-selection-inner: color-mix(in srgb, var(--color-content) 7%, transparent);
   --color-stroke-focus: color-mix(in srgb, var(--color-content) 26%, transparent);
-  --color-edge-hover: color-mix(in srgb, var(--color-content) 26%, var(--color-canvas));
+  --color-edge-hover: color-mix(in srgb, var(--color-signal) 70%, var(--color-canvas));
   --color-signal-text: color-mix(in srgb, var(--color-signal) 80%, black);
   --color-danger: hsl(0 68% 48%);
   --color-success: hsl(145 63% 30%);
@@ -391,21 +392,6 @@ html[data-mode='light'] {
 
 [data-state='open'] > .ui-toast-body {
   animation: ui-toast-in 240ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* Champ de recherche de l'Explorateur qui se déroule sous la ligne d'outils, l'arborescence descend avec lui. */
-.files-search-drop {
-  display: grid;
-  grid-template-rows: 1fr;
-  transition: grid-template-rows var(--motion-open) var(--motion-ease), opacity var(--motion-open) var(--motion-ease);
-  @starting-style {
-    grid-template-rows: 0fr;
-    opacity: 0;
-  }
-  > * {
-    min-height: 0;
-    overflow: hidden;
-  }
 }
 
 /* Page des réglages qui apparaît (SettingsView) : opacité seule, rien à capturer ni à reflouter. */

@@ -36,10 +36,11 @@ const dockFocus = useDockFocus()
 const editorWidth = computed(() => {
   const view = layout.right.active
   if ((view !== 'files' && view !== 'changes') || !layout.spans(view) || !layout.editingIn(view)) return 0
-  // Un seul fichier de l'Explorateur n'a pas d'onglet : ni zone ni trait, les icônes des volets gardent toute la barre.
-  if (view === 'files' && files.of(workspace.activeTabId ?? '').tabs.length < 2) return 0
   return Math.max(0, layout.right.size - files.explorerShown(layout.right.size))
 })
+// Un seul fichier de l'Explorateur n'a pas d'onglet : la zone reste (icônes des volets au-dessus de l'arborescence,
+// sans sauter), mais sans trait.
+const singleFile = computed(() => layout.right.active === 'files' && files.of(workspace.activeTabId ?? '').tabs.length < 2)
 // Panneau fermé pendant que l'agent se sert du navigateur : une pastille sur son bouton.
 const agentActs = computed(() => !!workspace.activeTabId && browser.agentActs(workspace.activeTabId))
 
@@ -178,7 +179,7 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
                 :style="{ width: `${editorWidth}px` }"
                 data-tauri-drag-region
               />
-              <template v-if="editorWidth">
+              <template v-if="editorWidth && !singleFile">
                 <!-- Le trait entre l'éditeur et l'arborescence monte jusqu'en haut (choix de Jérémy) et s'allume avec leur
                      poignée, restée dans le panneau. -->
                 <span

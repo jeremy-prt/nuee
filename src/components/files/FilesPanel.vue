@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CircleAlert, CollapseAll, FilePlus, FolderPlus, FolderTree, FolderX, Search } from '@/components/ui/icons'
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import FilesEditorPane from '@/components/files/FilesEditorPane.vue'
 import FilesSearch from '@/components/files/FilesSearch.vue'
@@ -141,7 +141,24 @@ watch(
 )
 onBeforeUnmount(unwatch)
 
+// Trait de la poignée sous la ligne d'outils seulement, au repos comme allumée (survol, glisser, focus).
+const belowToolbar = [
+  '[background:linear-gradient(transparent_36px,var(--color-stroke)_36px)]!',
+  'hover:[background:linear-gradient(transparent_36px,var(--color-edge-hover)_36px)]! hover:shadow-none!',
+  'active:[background:linear-gradient(transparent_36px,var(--color-edge-hover)_36px)]! active:shadow-none!',
+  'focus-visible:[background:linear-gradient(transparent_36px,var(--color-ring)_36px)]! focus-visible:shadow-none!',
+].join(' ')
+
 // ===== Barre =====
+// Fermée par son bouton, la recherche se replie avant de disparaître.
+const search = useTemplateRef('search')
+function toggleSearch() {
+  const view = browse.value
+  if (!view) return
+  if (view.searching && search.value) search.value.close()
+  else view.searching = !view.searching
+}
+
 // Dans le dossier choisi, sinon celui du fichier choisi, sinon à la racine.
 function create(dir: boolean) {
   const view = browse.value
@@ -160,7 +177,16 @@ function create(dir: boolean) {
   <div v-else-if="chat && browse" ref="area" class="flex min-h-0 flex-1">
     <template v-if="editorShown && root">
       <FilesEditorPane :place="place" :root="root" class="min-w-0 flex-1" />
-      <ShellResizeHandle v-model="explorerWidth" v-bind="EXPLORER" orientation="vertical" invert :label="t('dock.files.resize')" data-explorer-handle />
+      <!-- Un seul fichier : pas de trait dans la barre de titre, donc pas dans la ligne d'outils non plus (demande de Jérémy). -->
+      <ShellResizeHandle
+        v-model="explorerWidth"
+        v-bind="EXPLORER"
+        orientation="vertical"
+        invert
+        :label="t('dock.files.resize')"
+        :class="{ [belowToolbar]: browse.tabs.length < 2 }"
+        data-explorer-handle
+      />
     </template>
     <section
       class="flex min-h-0 flex-col"
@@ -180,7 +206,7 @@ function create(dir: boolean) {
           <ShellDockToolbarButton :label="t('dock.files.collapse')" :disabled="!browse.expanded.size || !!failure" @mousedown.prevent @click="browse.expanded.clear()">
             <CollapseAll class="size-3.5" aria-hidden="true" />
           </ShellDockToolbarButton>
-          <ShellDockToolbarButton :label="t('dock.files.search')" :pressed="browse.searching" :disabled="!root || !!failure" @click="browse.searching = !browse.searching">
+          <ShellDockToolbarButton :label="t('dock.files.search')" :pressed="browse.searching" :disabled="!root || !!failure" @click="toggleSearch">
             <Search class="size-3.5" aria-hidden="true" />
           </ShellDockToolbarButton>
         </template>
@@ -192,7 +218,7 @@ function create(dir: boolean) {
         :title="t(failure.missing ? 'dock.files.folderMissingTitle' : 'dock.files.folderUnreadableTitle')"
         :description="failure.missing ? t('dock.files.folderMissing', { path: place.worktree ?? place.path ?? '' }) : failure.detail"
       />
-      <FilesSearch v-else-if="root && browse.searching" :place="place" @close="browse.searching = false">
+      <FilesSearch v-else-if="root && browse.searching" ref="search" :place="place" @close="browse.searching = false">
         <FilesTree :place="place" :root="root" :root-name="rootName" />
       </FilesSearch>
       <FilesTree v-else-if="root" :place="place" :root="root" :root-name="rootName" />

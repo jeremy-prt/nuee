@@ -53,9 +53,8 @@ const workspace = useWorkspaceStore()
 const navigation = useNavigationStore()
 // Session vierge seule à l'écran : c'est « Nouvel espace de travail », le projet s'y choisit. En changer ouvre une
 // session vierge dans l'autre projet.
-// Seule « Nouvelle session » (⌘N) laisse choisir le projet, comme le « New thread » de T3 Code ; le « + » et ⌘T
-// ouvrent une session dans le projet affiché, qui s'y montre sans menu.
-const pickProject = computed(() => !props.tab.started && workspace.panes.length < 2 && navigation.view === 'chats' && workspace.workspaceChat === props.tab.id)
+// Toute session vierge laisse choisir son projet, sur le projet affiché par défaut, comme l'app Claude.
+const pickProject = computed(() => !props.tab.started && workspace.panes.length < 2 && navigation.view === 'chats')
 const context = computed({
   get: () => navigation.projectId ?? '',
   set: (id: string) => {
