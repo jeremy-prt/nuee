@@ -11,10 +11,12 @@ function composerOf(chatId: string) {
 export function useComposerLaunch() {
   // À appeler avant que le DOM ne change : la place de départ se lit tout de suite, l'arrivée après la mise à jour.
   return function launch(chatId: string) {
-    const timing = motion('move')
+    const timing = { ...motion('launch'), easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }
     const from = timing.duration ? composerOf(chatId)?.getBoundingClientRect() : undefined
     if (!from) return
-    nextTick(() => {
+    // Deux rendus : depuis « Nouvel espace de travail », la bascule de vue suit le premier. Toujours avant la peinture.
+    nextTick(async () => {
+      await nextTick()
       const composer = composerOf(chatId)
       if (!composer) return
       const to = composer.getBoundingClientRect()

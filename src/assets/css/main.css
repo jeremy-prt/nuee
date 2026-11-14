@@ -409,6 +409,8 @@ html[data-mode='light'] {
   --motion-close: 200ms;
   --motion-quick: 180ms;
   --motion-move: 260ms;
+  /* Premier message : le champ traverse la moitié de l'écran, plus long qu'un déplacement ordinaire. */
+  --motion-launch: 420ms;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -417,6 +419,7 @@ html[data-mode='light'] {
     --motion-close: 0ms;
     --motion-quick: 0ms;
     --motion-move: 0ms;
+    --motion-launch: 0ms;
   }
 }
 
