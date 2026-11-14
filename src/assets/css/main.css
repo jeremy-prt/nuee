@@ -830,128 +830,104 @@ html[data-mode='light'] .ui-tip {
   }
 }
 
-/* Éclat du mode Orchestre (`ChatOrchestraBurst`), posé à côté du cadre flouté et non dedans : WebKit cesse de
-   flouter un calque qui contient une animation. Seuls transform et opacity bougent : animer une ombre repeignait toute
-   la zone à chaque image. */
+/* Éclats d'activation d'un mode (Orchestre, Résumer en note), posés à côté du cadre flouté et non dedans : WebKit
+   cesse de flouter un calque qui contient une animation. Seuls opacity et transform bougent (calques composités) : un
+   clip-path ou une ombre animés repeignaient la zone à chaque image et saccadaient. */
 .orchestra-burst {
-  --burst-tone: var(--color-violet);
   position: absolute;
   inset: 0;
   z-index: 1;
   pointer-events: none;
 }
 
-/* Bord coloré d'un mode (Orchestre, Résumer en note) dessiné depuis sa puce : un cercle qui s'ouvre découvre le même
-   bord et la même lueur que le cadre prend à la fin de l'éclat, qui reste affiché jusqu'au relais. */
-.mode-reveal {
+/* Bord du champ en fondu croisé (`ChatModeEdge`), mêmes courbes dans les deux sens : ni pic de lumière ni saut au
+   relais, qui se fait sur un bord déjà immobile. */
+.mode-edge {
   position: absolute;
   inset: 0;
+  z-index: 1;
   pointer-events: none;
-  border-radius: var(--radius-2xl);
-  border: 1px solid color-mix(in srgb, var(--tone) 45%, transparent);
-  box-shadow: 0 0 22px -8px var(--tone);
-  clip-path: circle(0 at var(--x) var(--y));
-  animation: mode-reveal 900ms cubic-bezier(0.45, 0, 0.25, 1) forwards;
 }
 
-@keyframes mode-reveal {
-  to {
-    clip-path: circle(150% at var(--x) var(--y));
+.mode-edge > span {
+  position: absolute;
+  inset: 0;
+}
+
+.mode-edge-from {
+  animation: mode-edge-out 700ms cubic-bezier(0.45, 0, 0.55, 1) both;
+}
+
+.mode-edge-to {
+  animation: mode-edge-in 700ms cubic-bezier(0.45, 0, 0.55, 1) both;
+}
+
+@keyframes mode-edge-in {
+  0%,
+  10% {
+    opacity: 0;
+  }
+  90%,
+  100% {
+    opacity: 1;
   }
 }
 
-.orchestra-burst-halo {
-  position: absolute;
-  inset: 0;
-  border-radius: var(--radius-2xl);
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--burst-tone) 55%, transparent),
-    0 0 18px 1px color-mix(in srgb, var(--burst-tone) 30%, transparent);
-  opacity: 0;
-  /* Une fois le bord dessiné : le halo l'allume au lieu de le montrer avant le tracé. */
-  animation: orchestra-halo 600ms 700ms var(--motion-ease) both;
+@keyframes mode-edge-out {
+  0%,
+  10% {
+    opacity: 1;
+  }
+  90%,
+  100% {
+    opacity: 0;
+  }
 }
 
-.orchestra-burst-frame {
+/* Onde d'Orchestre partie de la puce : un anneau flou peint à 120 px puis agrandi, gardé dans le cadre. Elle s'éteint
+   avant que le bord ait fini de virer. */
+.orchestra-wave-clip {
   position: absolute;
   inset: 0;
   overflow: hidden;
   border-radius: var(--radius-2xl);
 }
 
-.orchestra-burst-frame::before {
-  content: '';
+.orchestra-wave {
   position: absolute;
-  inset: 0;
-  background: linear-gradient(105deg, transparent 30%, color-mix(in srgb, var(--burst-tone) 16%, transparent) 50%, transparent 70%);
-  transform: translateX(-120%);
-  animation: orchestra-sheen 900ms 50ms var(--motion-ease) both;
-}
-
-.orchestra-burst-ring {
-  position: absolute;
-  width: 12px;
-  height: 12px;
-  margin: -6px 0 0 -6px;
-  border: 1px solid var(--burst-tone);
+  width: 120px;
+  height: 120px;
+  margin: -60px 0 0 -60px;
   border-radius: 9999px;
-  animation: orchestra-ring 520ms var(--motion-ease) both;
+  background: radial-gradient(
+    closest-side,
+    transparent 45%,
+    color-mix(in srgb, var(--color-violet) 20%, transparent) 75%,
+    transparent
+  );
+  animation:
+    orchestra-wave-grow 650ms cubic-bezier(0.3, 0.2, 0.2, 1) both,
+    orchestra-wave-fade 650ms cubic-bezier(0.45, 0, 0.55, 1) both;
 }
 
-.orchestra-spark {
-  position: absolute;
-  width: var(--size);
-  height: var(--size);
-  margin: calc(var(--size) / -2) 0 0 calc(var(--size) / -2);
-  border-radius: 9999px;
-  background: var(--tone);
-  animation: orchestra-spark 600ms var(--delay) var(--motion-ease) both;
+@keyframes orchestra-wave-grow {
+  from {
+    transform: scale(0.3);
+  }
+  to {
+    transform: scale(var(--wave-scale));
+  }
 }
 
-@keyframes orchestra-halo {
-  25% {
+@keyframes orchestra-wave-fade {
+  0% {
+    opacity: 0;
+  }
+  15% {
     opacity: 1;
   }
   100% {
     opacity: 0;
-  }
-}
-
-@keyframes orchestra-sheen {
-  to {
-    transform: translateX(120%);
-  }
-}
-
-@keyframes orchestra-ring {
-  from {
-    opacity: 0.5;
-    transform: scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: scale(2.5);
-  }
-}
-
-@keyframes orchestra-spark {
-  0% {
-    opacity: 0;
-    transform: translate(0, 0) scale(0.6);
-  }
-  30% {
-    opacity: 0.9;
-    transform: translate(calc(var(--dx) * 0.3), calc(var(--dy) * 0.3)) scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(var(--dx), var(--dy)) scale(0.6);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .orchestra-burst {
-    display: none;
   }
 }
 

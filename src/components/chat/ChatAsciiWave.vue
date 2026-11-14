@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, useTemplateRef } from 'vue'
+import ChatModeEdge from '@/components/chat/ChatModeEdge.vue'
+import type { FrameTone } from '@/components/chat/composerFrame'
 import { cssColor } from '@/composables/useEffects'
 
-// Résumer en note activé : une onde de caractères part de la puce et traverse le cadre du champ, suivie d'un écho.
-// Posée à côté du cadre flouté, pas dedans (WebKit cesse de flouter un calque animé). `x` et `y` dans le formulaire.
-const props = defineProps<{ x: number; y: number }>()
+// Résumer en note activé : une onde de caractères part de la puce et traverse le cadre du champ, suivie d'un écho,
+// pendant que le bord passe à la teinte des notes. Posée à côté du cadre flouté, pas dedans (WebKit cesse de flouter un
+// calque animé). `x` et `y` dans le formulaire.
+const props = defineProps<{ x: number; y: number; from: FrameTone; to: FrameTone }>()
 const emit = defineEmits<{ done: [] }>()
 
 const DURATION = 1200
@@ -63,6 +66,6 @@ onBeforeUnmount(() => cancelAnimationFrame(frame))
 </script>
 
 <template>
-  <span class="mode-reveal z-1" :style="{ '--x': `${x}px`, '--y': `${y}px`, '--tone': 'var(--color-note)' }" aria-hidden="true" />
+  <ChatModeEdge :from="from" :to="to" />
   <canvas ref="canvas" class="pointer-events-none absolute inset-0 z-1 size-full rounded-2xl" aria-hidden="true" />
 </template>

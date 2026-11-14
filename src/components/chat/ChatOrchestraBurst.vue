@@ -1,40 +1,28 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, useTemplateRef } from 'vue'
+import ChatModeEdge from '@/components/chat/ChatModeEdge.vue'
+import type { FrameTone } from '@/components/chat/composerFrame'
 
-// Éclat joué une fois à l'activation du mode Orchestre, d'après monocode : le bord violet se dessine depuis la puce,
-// un reflet balaie le cadre, quelques points partent, puis un halo allume le bord. Retiré dès la fin, rien ne tourne
-// au repos ; le cadre prend alors sa couleur fixe (ChatComposer).
-const props = defineProps<{ x: number; y: number }>()
+// Mode Orchestre activé : une onde de lumière part de la puce pendant que le bord passe au violet, puis tout est
+// retiré. Le relais suit la fin réelle du fondu (`animationend`), pas une minuterie qui le coupait en route.
+const props = defineProps<{ x: number; y: number; from: FrameTone; to: FrameTone }>()
 const emit = defineEmits<{ done: [] }>()
 
-const DURATION = 1350
-const tones = ['var(--color-violet)', 'color-mix(in srgb, var(--color-violet) 55%, white)']
+const wave = useTemplateRef('wave')
 
-// Vers le haut surtout : sous le champ, il n'y a souvent que le bord de la fenêtre.
-const COUNT = 8
-const sparks = Array.from({ length: COUNT }, (_, index) => {
-  const angle = (-165 + (index / (COUNT - 1)) * 150 + (Math.random() - 0.5) * 16) * (Math.PI / 180)
-  const distance = 20 + Math.random() * 35
-  return {
-    left: `${props.x}px`,
-    top: `${props.y}px`,
-    '--dx': `${Math.cos(angle) * distance}px`,
-    '--dy': `${Math.sin(angle) * distance}px`,
-    '--size': `${2 + Math.random() * 1.5}px`,
-    '--delay': `${Math.round(Math.random() * 60)}ms`,
-    '--tone': tones[index % tones.length],
-  }
+// L'onde est peinte petite puis agrandie (un dégradé flou ne perd rien à l'échelle) jusqu'au coin le plus loin.
+onMounted(() => {
+  const box = wave.value!.parentElement!.getBoundingClientRect()
+  const reach = Math.hypot(Math.max(props.x, box.width - props.x), Math.max(props.y, box.height - props.y))
+  wave.value!.style.setProperty('--wave-scale', String(reach / 60))
 })
-
-onMounted(() => setTimeout(() => emit('done'), DURATION))
 </script>
 
 <template>
   <div class="orchestra-burst" aria-hidden="true">
-    <span class="mode-reveal" :style="{ '--x': `${x}px`, '--y': `${y}px`, '--tone': 'var(--color-violet)' }" />
-    <span class="orchestra-burst-halo" />
-    <span class="orchestra-burst-frame" />
-    <span class="orchestra-burst-ring" :style="{ left: `${x}px`, top: `${y}px` }" />
-    <span v-for="(spark, index) in sparks" :key="index" class="orchestra-spark" :style="spark" />
+    <span class="orchestra-wave-clip">
+      <span ref="wave" class="orchestra-wave" :style="{ left: `${x}px`, top: `${y}px` }" />
+    </span>
+    <ChatModeEdge :from="from" :to="to" @done="emit('done')" />
   </div>
 </template>

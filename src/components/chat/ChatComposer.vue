@@ -8,6 +8,7 @@ import ChatModelPicker from '@/components/chat/ChatModelPicker.vue'
 import ChatNoteMenu from '@/components/chat/ChatNoteMenu.vue'
 import ChatOrchestraBurst from '@/components/chat/ChatOrchestraBurst.vue'
 import ChatAsciiWave from '@/components/chat/ChatAsciiWave.vue'
+import { type FrameTone, frameLook } from '@/components/chat/composerFrame'
 import ChatPlusMenu from '@/components/chat/ChatPlusMenu.vue'
 import ChatPromptText from '@/components/chat/ChatPromptText.vue'
 import ChatSlashMenu from '@/components/chat/ChatSlashMenu.vue'
@@ -292,7 +293,7 @@ async function placeCaret(position: number) {
 
 const form = useTemplateRef('form')
 const orchestraChip = useTemplateRef('orchestraChip')
-const burst = ref<{ id: number; kind: 'orchestra' | 'ascii'; x: number; y: number } | null>(null)
+const burst = ref<{ id: number; kind: 'orchestra' | 'ascii'; x: number; y: number; from: FrameTone; to: FrameTone } | null>(null)
 const effects = useEffects('interface')
 
 // Centre d'un élément du champ, en coordonnées du formulaire.
@@ -303,29 +304,30 @@ function centerOf(element: Element | null | undefined) {
   return { x: target.left + target.width / 2 - box.left, y: target.top + target.height / 2 - box.top }
 }
 
-// Le menu « + » se ferme d'un coup, dans la même image que le choix : l'éclat attend qu'il ait disparu (deux images
-// puis 120 ms), sinon tout s'empile et saccade.
+// Le menu « + » se ferme d'un coup, dans la même image que le choix : l'éclat part deux images plus tard, une fois
+// le menu disparu et la puce posée.
 async function afterMenu() {
   await nextTick()
   await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))
-  await new Promise((done) => setTimeout(done, 120))
 }
 
-// Bord coloré du mode tenu en attente pendant l'éclat, qui le dessine depuis la puce : posé d'emblée, il était déjà là
-// avant que l'animation ait pu le révéler.
-const accentHeld = ref(false)
+const frameTone = computed<FrameTone>(() => (summary.value ? 'summary' : orchestrating.value ? 'orchestra' : 'plain'))
+// Bord d'avant tenu jusqu'à l'éclat, qui le fait passer à celui du mode : posé d'emblée, il était déjà là avant que
+// l'animation ait pu le montrer.
+const heldTone = ref<FrameTone | null>(null)
 
 async function setOrchestra(on: boolean, event?: MouseEvent) {
+  const from = heldTone.value ?? frameTone.value
   orchestra.set(props.chatId, on)
   burst.value = null
-  accentHeld.value = on && effects.value
+  heldTone.value = on && effects.value ? from : null
   // Validée au clavier, la puce disparaît : le focus va au champ.
   if (!on && event?.detail === 0) input.value?.focus()
   if (!on || !effects.value) return
   await afterMenu()
   const center = orchestrating.value ? centerOf(orchestraChip.value) : null
-  if (center) burst.value = { id: Date.now(), kind: 'orchestra', ...center }
-  else accentHeld.value = false
+  if (center) burst.value = { id: Date.now(), kind: 'orchestra', ...center, from, to: frameTone.value }
+  else heldTone.value = null
 }
 
 const summaryChip = useTemplateRef('summaryChip')
@@ -333,6 +335,7 @@ const summaryChip = useTemplateRef('summaryChip')
 // Le champ se remplit de la consigne par défaut, à compléter ou remplacer ; laissée telle quelle, elle part en quittant.
 async function setSummary(on: boolean, event?: MouseEvent) {
   const preset = t('composer.summary.prefill')
+  const from = heldTone.value ?? frameTone.value
   if (on) {
     notes.summaryMode.add(props.chatId)
     if (!prompt.value.trim()) prompt.value = preset
@@ -341,19 +344,19 @@ async function setSummary(on: boolean, event?: MouseEvent) {
     if (prompt.value.trim() === preset) prompt.value = ''
   }
   burst.value = null
-  accentHeld.value = on && effects.value
+  heldTone.value = on && effects.value ? from : null
   if (on) void placeCaret(prompt.value.length)
   else if (event?.detail === 0) input.value?.focus()
   if (!on || !effects.value) return
   await afterMenu()
   const center = summary.value ? centerOf(summaryChip.value) : null
-  if (center) burst.value = { id: Date.now(), kind: 'ascii', ...center }
-  else accentHeld.value = false
+  if (center) burst.value = { id: Date.now(), kind: 'ascii', ...center, from, to: frameTone.value }
+  else heldTone.value = null
 }
 
 function burstDone() {
   burst.value = null
-  accentHeld.value = false
+  heldTone.value = null
 }
 
 // Capture d'écran ou fichier copié. WebKit tronque parfois `files` : `items` en a plus.
@@ -458,17 +461,11 @@ function onKeydown(event: KeyboardEvent) {
 
 <template>
   <!-- Le menu des skills est hors du cadre flouté : un flou imbriqué ne verrait que le cadre derrière lui. -->
-  <form ref="form" class="relative" :data-composer="chatId" @submit.prevent="submit()">
+  <form ref="form" class="group/composer relative" :data-composer="chatId" @submit.prevent="submit()">
+    <!-- Pendant l'éclat, le bord est dessiné par ChatModeEdge, posé à côté : le cadre flouté n'anime jamais le sien. -->
     <div
       class="@container rounded-2xl border bg-composer/22 backdrop-blur-xl"
-      :class="[
-        summary && !accentHeld
-          ? 'border-note/45 shadow-[0_0_22px_-8px_var(--color-note)] has-[textarea:focus]:border-note/70'
-          : orchestrating && !accentHeld
-            ? 'border-violet/45 shadow-[0_0_22px_-8px_var(--color-violet)] has-[textarea:focus]:border-violet/70'
-            : 'composer-lift border-stroke has-[textarea:focus]:border-stroke-focus',
-        { 'opacity-60': disabled },
-      ]"
+      :class="[burst ? 'border-transparent' : frameLook[heldTone ?? frameTone], { 'opacity-60': disabled }]"
     >
       <ul v-if="attachments.length" class="flex flex-wrap gap-2 px-3 pt-3" :aria-label="t('composer.attachments')">
         <li v-for="(attachment, index) in attachments" :key="attachment.preview ?? attachment.path" class="group relative" :title="attachment.path">
@@ -649,8 +646,8 @@ function onKeydown(event: KeyboardEvent) {
         </UiTooltip>
       </div>
     </div>
-    <ChatOrchestraBurst v-if="burst?.kind === 'orchestra'" :key="burst.id" :x="burst.x" :y="burst.y" @done="burstDone" />
-    <ChatAsciiWave v-else-if="burst" :key="burst.id" :x="burst.x" :y="burst.y" @done="burstDone" />
+    <ChatOrchestraBurst v-if="burst?.kind === 'orchestra'" :key="burst.id" :x="burst.x" :y="burst.y" :from="burst.from" :to="burst.to" @done="burstDone" />
+    <ChatAsciiWave v-else-if="burst" :key="burst.id" :x="burst.x" :y="burst.y" :from="burst.from" :to="burst.to" @done="burstDone" />
     <ChatSlashMenu ref="slashMenu" :id="`${id}-skills`" :query="slashQuery" @choose="chooseSkill" />
     <ChatMentionMenu v-if="project" ref="mentionMenu" :id="`${id}-files`" :query="mention?.query ?? null" :chat-id="chatId" :project="project.path" @choose="chooseFile" />
     <ChatNoteMenu ref="noteMenu" :id="`${id}-notes`" :query="hash?.query ?? null" @choose="chooseNote" />
