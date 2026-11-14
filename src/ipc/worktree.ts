@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
+import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { BranchList } from '@/ipc/bindings/BranchList'
 import type { ChangedFile } from '@/ipc/bindings/ChangedFile'
 import type { ChangedFiles } from '@/ipc/bindings/ChangedFiles'
@@ -56,6 +57,11 @@ export function worktreeRevertAll(chatId: string, path: string, files: string[])
 // imbriqués restent hors du commit (`skipped`).
 export function worktreeCommit(chatId: string, path: string, message: string) {
   return invoke<CommitDone>('worktree_commit', { chatId, path, message })
+}
+
+// Titre de commit écrit par un appel unique de l'agent sur le diff ; `skill` : SKILL.md de commit à suivre.
+export function worktreeCommitMessage(chatId: string, path: string, agent: AgentKind, locale: string, skill: string | null) {
+  return invoke<string | null>('worktree_commit_message', { chatId, path, agent, locale, skill })
 }
 
 // Push de la branche courante, jamais forcé ; sans branche suivie, vers `origin` ou le seul dépôt distant.

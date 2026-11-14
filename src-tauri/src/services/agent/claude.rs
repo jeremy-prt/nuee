@@ -490,7 +490,15 @@ impl Driver for Claude {
     }
 
     fn title_args(&self) -> Vec<String> {
-        [
+        self.oneshot_args(TITLE_PROMPT)
+    }
+
+    fn parse_title(&self, output: &str) -> Option<String> {
+        clean_title(&self.parse_oneshot(output)?)
+    }
+
+    fn oneshot_args(&self, system: &str) -> Vec<String> {
+        let mut args: Vec<String> = [
             "-p",
             "--output-format",
             "json",
@@ -500,25 +508,26 @@ impl Driver for Claude {
             "--tools",
             "",
             "--disable-slash-commands",
-            // Sans hooks : la notification de fin de tour de l'utilisateur ne doit pas sonner pour un titre.
+            // Sans hooks : la notification de fin de tour de l'utilisateur ne doit pas sonner pour un appel de fond.
             "--settings",
             r#"{"disableAllHooks":true}"#,
             "--strict-mcp-config",
             "--mcp-config",
             r#"{"mcpServers":{}}"#,
             "--system-prompt",
-            TITLE_PROMPT,
         ]
         .map(String::from)
-        .into()
+        .into();
+        args.push(system.to_owned());
+        args
     }
 
-    fn parse_title(&self, output: &str) -> Option<String> {
+    fn parse_oneshot(&self, output: &str) -> Option<String> {
         let result: Value = serde_json::from_str(output.trim()).ok()?;
         if result["is_error"].as_bool().unwrap_or(true) {
             return None;
         }
-        clean_title(result["result"].as_str()?)
+        result["result"].as_str().map(str::to_owned)
     }
 
     fn args(&self, spec: &SessionSpec) -> Vec<String> {

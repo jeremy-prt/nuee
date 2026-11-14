@@ -1297,14 +1297,29 @@ fn tool_list() -> Vec<Value> {
     tools
 }
 
+/// Plan, proposition et sessions servent presque à chaque tour : chargés d'office. Les outils du navigateur (~2 200
+/// tokens) sont laissés à la recherche d'outils de Claude Code, qui ne les charge qu'au besoin.
+const ALWAYS_LOADED: &[&str] = &[
+    "update_plan",
+    "propose_next",
+    "list_sessions",
+    "read_session",
+    "start_session",
+    "send_message",
+    "rename_session",
+    "archive_session",
+];
+
 fn tool(name: &str, description: &str, properties: Value, required: &[&str]) -> Value {
-    json!({
+    let mut tool = json!({
         "name": name,
         "description": description,
         "inputSchema": { "type": "object", "properties": properties, "required": required },
-        // Chargés d'office, comme dans l'app Claude : sinon l'agent doit d'abord les chercher.
-        "_meta": { "anthropic/alwaysLoad": true },
-    })
+    });
+    if ALWAYS_LOADED.contains(&name) {
+        tool["_meta"] = json!({ "anthropic/alwaysLoad": true });
+    }
+    tool
 }
 
 #[cfg(test)]

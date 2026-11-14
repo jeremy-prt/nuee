@@ -1530,10 +1530,10 @@ export default {
     },
     prompts: {
       initRepo: "Inicializar un repositorio git en esta carpeta (rama main), sin hacer ningún commit. Terminar con una sola frase que diga lo que se hizo.",
-      message: "Escribir el título del commit que describiría los cambios en curso, sin commit. Leerlos con git status y git diff HEAD, incluidos los archivos sin seguimiento. No hacer commit, no añadir al índice ni cambiar nada. Responder solo con el título, en una línea, sin comillas.",
     },
     steps: {
       starting: "Preparando…",
+      writing: "Escribiendo el mensaje…",
       committing: "Haciendo commit…",
       pushing: "Haciendo push…",
       creatingRepo: "Creando el repositorio…",
@@ -1542,7 +1542,6 @@ export default {
     running: "{action} en curso",
     stop: "Detener «{action}»",
     go: "Acción iniciada con un clic desde la interfaz: llegar hasta el final sin pedir confirmación.",
-    messageSkill: "Seguir las reglas de mensajes de commit escritas en {path} (leer este archivo, sin ejecutar el skill).",
     direct: "Commit directo",
     directFailed: "El commit falló",
     pushFailed: "Push fallido",

@@ -15,6 +15,8 @@ use crate::utils::shell_env;
 /// `worktree add` peut extraire un gros dépôt et lancer ses hooks de checkout ; un commit, ses hooks ; un push, le
 /// réseau.
 const LONG_TIMEOUT: Duration = Duration::from_secs(120);
+/// Assez pour comprendre une modification ; un diff plus long n'aide pas à écrire une ligne.
+const COMMIT_CONTEXT_LIMIT: usize = 24_000;
 const GIT_TIMEOUT: Duration = Duration::from_secs(15);
 /// Après SIGTERM, le temps laissé à git pour retirer son `index.lock` avant SIGKILL.
 const TERM_GRACE: Duration = Duration::from_secs(3);
@@ -439,6 +441,45 @@ impl WorktreeService {
             return Ok(untracked_diff(&top.join(path)));
         }
         patch_of(&git, &top, &[base], &entry).await
+    }
+
+    /// Changements non commités et derniers titres de commit, en texte, pour faire écrire un message sans agent.
+    /// Plafonné : au-delà, la liste des fichiers suffit à résumer.
+    pub async fn commit_context(&self, project: &Path, dir: &Path) -> Result<String, AppError> {
+        let git = require_git()?;
+        let (top, base) = repo_base(&git, project, dir).await?;
+        let files: Vec<ChangedFile> = collect(&git, &top, &base)
+            .await?
+            .into_iter()
+            .filter(|entry| !nested(entry))
+            .collect();
+        if files.is_empty() {
+            return Err(AppError::InvalidInput("rien à commiter".into()));
+        }
+        let recent = run(&git, &top, &["log", "-8", "--format=%s"], GIT_TIMEOUT)
+            .await
+            .unwrap_or_default();
+        let mut text = format!(
+            "Recent commit titles:\n{}\n\nChanged files:\n",
+            recent.trim()
+        );
+        for entry in &files {
+            text.push_str(&format!("{:?} {}\n", entry.status, entry.path));
+        }
+        text.push_str("\nDiff:\n");
+        for entry in files.iter().filter(|entry| !entry.binary) {
+            if text.len() >= COMMIT_CONTEXT_LIMIT {
+                break;
+            }
+            let diff = if entry.status == ChangeStatus::Untracked {
+                untracked_diff(&top.join(&entry.path))
+            } else {
+                patch_of(&git, &top, std::slice::from_ref(&base), entry).await?
+            };
+            text.push_str(&diff.patch);
+            text.push('\n');
+        }
+        Ok(text.chars().take(COMMIT_CONTEXT_LIMIT).collect())
     }
 
     /// Des commits de la branche de `dir` manquent au dépôt distant : sur leur branche suivie, ou sur aucune branche

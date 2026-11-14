@@ -1530,10 +1530,10 @@ export default {
     },
     prompts: {
       initRepo: "Inicializar um repositório git nesta pasta (branch main), sem fazer nenhum commit. Terminar com uma única frase dizendo o que foi feito.",
-      message: "Escrever o título do commit que descreveria as alterações em andamento, sem commit. Lê-las com git status e git diff HEAD, incluindo os arquivos não rastreados. Não fazer commit, não adicionar ao índice nem alterar nada. Responder apenas com o título, em uma linha, sem aspas.",
     },
     steps: {
       starting: "Preparando…",
+      writing: "Escrevendo a mensagem…",
       committing: "Fazendo commit…",
       pushing: "Fazendo push…",
       creatingRepo: "Criando o repositório…",
@@ -1542,7 +1542,6 @@ export default {
     running: "{action} em andamento",
     stop: "Parar “{action}”",
     go: "Ação iniciada com um clique na interface: ir até o fim sem pedir confirmação.",
-    messageSkill: "Seguir as regras de mensagem de commit escritas em {path} (ler este arquivo, sem executar o skill).",
     direct: "Commit direto",
     directFailed: "O commit falhou",
     pushFailed: "Falha no push",

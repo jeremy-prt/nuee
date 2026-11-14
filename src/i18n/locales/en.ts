@@ -1529,10 +1529,10 @@ export default {
     },
     prompts: {
       initRepo: "Initialize a git repository in this folder (main branch), without committing anything. Finish with one sentence saying what was done.",
-      message: "Write the title of the commit that would describe the current uncommitted changes. Read them with git status and git diff HEAD, untracked files included. Do not commit, stage or change anything. Reply with the title alone, on one line, without quotes.",
     },
     steps: {
       starting: "Starting…",
+      writing: "Writing the message…",
       committing: "Committing…",
       pushing: "Pushing…",
       creatingRepo: "Creating the repository…",
@@ -1541,7 +1541,6 @@ export default {
     running: "{action} in progress",
     stop: "Stop “{action}”",
     go: "Action started with a click from the interface: go all the way without asking for confirmation.",
-    messageSkill: "Follow the commit message rules written in {path} (read this file, do not run the skill).",
     direct: "Direct commit",
     directFailed: "Commit failed",
     pushFailed: "Push failed",

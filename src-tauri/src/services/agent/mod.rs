@@ -546,6 +546,14 @@ trait Driver: Send + Sync {
     /// Lance l'agent hors de tout chat pour résumer un message en titre ; le message part sur stdin.
     fn title_args(&self) -> Vec<String>;
     fn parse_title(&self, output: &str) -> Option<String>;
+    /// Appel unique sans outils ni MCP, avec ce prompt système à la place de celui de l'agent.
+    fn oneshot_args(&self, _system: &str) -> Vec<String> {
+        Vec::new()
+    }
+    /// Texte de la réponse d'un appel unique ; `None` en cas d'erreur.
+    fn parse_oneshot(&self, _output: &str) -> Option<String> {
+        None
+    }
     fn args(&self, spec: &SessionSpec) -> Vec<String>;
     /// Variables ajoutées au process d'un chat.
     fn session_env(&self, spec: &SessionSpec) -> Vec<(&'static str, &'static str)>;
@@ -611,6 +619,10 @@ const USAGE_TIMEOUT: Duration = Duration::from_secs(8);
 /// Téléchargement, plus une installation npm complète pour une CLI installée par npm.
 const UPDATE_TIMEOUT: Duration = Duration::from_secs(300);
 const TITLE_TIMEOUT: Duration = Duration::from_secs(45);
+/// En anglais pour le modèle ; la langue du titre est donnée à part.
+const COMMIT_PROMPT: &str = "You write git commit titles. The user message holds recent commit titles, the changed \
+files and their diff. Reply with one commit title for these changes: a single line, no quotes, no body, no \
+explanation. Match the style of the recent titles when they share one. Do not call tools.";
 /// Un process relancé pour revenir en arrière doit d'abord relire la session.
 const REWIND_TIMEOUT: Duration = Duration::from_secs(30);
 const TASK_OUTPUT_TIMEOUT: Duration = Duration::from_secs(5);
@@ -1016,11 +1028,46 @@ impl AgentService {
 
     /// Titre court tiré du premier message d'un chat. `None` si l'agent n'a pas su répondre.
     pub async fn title(&self, kind: AgentKind, prompt: &str) -> Option<String> {
-        std::fs::create_dir_all(&self.scratch).ok()?;
         let driver = kind.driver(&self.scratch);
-        let program = self.program(kind).ok()?;
-        let mut child = session::spawn(&program, driver.title_args(), &[], &self.scratch).ok()?;
         let input: String = prompt.chars().take(TITLE_INPUT_LIMIT).collect();
+        let output = self.oneshot(kind, driver.title_args(), &input).await?;
+        driver.parse_title(&output)
+    }
+
+    /// Titre de commit écrit d'après `context` (diff, derniers titres), sans session ni outils : une session complète
+    /// repayait tout le prompt de l'agent pour une ligne. `rules` : consignes d'un skill de commit, s'il y en a.
+    pub async fn commit_message(
+        &self,
+        kind: AgentKind,
+        locale: &str,
+        rules: Option<&str>,
+        context: &str,
+    ) -> Option<String> {
+        let driver = kind.driver(&self.scratch);
+        let mut system = format!(
+            "{COMMIT_PROMPT} Write it in the language of locale \"{locale}\" unless the rules say otherwise."
+        );
+        if let Some(rules) = rules.filter(|rules| !rules.trim().is_empty()) {
+            system.push_str("\n\nRules to follow:\n");
+            system.push_str(rules);
+        }
+        let output = self
+            .oneshot(kind, driver.oneshot_args(&system), context)
+            .await?;
+        let text = driver.parse_oneshot(&output)?;
+        let line = text.lines().map(str::trim).find(|line| !line.is_empty())?;
+        let line = line.trim_matches(|c| matches!(c, '"' | '`' | '\''));
+        (!line.is_empty()).then(|| line.chars().take(200).collect())
+    }
+
+    /// Lance l'agent une fois, `input` sur stdin, et rend sa sortie brute.
+    async fn oneshot(&self, kind: AgentKind, args: Vec<String>, input: &str) -> Option<String> {
+        if args.is_empty() {
+            return None;
+        }
+        std::fs::create_dir_all(&self.scratch).ok()?;
+        let program = self.program(kind).ok()?;
+        let mut child = session::spawn(&program, args, &[], &self.scratch).ok()?;
         // stdin fermé après le message : l'agent sait qu'il n'y en aura pas d'autre.
         if let Some(mut stdin) = child.stdin.take() {
             stdin.write_all(input.as_bytes()).await.ok()?;
@@ -1040,7 +1087,7 @@ impl AgentService {
             process::kill_tree(pid, true);
         }
         let _ = child.wait().await;
-        driver.parse_title(&output?)
+        output
     }
 
     /// Le dossier de travail d'un chat sans projet disparaît avec lui.

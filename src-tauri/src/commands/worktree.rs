@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use tauri::State;
 
 use crate::error::AppError;
-use crate::services::agent::AgentService;
+use crate::services::agent::{AgentKind, AgentService};
 use crate::services::chat::ChatService;
 use crate::services::worktree::{
     BranchList, ChangedFile, ChangedFiles, CommitDone, CommitPage, FileDiff, HeadInfo, Worktree,
@@ -180,6 +180,32 @@ pub async fn worktree_commit(
 ) -> Result<CommitDone, AppError> {
     let dir = write_dir(&chats, &chat_id, &path)?;
     worktrees.commit(&PathBuf::from(path), &dir, &message).await
+}
+
+/// Titre de commit proposé pour les changements du dossier de la session, écrit par un appel unique de l'agent.
+/// `skill` : chemin d'un SKILL.md de commit dont les règles sont suivies. `None` si l'agent n'a pas su répondre.
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+pub async fn worktree_commit_message(
+    chat_id: String,
+    path: String,
+    agent: AgentKind,
+    locale: String,
+    skill: Option<String>,
+    worktrees: State<'_, WorktreeService>,
+    chats: State<'_, ChatService>,
+    agents: State<'_, AgentService>,
+) -> Result<Option<String>, AppError> {
+    let dir = session_dir(&chats, &chat_id, &path)?;
+    let context = worktrees.commit_context(&PathBuf::from(path), &dir).await?;
+    // Seulement un SKILL.md, et plafonné : le chemin vient de la liste des skills, pas d'ailleurs.
+    let rules = skill
+        .filter(|skill| skill.ends_with("SKILL.md"))
+        .and_then(|skill| std::fs::read_to_string(skill).ok())
+        .map(|text| text.chars().take(8000).collect::<String>());
+    Ok(agents
+        .commit_message(agent, &locale, rules.as_deref(), &context)
+        .await)
 }
 
 /// Push de la branche courante du dossier de la session, jamais forcé.

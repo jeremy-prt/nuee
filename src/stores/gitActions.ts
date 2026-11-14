@@ -1,11 +1,11 @@
 import { defineStore } from 'pinia'
-import { reactive, watch } from 'vue'
+import { reactive, unref, watch } from 'vue'
 import { i18nGlobal } from '@/i18n'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { Effort } from '@/ipc/bindings/Effort'
 import type { HeadInfo } from '@/ipc/bindings/HeadInfo'
 import { isAppError } from '@/ipc/agent'
-import { worktreeCommit, worktreeHead, worktreePull, worktreePush } from '@/ipc/worktree'
+import { worktreeCommit, worktreeCommitMessage, worktreeHead, worktreePull, worktreePush } from '@/ipc/worktree'
 import { type Signal, useAttentionStore } from '@/stores/attention'
 import { useCatalogStore } from '@/stores/catalog'
 import { type ChatItem, type Conversation, type GitItem, useConversationsStore } from '@/stores/conversations'
@@ -31,16 +31,6 @@ const SKILL_WORDS: Record<AgentAction, readonly string[]> = {
 }
 
 // Dernière ligne de texte de la réponse, sans guillemets ni balises de code : le titre demandé.
-function titleOf(items: readonly ChatItem[]) {
-  const text = items.filter((item): item is Extract<ChatItem, { kind: 'text' }> => item.kind === 'text').at(-1)?.text ?? ''
-  const line = text
-    .split('\n')
-    .map((part) => part.trim())
-    .filter((part) => part && !part.startsWith('```'))
-    .at(-1)
-  return line?.replace(/^[`"'«“\s]+|[`"'»”\s]+$/g, '').slice(0, 200) || null
-}
-
 export interface GitRun {
   action: AgentAction
   folder: string
@@ -141,12 +131,8 @@ export const useGitActionsStore = defineStore('gitActions', () => {
     // Relue à chaque action, comme le menu « / » : un skill ajouté entre-temps est vu.
     await skills.loadSkills()
     const skill = skillOf(action, origin.agent)
-    const prompt =
-      action === 'message'
-        ? [t('gitActions.prompts.message'), skill ? t('gitActions.messageSkill', { path: skill.path }) : ''].filter(Boolean).join(' ')
-        : skill
-          ? `/${skill.name} ${t('gitActions.go')}`
-          : t('gitActions.prompts.initRepo')
+    if (action === 'message') return writeMessage(run, origin, project.path, skill?.path ?? null)
+    const prompt = skill ? `/${skill.name} ${t('gitActions.go')}` : t('gitActions.prompts.initRepo')
     const worktreePath = origin.worktree ? origin.worktreePath : undefined
     const tab = workspace.addChat(origin.projectId, label(action), worktreePath, origin.id, { agent: origin.agent })
     // Même mode d'autorisation que la session d'origine, jamais plus large.
@@ -158,6 +144,32 @@ export const useGitActionsStore = defineStore('gitActions', () => {
     if (!live) return false
     live.chatId = tab.id
     follow(live)
+    return true
+  }
+
+  // Un seul appel sans outils, sur le diff lu par l'app : une session complète repayait tout le prompt de l'agent
+  // pour une ligne. Arrêtée entre-temps (`stop`), la réponse est ignorée.
+  async function writeMessage(run: GitRun, origin: Tab, projectPath: string, skill: string | null) {
+    const { t, locale } = i18nGlobal()
+    let message: string | null = null
+    let error = ''
+    try {
+      message = await worktreeCommitMessage(origin.id, projectPath, origin.agent, unref(locale), skill)
+    } catch (caught) {
+      error = brief(isAppError(caught) ? caught.message : String(caught))
+    }
+    // `runs` est réactive : comparer l'action rangée par sa date de lancement, pas par identité d'objet.
+    const live = runs.get(run.folder)
+    if (live?.startedAt !== run.startedAt) return false
+    end(live)
+    if (!message) {
+      toasts.push({ kind: 'error', title: t('gitActions.failed', { action: label('message') }), body: error || t('gitActions.failedBody'), clamp: !!error })
+      return false
+    }
+    if (run.commitAfter) return commitNow(origin, message)
+    const gitPanel = useGitPanelStore()
+    const typed = gitPanel.of(run.originId).message
+    if (!typed.trim() || typed === run.draft) gitPanel.setMessage(run.originId, message)
     return true
   }
 
@@ -219,7 +231,7 @@ export const useGitActionsStore = defineStore('gitActions', () => {
     const items = conversation.items
     const last = items.at(-1)
     const action = label(run.action)
-    const done = run.action === 'message' ? !!titleOf(items) : await achieved(run)
+    const done = await achieved(run)
     end(run)
     // Révélée, la session est une session comme une autre : la fin de son tour prévient par le chemin habituel.
     if (run.revealed) return
@@ -237,15 +249,6 @@ export const useGitActionsStore = defineStore('gitActions', () => {
     }
     // Tour fini sans le résultat attendu : souvent une question posée en texte, à laquelle répondre dans la session.
     if (!done) return reveal(run, 'failed', t('gitActions.unfinished', { action }), t('gitActions.unfinishedBody'), { sticky: true })
-    if (run.action === 'message') {
-      await workspace.deleteChat(run.chatId)
-      const origin = workspace.tabs.find((tab) => tab.id === run.originId)
-      if (run.commitAfter && origin) return void (await commitNow(origin, titleOf(items) ?? ''))
-      const gitPanel = useGitPanelStore()
-      const typed = gitPanel.of(run.originId).message
-      if (!typed.trim() || typed === run.draft) gitPanel.setMessage(run.originId, titleOf(items) ?? '')
-      return
-    }
     const head = await headOf(run)
     const title = t(`gitActions.done.${run.action}`)
     const body = (run.action === 'initRepo' ? head?.origin : [head?.subject, head?.branch].filter(Boolean).join(' · ')) ?? ''
@@ -379,6 +382,8 @@ export const useGitActionsStore = defineStore('gitActions', () => {
   }
 
   function stop(run: GitRun) {
+    // Le message s'écrit sans session : rien à arrêter, sa réponse sera ignorée.
+    if (!run.chatId) return end(run)
     conversations.stop(run.chatId)
   }
 

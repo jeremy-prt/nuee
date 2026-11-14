@@ -1530,10 +1530,10 @@ export default {
     },
     prompts: {
       initRepo: "在此文件夹中初始化 git 仓库（main 分支），不要提交任何内容。最后用一句话说明做了什么。",
-      message: "写出能描述当前未提交更改的提交标题。用 git status 和 git diff HEAD 读取更改，包括未跟踪的文件。不要提交、暂存或修改任何内容。只回复标题，一行，不加引号。",
     },
     steps: {
       starting: "准备中…",
+      writing: "正在撰写消息…",
       committing: "正在提交…",
       pushing: "正在推送…",
       creatingRepo: "正在创建仓库…",
@@ -1542,7 +1542,6 @@ export default {
     running: "{action}进行中",
     stop: "停止“{action}”",
     go: "此操作由界面点击启动：无需确认，直接执行到底。",
-    messageSkill: "遵循 {path} 中写的提交信息规则（只读取此文件，不要运行该技能）。",
     direct: "直接提交",
     directFailed: "提交失败",
     pushFailed: "推送失败",

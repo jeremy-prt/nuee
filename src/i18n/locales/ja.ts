@@ -1530,10 +1530,10 @@ export default {
     },
     prompts: {
       initRepo: "このフォルダで git リポジトリを初期化する（main ブランチ）。コミットはしない。最後に、行ったことを一文で伝える。",
-      message: "未コミットの現在の変更を表すコミットのタイトルを書く。git status と git diff HEAD で、未追跡のファイルも含めて読む。コミット、ステージ、変更は一切しない。タイトルだけを一行で、引用符なしで答える。",
     },
     steps: {
       starting: "準備中…",
+      writing: "メッセージを作成中…",
       committing: "コミット中…",
       pushing: "プッシュ中…",
       creatingRepo: "リポジトリを作成中…",
@@ -1542,7 +1542,6 @@ export default {
     running: "{action}を実行中",
     stop: "「{action}」を停止",
     go: "インターフェースのクリックで開始された操作です。確認を求めずに最後まで実行してください。",
-    messageSkill: "{path} に書かれたコミットメッセージの規則に従う（このファイルを読むだけで、スキルは実行しない）。",
     direct: "直接コミット",
     directFailed: "コミットに失敗しました",
     pushFailed: "プッシュに失敗しました",

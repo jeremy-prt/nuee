@@ -26,6 +26,8 @@ const GIT_STEPS: [RegExp, string][] = [
 const action = computed(() => gitActions.label(props.run.action))
 // L'étape, et la commande en cours en entier pour l'infobulle (la dernière ligne de sortie de T3 Code).
 const step = computed(() => {
+  // Le message de commit s'écrit sans session : une seule étape à montrer.
+  if (props.run.action === 'message' && !props.run.chatId) return { text: t('gitActions.steps.writing'), name: null, command: null }
   const conversation = conversations.find(props.run.chatId)
   const items = conversation?.items ?? []
   const approval = conversation?.approvals[0]
