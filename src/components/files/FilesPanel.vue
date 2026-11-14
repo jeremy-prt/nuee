@@ -155,8 +155,8 @@ const search = useTemplateRef('search')
 function toggleSearch() {
   const view = browse.value
   if (!view) return
-  if (view.searching && search.value) search.value.close()
-  else view.searching = !view.searching
+  if (view.searching) search.value?.close()
+  else view.searching = true
 }
 
 // Dans le dossier choisi, sinon celui du fichier choisi, sinon à la racine.
@@ -218,10 +218,9 @@ function create(dir: boolean) {
         :title="t(failure.missing ? 'dock.files.folderMissingTitle' : 'dock.files.folderUnreadableTitle')"
         :description="failure.missing ? t('dock.files.folderMissing', { path: place.worktree ?? place.path ?? '' }) : failure.detail"
       />
-      <FilesSearch v-else-if="root && browse.searching" ref="search" :place="place" @close="browse.searching = false">
+      <FilesSearch v-else-if="root" ref="search" :place="place" :active="browse.searching" @close="browse.searching = false">
         <FilesTree :place="place" :root="root" :root-name="rootName" />
       </FilesSearch>
-      <FilesTree v-else-if="root" :place="place" :root="root" :root-name="rootName" />
     </section>
   </div>
 </template>

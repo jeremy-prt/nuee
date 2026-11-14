@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CaseSensitive, CircleAlert, File as FileGlyph, LoaderCircle, Regex, Search, WholeWord } from '@/components/ui/icons'
-import { computed, nextTick, onMounted, ref, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import FilesIcon from '@/components/files/FilesIcon.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
@@ -16,7 +16,8 @@ import { normalize } from '@/utils/search'
 // Recherche du volet Explorateur : deux champs qui se déroulent sous la ligne d'outils, sans quitter la page (demande de
 // Jérémy). Le nom filtre les fichiers, le texte cherche dans leur contenu (limité aux fichiers que filtre le nom).
 // Champs vides, l'arborescence (slot) reste dessous. Un clic ouvre le fichier, à la ligne pour un résultat de contenu.
-const props = defineProps<{ place: FilesPlace }>()
+// Monté même fermé : l'arborescence reste la même instance, la remonter rechargeait ses icônes en plein déroulé.
+const props = defineProps<{ place: FilesPlace; active: boolean }>()
 const emit = defineEmits<{ close: [] }>()
 
 const { t } = useI18n()
@@ -37,8 +38,10 @@ const drop = useTemplateRef('drop')
 const below = useTemplateRef('below')
 // Liste complète, lue seulement ici : l'arbre ne lit que ses dossiers ouverts.
 const files = ref<string[]>([])
-// Déroulé en transform seulement (les champs se dévoilent, ce qui est dessous glisse) : animer la hauteur relayoutait
-// toute l'arborescence à chaque image, d'où les à-coups.
+// Déroulé en transform seulement : animer la hauteur relayoutait toute l'arborescence à chaque image. Même durée et
+// même courbe des deux côtés, le haut de l'arborescence suit le bord dévoilé des champs : aucun cadre ne doit la
+// couper (il la cachait tant qu'elle était remontée).
+let pushed: Animation | undefined
 function slide(open: boolean) {
   const height = drop.value?.offsetHeight ?? 0
   const timing = { ...motion(open ? 'open' : 'close'), fill: 'both' as const }
@@ -46,27 +49,42 @@ function slide(open: boolean) {
   const reveal = [{ clipPath: 'inset(0 0 100% 0)', opacity: 0 }, { clipPath: 'inset(0 0 0 0)', opacity: 1 }]
   const push = [{ transform: `translateY(${-height}px)` }, { transform: 'none' }]
   const order = open ? 'normal' : 'reverse'
-  const animations = [drop.value?.animate(reveal, { ...timing, direction: order }), below.value?.animate(push, { ...timing, direction: order })]
+  pushed?.cancel()
+  pushed = below.value?.animate(push, { ...timing, direction: order })
+  const animations = [drop.value?.animate(reveal, { ...timing, direction: order }), pushed]
   return Promise.all(animations.map((animation) => animation?.finished.catch(() => {})))
 }
 
 let closing = false
 async function close() {
-  if (closing) return
+  if (closing || !props.active) return
   closing = true
   await slide(false)
   emit('close')
+  // Remontée de la hauteur des champs : à lever une fois les champs retirés, sinon l'arborescence monte deux fois.
+  await nextTick()
+  pushed?.cancel()
 }
 defineExpose({ close })
 
-onMounted(async () => {
-  input.value?.focus()
-  await nextTick()
-  slide(true)
-  filesList(props.place)
-    .then((listed) => (files.value = listed.files))
-    .catch(() => {})
-})
+watch(
+  () => props.active,
+  async (active) => {
+    if (!active) {
+      nameQuery.value = ''
+      query.value = ''
+      return
+    }
+    closing = false
+    await nextTick()
+    input.value?.focus()
+    slide(true)
+    filesList(props.place)
+      .then((listed) => (files.value = listed.files))
+      .catch(() => {})
+  },
+  { immediate: true },
+)
 
 const nameOf = (file: string) => file.slice(file.lastIndexOf('/') + 1)
 const NAMES = 20
@@ -176,7 +194,7 @@ const row = 'flex w-full min-w-0 items-center gap-1.5 rounded-md px-2 text-start
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col">
-    <div ref="drop" class="shrink-0">
+    <div v-if="active" ref="drop" class="shrink-0">
       <div class="flex flex-col gap-1.5 p-2">
         <label data-control :class="field">
           <FileGlyph class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
@@ -241,9 +259,6 @@ const row = 'flex w-full min-w-0 items-center gap-1.5 rounded-md px-2 text-start
       </div>
     </div>
 
-    <!-- Coupé à son cadre : ce qui glisse dessous ne passe jamais sur les champs (un fond les cacherait mais doublerait
-         celui, translucide, du panneau). -->
-    <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
     <div ref="below" class="flex min-h-0 flex-1 flex-col">
     <slot v-if="!query.trim() && !nameQuery.trim()" />
     <div v-else class="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
@@ -276,7 +291,6 @@ const row = 'flex w-full min-w-0 items-center gap-1.5 rounded-md px-2 text-start
           <span class="min-w-0 flex-1 truncate whitespace-pre">{{ parts(match.preview).before }}<mark v-if="parts(match.preview).hit" class="rounded-sm bg-signal/35 text-content">{{ parts(match.preview).hit }}</mark>{{ parts(match.preview).after }}</span>
         </button>
       </section>
-    </div>
     </div>
     </div>
   </div>
