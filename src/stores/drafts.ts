@@ -63,5 +63,12 @@ export const useDraftsStore = defineStore('drafts', () => {
     for (const id of Object.keys(drafts)) if (!keep.has(id)) delete drafts[id]
   }
 
-  return { requested, attachRequested, get, set, request, requestAttach, prune }
+  // Texte ajouté au champ sans l'envoyer (mention d'une note depuis la page Notes).
+  const insertRequested = ref<{ chatId: string; text: string } | null>(null)
+
+  function requestInsert(chatId: string, text: string) {
+    insertRequested.value = { chatId, text }
+  }
+
+  return { requested, attachRequested, insertRequested, get, set, request, requestAttach, requestInsert, prune }
 })

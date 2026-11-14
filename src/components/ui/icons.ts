@@ -135,6 +135,15 @@ import VolumeHighIcon from '@hugeicons/core-free-icons/VolumeHighIcon'
 import Wrench01Icon from '@hugeicons/core-free-icons/Wrench01Icon'
 import Xml01Icon from '@hugeicons/core-free-icons/Xml01Icon'
 import ZapIcon from '@hugeicons/core-free-icons/ZapIcon'
+import CheckListIcon from '@hugeicons/core-free-icons/CheckListIcon'
+import CodeIcon from '@hugeicons/core-free-icons/CodeIcon'
+import LeftToRightListNumberIcon from '@hugeicons/core-free-icons/LeftToRightListNumberIcon'
+import MinusSignIcon from '@hugeicons/core-free-icons/MinusSignIcon'
+import QuoteDownIcon from '@hugeicons/core-free-icons/QuoteDownIcon'
+import SourceCodeIcon from '@hugeicons/core-free-icons/SourceCodeIcon'
+import TextBoldIcon from '@hugeicons/core-free-icons/TextBoldIcon'
+import TextItalicIcon from '@hugeicons/core-free-icons/TextItalicIcon'
+import TextStrikethroughIcon from '@hugeicons/core-free-icons/TextStrikethroughIcon'
 
 // Icônes de Hugeicons (MIT), comme monocode : choix de Jérémy, pas lucide. Les glyphes sont importés un par un pour ne
 // pas charger tout le catalogue ; les noms exportés gardent ceux du code (Plus, Trash2…). Trait de 1,75 comme monocode.
@@ -336,3 +345,13 @@ export const Volume2 = icon(VolumeHighIcon)
 export const Wrench = icon(Wrench01Icon)
 export const X = icon(Cancel01Icon)
 export const Zap = icon(ZapIcon)
+// Éditeur des notes : menu « / » et barre sur sélection.
+export const ListChecks = icon(CheckListIcon)
+export const CodeInline = icon(CodeIcon)
+export const ListOrdered = icon(LeftToRightListNumberIcon)
+export const Separator = icon(MinusSignIcon)
+export const Quote = icon(QuoteDownIcon)
+export const CodeBlock = icon(SourceCodeIcon)
+export const Bold = icon(TextBoldIcon)
+export const Italic = icon(TextItalicIcon)
+export const Strikethrough = icon(TextStrikethroughIcon)

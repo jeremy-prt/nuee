@@ -81,7 +81,7 @@ export function settingsDetailTitle(detail: SettingsDetail, t: (key: string) => 
 export type View = 'new' | 'chats' | 'github' | 'notes' | 'search' | 'usage' | 'settings'
 
 // Vues « liste à gauche, détail au centre » : elles affichent le second panneau.
-const PANEL_VIEWS: readonly View[] = ['chats', 'github', 'notes']
+const PANEL_VIEWS: readonly View[] = ['chats', 'github']
 
 const PROJECT_KEY = 'nuee.navigation.project'
 

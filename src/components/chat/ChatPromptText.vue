@@ -2,6 +2,7 @@
 import { HoverCardContent, HoverCardPortal, HoverCardRoot, HoverCardTrigger } from 'reka-ui'
 import { computed, inject, watch } from 'vue'
 import { mentionPlaceKey, useMentionsStore } from '@/stores/mentions'
+import { useNotesStore } from '@/stores/notes'
 import { useSkillsStore } from '@/stores/skills'
 import { promptParts } from '@/utils/prompt'
 
@@ -15,12 +16,19 @@ const mentions = useMentionsStore()
 const place = inject(mentionPlaceKey, null)
 const files = computed(() => (place?.value ? mentions.known.get(place.value.chatId) : undefined))
 // Un saut de ligne final n'ouvre pas de ligne dans une div : sans l'espace ajoutée, le calque en aurait une de moins.
-const parts = computed(() => promptParts(props.fit && props.text.endsWith('\n') ? `${props.text} ` : props.text, skills.names, files.value))
+const notes = useNotesStore()
+const parts = computed(() => promptParts(props.fit && props.text.endsWith('\n') ? `${props.text} ` : props.text, skills.names, files.value, notes.slugs))
 
 // Message repris, rempli ou rouvert sans passer par le menu « / » : ses skills ne sont pas encore lus.
 watch(
   () => props.text.includes('/') && !skills.loaded && !skills.loading,
   (missing) => missing && skills.loadSkills(),
+  { immediate: true },
+)
+// Les notes, lues une fois pour toute l'app.
+watch(
+  () => props.text.includes('#'),
+  (cited) => cited && notes.ensure(),
   { immediate: true },
 )
 // De même pour les fichiers du projet, lus une fois par session.
@@ -45,6 +53,7 @@ watch(
       </HoverCardPortal>
     </HoverCardRoot>
     <span v-else-if="part.kind === 'file'" class="text-mention" :title="fit ? undefined : part.path">{{ part.text }}</span>
+    <span v-else-if="part.kind === 'note'" class="text-note" :title="fit ? undefined : notes.bySlug.get(part.slug)?.title">{{ part.text }}</span>
     <template v-else>{{ part.text }}</template>
   </template>
 </template>

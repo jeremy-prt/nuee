@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ArrowUp, Orchestra, ShieldAlertSolid, ShieldCheckSolid, ShieldQuestionSolid, Square, X } from '@/components/ui/icons'
+import { ArrowUp, LoaderCircle, NotebookPen, Orchestra, ShieldAlertSolid, ShieldCheckSolid, ShieldQuestionSolid, Square, X } from '@/components/ui/icons'
 import { type Component, computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatContextMeter from '@/components/chat/ChatContextMeter.vue'
 import ChatMentionMenu from '@/components/chat/ChatMentionMenu.vue'
 import ChatModelPicker from '@/components/chat/ChatModelPicker.vue'
+import ChatNoteMenu from '@/components/chat/ChatNoteMenu.vue'
 import ChatOrchestraBurst from '@/components/chat/ChatOrchestraBurst.vue'
 import ChatPlusMenu from '@/components/chat/ChatPlusMenu.vue'
 import ChatPromptText from '@/components/chat/ChatPromptText.vue'
@@ -27,6 +28,7 @@ import type { TurnOptions } from '@/ipc/bindings/TurnOptions'
 import { pickFiles } from '@/ipc/dialog'
 import { useDraftsStore } from '@/stores/drafts'
 import { useGeneralStore } from '@/stores/general'
+import { useNotesStore } from '@/stores/notes'
 import { useOrchestraStore } from '@/stores/orchestra'
 import type { Project } from '@/stores/projects'
 import { useShortcutsStore } from '@/stores/shortcuts'
@@ -62,6 +64,10 @@ const general = useGeneralStore()
 const drafts = useDraftsStore()
 const orchestra = useOrchestraStore()
 const orchestrating = computed(() => orchestra.isOn(props.chatId))
+// Mode « Résumer en note » : le texte tapé dit ce qu'il faut garder, l'envoi écrit la note au lieu d'un tour.
+const notes = useNotesStore()
+const summary = computed(() => notes.summaryMode.has(props.chatId))
+const summaryWriting = computed(() => notes.summarizing.has(props.chatId))
 const prompt = ref(drafts.get(props.chatId)?.text ?? '')
 const attachments = ref<Attachment[]>(drafts.get(props.chatId)?.attachments ?? [])
 watch([prompt, attachments], () => drafts.set(props.chatId, prompt.value, attachments.value))
@@ -151,6 +157,28 @@ async function chooseFile(path: string) {
   input.value?.setSelectionRange(position, position)
 }
 
+// Note sous le curseur : du « # » (en début de mot) jusqu'au curseur. « # » suivi d'une espace reste un titre markdown.
+const noteMenu = useTemplateRef('noteMenu')
+const hash = computed(() => {
+  if (caret.value === null || recalled.value) return null
+  const start = prompt.value.slice(0, caret.value).search(/(?<=^|\s)#[a-z0-9-]*$/)
+  if (start === -1) return null
+  const end = start + /^\S*/.exec(prompt.value.slice(start))![0].length
+  return { start, end, query: prompt.value.slice(start + 1, caret.value) }
+})
+
+async function chooseNote(slug: string) {
+  const token = hash.value
+  if (!token) return
+  const head = `${prompt.value.slice(0, token.start)}#${slug}`
+  const rest = prompt.value.slice(token.end)
+  prompt.value = head + (/^\s/.test(rest) ? rest : ` ${rest}`)
+  const position = head.length + 1
+  caret.value = position
+  await nextTick()
+  input.value?.setSelectionRange(position, position)
+}
+
 async function chooseSkill(name: string) {
   const token = slash.value
   if (!token) return
@@ -197,7 +225,7 @@ function leaveField() {
 const syncScroll = () => {
   if (highlight.value && input.value) highlight.value.scrollTop = input.value.scrollTop
 }
-const canSend = computed(() => (!!prompt.value.trim() || attachments.value.length > 0) && !saving.value)
+const canSend = computed(() => (summary.value || !!prompt.value.trim() || attachments.value.length > 0) && !saving.value)
 
 // Le champ suit la hauteur du texte jusqu'à son max-h, puis défile.
 watch(
@@ -214,6 +242,11 @@ watch(
 
 function submit(other = false) {
   if (!canSend.value || props.disabled) return
+  if (summary.value) {
+    void notes.summarize(props.chatId, prompt.value.trim())
+    prompt.value = ''
+    return
+  }
   emit('send', prompt.value.trim(), attachments.value, other)
   prompt.value = ''
   attachments.value = []
@@ -270,6 +303,29 @@ async function setOrchestra(on: boolean, event?: MouseEvent) {
   const box = form.value?.getBoundingClientRect()
   if (!chip || !box) return
   burst.value = { id: Date.now(), x: chip.left + chip.width / 2 - box.left, y: chip.top + chip.height / 2 - box.top }
+}
+
+const summaryChip = useTemplateRef('summaryChip')
+
+// Le champ se remplit de la consigne par défaut, à compléter ou remplacer ; laissée telle quelle, elle part en quittant.
+async function setSummary(on: boolean, event?: MouseEvent) {
+  const preset = t('composer.summary.prefill')
+  if (on) {
+    notes.summaryMode.add(props.chatId)
+    if (!prompt.value.trim()) prompt.value = preset
+  } else {
+    notes.summaryMode.delete(props.chatId)
+    if (prompt.value.trim() === preset) prompt.value = ''
+  }
+  burst.value = null
+  if (on) void placeCaret(prompt.value.length)
+  else if (event?.detail === 0) input.value?.focus()
+  if (!on || matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  await nextTick()
+  const chip = summaryChip.value?.getBoundingClientRect()
+  const box = form.value?.getBoundingClientRect()
+  if (!chip || !box) return
+  burst.value = { id: Date.now(), x: chip.left + chip.width / 2 - box.left, y: chip.top + chip.height / 2 - box.top, tone: 'var(--color-note)' }
 }
 
 // Passage en effort Max : même éclat qu'Orchestre, en corail, depuis le bouton du modèle.
@@ -331,7 +387,14 @@ function fill(text: string, files: Attachment[]) {
   focusInput()
 }
 
-defineExpose({ attach, fill, focus: focusInput })
+// Ajouté au bout de la saisie en cours, curseur après lui.
+function insert(text: string) {
+  const head = prompt.value.trimEnd()
+  prompt.value = head ? `${head} ${text}` : text
+  void placeCaret(prompt.value.length)
+}
+
+defineExpose({ attach, fill, insert, focus: focusInput })
 
 // Historique comme dans un terminal : ↑ depuis un champ vide remonte les messages envoyés, ↓ redescend jusqu'au
 // champ d'origine. Le texte ou les pièces jointes modifiés, les flèches redeviennent celles du texte ; dans un
@@ -369,7 +432,7 @@ function browse(event: KeyboardEvent) {
 
 // Maj+Entrée va à la ligne (natif). Pendant une saisie IME, Entrée valide le mot.
 function onKeydown(event: KeyboardEvent) {
-  if (event.isComposing || slashMenu.value?.keydown(event) || mentionMenu.value?.keydown(event)) return
+  if (event.isComposing || slashMenu.value?.keydown(event) || mentionMenu.value?.keydown(event) || noteMenu.value?.keydown(event)) return
   if (browse(event)) return
   const other = shortcuts.matches(event, 'sendOther')
   if (!other && !shortcuts.matches(event, 'send')) return
@@ -384,7 +447,11 @@ function onKeydown(event: KeyboardEvent) {
     <div
       class="@container rounded-2xl border bg-selection/50 backdrop-blur-sm"
       :class="[
-        orchestrating ? 'border-violet/45 shadow-[0_0_22px_-8px_var(--color-violet)] has-[textarea:focus]:border-violet/70' : 'border-stroke has-[textarea:focus]:border-stroke-focus',
+        summary
+          ? 'border-note/45 shadow-[0_0_22px_-8px_var(--color-note)] has-[textarea:focus]:border-note/70'
+          : orchestrating
+            ? 'border-violet/45 shadow-[0_0_22px_-8px_var(--color-violet)] has-[textarea:focus]:border-violet/70'
+            : 'border-stroke has-[textarea:focus]:border-stroke-focus',
         { 'opacity-60': disabled },
       ]"
     >
@@ -430,8 +497,8 @@ function onKeydown(event: KeyboardEvent) {
           v-model="prompt"
           rows="1"
           aria-autocomplete="list"
-          :aria-controls="slashMenu?.activeId ? `${id}-skills` : mentionMenu?.activeId ? `${id}-files` : undefined"
-          :aria-activedescendant="slashMenu?.activeId ?? mentionMenu?.activeId"
+          :aria-controls="slashMenu?.activeId ? `${id}-skills` : mentionMenu?.activeId ? `${id}-files` : noteMenu?.activeId ? `${id}-notes` : undefined"
+          :aria-activedescendant="slashMenu?.activeId ?? mentionMenu?.activeId ?? noteMenu?.activeId"
           autocorrect="off"
           autocapitalize="off"
           spellcheck="false"
@@ -439,7 +506,7 @@ function onKeydown(event: KeyboardEvent) {
           :disabled="disabled"
           :class="{ 'cursor-default': overSkill }"
           class="prompt-field relative block max-h-60 min-h-18 w-full resize-none bg-transparent px-3.5 pt-3.5 pb-2 text-sm leading-5.5 select-text outline-none placeholder:truncate"
-          :placeholder="running ? t(`composer.placeholderBusy.${general.followUp}`, { send: shortcuts.label('send'), other: shortcuts.label('sendOther') }) : t(orchestrating ? 'composer.orchestra.placeholder' : 'composer.placeholder')"
+          :placeholder="running ? t(`composer.placeholderBusy.${general.followUp}`, { send: shortcuts.label('send'), other: shortcuts.label('sendOther') }) : t(summary ? 'composer.summary.placeholder' : orchestrating ? 'composer.orchestra.placeholder' : 'composer.placeholder')"
           @keydown="onKeydown"
           @input="syncCaret"
           @keyup="syncCaret"
@@ -470,9 +537,12 @@ function onKeydown(event: KeyboardEvent) {
           :disabled="disabled"
           :loading="saving > 0"
           :orchestra="orchestrating"
+          :summary="summary"
+          :summary-off="!compactable || summaryWriting"
           :focus-after="focusInput"
           @attach="pick"
           @orchestra="setOrchestra"
+          @summary="setSummary"
         />
         <ChatModelPicker
           v-model="chosenModel"
@@ -507,6 +577,23 @@ function onKeydown(event: KeyboardEvent) {
             <X class="size-3 opacity-70" aria-hidden="true" />
           </button>
         </UiTooltip>
+        <UiTooltip v-if="summary" :label="t('composer.summary.off')" side="top">
+          <button
+            ref="summaryChip"
+            type="button"
+            :disabled="disabled"
+            class="flex h-7 shrink-0 items-center gap-1 rounded-md bg-note/15 px-1.5 text-note hover:bg-note/25 focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-40"
+            :aria-label="t('composer.summary.off')"
+            @click="setSummary(false, $event)"
+          >
+            <NotebookPen class="size-3.5" aria-hidden="true" />
+            <X class="size-3 opacity-70" aria-hidden="true" />
+          </button>
+        </UiTooltip>
+        <p v-else-if="summaryWriting" class="page-in flex h-7 min-w-0 items-center gap-1.5 rounded-md bg-note/10 px-2 text-xs text-note" role="status">
+          <LoaderCircle class="size-3.5 shrink-0 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+          <span class="truncate @max-sm:sr-only">{{ t('composer.summary.writing') }}</span>
+        </p>
         <span class="flex-1" />
         <!-- État de la conversation, à côté de l'envoi ; à gauche, les réglages du prochain message. -->
         <ChatContextMeter :usage="context ?? null" :disabled="disabled || running || !compactable" class="me-1" @compact="emit('compact')" />
@@ -550,5 +637,6 @@ function onKeydown(event: KeyboardEvent) {
     <ChatOrchestraBurst v-if="burst" :key="burst.id" :x="burst.x" :y="burst.y" :tone="burst.tone" @done="burst = null" />
     <ChatSlashMenu ref="slashMenu" :id="`${id}-skills`" :query="slashQuery" @choose="chooseSkill" />
     <ChatMentionMenu v-if="project" ref="mentionMenu" :id="`${id}-files`" :query="mention?.query ?? null" :chat-id="chatId" :project="project.path" @choose="chooseFile" />
+    <ChatNoteMenu ref="noteMenu" :id="`${id}-notes`" :query="hash?.query ?? null" @choose="chooseNote" />
   </form>
 </template>

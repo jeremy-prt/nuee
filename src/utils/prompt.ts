@@ -1,17 +1,21 @@
 import type { Attachment } from '@/ipc/bindings/Attachment'
 
 // Mention : `path` sans « @ » ni guillemets (un dossier finit par « / »). Skill : `name` sans « / ».
-export type PromptPart = { text: string; kind: null } | { text: string; kind: 'skill'; name: string } | { text: string; kind: 'file'; path: string }
+export type PromptPart =
+  | { text: string; kind: null }
+  | { text: string; kind: 'skill'; name: string }
+  | { text: string; kind: 'file'; path: string }
+  | { text: string; kind: 'note'; slug: string }
 
-// `/skill` ou `@fichier` en début de mot ; `@"chemin avec espaces"` : forme des pièces jointes envoyées à Claude.
-const TOKEN = /(^|\s)(\/[^\s/]\S*|@(?:"[^"\n]*"|[^\s"]+))/g
+// `/skill`, `@fichier` ou `#note` en début de mot ; `@"chemin avec espaces"` : forme des pièces jointes envoyées à Claude.
+const TOKEN = /(^|\s)(\/[^\s/]\S*|@(?:"[^"\n]*"|[^\s"]+)|#[a-z0-9-]+)/g
 
 /**
- * Découpe la saisie pour colorer les skills et les `@fichier`. Un skill peut venir après du texte : la CLI n'exécute
- * que celui de tête, mais Claude reconnaît les autres et les lance. Un `/` ou un `@` qui ne cite ni un skill ni un
- * fichier de `files` reste du texte.
+ * Découpe la saisie pour colorer les skills, les `@fichier` et les `#note`. Un skill peut venir après du texte : la
+ * CLI n'exécute que celui de tête, mais Claude reconnaît les autres et les lance. Un `/`, un `@` ou un `#` qui ne cite
+ * ni un skill, ni un fichier de `files`, ni une note de `notes` reste du texte.
  */
-export function promptParts(text: string, skills: ReadonlySet<string>, files?: ReadonlySet<string>): PromptPart[] {
+export function promptParts(text: string, skills: ReadonlySet<string>, files?: ReadonlySet<string>, notes?: ReadonlySet<string>): PromptPart[] {
   const parts: PromptPart[] = []
   let cursor = 0
   TOKEN.lastIndex = 0
@@ -21,6 +25,8 @@ export function promptParts(text: string, skills: ReadonlySet<string>, files?: R
     let part: PromptPart | null = null
     if (token.startsWith('/')) {
       if (skills.has(token.slice(1))) part = { text: token, kind: 'skill', name: token.slice(1) }
+    } else if (token.startsWith('#')) {
+      if (notes?.has(token.slice(1))) part = { text: token, kind: 'note', slug: token.slice(1) }
     } else {
       const path = token.replace(/^@"?|"$/g, '')
       if (files?.has(path)) part = { text: token, kind: 'file', path }

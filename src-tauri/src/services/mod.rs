@@ -7,6 +7,7 @@ pub mod chat;
 pub mod files;
 pub mod github;
 pub mod install;
+pub mod note;
 pub mod notification;
 pub mod operator;
 pub mod power;

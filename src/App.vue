@@ -35,6 +35,7 @@ import { useUpdatesStore } from '@/stores/updates'
 import { useWorkspaceStore } from '@/stores/workspace'
 import type { ShortcutId } from '@/utils/shortcuts'
 import NewWorkspaceView from '@/views/NewWorkspaceView.vue'
+import NotesView from '@/views/NotesView.vue'
 import PlaceholderView from '@/views/PlaceholderView.vue'
 import SearchView from '@/views/SearchView.vue'
 import SettingsView from '@/views/SettingsView.vue'
@@ -291,6 +292,7 @@ onUnmounted(() => {
                 <NewWorkspaceView v-if="navigation.view === 'new'" />
                 <SearchView v-else-if="navigation.view === 'search'" />
                 <SettingsView v-else-if="navigation.view === 'settings'" />
+                <NotesView v-else-if="navigation.view === 'notes'" />
                 <PlaceholderView v-else :view="navigation.view" />
                 <AgentUpdateNotice />
               </main>

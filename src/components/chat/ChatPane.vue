@@ -246,6 +246,15 @@ watch(
   },
   { immediate: true },
 )
+watch(
+  [() => drafts.insertRequested, loaded],
+  ([requested, ready]) => {
+    if (!requested || !ready || requested.chatId !== props.tab.id) return
+    drafts.insertRequested = null
+    composer.value?.insert(requested.text)
+  },
+  { immediate: true },
+)
 
 // Chat de skill qui attend la réponse à son formulaire : il vient d'être ouvert pour qu'on y écrive.
 onMounted(() => {
@@ -255,7 +264,7 @@ onMounted(() => {
 
 <template>
   <!-- Le champ reste le même élément quand la conversation démarre : il garde le focus. -->
-  <div ref="pane" class="relative flex flex-col" data-chat-pane>
+  <div ref="pane" class="relative flex flex-col" :data-chat-pane="tab.id">
     <ChatTranscript
       v-if="items.length"
       :items="items"

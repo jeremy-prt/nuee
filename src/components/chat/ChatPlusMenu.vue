@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { LoaderCircle, Orchestra, Paperclip, Plus } from '@/components/ui/icons'
+import { LoaderCircle, NotebookPen, Orchestra, Paperclip, Plus } from '@/components/ui/icons'
 import { DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuTrigger } from 'reka-ui'
 import { useI18n } from 'vue-i18n'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { menuIcon, menuLabel, menuPanel, menuRow, menuTitle } from '@/components/ui/menuRow'
 
 // Bouton « + » du champ de saisie. Le choix fait, le focus va au champ (`focusAfter`), jamais au bouton.
-const props = defineProps<{ disabled: boolean; loading: boolean; orchestra: boolean; focusAfter: () => void }>()
-const emit = defineEmits<{ attach: []; orchestra: [on: boolean] }>()
+// `summary` : mode « Résumer en note », grisé tant que la session n'a rien à résumer (`summaryOff`).
+const props = defineProps<{ disabled: boolean; loading: boolean; orchestra: boolean; summary: boolean; summaryOff: boolean; focusAfter: () => void }>()
+const emit = defineEmits<{ attach: []; orchestra: [on: boolean]; summary: [on: boolean] }>()
 
 const { t } = useI18n()
 
@@ -53,6 +54,16 @@ function onCloseAutoFocus(event: Event) {
             >
               <Orchestra :class="[menuIcon, 'text-violet']" aria-hidden="true" />
               <span :class="[menuLabel, 'min-w-0 flex-1']">{{ t('composer.orchestra.label') }}</span>
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              :model-value="summary"
+              :disabled="summaryOff"
+              :text-value="t('composer.summary.label')"
+              :class="[menuRow, 'py-1']"
+              @update:model-value="emit('summary', $event === true)"
+            >
+              <NotebookPen :class="[menuIcon, 'text-note']" aria-hidden="true" />
+              <span :class="[menuLabel, 'min-w-0 flex-1']">{{ t('composer.summary.label') }}</span>
             </DropdownMenuCheckboxItem>
           </DropdownMenuContent>
         </DropdownMenuPortal>

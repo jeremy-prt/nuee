@@ -57,6 +57,8 @@
   /* Skill et `@fichier` dans le champ de saisie (couleurs de monocode). */
   --color-skill: hsl(48 78% 59%);
   --color-mention: hsl(199 89% 60%);
+  /* `@note/…` : une teinte à elle, loin du jaune des skills, du bleu des fichiers et du violet d'Orchestre. */
+  --color-note: hsl(330 78% 72%);
   /* Fonds des barres et panneaux (chrome) et de la zone centrale (surface) : voir le style de fenêtre plus bas. */
   --color-chrome: var(--color-canvas);
   --color-surface: var(--color-canvas);
@@ -136,6 +138,7 @@ html[data-mode='light'] {
   --color-max: oklch(57% 0.2 32);
   --color-skill: hsl(40 88% 36%);
   --color-mention: hsl(199 86% 38%);
+  --color-note: hsl(330 64% 44%);
   --project-slate: oklch(0.55 0.03 260);
   --project-blue: oklch(0.55 0.15 250);
   --project-teal: oklch(0.56 0.1 195);
@@ -418,6 +421,117 @@ html[data-mode='light'] {
 @media (prefers-reduced-motion: reduce) {
   .skeleton::after {
     animation: none;
+  }
+}
+
+/* Texte d'une note (NotesBody, Tiptap) : mêmes tailles et teintes que les réponses de l'agent, titres un cran plus
+   grands puisque la note est une page. */
+.note-editor {
+  line-height: 1.65;
+  & > * + * {
+    margin-top: 0.5rem;
+  }
+  & h1,
+  & h2,
+  & h3 {
+    margin-top: 1.25rem;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  & h1 {
+    font-size: 1.25rem;
+  }
+  & h2 {
+    font-size: 1.0625rem;
+  }
+  & h3 {
+    font-size: 0.9375rem;
+  }
+  & ul,
+  & ol {
+    padding-inline-start: 1.25rem;
+  }
+  & ul {
+    list-style: disc;
+  }
+  & ol {
+    list-style: decimal;
+  }
+  & li > p,
+  & li > div > p {
+    margin: 0.125rem 0;
+  }
+  /* Case calée sur la première ligne, texte aligné sur celui des listes à puces (1,25 rem). */
+  & ul[data-type='taskList'] {
+    list-style: none;
+    padding-inline-start: 0;
+    & li {
+      display: flex;
+      gap: 0.375rem;
+      align-items: flex-start;
+      & > label {
+        display: flex;
+        flex-shrink: 0;
+        align-items: center;
+        /* Même marge haute que le paragraphe d'à côté. */
+        margin-top: 0.125rem;
+        height: 1.65em;
+      }
+      & > div {
+        flex: 1;
+        min-width: 0;
+      }
+      &[data-checked='true'] > div {
+        color: var(--color-muted);
+        text-decoration: line-through;
+      }
+    }
+    & input[type='checkbox'] {
+      width: 0.875rem;
+      height: 0.875rem;
+      margin: 0;
+      accent-color: var(--color-accent);
+    }
+  }
+  & blockquote {
+    border-inline-start: 2px solid var(--color-stroke);
+    padding-inline-start: 0.75rem;
+    color: var(--color-muted);
+  }
+  & code {
+    border-radius: var(--radius-sm);
+    background-color: var(--color-selection);
+    padding: 0.125rem 0.25rem;
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+  }
+  & pre {
+    border-radius: var(--radius-lg);
+    background-color: color-mix(in srgb, var(--color-content) 5%, transparent);
+    padding: 0.75rem;
+    font-size: 0.8125rem;
+    & code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+    }
+  }
+  & hr {
+    margin: 1rem 0;
+    border-color: var(--color-stroke);
+  }
+  & a {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  /* Aide du bloc vide où se trouve le curseur, comme Notion. */
+  & .is-empty::before {
+    content: attr(data-placeholder);
+    float: inline-start;
+    height: 0;
+    color: var(--color-muted);
+    pointer-events: none;
   }
 }
 

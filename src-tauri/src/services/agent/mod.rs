@@ -623,6 +623,22 @@ const TITLE_TIMEOUT: Duration = Duration::from_secs(45);
 const COMMIT_PROMPT: &str = "You write git commit titles. The user message holds recent commit titles, the changed \
 files and their diff. Reply with one commit title for these changes: a single line, no quotes, no body, no \
 explanation. Match the style of the recent titles when they share one. Do not call tools.";
+/// Un résumé de longue session se lit et s'écrit en plus d'une minute avec Haiku.
+const NOTE_TIMEOUT: Duration = Duration::from_secs(180);
+/// Bien sous la fenêtre de Haiku : au-delà, le début et surtout la fin de la session restent.
+const NOTE_INPUT_LIMIT: usize = 300_000;
+const NOTE_INPUT_HEAD: usize = 60_000;
+const NOTE_PROMPT: &str = "You turn a coding session transcript into a note the user keeps and may later hand back \
+to a coding agent. The user message holds what the user wants to keep (may be empty), the six section headings to \
+use, then the transcript: their messages, the agent's answers and one line per tool call. Reply with Markdown only, \
+no preamble. First line: `# ` and a title of 3 to 8 words. Then the sections, as `## ` headings written exactly as \
+given and in that order, skipping any that would be empty: 1 the goal (one or two lines, the user's intent in their \
+own terms), 2 decisions (the choice, why, and the alternative set aside), 3 pitfalls (symptom, cause, fix; what was \
+tried and failed), 4 useful commands (the exact command and when to use it), 5 key files (path: its role in this \
+work), 6 what is left to do (a `- [ ]` list, in order). Rules: never invent, only what the transcript shows; keep \
+what cannot be found again by reading the code or the git log; one bullet per fact, two lines at most; exact paths \
+and commands in backticks; 60 lines at most. When the user said what to keep, cover it fully in its section, keep \
+the rest short. Write the title and text in the language of the headings. Do not call tools.";
 /// Un process relancé pour revenir en arrière doit d'abord relire la session.
 const REWIND_TIMEOUT: Duration = Duration::from_secs(30);
 const TASK_OUTPUT_TIMEOUT: Duration = Duration::from_secs(5);
@@ -1060,8 +1076,42 @@ impl AgentService {
         (!line.is_empty()).then(|| line.chars().take(200).collect())
     }
 
+    /// Note markdown tirée d'une session, sans session ni outils : le front donne le texte de la conversation et les
+    /// intertitres traduits (Haiku les laissait en anglais), la consigne `focus` de l'utilisateur passe avant le reste.
+    pub async fn session_note(
+        &self,
+        kind: AgentKind,
+        headings: &[String],
+        focus: &str,
+        transcript: &str,
+    ) -> Option<String> {
+        let driver = kind.driver(&self.scratch);
+        let input = format!(
+            "<keep>\n{}\n</keep>\n\n<headings>\n{}\n</headings>\n\n<transcript>\n{}\n</transcript>",
+            focus.trim(),
+            headings.join("\n"),
+            clip_middle(transcript, NOTE_INPUT_LIMIT, NOTE_INPUT_HEAD)
+        );
+        let output = self
+            .oneshot_for(kind, driver.oneshot_args(NOTE_PROMPT), &input, NOTE_TIMEOUT)
+            .await?;
+        let text = driver.parse_oneshot(&output)?;
+        let text = strip_fence(text.trim());
+        (!text.is_empty()).then(|| text.to_owned())
+    }
+
     /// Lance l'agent une fois, `input` sur stdin, et rend sa sortie brute.
     async fn oneshot(&self, kind: AgentKind, args: Vec<String>, input: &str) -> Option<String> {
+        self.oneshot_for(kind, args, input, TITLE_TIMEOUT).await
+    }
+
+    async fn oneshot_for(
+        &self,
+        kind: AgentKind,
+        args: Vec<String>,
+        input: &str,
+        limit: Duration,
+    ) -> Option<String> {
         if args.is_empty() {
             return None;
         }
@@ -1082,7 +1132,7 @@ impl AgentService {
                 .ok()?;
             Some(output)
         };
-        let output = timeout(TITLE_TIMEOUT, read).await.ok().flatten();
+        let output = timeout(limit, read).await.ok().flatten();
         if let Some(pid) = child.id() {
             process::kill_tree(pid, true);
         }
@@ -1296,6 +1346,28 @@ pub(crate) fn valid_dir(path: &str) -> Result<PathBuf, AppError> {
 }
 
 /// L'id finit en argument de la CLI ou en nom de dossier : rien qui puisse passer pour une option.
+/// Texte trop long : le début (`head` caractères) et la fin, séparés par une marque de coupe.
+fn clip_middle(text: &str, limit: usize, head: usize) -> String {
+    let count = text.chars().count();
+    if count <= limit {
+        return text.to_owned();
+    }
+    let start: String = text.chars().take(head).collect();
+    let end: String = text.chars().skip(count - (limit - head)).collect();
+    format!("{start}\n\n[…]\n\n{end}")
+}
+
+/// Haiku entoure parfois toute sa réponse d'un bloc de code markdown.
+fn strip_fence(text: &str) -> &str {
+    let Some(inner) = text.strip_prefix("```") else {
+        return text;
+    };
+    let Some((_, inner)) = inner.split_once('\n') else {
+        return text;
+    };
+    inner.strip_suffix("```").map_or(text, str::trim)
+}
+
 pub(crate) fn valid_session_id(id: &str) -> bool {
     !id.is_empty()
         && id.len() <= 128
@@ -1360,5 +1432,20 @@ mod tests {
         assert!(valid_names(&["--settings".to_owned()]).is_err());
         assert!(valid_names(&["a\nb".to_owned()]).is_err());
         assert!(valid_names(&[" ".to_owned()]).is_err());
+    }
+
+    #[test]
+    fn a_long_transcript_keeps_its_start_and_end() {
+        let text = format!("{}{}", "a".repeat(10), "b".repeat(30));
+        let clipped = clip_middle(&text, 20, 5);
+        assert!(clipped.starts_with("aaaaa\n"));
+        assert!(clipped.ends_with(&"b".repeat(15)));
+        assert_eq!(clip_middle("court", 20, 5), "court");
+    }
+
+    #[test]
+    fn a_fenced_answer_is_unwrapped() {
+        assert_eq!(strip_fence("```markdown\n# Titre\n```"), "# Titre");
+        assert_eq!(strip_fence("# Titre"), "# Titre");
     }
 }

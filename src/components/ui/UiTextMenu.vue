@@ -3,12 +3,16 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef } f
 import { useI18n } from 'vue-i18n'
 import { menuLabel } from '@/components/ui/menuRow'
 import { clipboardText } from '@/ipc/clipboard'
+import { useNavigationStore } from '@/stores/navigation'
+import { useNotesStore } from '@/stores/notes'
+import { useToastsStore } from '@/stores/toasts'
 import { isMac } from '@/utils/shortcuts'
 
 // Clic droit sur un champ ou du texte sélectionné : remplace le menu de WebKit (Look Up, Writing Tools, Services…) par
 // couper, copier, coller, tout sélectionner. Ailleurs, `main.ts` a déjà coupé le menu natif ; un menu propre à
-// l'élément (session, fichier…) passe avant.
+// l'élément (session, fichier…) passe avant. Dans une conversation, la sélection s'enregistre aussi en note.
 type Field = HTMLInputElement | HTMLTextAreaElement
+type Action = 'cut' | 'copy' | 'paste' | 'selectAll' | 'saveNote'
 
 const { t } = useI18n()
 const panel = useTemplateRef('panel')
@@ -16,14 +20,17 @@ const shown = ref<{ x: number; y: number } | null>(null)
 let field: Field | HTMLElement | null = null
 let range: { start: number; end: number } | Range | null = null
 let selected = ''
+// Session dont le texte sélectionné vient (hors champ de saisie).
+let chatId: string | null = null
 
 const editable = computed(() => !!shown.value && !!field)
 const items = computed(() => {
   const mod = isMac ? '⌘' : 'Ctrl+'
-  const list: { id: 'cut' | 'copy' | 'paste' | 'selectAll'; key: string }[] = []
+  const list: { id: Action; key: string }[] = []
   if (editable.value && selected) list.push({ id: 'cut', key: `${mod}X` })
   if (selected) list.push({ id: 'copy', key: `${mod}C` })
   if (editable.value) list.push({ id: 'paste', key: `${mod}V` }, { id: 'selectAll', key: `${mod}A` })
+  if (shown.value && chatId && selected.trim()) list.push({ id: 'saveNote', key: '' })
   return list
 })
 
@@ -46,6 +53,7 @@ async function onContextMenu(event: MouseEvent) {
     range = selection?.rangeCount ? selection.getRangeAt(0).cloneRange() : null
     selected = selection?.toString() ?? ''
   }
+  chatId = field ? null : (target?.closest<HTMLElement>('[data-chat-pane]')?.dataset.chatPane ?? null)
   if (!field && !selected) return close()
   shown.value = { x: event.clientX, y: event.clientY }
   await nextTick()
@@ -71,8 +79,28 @@ function restore() {
   }
 }
 
-async function run(id: 'cut' | 'copy' | 'paste' | 'selectAll') {
+// Le résultat ne se voit pas d'ici : un message le dit et mène à la note.
+async function saveNote() {
+  if (!chatId) return
+  const notes = useNotesStore()
+  const note = await notes.saveText(selected, chatId)
+  useToastsStore().push({
+    kind: 'success',
+    title: t('notes.saved'),
+    body: note.title,
+    action: {
+      label: t('notes.open'),
+      run: () => {
+        notes.selectedId = note.id
+        useNavigationStore().go('notes')
+      },
+    },
+  })
+}
+
+async function run(id: Action) {
   close()
+  if (id === 'saveNote') return saveNote()
   if (id === 'paste') {
     const text = await clipboardText()
     restore()
@@ -146,7 +174,7 @@ onBeforeUnmount(() => {
       @click="run(item.id)"
     >
       <span :class="[menuLabel, 'flex-1']">{{ t(`textMenu.${item.id}`) }}</span>
-      <span class="shrink-0 text-muted">{{ item.key }}</span>
+      <span v-if="item.key" class="shrink-0 text-muted">{{ item.key }}</span>
     </button>
   </div>
 </template>

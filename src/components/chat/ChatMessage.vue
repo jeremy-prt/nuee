@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CircleAlert, CornerDownRight, File, Folder, Orchestra, TriangleAlert, Undo } from '@/components/ui/icons'
+import { CircleAlert, CornerDownRight, File, Folder, NotebookPen, Orchestra, TriangleAlert, Undo } from '@/components/ui/icons'
 import { computed, nextTick, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AgentLogin from '@/components/agent/AgentLogin.vue'
@@ -11,6 +11,7 @@ import ChatPromptText from '@/components/chat/ChatPromptText.vue'
 import ChatSkillForm from '@/components/chat/ChatSkillForm.vue'
 import ChatSubagent from '@/components/chat/ChatSubagent.vue'
 import ChatQuestionRecord from '@/components/chat/ChatQuestionRecord.vue'
+import ChatSaveNote from '@/components/chat/ChatSaveNote.vue'
 import ChatSessionMessage from '@/components/chat/ChatSessionMessage.vue'
 import ChatTaskCard from '@/components/chat/ChatTaskCard.vue'
 import ChatTool from '@/components/chat/ChatTool.vue'
@@ -20,6 +21,8 @@ import UiImagePreview from '@/components/ui/UiImagePreview.vue'
 import { previewSrc } from '@/ipc/attachment'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import { useAgentsStore } from '@/stores/agents'
+import { useNavigationStore } from '@/stores/navigation'
+import { useNotesStore } from '@/stores/notes'
 import type { ChatItem } from '@/stores/conversations'
 import { START_SESSION } from '@/utils/activity'
 import { agents } from '@/utils/agents'
@@ -57,6 +60,16 @@ const gitDetail = computed(() => {
   if (item.action === 'push') return item.branch ?? item.subject
   return item.subject ?? item.branch
 })
+const notes = useNotesStore()
+const navigation = useNavigationStore()
+
+if (props.item.kind === 'note') notes.ensure()
+
+function openNote(id: string) {
+  notes.selectedId = id
+  navigation.go('notes')
+}
+
 const agentsStore = useAgentsStore()
 const signedIn = computed(() => agentsStore.status[props.agent].account !== null)
 // Connexion validée au clavier : son champ disparaît, le focus passe à Renvoyer au lieu de tomber sur la page.
@@ -139,6 +152,7 @@ watch(signedIn, async (now) => {
     <!-- Au survol seulement : copier, puis la durée du tour sous la dernière réponse, l'heure sous les précédentes. -->
     <div v-if="item.status === 'completed'" class="-ms-1 -mt-1.5 flex items-center gap-0.5 text-xs text-muted" :class="onHover">
       <ChatCopyButton v-if="answer && afterText" :text="answer" :label="t('chat.copy.answer')" />
+      <ChatSaveNote v-if="answer && afterText" :text="answer" />
       <span v-if="latest && item.durationMs !== null" class="px-1 text-[11px] tabular-nums">
         {{ t('chat.end.completed', { duration: formatDuration(item.durationMs, locale, true) }) }}
       </span>
@@ -172,6 +186,17 @@ watch(signedIn, async (now) => {
       </div>
     </div>
   </template>
+  <!-- Résumé de la session enregistré : la carte mène à la note, même supprimée depuis (elle ne s'ouvre plus). -->
+  <div v-else-if="item.kind === 'note'" class="page-in flex items-center gap-3 rounded-xl border border-stroke bg-content/3 px-3 py-2.5">
+    <NotebookPen class="size-4 shrink-0 text-note" aria-hidden="true" />
+    <div class="min-w-0 flex-1">
+      <p class="text-[11px] text-muted">{{ t('notes.summary.created') }}</p>
+      <p class="truncate text-sm font-medium">{{ item.title || t('notes.untitled') }}</p>
+      <p v-if="item.focus" class="truncate text-xs text-muted" :title="item.focus">{{ item.focus }}</p>
+    </div>
+    <UiButton v-if="notes.byId(item.noteId) || !notes.loaded" size="xs" variant="secondary" @click="openNote(item.noteId)">{{ t('notes.open') }}</UiButton>
+    <span v-else class="shrink-0 text-xs text-muted">{{ t('notes.summary.deleted') }}</span>
+  </div>
   <div v-else-if="item.kind === 'error'" class="flex gap-2 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm" role="alert">
     <CircleAlert class="mt-0.5 size-4 shrink-0 text-danger" aria-hidden="true" />
     <p class="min-w-0 break-words select-text">

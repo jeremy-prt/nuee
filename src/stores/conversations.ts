@@ -25,6 +25,7 @@ import { type Signal, useAttentionStore } from '@/stores/attention'
 import { useCatalogStore } from '@/stores/catalog'
 import { useGeneralStore } from '@/stores/general'
 import type { GitAction } from '@/stores/gitActions'
+import { useNotesStore } from '@/stores/notes'
 import { useOperatorStore } from '@/stores/operator'
 import { useOrchestraStore } from '@/stores/orchestra'
 import { useProjectsStore } from '@/stores/projects'
@@ -73,6 +74,8 @@ export type ChatItem =
   | { kind: 'compact'; id: string; status: 'running' | 'done' | 'stopped' | 'failed'; auto?: boolean; before?: number; after?: number; error?: string; at: number }
   // Action git réussie depuis l'interface (`stores/gitActions.ts`), lue par git. `told` : l'agent l'a apprise.
   | { kind: 'git'; id: string; at: number; action: GitAction; subject: string | null; branch: string | null; repo: string | null; told?: boolean }
+  // Note tirée de la session par « Résumer en note » : une carte qui y mène. `focus` : ce que l'utilisateur voulait garder.
+  | { kind: 'note'; id: string; at: number; noteId: string; title: string; focus?: string }
 
 export type CommandItem = Extract<ChatItem, { kind: 'command' }>
 export type CompactItem = Extract<ChatItem, { kind: 'compact' }>
@@ -191,9 +194,10 @@ function lastIndex(items: readonly ChatItem[], match: (item: ChatItem) => boolea
   return -1
 }
 
-// Le séparateur d'une action git se pose entre deux tours : la fin du dernier tour est avant lui.
+// Le séparateur d'une action git et la carte d'un résumé en note se posent entre deux tours : la fin du dernier tour
+// est avant eux.
 export function lastTurnIndex(items: readonly ChatItem[]) {
-  return lastIndex(items, (item) => item.kind !== 'git')
+  return lastIndex(items, (item) => item.kind !== 'git' && item.kind !== 'note')
 }
 
 export function lastTurnItem(items: readonly ChatItem[]) {
@@ -714,7 +718,8 @@ export const useConversationsStore = defineStore('conversations', () => {
 
   // Message d'une autre session : l'agent lit de qui il vient, la conversation garde le texte seul.
   function agentPrompt({ prompt, from }: Pick<Queued, 'prompt' | 'from'>) {
-    if (!from || from.task) return prompt
+    if (!from) return useNotesStore().expand(prompt)
+    if (from.task) return prompt
     const params = { title: from.title ?? from.id, id: from.id, text: prompt, answer: prompt }
     return i18nGlobal().t(from.report ? 'operator.reported' : 'operator.received', params)
   }
