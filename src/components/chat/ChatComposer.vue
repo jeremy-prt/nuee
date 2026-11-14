@@ -72,10 +72,11 @@ const input = useTemplateRef('input')
 // Après un choix de mode, de modèle ou d'effort, on reprend la saisie là où on l'avait laissée.
 const focusInput = () => input.value?.focus()
 
+// Bouclier plein (demande de Jérémy) : les icônes n'existent qu'en contour, son fond prend sa couleur atténuée.
 const modeLooks = {
-  bypass: { icon: ShieldAlert, iconClass: 'text-warning' },
-  auto: { icon: ShieldCheck, iconClass: 'text-info' },
-  ask: { icon: ShieldQuestion, iconClass: undefined },
+  bypass: { icon: ShieldAlert, iconClass: 'text-warning [&_path]:fill-warning/25' },
+  auto: { icon: ShieldCheck, iconClass: 'text-info [&_path]:fill-info/25' },
+  ask: { icon: ShieldQuestion, iconClass: '[&_path]:fill-content/15' },
 } satisfies Record<PermissionMode, { icon: Component; iconClass?: string }>
 const modeLook = computed(() => modeLooks[options.value.mode])
 const modeSections = computed<UiMenuSection[]>(() => [
