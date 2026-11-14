@@ -7,6 +7,7 @@ export const DOCK_VIEWS: DockView[] = ['browser', 'terminal', 'files', 'changes'
 
 
 export type SessionSort = 'activity' | 'created' | 'name'
+export type SessionGroups = 'none' | 'date' | 'status'
 
 // Mode du volet Git : changements non commités ou journal de la branche.
 export type GitMode = 'changes' | 'history'
@@ -70,8 +71,8 @@ interface LayoutState {
   panel: { open: boolean; width: number }
   right: Dock
   sessionSort: SessionSort
-  // Intertitres de date dans la liste des sessions : coupés par défaut, chaque session montre déjà sa date.
-  sessionGroups: boolean
+  // Intertitres de la liste des sessions : coupés par défaut, chaque session montre déjà sa date et son état.
+  sessionGroups: SessionGroups
   // Une ligne par session (titre, état ou heure), comme OpenCode.
   sessionCompact: boolean
   // Ordre des épinglées, choisi en les glissant ; une épinglée absente se range après, selon le tri.
@@ -117,7 +118,7 @@ function defaults(): LayoutState {
     panel: { open: true, width: SIZES.panel.defaultSize },
     right: { open: false, size: SIZES.right.defaultSize, width: null, editorWidth: null, tabs: [], active: null, aside: null, asideRatio: 0.5, preferOpen: true, sessions: {}, projects: {}, gitModes: {} },
     sessionSort: 'activity',
-    sessionGroups: false,
+    sessionGroups: 'none',
     sessionCompact: true,
     pinnedOrder: [],
     pinnedTabs: [],
@@ -156,6 +157,9 @@ function load(): LayoutState {
     )
     delete (state.right as { panes?: unknown }).panes
     delete (state.right as { split?: unknown }).split
+    // Ancien interrupteur « Regrouper par date ».
+    const groups = state.sessionGroups as unknown
+    state.sessionGroups = groups === true ? 'date' : groups === 'date' || groups === 'status' ? groups : 'none'
     const legacy = state as LayoutState & { bottom?: unknown; views?: unknown }
     delete legacy.bottom
     delete legacy.views

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Check, X } from '@/components/ui/icons'
-import { computed, reactive, ref } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsAgentLogo from '@/components/settings/SettingsAgentLogo.vue'
 import UiButton from '@/components/ui/UiButton.vue'
@@ -9,42 +9,32 @@ import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import { useAgentsStore } from '@/stores/agents'
 import { agents } from '@/utils/agents'
 
-// Carte « nouvelle version » d'un agent, comme T3 Code et monocode : en haut à droite (les messages occupent le bas).
+// Carte « nouvelle version » d'un agent, comme T3 Code et monocode : en haut à droite de la zone centrale, pas du panneau.
 // Fermée, elle ne revient qu'au prochain lancement, comme monocode : la fermeture n'est retenue qu'en mémoire (demande de
 // Jérémy, une mise à jour ignorée ne doit pas disparaître pour de bon). Mise à jour faite, elle le dit elle-même.
 const { t } = useI18n()
 const store = useAgentsStore()
-
-const dismissed = reactive<Partial<Record<AgentKind, string>>>({})
-// Ancienne fermeture retenue d'un lancement à l'autre : effacée pour que la carte revienne.
-try {
-  localStorage.removeItem('nuee.agentUpdates.dismissed.v1')
-} catch {
-  // Stockage indisponible : rien à effacer.
-}
-
-// Résultat de la dernière mise à jour lancée ici : la carte reste pour l'annoncer, ou montrer l'erreur.
-const result = ref<{ kind: AgentKind; version: string | null; error: string | null } | null>(null)
+const result = computed(() => store.notice.result)
 
 async function update(kind: AgentKind) {
-  result.value = null
+  store.notice.result = null
   const outcome = await store.update(kind, false)
-  result.value = { kind, version: outcome.updated ? store.status[kind].version : null, error: outcome.updated ? null : outcome.message }
+  store.notice.result = { kind, version: outcome.updated ? store.status[kind].version : null, error: outcome.updated ? null : outcome.message }
 }
 
 function close() {
   const current = notice.value
-  if (current?.status.latest) dismissed[current.kind] = current.status.latest
-  result.value = null
+  if (current?.status.latest) store.notice.dismissed[current.kind] = current.status.latest
+  store.notice.result = null
 }
 
 // Un seul agent à la fois : le premier activé qui a une version plus récente, pas encore écartée.
 const notice = computed(() => {
-  const done = result.value?.version ? result.value : null
+  const done = store.notice.result?.version ? store.notice.result : null
   if (done) return { kind: done.kind, status: store.status[done.kind], name: agents[done.kind].name }
   for (const kind of Object.keys(agents) as AgentKind[]) {
     const status = store.status[kind]
-    if (store.settings[kind].enabled && status.state === 'found' && status.latest && dismissed[kind] !== status.latest) {
+    if (store.settings[kind].enabled && status.state === 'found' && status.latest && store.notice.dismissed[kind] !== status.latest) {
       return { kind, status, name: agents[kind].name }
     }
   }
@@ -55,7 +45,7 @@ const notice = computed(() => {
 <template>
   <section
     v-if="notice"
-    class="ui-glass fixed end-4 top-14 z-40 w-[min(26rem,calc(100%-2rem))] rounded-xl p-3 text-content"
+    class="ui-glass absolute end-3 top-3 z-40 w-[min(26rem,calc(100%-1.5rem))] rounded-xl p-3 text-content"
     role="status"
     :aria-label="t('agentUpdate.title', { agent: notice.name })"
   >

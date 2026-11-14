@@ -4,6 +4,7 @@ import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ShellChatGroup from '@/components/shell/ShellChatGroup.vue'
 import { useProgressiveList } from '@/composables/useProgressiveList'
+import { useSessionStatus } from '@/composables/useSessionStatus'
 import { useTabTitle } from '@/composables/useTabTitle'
 import { useClockStore } from '@/stores/clock'
 import { useDragStore } from '@/stores/drag'
@@ -25,6 +26,7 @@ const projects = useProjectsStore()
 const workspace = useWorkspaceStore()
 const worktrees = useWorktreesStore()
 const { tabTitle } = useTabTitle()
+const sessionStatus = useSessionStatus()
 
 const dateKey = computed(() => (layout.sessionSort === 'created' ? 'createdAt' : layout.sessionSort === 'activity' ? 'updatedAt' : null))
 
@@ -43,18 +45,32 @@ const pinned = computed(() => {
   }
   return sorted(workspace.pinnedChats).sort((a, b) => rank(a) - rank(b))
 })
-const { shown: recentShown, more, limit, sentinel } = useProgressiveList(
-  computed(() => sorted(workspace.recentChats)),
-  () => navigation.projectId,
-)
+// « Terminées » : fin pas encore vue ; une fois la session ouverte, elle passe en « Inactives ».
+type StatusGroup = 'waiting' | 'failed' | 'working' | 'done' | 'idle'
+const STATUS_RANK: Record<StatusGroup, number> = { waiting: 0, failed: 1, working: 2, done: 3, idle: 4 }
 
-// Intertitres de date sur demande (menu de tri), jamais en tri par nom où ils couperaient l'ordre alphabétique.
+function statusGroup(tab: Tab): StatusGroup {
+  const status = sessionStatus(tab.id)
+  if (status === 'approval' || status === 'question') return 'waiting'
+  return status ?? 'idle'
+}
+
+// En groupage par statut, les sessions actives passent devant avant le découpage progressif : jamais cachées plus bas.
+const recent = computed(() => {
+  const list = sorted(workspace.recentChats)
+  if (layout.sessionGroups !== 'status') return list
+  return list.sort((a, b) => STATUS_RANK[statusGroup(a)] - STATUS_RANK[statusGroup(b)])
+})
+const { shown: recentShown, more, limit, sentinel } = useProgressiveList(recent, () => navigation.projectId)
+
+// Intertitres sur demande (menu de tri) ; ceux de date jamais en tri par nom, ils couperaient l'ordre alphabétique.
 const groups = computed(() => {
   const key = dateKey.value
-  if (!key || !layout.sessionGroups) return [{ id: null, tabs: recentShown.value }]
-  const result: { id: DateGroup | null; tabs: Tab[] }[] = []
+  const mode = layout.sessionGroups
+  if (mode === 'none' || (mode === 'date' && !key)) return [{ id: null, tabs: recentShown.value }]
+  const result: { id: `${DateGroup}` | `status.${StatusGroup}` | null; tabs: Tab[] }[] = []
   for (const tab of recentShown.value) {
-    const id = dateGroup(tab[key], clock.now)
+    const id = mode === 'status' ? (`status.${statusGroup(tab)}` as const) : dateGroup(tab[key!], clock.now)
     const last = result.at(-1)
     if (last?.id === id) last.tabs.push(tab)
     else result.push({ id, tabs: [tab] })

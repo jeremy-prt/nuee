@@ -246,5 +246,17 @@ export const useAgentsStore = defineStore('agents', () => {
     )
   }
 
-  return { settings, status, detect, refresh, update, confirm, track, setPath, chatDefaults, reset, login, loginError, signIn, sendLoginCode, openLoginPage, cancelSignIn }
+  // Carte de mise à jour : fermeture gardée en mémoire seulement (elle revient au lancement), dernier résultat affiché.
+  const notice = reactive<{
+    dismissed: Partial<Record<AgentKind, string>>
+    result: { kind: AgentKind; version: string | null; error: string | null } | null
+  }>({ dismissed: {}, result: null })
+  // Ancienne fermeture retenue d'un lancement à l'autre : effacée pour que la carte revienne.
+  try {
+    localStorage.removeItem('nuee.agentUpdates.dismissed.v1')
+  } catch {
+    // Stockage indisponible : rien à effacer.
+  }
+
+  return { settings, status, notice, detect, refresh, update, confirm, track, setPath, chatDefaults, reset, login, loginError, signIn, sendLoginCode, openLoginPage, cancelSignIn }
 })

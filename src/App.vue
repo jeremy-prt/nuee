@@ -256,6 +256,7 @@ onUnmounted(() => {
                 >
                   <ShellBackground />
                   <WorkspaceView />
+                  <AgentUpdateNotice v-if="inChats" />
                 </main>
               </div>
               <template v-if="dockShown && inChats">
@@ -290,6 +291,7 @@ onUnmounted(() => {
                 <SearchView v-else-if="navigation.view === 'search'" />
                 <SettingsView v-else-if="navigation.view === 'settings'" />
                 <PlaceholderView v-else :view="navigation.view" />
+                <AgentUpdateNotice />
               </main>
             </div>
             <template v-if="previewedSkill">
@@ -342,7 +344,6 @@ onUnmounted(() => {
     >
       {{ drag.ghost.label }}
     </div>
-    <AgentUpdateNotice />
     <UiConfirmDialog />
     <UiToasts />
   </TooltipProvider>
