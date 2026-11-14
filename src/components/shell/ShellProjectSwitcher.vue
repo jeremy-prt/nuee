@@ -212,7 +212,7 @@ const row = [menuRow.replace('items-start', 'items-center'), 'h-8']
                   </span>
                   <span v-else :class="[menuLabel, 'flex-1']">{{ item.project?.name ?? noneLabel }}</span>
                   <!-- Hors du parcours clavier, comme T3 Code : « Réglages rapides », en bas, y mène au clavier. -->
-                  <UiTooltip :label="t('rail.quickSettings')" side="right" :side-offset="8" :disabled="rowMenu === item.key">
+                  <UiTooltip :label="t('rail.quickSettings')" side="top" :disabled="!!rowMenu">
                     <span class="flex">
                       <DropdownMenuRoot
                         :open="rowMenu === item.key"
