@@ -87,7 +87,7 @@ async function addProject() {
 }
 
 const pages = [
-  { view: 'new', icon: Plus },
+  { view: 'new', icon: Plus, shortcut: 'newChat' },
   { view: 'github', icon: Github },
   { view: 'notes', icon: NotebookPen },
   { view: 'search', icon: Search, shortcut: 'search' },

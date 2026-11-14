@@ -667,6 +667,8 @@ export default {
     attach: 'Joindre des fichiers',
     attachments: 'Pièces jointes',
     removeAttachment: 'Retirer {name}',
+    copyImage: "Copier l'image",
+    imageCopyFailed: "Impossible de copier l'image",
     attachFailed: 'Impossible de joindre : {detail}',
     skills: 'Skills',
     files: 'Fichiers',

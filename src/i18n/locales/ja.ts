@@ -667,6 +667,8 @@ export default {
     attach: 'ファイルを添付',
     attachments: '添付ファイル',
     removeAttachment: '{name} を削除',
+    copyImage: "画像をコピー",
+    imageCopyFailed: "画像をコピーできませんでした",
     attachFailed: '添付できませんでした: {detail}',
     skills: 'スキル',
     files: 'ファイル',

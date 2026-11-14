@@ -18,7 +18,7 @@ const emit = defineEmits<{ 'update:open': [open: boolean] }>()
     <ContextMenuPortal>
       <ContextMenuContent
         :collision-padding="8"
-        :class="[menuPanel, 'max-h-(--reka-context-menu-content-available-height) max-w-72 min-w-52']"
+        :class="[menuPanel, 'max-h-(--reka-context-menu-content-available-height) max-w-72 min-w-40']"
         @close-auto-focus.prevent
       >
         <slot name="menu" />

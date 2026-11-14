@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowUp, Orchestra, ShieldAlert, ShieldCheck, ShieldQuestion, Square, X } from '@/components/ui/icons'
+import { ArrowUp, Copy, Orchestra, ShieldAlert, ShieldCheck, ShieldQuestion, Square, X } from '@/components/ui/icons'
 import { type Component, computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatContextMeter from '@/components/chat/ChatContextMeter.vue'
@@ -9,9 +9,11 @@ import ChatOrchestraBurst from '@/components/chat/ChatOrchestraBurst.vue'
 import ChatPlusMenu from '@/components/chat/ChatPlusMenu.vue'
 import ChatPromptText from '@/components/chat/ChatPromptText.vue'
 import ChatSlashMenu from '@/components/chat/ChatSlashMenu.vue'
+import UiContextMenu from '@/components/ui/UiContextMenu.vue'
 import UiFileIcon from '@/components/ui/UiFileIcon.vue'
 import UiImagePreview from '@/components/ui/UiImagePreview.vue'
 import UiMenu, { type UiMenuSection } from '@/components/ui/UiMenu.vue'
+import UiMenuItem from '@/components/ui/UiMenuItem.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { attachmentImport, attachmentSave, previewSrc } from '@/ipc/attachment'
 import { isAppError } from '@/ipc/agent'
@@ -28,6 +30,7 @@ import { useGeneralStore } from '@/stores/general'
 import { useOrchestraStore } from '@/stores/orchestra'
 import type { Project } from '@/stores/projects'
 import { useShortcutsStore } from '@/stores/shortcuts'
+import { useToastsStore } from '@/stores/toasts'
 
 const props = defineProps<{
   chatId: string
@@ -52,6 +55,7 @@ const options = defineModel<TurnOptions>('options', { required: true })
 const emit = defineEmits<{ send: [prompt: string, attachments: Attachment[], other: boolean]; stop: []; warm: []; compact: [] }>()
 
 const { t } = useI18n()
+const toasts = useToastsStore()
 const shortcuts = useShortcutsStore()
 const general = useGeneralStore()
 const drafts = useDraftsStore()
@@ -245,6 +249,26 @@ function onPaste(event: ClipboardEvent) {
   attachWith(() => Promise.all(files.map((file) => attachmentSave(props.chatId, file))))
 }
 
+// Le presse-papiers n'accepte que du PNG : une autre image est redessinée. Le blob passe en promesse pour que la copie
+// reste rattachée au clic (Safari refuse sinon).
+async function pngOf(src: string) {
+  const blob = await (await fetch(src)).blob()
+  if (blob.type === 'image/png') return blob
+  const bitmap = await createImageBitmap(blob)
+  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
+  canvas.getContext('2d')?.drawImage(bitmap, 0, 0)
+  return canvas.convertToBlob({ type: 'image/png' })
+}
+
+async function copyImage(attachment: Attachment) {
+  if (!attachment.preview) return
+  try {
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngOf(previewSrc(attachment.preview)) })])
+  } catch {
+    toasts.push({ kind: 'error', title: t('composer.imageCopyFailed'), body: attachment.name })
+  }
+}
+
 function remove(index: number, event: MouseEvent) {
   attachments.value = attachments.value.filter((_, i) => i !== index)
   // Validée au clavier, la croix disparaît avec sa pièce jointe : le focus va au champ.
@@ -317,9 +341,14 @@ function onKeydown(event: KeyboardEvent) {
     >
       <ul v-if="attachments.length" class="flex flex-wrap gap-2 px-3 pt-3" :aria-label="t('composer.attachments')">
         <li v-for="(attachment, index) in attachments" :key="attachment.preview ?? attachment.path" class="group relative" :title="attachment.path">
-          <UiImagePreview v-if="attachment.preview" :src="previewSrc(attachment.preview)" :alt="attachment.name" class="size-12 overflow-hidden border border-stroke">
-            <img :src="previewSrc(attachment.preview)" :alt="attachment.name" class="size-full object-cover" />
-          </UiImagePreview>
+          <UiContextMenu v-if="attachment.preview">
+            <UiImagePreview :src="previewSrc(attachment.preview)" :alt="attachment.name" class="size-12 overflow-hidden border border-stroke">
+              <img :src="previewSrc(attachment.preview)" :alt="attachment.name" class="size-full object-cover" />
+            </UiImagePreview>
+            <template #menu>
+              <UiMenuItem :label="t('composer.copyImage')" :icon="Copy" @select="copyImage(attachment)" />
+            </template>
+          </UiContextMenu>
           <div v-else class="flex h-12 max-w-48 items-center gap-2 rounded-lg bg-content/6 ps-2.5 pe-7 text-xs">
             <UiFileIcon :name="attachment.name" :folder="attachment.kind === 'folder'" class="size-4 shrink-0" />
             <span class="min-w-0 truncate">{{ attachment.name }}</span>

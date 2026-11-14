@@ -665,6 +665,8 @@ export default {
     attach: 'Attach files',
     attachments: 'Attachments',
     removeAttachment: 'Remove {name}',
+    copyImage: "Copy image",
+    imageCopyFailed: "Could not copy the image",
     attachFailed: 'Could not attach: {detail}',
     skills: 'Skills',
     files: 'Files',

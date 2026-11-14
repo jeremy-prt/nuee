@@ -36,7 +36,7 @@ function onCloseAutoFocus(event: Event) {
             align="start"
             :side-offset="4"
             :collision-padding="8"
-            :class="[menuPanel, 'max-h-(--reka-dropdown-menu-content-available-height) max-w-72 min-w-52']"
+            :class="[menuPanel, 'max-h-(--reka-dropdown-menu-content-available-height) max-w-72 min-w-40']"
             @close-auto-focus="onCloseAutoFocus"
           >
             <slot />

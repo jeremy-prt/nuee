@@ -667,6 +667,8 @@ export default {
     attach: 'Adjuntar archivos',
     attachments: 'Archivos adjuntos',
     removeAttachment: 'Quitar {name}',
+    copyImage: "Copiar imagen",
+    imageCopyFailed: "No se pudo copiar la imagen",
     attachFailed: 'No se pudo adjuntar: {detail}',
     skills: 'Skills',
     files: 'Archivos',

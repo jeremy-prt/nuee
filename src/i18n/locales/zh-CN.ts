@@ -667,6 +667,8 @@ export default {
     attach: '附加文件',
     attachments: '附件',
     removeAttachment: '移除 {name}',
+    copyImage: "复制图片",
+    imageCopyFailed: "无法复制图片",
     attachFailed: '无法附加：{detail}',
     skills: '技能',
     files: '文件',
