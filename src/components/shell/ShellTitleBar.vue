@@ -8,6 +8,7 @@ import ShellEnvironment from '@/components/shell/ShellEnvironment.vue'
 import ShellPinnedDeck from '@/components/shell/ShellPinnedDeck.vue'
 import ShellRailToggle from '@/components/shell/ShellRailToggle.vue'
 import ShellTabs from '@/components/shell/ShellTabs.vue'
+import ShellTitleActions from '@/components/shell/ShellTitleActions.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import { useDockFocus } from '@/composables/useDockFocus'
 import { useNewChat } from '@/composables/useNewChat'
@@ -154,9 +155,11 @@ const spacer = computed(() => (menu.value ? 0 : Math.max(0, centerStart.value - 
         <span class="flex-1 self-stretch" data-tauri-drag-region />
         <!-- Environnement n'est pas un volet : un panneau flottant (choix de Jérémy). Comme le bouton des
              détails de T3 Code, il reste du côté de la session, à gauche des onglets du panneau. -->
-        <span class="flex shrink-0" :class="{ 'me-1': layout.right.open }">
+        <span class="flex shrink-0">
           <ShellEnvironment />
         </span>
+        <!-- Hors de la zone du panneau : dedans, ils prendraient la place de ses onglets. -->
+        <ShellTitleActions :class="{ 'me-1': layout.right.open }" />
         <!-- Comme Orca et l'app Claude : panneau ouvert, ses volets se choisissent au-dessus de lui, dans une zone calée
              sur sa largeur (poignée comprise) ; `-me-2` annule la marge de la barre ; le bouton qui l'ouvre reste tout à droite.
              Quand le panneau glisse (`useColumnSlide`), ses onglets suivent son bord. -->

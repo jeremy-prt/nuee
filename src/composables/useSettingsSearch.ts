@@ -304,6 +304,27 @@ const entries: SettingEntry[] = [
     terms: options('settings.interface.chatWidth', ['normal', 'wide', 'full']),
     keywords: ['chatWidth'],
   },
+  {
+    id: 'animations-background',
+    section: 'appearance',
+    label: 'settings.animations.background.label',
+    hint: 'settings.animations.background.hint',
+    keywords: ['animations', 'stars'],
+  },
+  {
+    id: 'animations-scenes',
+    section: 'appearance',
+    label: 'settings.animations.scenes.label',
+    hint: 'settings.animations.scenes.hint',
+    keywords: ['animations', 'scenes'],
+  },
+  {
+    id: 'animations-interface',
+    section: 'appearance',
+    label: 'settings.animations.interface.label',
+    hint: 'settings.animations.interface.hint',
+    keywords: ['animations'],
+  },
   ...shortcutIds.map((id) => ({
     id: `shortcut-${id}`,
     section: 'shortcuts' as const,

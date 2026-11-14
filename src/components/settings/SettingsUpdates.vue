@@ -6,6 +6,7 @@ import SettingsGroup from '@/components/settings/SettingsGroup.vue'
 import SettingsRow from '@/components/settings/SettingsRow.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiSwitch from '@/components/ui/UiSwitch.vue'
+import UiWaveText from '@/components/ui/UiWaveText.vue'
 import { appVersion, openGithubPage } from '@/ipc/system'
 import { useGeneralStore } from '@/stores/general'
 import { useUpdatesStore } from '@/stores/updates'
@@ -50,7 +51,9 @@ function checkOrView() {
             enter-active-class="transition-opacity duration-300 ease-out motion-reduce:transition-none"
             enter-from-class="opacity-0"
           >
-            <span v-if="result" :key="result.text" :class="result.tone"> · {{ result.text }}</span>
+            <span v-if="result" :key="result.text" :class="result.tone">
+              · <UiWaveText v-if="release" :text="result.text" /><template v-else>{{ result.text }}</template>
+            </span>
           </Transition>
         </span>
       </template>

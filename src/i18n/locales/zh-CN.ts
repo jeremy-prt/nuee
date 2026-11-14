@@ -181,6 +181,9 @@ export default {
     changes: {
       title: 'Git',
       modes: { changes: "更改", history: "历史" },
+      counter: "更改，{added}，{removed}",
+      additions: "无新增 | 新增 1 行 | 新增 {n} 行",
+      deletions: "无删除 | 删除 1 行 | 删除 {n} 行",
       messageLabel: "提交信息",
       messagePlaceholder: "信息（{key} 提交）",
       generate: "生成信息",
@@ -331,6 +334,7 @@ export default {
       emptyTitle: "没有文件",
       empty: "会话的文件在第一条消息之后显示。",
       search: "搜索",
+      searchFiles: "搜索文件",
       namePlaceholder: "文件名",
       searchPlaceholder: "文件中的文本",
       matchCase: "区分大小写",
@@ -1287,6 +1291,9 @@ export default {
         background: '壁纸 照片 图片',
         zoom: '缩放 放大 缩小 字体 文字 大小',
         chatWidth: '宽 窄 列',
+        animations: '动画 动效 效果',
+        stars: '星星 流星 背景 指针 光晕',
+        scenes: '场景 像素画 像素风',
         projects: '文件夹 目录 仓库 工作区',
         worktree: 'git 分支 副本 隔离',
         archive: '归档 隐藏 历史 存放',
@@ -1428,6 +1435,21 @@ export default {
         normal: '标准',
         wide: '较宽',
         full: '全宽',
+      },
+    },
+    animations: {
+      title: '动画',
+      background: {
+        label: '新会话背景',
+        hint: '星星和跟随指针的光晕。',
+      },
+      scenes: {
+        label: '小场景',
+        hint: '新会话底部不时出现一段简短的像素风动画。',
+      },
+      interface: {
+        label: '界面效果',
+        hint: '开启模式时的闪光、逐渐显现的会话标题、新版本标记。',
       },
     },
     background: {

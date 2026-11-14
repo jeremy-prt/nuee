@@ -181,6 +181,9 @@ export default {
     changes: {
       title: 'Git',
       modes: { changes: "Cambios", history: "Historial" },
+      counter: "Cambios, {added}, {removed}",
+      additions: "ninguna adición | 1 adición | {n} adiciones",
+      deletions: "ninguna eliminación | 1 eliminación | {n} eliminaciones",
       messageLabel: "Mensaje del commit",
       messagePlaceholder: "Mensaje ({key} para hacer commit)",
       generate: "Generar el mensaje",
@@ -331,6 +334,7 @@ export default {
       emptyTitle: "Ningún archivo",
       empty: "Los archivos de la sesión aparecen tras su primer mensaje.",
       search: "Buscar",
+      searchFiles: "Buscar archivos",
       namePlaceholder: "Nombre de archivo",
       searchPlaceholder: "Texto en los archivos",
       matchCase: "Distinguir mayúsculas",
@@ -1287,6 +1291,9 @@ export default {
         background: 'fondo de pantalla foto imagen',
         zoom: 'zoom escala fuente texto tamaño ampliar reducir',
         chatWidth: 'ancho estrecho columna',
+        animations: 'animación animado movimiento efectos',
+        stars: 'estrellas fugaces fondo puntero halo',
+        scenes: 'escenas pixel art',
         projects: 'carpeta directorio repositorio espacio de trabajo',
         worktree: 'git rama copia aislar',
         archive: 'archivo archivar ocultar historial guardar',
@@ -1428,6 +1435,21 @@ export default {
         normal: 'Normal',
         wide: 'Amplio',
         full: 'Todo el ancho',
+      },
+    },
+    animations: {
+      title: 'Animaciones',
+      background: {
+        label: 'Fondo de la sesión nueva',
+        hint: 'Estrellas y un halo que sigue al puntero.',
+      },
+      scenes: {
+        label: 'Pequeñas escenas',
+        hint: 'Una breve animación en pixel art pasa de vez en cuando por la parte inferior de la sesión nueva.',
+      },
+      interface: {
+        label: 'Efectos de la interfaz',
+        hint: 'Destellos al activar un modo, título de sesión que se revela, indicador de nueva versión.',
       },
     },
     background: {

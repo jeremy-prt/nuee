@@ -9,6 +9,7 @@ import ShellChatMenu from '@/components/shell/ShellChatMenu.vue'
 import UiContextMenu from '@/components/ui/UiContextMenu.vue'
 import UiMoreMenu from '@/components/ui/UiMoreMenu.vue'
 import UiRenameField from '@/components/ui/UiRenameField.vue'
+import UiTitleReveal from '@/components/ui/UiTitleReveal.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { useLayoutDrag } from '@/composables/useLayoutDrag'
 import { useProjectActions } from '@/composables/useProjectActions'
@@ -180,7 +181,7 @@ watch(
           />
           <template v-else>
             <span class="flex min-w-0 flex-1 items-center gap-1" :class="fadeUnder">
-              <span class="min-w-0 truncate text-[13px]/5" :class="titleTone">{{ tabTitle(tab) }}</span>
+              <span class="min-w-0 truncate text-[13px]/5" :class="titleTone"><UiTitleReveal :title="tab.title" :fallback="tabTitle(tab)" /></span>
               <span v-if="opened && !active" class="sr-only">, {{ t('chats.openInTab') }}</span>
             </span>
             <span v-if="group?.unread && !group.open" class="size-1.5 shrink-0 rounded-full bg-signal"><span class="sr-only">, {{ t('chats.nested.unread', { n: group.unread }) }},</span></span>
@@ -215,7 +216,7 @@ watch(
               @cancel="stopRename()"
             />
             <span v-else class="flex min-w-0 flex-1 items-center gap-1" :class="{ [fadeUnder]: !branch, [keepClear]: group }">
-              <span class="min-w-0 truncate text-[13px]/5 font-medium" :class="titleTone">{{ tabTitle(tab) }}</span>
+              <span class="min-w-0 truncate text-[13px]/5 font-medium" :class="titleTone"><UiTitleReveal :title="tab.title" :fallback="tabTitle(tab)" /></span>
               <span v-if="opened && !active" class="sr-only">, {{ t('chats.openInTab') }}</span>
               <span v-if="group" class="-m-0.5 grid size-4 shrink-0 place-items-center text-muted hover:text-content" :class="chevronShown" aria-hidden="true" @click.stop="emit('toggle')" @dblclick.stop @pointerdown.stop>
                 <component :is="group.open ? ChevronDown : ChevronRight" class="size-3" />

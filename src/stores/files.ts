@@ -21,6 +21,8 @@ interface Browse extends EditorTabs<string> {
   expanded: Set<string>
   rootOpen: boolean
   searching: boolean
+  // Recherche demandée alors qu'elle était déjà ouverte : son champ reprend le focus.
+  searchFocus: number
   selected: string | null
   editing: Editing | null
   // Dossiers déjà lus (`''` : la racine), gardés pour réafficher l'arbre aussitôt, relus à chaque changement.
@@ -73,6 +75,7 @@ export const useFilesStore = defineStore('files', () => {
         expanded: new Set(),
         rootOpen: true,
         searching: false,
+        searchFocus: 0,
         selected: null,
         editing: null,
         dirs: new Map(),
@@ -91,6 +94,12 @@ export const useFilesStore = defineStore('files', () => {
     openTab(browse, path, same, options.pin)
     browse.selected = path
     browse.goto = options.line ? { path, line: options.line } : null
+  }
+
+  function openSearch(chatId: string) {
+    const browse = of(chatId)
+    browse.searching = true
+    browse.searchFocus++
   }
 
   function pin(chatId: string, path: string) {
@@ -162,5 +171,5 @@ export const useFilesStore = defineStore('files', () => {
     return editorsLoad
   }
 
-  return { of, openFile, pin, closeFile, moved, view, setView, explorerWidth, setExplorerWidth, explorerShown, wantsFocus, requestFocus, clipboard, editors, finderIcon, loadEditors }
+  return { of, openFile, openSearch, pin, closeFile, moved, view, setView, explorerWidth, setExplorerWidth, explorerShown, wantsFocus, requestFocus, clipboard, editors, finderIcon, loadEditors }
 })

@@ -8,6 +8,7 @@ import type { AgentStatus as Probed } from '@/ipc/bindings/AgentStatus'
 import type { PermissionMode } from '@/ipc/bindings/PermissionMode'
 import type { TurnOptions } from '@/ipc/bindings/TurnOptions'
 import type { TurnStatus } from '@/ipc/bindings/TurnStatus'
+import { useCatalogStore } from '@/stores/catalog'
 import { useToastsStore } from '@/stores/toasts'
 import { agents } from '@/utils/agents'
 
@@ -83,6 +84,7 @@ export const useAgentsStore = defineStore('agents', () => {
 
   // La dernière détection lancée l'emporte : une réponse plus ancienne (autre chemin) est ignorée.
   const runs: Partial<Record<AgentKind, number>> = {}
+  const probedAt: Partial<Record<AgentKind, number>> = {}
 
   // quiet : rafraîchir (quotas) sans repasser par « Recherche… » quand l'agent est déjà trouvé.
   async function detect(kind: AgentKind, quiet = false) {
@@ -90,9 +92,12 @@ export const useAgentsStore = defineStore('agents', () => {
     const run = (runs[kind] ?? 0) + 1
     runs[kind] = run
     if (!quiet || current.state !== 'found') current.state = 'checking'
+    probedAt[kind] = Date.now()
     try {
       const probed = await agentProbe(kind, settings[kind].path)
-      if (runs[kind] === run) Object.assign(current, probed, { state: 'found' })
+      if (runs[kind] !== run) return
+      Object.assign(current, probed, { state: 'found' })
+      useCatalogStore().reload(kind)
     } catch (error) {
       if (runs[kind] !== run) return
       const state = isAppError(error) && error.kind === 'agentFailed' ? 'error' : 'missing'
@@ -222,6 +227,15 @@ export const useAgentsStore = defineStore('agents', () => {
   }
 
   for (const kind of kinds) detect(kind)
+
+  // Agent mis à jour hors de Nuée (terminal) : ses nouveaux modèles arrivent au retour sur la fenêtre, 10 min après la
+  // dernière sonde au plus tôt (elle lance la CLI une à deux secondes).
+  const REPROBE = 10 * 60 * 1000
+  window.addEventListener('focus', () => {
+    for (const kind of kinds) {
+      if (status[kind].state === 'found' && Date.now() - (probedAt[kind] ?? 0) > REPROBE) detect(kind, true)
+    }
+  })
 
   // Nouvelle recherche demandée par un clic : le message dit si l'agent est là.
   async function refresh(kind: AgentKind) {

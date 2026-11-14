@@ -179,6 +179,9 @@ export default {
     changes: {
       title: 'Git',
       modes: { changes: "Changes", history: "History" },
+      counter: "Changes, {added}, {removed}",
+      additions: "no additions | 1 addition | {n} additions",
+      deletions: "no deletions | 1 deletion | {n} deletions",
       messageLabel: "Commit message",
       messagePlaceholder: "Message ({key} to commit)",
       generate: "Generate the message",
@@ -329,6 +332,7 @@ export default {
       emptyTitle: "No files yet",
       empty: "Session files show up after its first message.",
       search: "Search",
+      searchFiles: "Search files",
       namePlaceholder: "File name",
       searchPlaceholder: "Text in files",
       matchCase: "Match case",
@@ -1285,6 +1289,9 @@ export default {
         background: 'wallpaper picture photo',
         zoom: 'zoom scale font text size bigger smaller',
         chatWidth: 'wide narrow column',
+        animations: 'animation animated motion effects',
+        stars: 'stars shooting background pointer halo glow',
+        scenes: 'scenes pixel art',
         projects: 'folder directory repository workspace',
         worktree: 'git branch copy isolate',
         archive: 'archive hide history store',
@@ -1426,6 +1433,21 @@ export default {
         normal: 'Normal',
         wide: 'Wide',
         full: 'Full width',
+      },
+    },
+    animations: {
+      title: 'Animations',
+      background: {
+        label: 'New session background',
+        hint: 'Stars and a glow that follows the pointer.',
+      },
+      scenes: {
+        label: 'Little scenes',
+        hint: 'A short pixel art animation passes by now and then at the bottom of a new session.',
+      },
+      interface: {
+        label: 'Interface effects',
+        hint: 'Bursts when a mode turns on, a session title that reveals itself, the new version badge.',
       },
     },
     background: {

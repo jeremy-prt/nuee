@@ -95,18 +95,21 @@ export type ZoomLevel = (typeof zoomLevels)[number]
 
 export const chatWidths = ['normal', 'wide', 'full'] as const
 export type ChatWidth = (typeof chatWidths)[number]
-// En proportion de la zone du chat (le % d'un max-width se rapporte au parent), bornée : jamais sous
-// 640 px tant que la zone le permet, pour qu'une petite fenêtre ne donne pas une colonne minuscule,
-// ni trop large sur un grand écran. La fenêtre elle-même ne descend pas sous 800 × 500 (tauri.conf.json).
+// Largeur fixe, comme la colonne de 832 px de monocode : ouvrir ou fermer un panneau ne la change pas, elle ne
+// rétrécit que si la zone devient plus étroite qu'elle. Une largeur en % suivait chaque panneau.
 const CHAT_WIDTH: Record<ChatWidth, string> = {
-  normal: 'clamp(40rem, 60%, 56rem)',
-  wide: 'clamp(40rem, 80%, 80rem)',
+  normal: 'min(52rem, 100%)',
+  wide: 'min(72rem, 100%)',
   full: '100%',
 }
 
 // Projets dans la colonne de gauche, ou dans un menu en haut à gauche avec l'espace de travail en carte.
 export const appLayouts = ['columns', 'menu'] as const
 export type AppLayout = (typeof appLayouts)[number]
+
+export const animationKinds = ['background', 'scenes', 'interface'] as const
+export type AnimationKind = (typeof animationKinds)[number]
+export type Animations = Record<AnimationKind, boolean>
 
 const STORAGE_KEY = 'nuee.appearance.v9'
 // Avant la v9, le thème n'était qu'un accent : il devient le choix d'accent.
@@ -126,6 +129,7 @@ interface AppearanceState {
   zoom: ZoomLevel
   chatWidth: ChatWidth
   layout: AppLayout
+  animations: Animations
 }
 
 function defaults(): AppearanceState {
@@ -139,6 +143,7 @@ function defaults(): AppearanceState {
     zoom: 100,
     chatWidth: 'normal',
     layout: 'menu',
+    animations: { background: true, scenes: true, interface: true },
   }
 }
 
@@ -158,6 +163,11 @@ function load(): AppearanceState {
     if (zoomLevels.includes(saved.zoom)) state.zoom = saved.zoom
     if (chatWidths.includes(saved.chatWidth)) state.chatWidth = saved.chatWidth
     if (appLayouts.includes(saved.layout)) state.layout = saved.layout
+    // Un seul interrupteur `effects` coupait autrefois les trois.
+    for (const kind of animationKinds) {
+      const value = saved.animations?.[kind] ?? saved.effects
+      if (typeof value === 'boolean') state.animations[kind] = value
+    }
     const background = saved.background ?? {}
     if (typeof background.path === 'string') state.background.path = background.path
     for (const setting of Object.keys(backgroundOptions) as BackgroundSetting[]) {
@@ -190,6 +200,7 @@ export const useAppearanceStore = defineStore('appearance', () => {
   const zoom = ref<ZoomLevel>(state.zoom)
   const chatWidth = ref<ChatWidth>(state.chatWidth)
   const layout = ref<AppLayout>(state.layout)
+  const animations = reactive(state.animations)
 
   watchEffect(() => document.documentElement.style.setProperty('--chat-width', CHAT_WIDTH[chatWidth.value]))
   // Facteur réellement appliqué : hors de l'app (navigateur), la webview n'est pas zoomée.
@@ -226,6 +237,7 @@ export const useAppearanceStore = defineStore('appearance', () => {
     const root = document.documentElement
     const resolved = resolvedMode.value
     root.dataset.window = effectiveStyle.value
+    root.dataset.effects = animations.interface ? 'on' : 'off'
     root.dataset.mode = resolved
     const colors = palette(theme.value, resolved, LIGHTNESS[resolved][active.value.lightness])
     root.style.setProperty('--color-canvas', colors.canvas)
@@ -248,7 +260,7 @@ export const useAppearanceStore = defineStore('appearance', () => {
   )
 
   watch(
-    [mode, theme, accent, windowStyle, glass, background, zoom, chatWidth, layout],
+    [mode, theme, accent, windowStyle, glass, background, zoom, chatWidth, layout, animations],
     () => {
       const saved = {
         mode: mode.value,
@@ -260,6 +272,7 @@ export const useAppearanceStore = defineStore('appearance', () => {
         zoom: zoom.value,
         chatWidth: chatWidth.value,
         layout: layout.value,
+        animations,
       }
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(saved))
@@ -311,6 +324,7 @@ export const useAppearanceStore = defineStore('appearance', () => {
     zoom.value = initial.zoom
     chatWidth.value = initial.chatWidth
     layout.value = initial.layout
+    Object.assign(animations, initial.animations)
   }
 
   return {
@@ -326,6 +340,7 @@ export const useAppearanceStore = defineStore('appearance', () => {
     zoomFactor,
     chatWidth,
     layout,
+    animations,
     applyTheme,
     stepZoom,
     resetZoom,

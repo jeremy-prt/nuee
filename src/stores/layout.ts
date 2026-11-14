@@ -91,11 +91,11 @@ export const SIZES = {
   // Même largeur dans les deux dispositions : en « Projets en menu », la barre porte aussi les sessions.
   rail: { min: 180, max: 420, defaultSize: 264 },
   panel: { min: 200, max: 420, defaultSize: 264 },
-  right: { min: 280, max: 800, defaultSize: 480 },
+  right: { min: 280, max: 800, defaultSize: 340 },
 }
 
-// Ancienne largeur par défaut, enregistrée telle quelle avant `width` : elle repasse à la nouvelle.
-const OLD_RIGHT_DEFAULT = 420
+// Anciennes largeurs par défaut, enregistrées telles quelles : elles repassent à la nouvelle (340 px, monocode en a 288).
+const OLD_RIGHT_DEFAULTS = [420, 480, 400]
 
 function rightWidth(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? Math.min(SIZES.right.max, Math.max(SIZES.right.min, Math.round(value))) : null
@@ -167,8 +167,8 @@ function load(): LayoutState {
     const legacy = state as LayoutState & { bottom?: unknown; views?: unknown }
     delete legacy.bottom
     delete legacy.views
-    if (!('width' in old)) state.right.width = old.size === OLD_RIGHT_DEFAULT ? null : rightWidth(old.size)
-    state.right.width = rightWidth(state.right.width)
+    if (!('width' in old)) state.right.width = OLD_RIGHT_DEFAULTS.includes(old.size ?? 0) ? null : rightWidth(old.size)
+    state.right.width = OLD_RIGHT_DEFAULTS.includes(state.right.width ?? 0) ? null : rightWidth(state.right.width)
     state.right.editorWidth = rightWidth(state.right.editorWidth)
     state.right.size = state.right.width ?? SIZES.right.defaultSize
     // Une largeur enregistrée avant un changement de minimum reste dans les bornes actuelles.

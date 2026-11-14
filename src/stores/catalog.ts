@@ -51,6 +51,13 @@ export const useCatalogStore = defineStore('catalog', () => {
       })
   }
 
+  // Après une sonde : la CLI peut annoncer d'autres modèles d'un lancement à l'autre (Fable 5.1 puis 5.2).
+  function reload(agent: AgentKind) {
+    if (!requested.has(agent)) return
+    requested.delete(agent)
+    load(agent)
+  }
+
   function get(agent: AgentKind) {
     return catalogs[agent] ?? null
   }
@@ -81,5 +88,5 @@ export const useCatalogStore = defineStore('catalog', () => {
     return { mode: options.mode, model: model.value, effort, fast: !!options.fast && model.fast }
   }
 
-  return { load, get, resolve, modelLabel, isFavorite, toggleFavorite }
+  return { load, reload, get, resolve, modelLabel, isFavorite, toggleFavorite }
 })

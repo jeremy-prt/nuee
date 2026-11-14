@@ -7,6 +7,7 @@ import SettingsAccent from '@/components/settings/SettingsAccent.vue'
 import SettingsAgent from '@/components/settings/SettingsAgent.vue'
 import SettingsAgents from '@/components/settings/SettingsAgents.vue'
 import SettingsAppearance from '@/components/settings/SettingsAppearance.vue'
+import SettingsAnimations from '@/components/settings/SettingsAnimations.vue'
 import SettingsArchive from '@/components/settings/SettingsArchive.vue'
 import SettingsBackground from '@/components/settings/SettingsBackground.vue'
 import SettingsBackgroundOptions from '@/components/settings/SettingsBackgroundOptions.vue'
@@ -229,6 +230,7 @@ onUnmounted(() => {
           <SettingsAppearance />
           <SettingsBackground />
           <SettingsInterface />
+          <SettingsAnimations />
         </template>
         <SettingsShortcuts v-else-if="navigation.settingsSection === 'shortcuts'" />
         <SettingsAgents v-else-if="navigation.settingsSection === 'agents'" />

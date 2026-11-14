@@ -1181,7 +1181,7 @@ impl AgentService {
             ));
         }
         if let Some(model) = &spec.options.model
-            && !self.knows_model(spec.agent, model)
+            && !valid_model(model)
         {
             return Err(AppError::InvalidInput(format!("modèle inconnu : {model}")));
         }
@@ -1206,19 +1206,6 @@ impl AgentService {
         let dir = self.scratch.join(chat_id);
         std::fs::create_dir_all(&dir)?;
         Ok(dir)
-    }
-
-    /// Sans catalogue (agent qui n'a pas répondu), seule la forme de la valeur est vérifiée.
-    fn knows_model(&self, kind: AgentKind, model: &str) -> bool {
-        match self
-            .catalogs
-            .lock()
-            .unwrap_or_else(|p| p.into_inner())
-            .get(&kind)
-        {
-            Some(catalog) => catalog.models.iter().any(|known| known.value == model),
-            None => valid_session_id(model),
-        }
     }
 }
 
@@ -1368,6 +1355,17 @@ fn strip_fence(text: &str) -> &str {
     inner.strip_suffix("```").map_or(text, str::trim)
 }
 
+/// Le modèle part en argument à part (`--model`) et la CLI en juge : seule sa forme est vérifiée, variante entre
+/// crochets comprise (`claude-fable-5-1[1m]`). Le catalogue du front peut dater d'une autre sonde que celui d'ici.
+fn valid_model(model: &str) -> bool {
+    !model.is_empty()
+        && model.len() <= 128
+        && !model.starts_with('-')
+        && model
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || "-_.:[]".contains(c))
+}
+
 pub(crate) fn valid_session_id(id: &str) -> bool {
     !id.is_empty()
         && id.len() <= 128
@@ -1389,6 +1387,10 @@ mod tests {
 
     #[test]
     fn session_id_rejects_options_and_separators() {
+        assert!(valid_model("claude-fable-5-1[1m]"));
+        assert!(valid_model("opus"));
+        assert!(!valid_model("--dangerously-skip-permissions"));
+        assert!(!valid_model("opus; rm"));
         assert!(valid_session_id("1d0cf17d-9061-48e3-bd69-6389a56c5b64"));
         assert!(valid_session_id("claude-haiku-4-5-20251001"));
         assert!(!valid_session_id("--dangerously-skip-permissions"));

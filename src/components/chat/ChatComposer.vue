@@ -7,6 +7,7 @@ import ChatMentionMenu from '@/components/chat/ChatMentionMenu.vue'
 import ChatModelPicker from '@/components/chat/ChatModelPicker.vue'
 import ChatNoteMenu from '@/components/chat/ChatNoteMenu.vue'
 import ChatOrchestraBurst from '@/components/chat/ChatOrchestraBurst.vue'
+import ChatAsciiWave from '@/components/chat/ChatAsciiWave.vue'
 import ChatPlusMenu from '@/components/chat/ChatPlusMenu.vue'
 import ChatPromptText from '@/components/chat/ChatPromptText.vue'
 import ChatSlashMenu from '@/components/chat/ChatSlashMenu.vue'
@@ -28,6 +29,7 @@ import type { TurnOptions } from '@/ipc/bindings/TurnOptions'
 import { pickFiles } from '@/ipc/dialog'
 import { useDraftsStore } from '@/stores/drafts'
 import { useGeneralStore } from '@/stores/general'
+import { useEffects } from '@/composables/useEffects'
 import { useNotesStore } from '@/stores/notes'
 import { useOrchestraStore } from '@/stores/orchestra'
 import type { Project } from '@/stores/projects'
@@ -290,19 +292,26 @@ async function placeCaret(position: number) {
 
 const form = useTemplateRef('form')
 const orchestraChip = useTemplateRef('orchestraChip')
-const burst = ref<{ id: number; x: number; y: number; tone?: string } | null>(null)
+const burst = ref<{ id: number; kind: 'orchestra' | 'ascii'; x: number; y: number } | null>(null)
+const effects = useEffects('interface')
+
+// Centre d'un élément du champ, en coordonnées du formulaire.
+function centerOf(element: Element | null | undefined) {
+  const target = element?.getBoundingClientRect()
+  const box = form.value?.getBoundingClientRect()
+  if (!target || !box) return null
+  return { x: target.left + target.width / 2 - box.left, y: target.top + target.height / 2 - box.top }
+}
 
 async function setOrchestra(on: boolean, event?: MouseEvent) {
   orchestra.set(props.chatId, on)
   burst.value = null
   // Validée au clavier, la puce disparaît : le focus va au champ.
   if (!on && event?.detail === 0) input.value?.focus()
-  if (!on || matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  if (!on || !effects.value) return
   await nextTick()
-  const chip = orchestraChip.value?.getBoundingClientRect()
-  const box = form.value?.getBoundingClientRect()
-  if (!chip || !box) return
-  burst.value = { id: Date.now(), x: chip.left + chip.width / 2 - box.left, y: chip.top + chip.height / 2 - box.top }
+  const center = centerOf(orchestraChip.value)
+  if (center) burst.value = { id: Date.now(), kind: 'orchestra', ...center }
 }
 
 const summaryChip = useTemplateRef('summaryChip')
@@ -320,26 +329,11 @@ async function setSummary(on: boolean, event?: MouseEvent) {
   burst.value = null
   if (on) void placeCaret(prompt.value.length)
   else if (event?.detail === 0) input.value?.focus()
-  if (!on || matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  if (!on || !effects.value) return
   await nextTick()
-  const chip = summaryChip.value?.getBoundingClientRect()
-  const box = form.value?.getBoundingClientRect()
-  if (!chip || !box) return
-  burst.value = { id: Date.now(), x: chip.left + chip.width / 2 - box.left, y: chip.top + chip.height / 2 - box.top, tone: 'var(--color-note)' }
+  const center = centerOf(summaryChip.value)
+  if (center) burst.value = { id: Date.now(), kind: 'ascii', ...center }
 }
-
-// Passage en effort Max : même éclat qu'Orchestre, en corail, depuis le bouton du modèle.
-watch(
-  () => chosenEffort.value,
-  async (now, before) => {
-    if (now !== 'max' || before === 'max' || matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    await nextTick()
-    const trigger = form.value?.querySelector('[data-model-picker]')?.getBoundingClientRect()
-    const box = form.value?.getBoundingClientRect()
-    if (!trigger || !box) return
-    burst.value = { id: Date.now(), x: trigger.left + trigger.width / 2 - box.left, y: trigger.top + trigger.height / 2 - box.top, tone: 'var(--color-max)' }
-  },
-)
 
 // Capture d'écran ou fichier copié. WebKit tronque parfois `files` : `items` en a plus.
 // macOS ajoute à une capture sa copie TIFF sans nom : on la laisse de côté.
@@ -634,7 +628,8 @@ function onKeydown(event: KeyboardEvent) {
         </UiTooltip>
       </div>
     </div>
-    <ChatOrchestraBurst v-if="burst" :key="burst.id" :x="burst.x" :y="burst.y" :tone="burst.tone" @done="burst = null" />
+    <ChatOrchestraBurst v-if="burst?.kind === 'orchestra'" :key="burst.id" :x="burst.x" :y="burst.y" @done="burst = null" />
+    <ChatAsciiWave v-else-if="burst" :key="burst.id" :x="burst.x" :y="burst.y" @done="burst = null" />
     <ChatSlashMenu ref="slashMenu" :id="`${id}-skills`" :query="slashQuery" @choose="chooseSkill" />
     <ChatMentionMenu v-if="project" ref="mentionMenu" :id="`${id}-files`" :query="mention?.query ?? null" :chat-id="chatId" :project="project.path" @choose="chooseFile" />
     <ChatNoteMenu ref="noteMenu" :id="`${id}-notes`" :query="hash?.query ?? null" @choose="chooseNote" />

@@ -181,6 +181,9 @@ export default {
     changes: {
       title: 'Git',
       modes: { changes: "変更", history: "履歴" },
+      counter: "変更、{added}、{removed}",
+      additions: "追加なし | 追加 1 行 | 追加 {n} 行",
+      deletions: "削除なし | 削除 1 行 | 削除 {n} 行",
       messageLabel: "コミットメッセージ",
       messagePlaceholder: "メッセージ（{key} でコミット）",
       generate: "メッセージを生成",
@@ -331,6 +334,7 @@ export default {
       emptyTitle: "ファイルなし",
       empty: "セッションのファイルは最初のメッセージの後に表示されます。",
       search: "検索",
+      searchFiles: "ファイルを検索",
       namePlaceholder: "ファイル名",
       searchPlaceholder: "ファイル内のテキスト",
       matchCase: "大文字と小文字を区別",
@@ -1287,6 +1291,9 @@ export default {
         background: '壁紙 写真 画像',
         zoom: 'ズーム 拡大 縮小 文字 サイズ フォント',
         chatWidth: '幅 広い 狭い',
+        animations: 'アニメーション 動き エフェクト',
+        stars: '星 流れ星 背景 ポインター 光',
+        scenes: 'シーン ピクセルアート ドット絵',
         projects: 'フォルダー ディレクトリ リポジトリ ワークスペース',
         worktree: 'git ブランチ コピー 分離',
         archive: 'アーカイブ 非表示 履歴 保管',
@@ -1428,6 +1435,21 @@ export default {
         normal: '標準',
         wide: '広め',
         full: '全幅',
+      },
+    },
+    animations: {
+      title: 'アニメーション',
+      background: {
+        label: '新しいセッションの背景',
+        hint: '星と、ポインターを追う光。',
+      },
+      scenes: {
+        label: '小さなシーン',
+        hint: '新しいセッションの下部に、短いピクセルアートのアニメーションがときどき流れます。',
+      },
+      interface: {
+        label: 'インターフェースのエフェクト',
+        hint: 'モードを有効にしたときのエフェクト、浮かび上がるセッション名、新しいバージョンのバッジ。',
       },
     },
     background: {

@@ -86,6 +86,13 @@ watch(
   },
   { immediate: true },
 )
+// Fermée, le `watch` du dessus s'en charge en l'ouvrant.
+watch(
+  () => store.of(props.place.chatId).searchFocus,
+  () => {
+    if (props.active) input.value?.focus()
+  },
+)
 
 const nameOf = (file: string) => file.slice(file.lastIndexOf('/') + 1)
 const NAMES = 20

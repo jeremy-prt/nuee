@@ -133,17 +133,8 @@ function onCloseAutoFocus(event: Event) {
   props.focusAfter()
 }
 
-// Seul l'effort Max est en couleur (corail), pour qu'on le remarque (choix de Jérémy). `soft` : dans la liste, les autres
-// niveaux gardent la couleur du texte.
-function effortTone(value: Effort, soft = false) {
-  if (value === 'max') return 'text-max'
-  return soft ? '' : 'text-muted'
-}
-
 const line =
   'flex h-8 w-full items-center gap-2.5 rounded-lg px-2 text-start text-[13px] text-content outline-none hover:bg-selection-hover focus-visible:bg-selection-hover aria-expanded:bg-selection-hover'
-const tab =
-  'group/tab grid size-8 shrink-0 place-items-center rounded-md text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-ring aria-pressed:bg-selection aria-pressed:text-content'
 const row =
   'group/item flex h-8 shrink-0 items-center gap-2 rounded-md ps-2 pe-1 text-content/80 outline-none data-[highlighted]:text-content data-[highlighted]:not-data-[state=checked]:bg-selection-hover data-[state=checked]:bg-selection data-[state=checked]:text-content'
 const flyout = 'ui-pop z-50 text-xs text-content select-none'
@@ -161,7 +152,7 @@ const flyout = 'ui-pop z-50 text-xs text-content select-none'
           <span class="sr-only">{{ t('composer.model.menu') }}</span>
           <SettingsAgentLogo :id="agent" small class="-ms-0.5" />
           <span class="min-w-0 truncate">{{ current?.label ?? agentName }}</span>
-          <span v-if="effort && efforts.length" class="shrink-0" :class="effortTone(effort)">{{ t(`composer.effort.${effort}`) }}</span>
+          <span v-if="effort && efforts.length" class="shrink-0 text-muted">{{ t(`composer.effort.${effort}`) }}</span>
           <template v-if="fast && current?.fast">
             <Zap class="size-3 shrink-0 fill-current text-warning" aria-hidden="true" />
             <span class="sr-only">{{ t('composer.fast.label') }}</span>
@@ -196,7 +187,7 @@ const flyout = 'ui-pop z-50 text-xs text-content select-none'
                 @keydown.right.prevent="sub = 'effort'"
               >
                 <span class="min-w-0 flex-1 truncate">{{ t('composer.effort.label') }}</span>
-                <span class="shrink-0" :class="effort ? effortTone(effort) : ''">{{ effort ? t(`composer.effort.${effort}`) : '' }}</span>
+                <span class="shrink-0 text-muted">{{ effort ? t(`composer.effort.${effort}`) : '' }}</span>
                 <ChevronRight class="size-3.5 shrink-0 text-muted rtl:rotate-180" aria-hidden="true" />
               </PopoverTrigger>
               <PopoverPortal>
@@ -222,7 +213,7 @@ const flyout = 'ui-pop z-50 text-xs text-content select-none'
                       :class="[line, 'aria-checked:bg-selection']"
                       @click="chooseEffort(value)"
                     >
-                      <span :class="effortTone(value, true)">{{ t(`composer.effort.${value}`) }}</span>
+                      <span>{{ t(`composer.effort.${value}`) }}</span>
                     </button>
                   </div>
                 </PopoverContent>
@@ -252,22 +243,13 @@ const flyout = 'ui-pop z-50 text-xs text-content select-none'
                   align="start"
                   :side-offset="10"
                   :collision-padding="8"
-                  :class="[flyout, 'flex w-80']"
+                  :class="[flyout, 'flex w-72']"
                   @open-auto-focus="focusSearch"
                   @close-auto-focus.prevent
                   @escape-key-down="backTo(modelRow)"
                   @pointerenter="hoverSub('model')"
                   @pointerleave="hoverSub('model', false)"
                 >
-                  <!-- Une colonne par agent (Claude seul pour l'instant), comme monocode. -->
-                  <div class="flex w-11 shrink-0 flex-col items-center gap-1 bg-content/4 py-1" role="group" :aria-label="t('composer.model.label')">
-                    <UiTooltip :label="agentName" side="left">
-                      <span :class="tab" aria-pressed="true">
-                        <SettingsAgentLogo :id="agent" small />
-                        <span class="sr-only">{{ agentName }}</span>
-                      </span>
-                    </UiTooltip>
-                  </div>
                   <ListboxRoot
                     class="flex min-w-0 flex-1 flex-col"
                     :model-value="model ?? ''"
@@ -289,7 +271,7 @@ const flyout = 'ui-pop z-50 text-xs text-content select-none'
                       class="block h-10 w-full shrink-0 bg-transparent px-3 outline-none select-text placeholder:text-muted"
                     />
                     <div class="h-px shrink-0 bg-stroke" aria-hidden="true" />
-                                        <ListboxContent class="flex max-h-72 flex-col gap-0.5 overflow-y-auto overscroll-contain p-1 pb-2">
+                    <ListboxContent class="flex max-h-72 flex-col gap-0.5 overflow-y-auto overscroll-contain p-1 pb-2">
                       <p v-if="!shownModels.length" class="flex h-8 shrink-0 items-center px-2 text-muted">{{ t('composer.model.none') }}</p>
                       <ListboxItem v-for="item in shownModels" :key="item.value" :value="item.value" :class="row" @mousedown.prevent @pointerenter="legacyOpen = false">
                         <span class="min-w-0 truncate">{{ item.label }}</span>

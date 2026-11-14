@@ -1254,9 +1254,14 @@ fn effort_of(level: &str) -> Option<Effort> {
 /// Famille et numéro de version d'un modèle.
 type Version = (String, Vec<u32>);
 
+/// Identifiant sans sa variante entre crochets : « claude-fable-5-1[1m] » (contexte d'un million de tokens).
+fn bare(id: &str) -> &str {
+    id.split('[').next().unwrap_or(id)
+}
+
 /// « claude-fable-5-2 » ou « claude-haiku-4-5-20251001 » : la famille et la version, sans la date.
 fn version_of(id: &str) -> Option<Version> {
-    let mut parts = id.strip_prefix("claude-")?.split('-');
+    let mut parts = bare(id).strip_prefix("claude-")?.split('-');
     let family = parts.next()?.to_owned();
     let version: Vec<u32> = parts
         .take_while(|part| part.len() <= 2)
@@ -1319,9 +1324,9 @@ fn catalog_of(response: &Value) -> Option<Catalog> {
         .filter(|model| !model.value.is_empty())
         .collect();
     // La CLI nomme les modèles du moment par leur famille (« opus ») et les autres par leur identifiant complet
-    // (« claude-opus-4-8 ») : ceux-là sont rangés à part. Un identifiant complet plus récent que le nom de sa
-    // famille (une préversion) prend sa place, et c'est le nom de famille qui est rangé à part. Sans aucun nom
-    // de famille (Bedrock, Vertex), rien n'est rangé à part.
+    // (« claude-opus-4-8 ») : ceux que le nom de leur famille dépasse sont rangés à part. Un identifiant complet plus
+    // récent que le nom de sa famille (une préversion) prend sa place, et c'est le nom de famille qui est rangé à
+    // part. Sans aucun nom de famille (Bedrock, Vertex), rien n'est rangé à part.
     let full_id = |value: &str| value.starts_with("claude-");
     let versions: Vec<(bool, Option<Version>)> = models
         .iter()
@@ -1344,23 +1349,29 @@ fn catalog_of(response: &Value) -> Option<Catalog> {
                             .is_some_and(|(name, theirs)| name == family && theirs > mine)
                 })
             });
-            let newest = version.as_ref().is_some_and(|(family, mine)| {
+            // Un nom de famille au moins aussi récent le remplace. Sans nom de famille, il reste en tête : la CLI ne
+            // nomme Fable que par son identifiant (« claude-fable-5-1[1m] »).
+            let covered = version.as_ref().is_some_and(|(family, mine)| {
                 versions.iter().any(|(other_full, other)| {
                     !other_full
                         && other
                             .as_ref()
-                            .is_some_and(|(name, theirs)| name == family && mine > theirs)
+                            .is_some_and(|(name, theirs)| name == family && theirs >= mine)
                 })
             });
-            model.legacy = if *full { !newest } else { outdated };
+            model.legacy = if *full { covered } else { outdated };
         }
     }
     // La CLI ne propose que les modèles du moment mais accepte les anciens par leur identifiant : ceux de « Plus de
     // modèles » de l'app Claude sont ajoutés à part, sauf déjà proposés. Pas sur Bedrock ou Vertex (pas de nom de famille).
     if versions.iter().any(|(full, _)| !full) {
+        // Même famille et même version, date comprise ou non : « claude-fable-5 » n'est pas « claude-fable-5-2 ».
         let offered = |id: &str| {
+            let wanted = version_of(id);
             rows.iter().any(|row| {
-                str_of(&row["resolvedModel"]) == id || str_of(&row["value"]).starts_with(id)
+                [str_of(&row["resolvedModel"]), str_of(&row["value"])]
+                    .iter()
+                    .any(|known| version_of(known) == wanted)
             })
         };
         for (id, label) in OLDER_MODELS {
@@ -1963,7 +1974,8 @@ mod tests {
         let line = r#"{"type":"control_response","response":{"subtype":"success","request_id":"nuee-init","response":{"models":[
             {"value":"default","resolvedModel":"claude-opus-5-5","displayName":"Default (recommended)"},
             {"value":"opus","resolvedModel":"claude-opus-5-5","displayName":"Opus 5.5","description":"Complexe","supportedEffortLevels":["low","high","xhigh"],"supportsFastMode":true},
-            {"value":"claude-haiku-4-5","resolvedModel":"claude-haiku-4-5","displayName":"Haiku 4.5","description":"Rapide"}
+            {"value":"claude-haiku-4-5","resolvedModel":"claude-haiku-4-5","displayName":"Haiku 4.5","description":"Rapide"},
+            {"value":"haiku","resolvedModel":"claude-haiku-5-5","displayName":"Haiku 5.5"}
         ]}}}"#;
         let catalog = probe(&[&line.replace('\n', "")])
             .catalog
@@ -2007,6 +2019,29 @@ mod tests {
         );
         assert_eq!(label_of(&row("Opus 5.5", "Complexe")), "Opus 5.5");
         assert_eq!(label_of(&row("Sonnet", "Rapide · pas son nom")), "Sonnet");
+    }
+
+    #[test]
+    fn a_model_without_family_name_stays_on_top() {
+        let line = r#"{"type":"control_response","response":{"subtype":"success","request_id":"nuee-init","response":{"models":[
+            {"value":"opus","resolvedModel":"claude-opus-5-5","displayName":"Opus","description":"Opus 5.5 · Complexe"},
+            {"value":"claude-fable-5-2[1m]","resolvedModel":"claude-fable-5-2","displayName":"Fable","description":"Fable 5.2 · Long"},
+            {"value":"haiku","resolvedModel":"claude-haiku-5-5","displayName":"Haiku","description":"Haiku 5.5 · Rapide"}
+        ]}}}"#;
+        let catalog = probe(&[&line.replace('\n', "")])
+            .catalog
+            .expect("catalogue");
+        let fable = |label: &str| {
+            catalog
+                .models
+                .iter()
+                .find(|model| model.label == label)
+                .map(|model| model.legacy)
+        };
+        assert_eq!(fable("Fable 5.2"), Some(false));
+        // Fable 5.1 est proposé parmi les anciens, Fable 5 aussi : il n'est pas confondu avec Fable 5.2.
+        assert_eq!(fable("Fable 5.1"), Some(true));
+        assert_eq!(fable("Fable 5"), Some(true));
     }
 
     #[test]

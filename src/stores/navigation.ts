@@ -128,12 +128,14 @@ export const useNavigationStore = defineStore('navigation', () => {
 
   // Arriver sur une vue à liste rouvre toujours le panneau latéral, même s'il avait été fermé ailleurs. Changer de
   // vue referme la liste des projets : ses réglages rapides mènent aux Réglages, où le sélecteur n'est plus monté.
+  // Les Réglages rouvrent la barre latérale : elle porte leurs rubriques.
   function go(target: View) {
     switcherOpen.value = false
     const update = () => {
       if (target === 'settings' && view.value !== 'settings') beforeSettings.value = view.value
       view.value = target
       if (PANEL_VIEWS.includes(target)) layout.panel.open = true
+      if (target === 'settings') layout.rail.expanded = true
     }
     if (target === 'settings' || view.value === 'settings') showPage(update)
     else update()

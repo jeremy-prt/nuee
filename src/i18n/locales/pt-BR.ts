@@ -181,6 +181,9 @@ export default {
     changes: {
       title: 'Git',
       modes: { changes: "Alterações", history: "Histórico" },
+      counter: "Alterações, {added}, {removed}",
+      additions: "nenhuma adição | 1 adição | {n} adições",
+      deletions: "nenhuma remoção | 1 remoção | {n} remoções",
       messageLabel: "Mensagem do commit",
       messagePlaceholder: "Mensagem ({key} para fazer commit)",
       generate: "Gerar a mensagem",
@@ -331,6 +334,7 @@ export default {
       emptyTitle: "Nenhum arquivo",
       empty: "Os arquivos da sessão aparecem após a primeira mensagem.",
       search: "Buscar",
+      searchFiles: "Buscar arquivos",
       namePlaceholder: "Nome do arquivo",
       searchPlaceholder: "Texto nos arquivos",
       matchCase: "Diferenciar maiúsculas",
@@ -1287,6 +1291,9 @@ export default {
         background: 'papel de parede foto imagem',
         zoom: 'zoom escala fonte texto tamanho aumentar diminuir',
         chatWidth: 'largo estreito coluna',
+        animations: 'animação animado movimento efeitos',
+        stars: 'estrelas cadentes fundo ponteiro halo',
+        scenes: 'cenas pixel art',
         projects: 'pasta diretório repositório espaço de trabalho',
         worktree: 'git branch cópia isolar',
         archive: 'arquivo arquivar ocultar histórico guardar',
@@ -1428,6 +1435,21 @@ export default {
         normal: 'Normal',
         wide: 'Larga',
         full: 'Toda a largura',
+      },
+    },
+    animations: {
+      title: 'Animações',
+      background: {
+        label: 'Fundo da sessão nova',
+        hint: 'Estrelas e um halo que segue o ponteiro.',
+      },
+      scenes: {
+        label: 'Pequenas cenas',
+        hint: 'Uma breve animação em pixel art passa de vez em quando na parte de baixo da sessão nova.',
+      },
+      interface: {
+        label: 'Efeitos da interface',
+        hint: 'Brilhos ao ativar um modo, título da sessão que se revela, indicador de nova versão.',
       },
     },
     background: {

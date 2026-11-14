@@ -181,6 +181,9 @@ export default {
     changes: {
       title: 'Git',
       modes: { changes: "Changements", history: "Historique" },
+      counter: "Changements, {added}, {removed}",
+      additions: "aucun ajout | 1 ajout | {n} ajouts",
+      deletions: "aucune suppression | 1 suppression | {n} suppressions",
       messageLabel: "Message du commit",
       messagePlaceholder: "Message ({key} pour commit)",
       generate: "Générer le message",
@@ -331,6 +334,7 @@ export default {
       emptyTitle: "Aucun fichier",
       empty: "Les fichiers de la session apparaissent après son premier message.",
       search: "Rechercher",
+      searchFiles: "Rechercher des fichiers",
       namePlaceholder: "Nom de fichier",
       searchPlaceholder: "Texte dans les fichiers",
       matchCase: "Respecter la casse",
@@ -1287,6 +1291,9 @@ export default {
         background: 'fond d\'écran photo image',
         zoom: 'zoom échelle police texte taille agrandir réduire',
         chatWidth: 'large étroit colonne',
+        animations: 'animation animé mouvement effets',
+        stars: 'étoiles filantes fond pointeur halo',
+        scenes: 'scènes pixel art',
         projects: 'dossier répertoire dépôt espace de travail',
         worktree: 'git branche copie isoler',
         archive: 'archive archiver ranger masquer historique',
@@ -1428,6 +1435,21 @@ export default {
         normal: 'Normale',
         wide: 'Large',
         full: 'Toute la largeur',
+      },
+    },
+    animations: {
+      title: 'Animations',
+      background: {
+        label: 'Fond de la nouvelle session',
+        hint: 'Étoiles et halo qui suit le pointeur.',
+      },
+      scenes: {
+        label: 'Petites scènes',
+        hint: 'Une courte animation en pixel art passe de temps en temps en bas de la nouvelle session.',
+      },
+      interface: {
+        label: 'Effets d\'interface',
+        hint: 'Éclats à l\'activation d\'un mode, titre de session qui se dévoile, pastille de nouvelle version.',
       },
     },
     background: {
