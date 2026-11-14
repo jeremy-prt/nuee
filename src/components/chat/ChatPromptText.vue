@@ -33,7 +33,7 @@ watch(
 
 <template>
   <template v-for="(part, index) in parts" :key="index">
-    <span v-if="part.kind === 'skill' && fit" class="text-skill">{{ part.text }}</span>
+    <span v-if="part.kind === 'skill' && fit" class="text-skill" :data-skill="part.name">{{ part.text }}</span>
     <!-- Dans un message, la description du skill au survol, comme l'app Claude. -->
     <HoverCardRoot v-else-if="part.kind === 'skill'" :open-delay="300" :close-delay="100">
       <HoverCardTrigger as="span" class="text-skill">{{ part.text }}</HoverCardTrigger>

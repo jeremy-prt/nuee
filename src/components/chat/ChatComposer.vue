@@ -30,6 +30,7 @@ import { useGeneralStore } from '@/stores/general'
 import { useOrchestraStore } from '@/stores/orchestra'
 import type { Project } from '@/stores/projects'
 import { useShortcutsStore } from '@/stores/shortcuts'
+import { useSkillsStore } from '@/stores/skills'
 import { useToastsStore } from '@/stores/toasts'
 
 const props = defineProps<{
@@ -164,6 +165,32 @@ async function chooseSkill(name: string) {
 }
 
 const highlight = useTemplateRef('highlight')
+
+// Skill survolé dans le champ : son texte coloré est dans le calque sous le textarea, qui prend la souris. On cherche
+// donc le skill sous le pointeur dans ce calque, et sa description s'affiche après un court délai, comme l'app Claude.
+const skillsStore = useSkillsStore()
+const hoveredSkill = ref<{ name: string; description: string; left: number; top: number } | null>(null)
+let hoverTimer: ReturnType<typeof setTimeout> | undefined
+function onFieldPointer(event: PointerEvent) {
+  const found = [...(highlight.value?.querySelectorAll<HTMLElement>('[data-skill]') ?? [])].find((span) => {
+    const box = span.getBoundingClientRect()
+    return event.clientX >= box.left && event.clientX <= box.right && event.clientY >= box.top && event.clientY <= box.bottom
+  })
+  const name = found?.dataset.skill
+  if (name === hoveredSkill.value?.name && name) return
+  clearTimeout(hoverTimer)
+  hoveredSkill.value = null
+  if (!found || !name) return
+  hoverTimer = setTimeout(() => {
+    const box = found.getBoundingClientRect()
+    const description = skillsStore.skills.find((skill) => skill.name === name)?.description ?? ''
+    hoveredSkill.value = { name, description, left: box.left, top: box.bottom + 6 }
+  }, 300)
+}
+function leaveField() {
+  clearTimeout(hoverTimer)
+  hoveredSkill.value = null
+}
 const syncScroll = () => {
   if (highlight.value && input.value) highlight.value.scrollTop = input.value.scrollTop
 }
@@ -416,8 +443,22 @@ function onKeydown(event: KeyboardEvent) {
           @focus="syncCaret(); emit('warm')"
           @blur="caret = null"
           @paste="onPaste"
-          @scroll="syncScroll"
+          @scroll="syncScroll(); leaveField()"
+          @pointermove="onFieldPointer"
+          @pointerleave="leaveField"
+          @keydown.capture="leaveField"
         />
+        <Teleport to="body">
+          <div
+            v-if="hoveredSkill"
+            class="ui-glass pointer-events-none fixed z-50 w-72 rounded-xl px-3 py-2.5 text-xs text-content"
+            :style="{ left: `${hoveredSkill.left}px`, top: `${hoveredSkill.top}px` }"
+            role="tooltip"
+          >
+            <p class="text-muted">/{{ hoveredSkill.name }}</p>
+            <p v-if="hoveredSkill.description" class="mt-1 leading-relaxed">{{ hoveredSkill.description }}</p>
+          </div>
+        </Teleport>
       </div>
       <!-- Étroite (petite fenêtre, écran partagé) : le nom du mode ne reste que pour les lecteurs d'écran. -->
       <div class="flex items-center gap-1 px-2 pb-2">
