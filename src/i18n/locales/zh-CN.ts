@@ -62,6 +62,7 @@ export default {
       failed: '出错',
     },
   },
+  textMenu: { label: '编辑', cut: '剪切', copy: '拷贝', paste: '粘贴', selectAll: '全选' },
   menu: {
     pinProject: '置顶项目',
     unpinProject: '取消置顶项目',

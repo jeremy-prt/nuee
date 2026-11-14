@@ -29,6 +29,7 @@
         }
       ]
     },
-    "dialog:allow-open"
+    "dialog:allow-open",
+    "clipboard-manager:allow-read-text"
   ]
 }

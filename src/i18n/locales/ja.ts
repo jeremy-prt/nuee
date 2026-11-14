@@ -62,6 +62,7 @@ export default {
       failed: 'エラー',
     },
   },
+  textMenu: { label: '編集', cut: 'カット', copy: 'コピー', paste: 'ペースト', selectAll: 'すべてを選択' },
   menu: {
     pinProject: 'プロジェクトをピン留め',
     unpinProject: 'プロジェクトのピン留めを外す',

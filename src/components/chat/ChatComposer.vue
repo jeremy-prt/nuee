@@ -170,6 +170,8 @@ const highlight = useTemplateRef('highlight')
 // donc le skill sous le pointeur dans ce calque, et sa description s'affiche après un court délai, comme l'app Claude.
 const skillsStore = useSkillsStore()
 const hoveredSkill = ref<{ name: string; description: string; left: number; top: number } | null>(null)
+// Curseur en flèche dès que le pointeur est sur un skill : il se survole, il ne s'édite pas là.
+const overSkill = ref(false)
 let hoverTimer: ReturnType<typeof setTimeout> | undefined
 function onFieldPointer(event: PointerEvent) {
   const found = [...(highlight.value?.querySelectorAll<HTMLElement>('[data-skill]') ?? [])].find((span) => {
@@ -177,6 +179,7 @@ function onFieldPointer(event: PointerEvent) {
     return event.clientX >= box.left && event.clientX <= box.right && event.clientY >= box.top && event.clientY <= box.bottom
   })
   const name = found?.dataset.skill
+  overSkill.value = !!name
   if (name === hoveredSkill.value?.name && name) return
   clearTimeout(hoverTimer)
   hoveredSkill.value = null
@@ -190,6 +193,7 @@ function onFieldPointer(event: PointerEvent) {
 function leaveField() {
   clearTimeout(hoverTimer)
   hoveredSkill.value = null
+  overSkill.value = false
 }
 const syncScroll = () => {
   if (highlight.value && input.value) highlight.value.scrollTop = input.value.scrollTop
@@ -434,6 +438,7 @@ function onKeydown(event: KeyboardEvent) {
           spellcheck="false"
           writingsuggestions="false"
           :disabled="disabled"
+          :class="{ 'cursor-default': overSkill }"
           class="prompt-field relative block max-h-60 min-h-18 w-full resize-none bg-transparent px-3.5 pt-3.5 pb-2 text-sm leading-5.5 select-text outline-none placeholder:truncate"
           :placeholder="running ? t(`composer.placeholderBusy.${general.followUp}`, { send: shortcuts.label('send'), other: shortcuts.label('sendOther') }) : t(orchestrating ? 'composer.orchestra.placeholder' : 'composer.placeholder')"
           @keydown="onKeydown"

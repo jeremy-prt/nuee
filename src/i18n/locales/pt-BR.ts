@@ -62,6 +62,7 @@ export default {
       failed: 'Erro',
     },
   },
+  textMenu: { label: 'Edição', cut: 'Recortar', copy: 'Copiar', paste: 'Colar', selectAll: 'Selecionar tudo' },
   menu: {
     pinProject: 'Fixar o projeto',
     unpinProject: 'Desafixar o projeto',

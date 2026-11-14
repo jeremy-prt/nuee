@@ -11,6 +11,7 @@ import ShellSidePanel from '@/components/shell/ShellSidePanel.vue'
 import ShellTitleBar from '@/components/shell/ShellTitleBar.vue'
 import UiConfirmDialog from '@/components/ui/UiConfirmDialog.vue'
 import UiToasts from '@/components/ui/UiToasts.vue'
+import UiTextMenu from '@/components/ui/UiTextMenu.vue'
 import AgentUpdateNotice from '@/components/agent/AgentUpdateNotice.vue'
 import { useDockClose } from '@/composables/useDockClose'
 import { useDockFocus } from '@/composables/useDockFocus'
@@ -346,5 +347,6 @@ onUnmounted(() => {
     </div>
     <UiConfirmDialog />
     <UiToasts />
+    <UiTextMenu />
   </TooltipProvider>
 </template>

@@ -60,6 +60,7 @@ export default {
       failed: 'Error',
     },
   },
+  textMenu: { label: 'Edit', cut: 'Cut', copy: 'Copy', paste: 'Paste', selectAll: 'Select all' },
   menu: {
     pinProject: 'Pin the project',
     unpinProject: 'Unpin the project',
