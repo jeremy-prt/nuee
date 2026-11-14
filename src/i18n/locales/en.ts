@@ -701,9 +701,7 @@ export default {
       menu: 'Model and effort',
       search: 'Search models',
       none: 'No model found',
-      favorites: 'Favorites',
       legacy: 'Older models',
-      noFavorites: 'No favorites',
       favorite: 'Add {model} to favorites',
       unfavorite: 'Remove {model} from favorites',
     },
@@ -1530,6 +1528,7 @@ export default {
       message: "Generate the message",
     },
     prompts: {
+      pull: "Pull the remote commits of this branch (git pull) and resolve any conflicts.",
       initRepo: "Initialize a git repository in this folder (main branch), without committing anything. Finish with one sentence saying what was done.",
     },
     steps: {
@@ -1547,6 +1546,7 @@ export default {
     directFailed: "Commit failed",
     pushFailed: "Push failed",
     pullFailed: "Pull failed",
+    pullToAgent: "Hand to the agent",
     busyTitle: "A Git action is already running",
     busy: "“{action}” must finish or be stopped in this folder before another one starts.",
     notReadyTitle: "“{action}” did not start",

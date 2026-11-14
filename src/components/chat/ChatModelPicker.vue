@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { ChevronDown, ChevronRight, Star, Zap } from '@/components/ui/icons'
-import { ListboxContent, ListboxFilter, ListboxItem, ListboxRoot, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from 'reka-ui'
+import { ListboxContent, ListboxFilter, ListboxItem, ListboxRoot, PopoverAnchor, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from 'reka-ui'
 import { computed, nextTick, onBeforeUnmount, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsAgentLogo from '@/components/settings/SettingsAgentLogo.vue'
 import UiSwitch from '@/components/ui/UiSwitch.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
-import { menuTitle } from '@/components/ui/menuRow'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { Catalog } from '@/ipc/bindings/Catalog'
 import type { Effort } from '@/ipc/bindings/Effort'
@@ -30,7 +29,9 @@ const id = useId()
 const open = ref(false)
 const sub = ref<'effort' | 'model' | null>(null)
 const query = ref('')
-const view = ref<'favorites' | 'agent'>('agent')
+// Anciens modèles : un sous-menu à droite de la dernière ligne, on s'en sert rarement.
+const legacyOpen = ref(false)
+const LEGACY = '\u0000legacy'
 // Ligne surlignée (souris ou flèches) : le raccourci des favoris porte sur elle.
 const highlighted = ref<string | null>(null)
 
@@ -39,9 +40,10 @@ const models = computed(() => props.catalog?.models ?? [])
 const current = computed(() => models.value.find((item) => item.value === model.value) ?? null)
 const efforts = computed(() => current.value?.efforts ?? [])
 const isFavorite = (value: string) => store.isFavorite(props.agent, value)
+// Les favoris en tête, anciens compris ; le reste des anciens dans leur sous-menu.
 const starred = computed(() => models.value.filter((item) => isFavorite(item.value)))
-const main = computed(() => models.value.filter((item) => !item.legacy))
-const legacy = computed(() => models.value.filter((item) => item.legacy))
+const main = computed(() => [...starred.value, ...models.value.filter((item) => !item.legacy && !isFavorite(item.value))])
+const legacy = computed(() => models.value.filter((item) => item.legacy && !isFavorite(item.value)))
 
 const searched = computed(() => {
   const needle = normalize(query.value)
@@ -53,13 +55,8 @@ const searched = computed(() => {
   })
   return found.sort((a, b) => a.score - b.score).map(({ item }) => item)
 })
-// Les modèles principaux, puis les anciens sous leur titre ; la recherche et les favoris donnent une liste simple.
-const groups = computed<{ title?: string; items: ModelInfo[] }[]>(() => {
-  if (searched.value) return [{ items: searched.value }]
-  if (view.value === 'favorites') return [{ items: starred.value }]
-  return [{ items: main.value }, ...(legacy.value.length ? [{ title: t('composer.model.legacy'), items: legacy.value }] : [])]
-})
-const empty = computed(() => groups.value.every((group) => !group.items.length))
+// La recherche porte sur tous les modèles, anciens compris, en une liste simple.
+const shownModels = computed<ModelInfo[]>(() => searched.value ?? main.value)
 
 watch(open, (value) => {
   if (value) return
@@ -67,13 +64,10 @@ watch(open, (value) => {
   clearTimeout(subTimer)
 })
 watch(sub, (value) => {
-  if (value !== 'model') {
-    query.value = ''
-    highlighted.value = null
-    return
-  }
-  // Ouvert là où se trouve le modèle choisi.
-  view.value = current.value && isFavorite(current.value.value) ? 'favorites' : 'agent'
+  if (value === 'model') return
+  query.value = ''
+  highlighted.value = null
+  legacyOpen.value = false
 })
 
 // Les listes s'ouvrent au survol comme des sous-menus ; le délai de fermeture laisse le temps de les rejoindre.
@@ -97,6 +91,7 @@ function keepOpen(event: MouseEvent, which: 'effort' | 'model') {
 }
 
 function chooseModel(value: unknown) {
+  if (value === LEGACY) return void (legacyOpen.value = true)
   if (typeof value === 'string') model.value = value
   open.value = false
 }
@@ -260,25 +255,13 @@ const flyout = 'ui-pop z-50 text-xs text-content select-none'
                   @pointerenter="hoverSub('model')"
                   @pointerleave="hoverSub('model', false)"
                 >
-                  <!-- Colonne des vues : Favoris, puis un bouton par agent. Ses boutons ne prennent pas le focus à la
-                       souris, les flèches restent dans la recherche. -->
+                  <!-- Une colonne par agent (Claude seul pour l'instant), comme monocode. -->
                   <div class="flex w-11 shrink-0 flex-col items-center gap-1 bg-content/4 py-1" role="group" :aria-label="t('composer.model.label')">
-                    <UiTooltip :label="t('composer.model.favorites')" side="left">
-                      <button type="button" :class="tab" :aria-pressed="view === 'favorites' && !query" @mousedown.prevent @click="view = 'favorites'">
-                        <Star class="size-4 group-aria-pressed/tab:fill-current group-aria-pressed/tab:text-warning" aria-hidden="true" />
-                        <span class="sr-only">{{ t('composer.model.favorites') }}</span>
-                      </button>
-                    </UiTooltip>
-                    <span class="h-px w-5 shrink-0 bg-stroke" aria-hidden="true" />
                     <UiTooltip :label="agentName" side="left">
-                      <button type="button" :class="tab" :aria-pressed="view === 'agent' && !query" @mousedown.prevent @click="view = 'agent'">
-                        <SettingsAgentLogo
-                          :id="agent"
-                          small
-                          class="opacity-60 grayscale group-hover/tab:opacity-100 group-aria-pressed/tab:opacity-100 group-aria-pressed/tab:grayscale-0"
-                        />
+                      <span :class="tab" aria-pressed="true">
+                        <SettingsAgentLogo :id="agent" small />
                         <span class="sr-only">{{ agentName }}</span>
-                      </button>
+                      </span>
                     </UiTooltip>
                   </div>
                   <ListboxRoot
@@ -302,34 +285,58 @@ const flyout = 'ui-pop z-50 text-xs text-content select-none'
                       class="block h-10 w-full shrink-0 bg-transparent px-3 outline-none select-text placeholder:text-muted"
                     />
                     <div class="h-px shrink-0 bg-stroke" aria-hidden="true" />
-                    <!-- Hauteur fixe : passer aux favoris (souvent peu nombreux) ne rétrécit pas le menu, sinon il fuit le pointeur et se ferme. -->
-                    <ListboxContent class="flex h-60 flex-col gap-0.5 overflow-y-auto overscroll-contain p-1 pb-2">
-                      <p v-if="empty" class="flex h-8 shrink-0 items-center px-2 text-muted">
-                        {{ view === 'favorites' && !query ? t('composer.model.noFavorites') : t('composer.model.none') }}
-                      </p>
-                      <template v-for="(group, index) in groups" :key="index">
-                        <p v-if="group.title && group.items.length" :class="[menuTitle, 'mt-1']" role="presentation">{{ group.title }}</p>
-                        <ListboxItem v-for="item in group.items" :key="item.value" :value="item.value" :class="row" @mousedown.prevent>
-                          <span class="min-w-0 truncate">{{ item.label }}</span>
-                          <span v-if="item.value === catalog?.defaultModel" class="shrink-0 text-[11px] text-muted">{{ t('composer.default') }}</span>
-                          <!-- Étoile hors du choix : un clic la bascule sans choisir le modèle. -->
-                          <button
-                            type="button"
-                            tabindex="-1"
-                            class="ms-auto grid size-6 shrink-0 place-items-center rounded-md hover:bg-selection-inner"
-                            :class="
-                              isFavorite(item.value)
-                                ? 'text-warning'
-                                : 'text-muted opacity-0 hover:text-content group-hover/item:opacity-100 group-data-[highlighted]/item:opacity-100'
-                            "
-                            :aria-label="t(isFavorite(item.value) ? 'composer.model.unfavorite' : 'composer.model.favorite', { model: item.label })"
-                            :aria-pressed="isFavorite(item.value)"
-                            @click.stop.prevent="store.toggleFavorite(agent, item.value)"
+                                        <ListboxContent class="flex max-h-72 flex-col gap-0.5 overflow-y-auto overscroll-contain p-1 pb-2">
+                      <p v-if="!shownModels.length" class="flex h-8 shrink-0 items-center px-2 text-muted">{{ t('composer.model.none') }}</p>
+                      <ListboxItem v-for="item in shownModels" :key="item.value" :value="item.value" :class="row" @mousedown.prevent @pointerenter="legacyOpen = false">
+                        <span class="min-w-0 truncate">{{ item.label }}</span>
+                        <span v-if="item.value === catalog?.defaultModel" class="shrink-0 text-[11px] text-muted">{{ t('composer.default') }}</span>
+                        <!-- Étoile hors du choix : un clic la bascule sans choisir le modèle. -->
+                        <button
+                          type="button"
+                          tabindex="-1"
+                          class="ms-auto grid size-6 shrink-0 place-items-center rounded-sm hover:bg-selection-inner"
+                          :class="
+                            isFavorite(item.value)
+                              ? 'text-warning'
+                              : 'text-muted opacity-0 hover:text-content group-hover/item:opacity-100 group-data-[highlighted]/item:opacity-100'
+                          "
+                          :aria-label="t(isFavorite(item.value) ? 'composer.model.unfavorite' : 'composer.model.favorite', { model: item.label })"
+                          :aria-pressed="isFavorite(item.value)"
+                          @click.stop.prevent="store.toggleFavorite(agent, item.value)"
+                        >
+                          <Star class="size-3.5" :class="{ 'fill-current': isFavorite(item.value) }" aria-hidden="true" />
+                        </button>
+                      </ListboxItem>
+                      <PopoverRoot v-if="!searched && legacy.length" :open="legacyOpen" @update:open="legacyOpen = $event">
+                        <PopoverAnchor as-child>
+                          <ListboxItem :value="LEGACY" :class="[row, 'mt-1']" @mousedown.prevent @pointerenter="legacyOpen = true" @keydown.right.prevent="legacyOpen = true">
+                            <span class="min-w-0 flex-1 truncate">{{ t('composer.model.legacy') }}</span>
+                            <ChevronRight class="me-1 size-3.5 shrink-0 text-muted rtl:rotate-180" aria-hidden="true" />
+                          </ListboxItem>
+                        </PopoverAnchor>
+                        <PopoverPortal>
+                          <PopoverContent
+                            side="right"
+                            align="start"
+                            :side-offset="8"
+                            :collision-padding="8"
+                            :class="[flyout, 'flex w-48 flex-col gap-0.5 p-1.5']"
+                            @open-auto-focus.prevent
+                            @close-auto-focus.prevent
+                            @pointerenter="hoverSub('model')"
                           >
-                            <Star class="size-3.5" :class="{ 'fill-current': isFavorite(item.value) }" aria-hidden="true" />
-                          </button>
-                        </ListboxItem>
-                      </template>
+                            <button
+                              v-for="item in legacy"
+                              :key="item.value"
+                              type="button"
+                              :class="[line, { 'bg-selection': item.value === model }]"
+                              @click="chooseModel(item.value)"
+                            >
+                              <span class="min-w-0 truncate">{{ item.label }}</span>
+                            </button>
+                          </PopoverContent>
+                        </PopoverPortal>
+                      </PopoverRoot>
                     </ListboxContent>
                   </ListboxRoot>
                 </PopoverContent>

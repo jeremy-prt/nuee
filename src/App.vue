@@ -249,9 +249,9 @@ onUnmounted(() => {
             >
               <div class="flex min-w-0 flex-1 flex-col overflow-hidden">
                 <!-- Seul le chat prend le fond de la zone centrale : terminal et panneau de droite font partie du cadre. -->
-                <!-- Sans colonne d'un côté, une fine marge y garde l'arrondi visible au bord de la fenêtre. -->
+                <!-- Sans colonne d'un côté, une fine marge y garde l'arrondi visible au bord de la fenêtre ; en bas, toujours. -->
                 <main
-                  class="center-card relative isolate min-h-0 flex-1 bg-surface"
+                  class="center-card relative isolate mb-1.5 min-h-0 flex-1 bg-surface"
                   :class="{ 'ms-1.5': !columnAtStart, 'me-1.5': !dockShown }"
                 >
                   <ShellBackground />
@@ -283,7 +283,7 @@ onUnmounted(() => {
             <div v-if="navigation.view !== 'chats'" class="flex min-w-0 flex-1 overflow-hidden">
               <main
                 id="view-area"
-                class="center-card relative isolate min-w-0 flex-1 bg-surface"
+                class="center-card relative isolate mb-1.5 min-w-0 flex-1 bg-surface"
                 :class="{ 'ms-1.5': !columnAtStart, 'me-1.5': !previewedSkill }"
               >
                 <ShellBackground />

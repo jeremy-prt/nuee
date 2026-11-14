@@ -1265,6 +1265,21 @@ fn version_of(id: &str) -> Option<Version> {
     (!version.is_empty()).then_some((family, version))
 }
 
+/// Nom exact du modèle : la CLI affiche « Opus » et garde « Opus 5.5 » en tête de sa description (« Opus 5.5 · … »).
+fn label_of(row: &Value) -> String {
+    let name = str_of(&row["displayName"]);
+    let head = str_of(&row["description"])
+        .split(" · ")
+        .next()
+        .unwrap_or("")
+        .trim();
+    if !name.is_empty() && head.len() > name.len() && head.starts_with(name) {
+        head.to_owned()
+    } else {
+        name.to_owned()
+    }
+}
+
 /// Réponse à `initialize` : modèles proposés par la CLI installée.
 fn catalog_of(response: &Value) -> Option<Catalog> {
     let rows = response["models"].as_array()?;
@@ -1278,7 +1293,7 @@ fn catalog_of(response: &Value) -> Option<Catalog> {
         .filter(|row| row["value"] != "default" && row["disabled"] != true)
         .map(|row| ModelInfo {
             value: str_of(&row["value"]).to_owned(),
-            label: str_of(&row["displayName"]).to_owned(),
+            label: label_of(row),
             efforts: row["supportedEffortLevels"]
                 .as_array()
                 .into_iter()
@@ -1937,6 +1952,17 @@ mod tests {
         assert!(!catalog.models[1].fast);
         assert!(!catalog.models[0].legacy);
         assert!(catalog.models[1].legacy);
+    }
+
+    #[test]
+    fn the_exact_model_name_comes_from_the_description() {
+        let row = |name: &str, description: &str| json!({ "displayName": name, "description": description });
+        assert_eq!(
+            label_of(&row("Opus", "Opus 5.5 · Best for everyday tasks")),
+            "Opus 5.5"
+        );
+        assert_eq!(label_of(&row("Opus 5.5", "Complexe")), "Opus 5.5");
+        assert_eq!(label_of(&row("Sonnet", "Rapide · pas son nom")), "Sonnet");
     }
 
     #[test]

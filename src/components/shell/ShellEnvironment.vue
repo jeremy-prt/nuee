@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { SquareMenu } from '@/components/ui/icons'
 import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from 'reka-ui'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatSessionPanel from '@/components/chat/ChatSessionPanel.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { useTerminalChat } from '@/composables/useTerminalChat'
+import { useProjectsStore } from '@/stores/projects'
 import { useSessionGitStore } from '@/stores/sessionGit'
 
 // Environnement de la session en panneau flottant, comme T3 Code et l'app Claude : il s'ouvre par-dessus, sans prendre
@@ -17,6 +18,16 @@ const sessionGit = useSessionGitStore()
 
 // Des modifications non commitées se voient sans ouvrir le panneau, la pastille du champ n'existant plus.
 const changed = computed(() => !!chat.value && (sessionGit.states[chat.value.id]?.changes.files ?? 0) > 0)
+// Commits à récupérer : même pastille, vérifiés à l'arrivée sur la session (une fois par minute au plus, réseau).
+const projects = useProjectsStore()
+const behind = computed(() => (chat.value ? (sessionGit.behind[chat.value.id] ?? 0) : 0))
+watch(
+  [() => chat.value?.id, () => projects.byId(chat.value?.projectId ?? null)?.path],
+  ([id, root]) => {
+    if (id && root && chat.value?.started) sessionGit.checkBehind(id, root)
+  },
+  { immediate: true },
+)
 const label = computed(() => (changed.value ? t('dock.session.titleChanged') : t('dock.session.title')))
 
 const open = ref(false)
@@ -47,7 +58,7 @@ function onCloseAutoFocus(event: Event) {
           @keydown="openedBy(false)"
         >
           <SquareMenu class="size-4" aria-hidden="true" />
-          <span v-if="changed" class="absolute end-1 top-1 size-1.5 rounded-full bg-warning" aria-hidden="true" />
+          <span v-if="changed || behind" class="absolute end-1 top-1 size-1.5 rounded-full bg-signal" aria-hidden="true" />
         </PopoverTrigger>
         <PopoverPortal>
           <PopoverContent

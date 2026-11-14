@@ -36,7 +36,7 @@ function keepOpen(event: Event) {
       @select="keepOpen"
     >
       <span class="grid size-4 place-items-center rounded-full" :style="{ background: iconColorVar(item) }">
-        <DropdownMenuItemIndicator><Check class="size-3 text-white" aria-hidden="true" /></DropdownMenuItemIndicator>
+        <DropdownMenuItemIndicator><Check class="size-3 text-canvas" aria-hidden="true" /></DropdownMenuItemIndicator>
       </span>
     </DropdownMenuRadioItem>
   </DropdownMenuRadioGroup>

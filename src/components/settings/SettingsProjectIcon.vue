@@ -96,7 +96,7 @@ async function importImage() {
           class="grid size-6 cursor-pointer place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           :style="{ background: iconColorVar(color) }"
         >
-          <RadioGroupIndicator><Check class="size-3.5 text-white" aria-hidden="true" /></RadioGroupIndicator>
+          <RadioGroupIndicator><Check class="size-3.5 text-canvas" aria-hidden="true" /></RadioGroupIndicator>
         </RadioGroupItem>
       </RadioGroupRoot>
     </SettingsRow>

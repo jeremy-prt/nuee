@@ -703,9 +703,7 @@ export default {
       menu: 'Modelo e esforço',
       search: 'Buscar um modelo',
       none: 'Nenhum modelo encontrado',
-      favorites: 'Favoritos',
       legacy: 'Modelos anteriores',
-      noFavorites: 'Nenhum favorito',
       favorite: 'Adicionar {model} aos favoritos',
       unfavorite: 'Remover {model} dos favoritos',
     },
@@ -1531,6 +1529,7 @@ export default {
       message: "Gerar a mensagem",
     },
     prompts: {
+      pull: "Trazer os commits remotos da branch (git pull) e resolver os conflitos, se houver.",
       initRepo: "Inicializar um repositório git nesta pasta (branch main), sem fazer nenhum commit. Terminar com uma única frase dizendo o que foi feito.",
     },
     steps: {
@@ -1548,6 +1547,7 @@ export default {
     directFailed: "O commit falhou",
     pushFailed: "Falha no push",
     pullFailed: "Falha no pull",
+    pullToAgent: "Passar para o agente",
     busyTitle: "Já há uma ação do Git em andamento",
     busy: "“{action}” precisa terminar ou ser parada nesta pasta antes de iniciar outra.",
     notReadyTitle: "“{action}” não foi iniciada",

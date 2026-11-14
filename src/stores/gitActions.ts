@@ -9,6 +9,7 @@ import { worktreeCommit, worktreeCommitMessage, worktreeHead, worktreePull, work
 import { type Signal, useAttentionStore } from '@/stores/attention'
 import { useCatalogStore } from '@/stores/catalog'
 import { type ChatItem, type Conversation, type GitItem, useConversationsStore } from '@/stores/conversations'
+import { useDraftsStore } from '@/stores/drafts'
 import { useGitPanelStore } from '@/stores/gitPanel'
 import { useNavigationStore } from '@/stores/navigation'
 import { useProjectsStore } from '@/stores/projects'
@@ -328,12 +329,25 @@ export const useGitActionsStore = defineStore('gitActions', () => {
       const head = await worktreePull(origin.id, project.path)
       toasts.push({ kind: 'success', title: t('gitActions.done.pull'), body: [head.subject, head.branch].filter(Boolean).join(' · ') })
     } catch (error) {
-      toasts.push({ kind: 'error', title: t('gitActions.pullFailed'), body: brief(isAppError(error) ? error.message : String(error)), clamp: true })
+      // Branches divergées ou conflit : pas de résolution à la main, l'agent de la session s'en charge sur demande.
+      toasts.push({
+        kind: 'error',
+        title: t('gitActions.pullFailed'),
+        body: brief(isAppError(error) ? error.message : String(error)),
+        clamp: true,
+        action: { label: t('gitActions.pullToAgent'), run: () => askAgentToPull(origin) },
+      })
     } finally {
       manual.delete(folder)
       settled[folder] = (settled[folder] ?? 0) + 1
       await Promise.all([sessionGit.refresh(origin.id, project.path), sessionGit.checkBehind(origin.id, project.path, true)])
     }
+  }
+
+  function askAgentToPull(origin: Tab) {
+    const { t } = i18nGlobal()
+    open(origin.id)
+    useDraftsStore().request(origin.id, t('gitActions.prompts.pull'))
   }
 
   async function headOf(run: GitRun) {

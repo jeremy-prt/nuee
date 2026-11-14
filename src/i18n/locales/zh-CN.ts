@@ -703,9 +703,7 @@ export default {
       menu: '模型和推理强度',
       search: '搜索模型',
       none: '未找到模型',
-      favorites: '收藏',
       legacy: '旧版模型',
-      noFavorites: '暂无收藏',
       favorite: '将 {model} 加入收藏',
       unfavorite: '从收藏中移除 {model}',
     },
@@ -1531,6 +1529,7 @@ export default {
       message: "生成信息",
     },
     prompts: {
+      pull: "拉取此分支的远程提交（git pull），如有冲突请解决。",
       initRepo: "在此文件夹中初始化 git 仓库（main 分支），不要提交任何内容。最后用一句话说明做了什么。",
     },
     steps: {
@@ -1548,6 +1547,7 @@ export default {
     directFailed: "提交失败",
     pushFailed: "推送失败",
     pullFailed: "拉取失败",
+    pullToAgent: "交给代理",
     busyTitle: "已有 Git 操作在进行",
     busy: "此文件夹中的“{action}”结束或停止后，才能开始新的操作。",
     notReadyTitle: "“{action}”未能开始",

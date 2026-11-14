@@ -74,17 +74,18 @@
   --project-red: oklch(0.68 0.16 25);
   --project-pink: oklch(0.72 0.14 350);
   --project-violet: oklch(0.7 0.14 300);
-  /* Fond de l'initiale d'un projet (palette de Paseo) : tons sourds, même contraste avec la lettre blanche. */
-  --icon-slate: #6b7385;
-  --icon-blue: #5179b0;
-  --icon-sky: #3d7ea6;
-  --icon-teal: #368080;
-  --icon-emerald: #388068;
-  --icon-indigo: #6a70b8;
-  --icon-violet: #7a6aa8;
-  --icon-pink: #b05c80;
-  --icon-red: #b06260;
-  --icon-orange: #a4673a;
+  /* Initiale d'un projet, comme T3 Code : lettre de couleur vive (Tailwind 400 en sombre, 600 en clair) sur un fond de
+     la même couleur à 14 %. */
+  --icon-slate: oklch(70.4% 0.04 256.8);
+  --icon-blue: oklch(70.7% 0.165 254.6);
+  --icon-sky: oklch(74.6% 0.16 232.7);
+  --icon-teal: oklch(77.7% 0.152 181.9);
+  --icon-emerald: oklch(76.5% 0.177 163.2);
+  --icon-indigo: oklch(67.3% 0.182 276.9);
+  --icon-violet: oklch(70.2% 0.183 293.5);
+  --icon-pink: oklch(71.8% 0.202 349.8);
+  --icon-red: oklch(70.4% 0.191 22.2);
+  --icon-orange: oklch(75% 0.183 55.9);
 }
 
 html,
@@ -104,6 +105,16 @@ body,
 /* Mode clair (data-mode posé par stores/appearance.ts) : couleurs d'état assombries pour garder leur contraste sur
    un fond clair, survols plus légers (le noir se voit plus que le blanc à dose égale). */
 html[data-mode='light'] {
+  --icon-slate: oklch(44.6% 0.043 257.3);
+  --icon-blue: oklch(54.6% 0.245 262.9);
+  --icon-sky: oklch(58.8% 0.158 242);
+  --icon-teal: oklch(60% 0.118 184.7);
+  --icon-emerald: oklch(59.6% 0.145 163.2);
+  --icon-indigo: oklch(51.1% 0.262 277);
+  --icon-violet: oklch(54.1% 0.281 293);
+  --icon-pink: oklch(59.2% 0.249 0.6);
+  --icon-red: oklch(57.7% 0.245 27.3);
+  --icon-orange: oklch(64.6% 0.222 41.1);
   color-scheme: light;
   --color-muted: color-mix(in srgb, var(--color-content) 58%, transparent);
   --color-stroke: color-mix(in srgb, var(--color-content) 10%, transparent);
@@ -193,14 +204,13 @@ html[data-mode='light'] {
   background-image: linear-gradient(var(--color-stroke), var(--color-stroke));
 }
 
-/* Centre arrondi en haut des deux côtés (choix de Jérémy). L'ombre pleine peint le cadre hors de l'arrondi. Le centre
+/* Centre arrondi aux quatre coins, une fine marge en bas comme sur les côtés (choix de Jérémy). L'ombre pleine peint le cadre hors de l'arrondi. Le centre
    trace ses traits, courbe comprise : le séparateur voisin (`separator-notch`) n'en trace plus, sinon il serait décalé
    d'un pixel à côté de la courbe. */
 @utility center-card {
   overflow: hidden;
   box-shadow: 0 0 0 100vmax var(--color-chrome);
-  border-start-start-radius: var(--radius-xl);
-  border-start-end-radius: var(--radius-xl);
+  border-radius: var(--radius-xl);
   &::after {
     content: '';
     position: absolute;
@@ -208,7 +218,6 @@ html[data-mode='light'] {
     z-index: 20;
     pointer-events: none;
     border: 1px solid var(--color-stroke);
-    border-bottom: none;
     border-radius: inherit;
   }
 }

@@ -703,9 +703,7 @@ export default {
       menu: 'Modèle et effort',
       search: 'Rechercher un modèle',
       none: 'Aucun modèle trouvé',
-      favorites: 'Favoris',
       legacy: 'Anciens modèles',
-      noFavorites: 'Aucun favori',
       favorite: 'Ajouter {model} aux favoris',
       unfavorite: 'Retirer {model} des favoris',
     },
@@ -1531,6 +1529,7 @@ export default {
       message: "Générer le message",
     },
     prompts: {
+      pull: "Récupérer les commits distants de la branche (git pull) et résoudre les conflits s'il y en a.",
       initRepo: "Initialiser un dépôt git dans ce dossier (branche main), sans rien commiter. Finir par une seule phrase qui dit ce qui a été fait.",
     },
     steps: {
@@ -1548,6 +1547,7 @@ export default {
     directFailed: "Le commit a échoué",
     pushFailed: "Push en échec",
     pullFailed: "Pull en échec",
+    pullToAgent: "Confier à l'agent",
     busyTitle: "Une action Git est déjà en cours",
     busy: "L'action « {action} » doit finir ou être arrêtée avant d'en lancer une autre dans ce dossier.",
     notReadyTitle: "« {action} » n'a pas démarré",

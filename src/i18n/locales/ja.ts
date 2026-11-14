@@ -703,9 +703,7 @@ export default {
       menu: 'モデルと思考量',
       search: 'モデルを検索',
       none: 'モデルが見つかりません',
-      favorites: 'お気に入り',
       legacy: '以前のモデル',
-      noFavorites: 'お気に入りなし',
       favorite: '{model} をお気に入りに追加',
       unfavorite: '{model} をお気に入りから削除',
     },
@@ -1531,6 +1529,7 @@ export default {
       message: "メッセージを生成",
     },
     prompts: {
+      pull: "このブランチのリモートコミットを取り込み（git pull）、競合があれば解決してください。",
       initRepo: "このフォルダで git リポジトリを初期化する（main ブランチ）。コミットはしない。最後に、行ったことを一文で伝える。",
     },
     steps: {
@@ -1548,6 +1547,7 @@ export default {
     directFailed: "コミットに失敗しました",
     pushFailed: "プッシュに失敗しました",
     pullFailed: "プルに失敗しました",
+    pullToAgent: "エージェントに任せる",
     busyTitle: "Git の操作がすでに実行中です",
     busy: "このフォルダでは「{action}」が終わるか停止されるまで、次の操作は開始できません。",
     notReadyTitle: "「{action}」を開始できませんでした",
