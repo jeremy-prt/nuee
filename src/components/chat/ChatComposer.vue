@@ -118,13 +118,16 @@ function chooseMode(_: string, value: string) {
 const caret = ref<number | null>(null)
 const syncCaret = () => (caret.value = input.value?.selectionStart ?? null)
 const slashMenu = useTemplateRef('slashMenu')
-const slashQuery = computed(() => {
+// Skill sous le curseur : du « / » (en début de mot, en tête de message ou après une espace) jusqu'au curseur.
+const slash = computed(() => {
   // Un message rappelé se parcourt aux flèches : le menu les prendrait.
-  if (recalled.value) return null
-  const word = /^\/\S*/.exec(prompt.value)?.[0]
-  if (!word || caret.value === null || caret.value > word.length) return null
-  return word.slice(1)
+  if (recalled.value || caret.value === null) return null
+  const start = prompt.value.slice(0, caret.value).search(/(?<=^|\s)\/[^\s/]*$/)
+  if (start === -1) return null
+  const end = start + /^\S*/.exec(prompt.value.slice(start))![0].length
+  return { start, end, query: prompt.value.slice(start + 1, caret.value) }
 })
+const slashQuery = computed(() => slash.value?.query ?? null)
 
 // Mention sous le curseur : du « @ » (en début de mot) jusqu'au curseur. La forme entre guillemets ne s'y prête pas.
 const mentionMenu = useTemplateRef('mentionMenu')
@@ -149,8 +152,10 @@ async function chooseFile(path: string) {
 }
 
 async function chooseSkill(name: string) {
-  const head = `/${name}`
-  const rest = prompt.value.replace(/^\/\S*/, '')
+  const token = slash.value
+  if (!token) return
+  const head = `${prompt.value.slice(0, token.start)}/${name}`
+  const rest = prompt.value.slice(token.end)
   prompt.value = head + (/^\s/.test(rest) ? rest : ` ${rest}`)
   const position = head.length + 1
   caret.value = position

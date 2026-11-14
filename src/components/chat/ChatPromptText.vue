@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { HoverCardContent, HoverCardPortal, HoverCardRoot, HoverCardTrigger } from 'reka-ui'
 import { computed, inject, watch } from 'vue'
 import { mentionPlaceKey, useMentionsStore } from '@/stores/mentions'
 import { useSkillsStore } from '@/stores/skills'
@@ -9,6 +10,7 @@ import { promptParts } from '@/utils/prompt'
 const props = defineProps<{ text: string; fit?: boolean }>()
 
 const skills = useSkillsStore()
+const describe = (name: string) => skills.skills.find((skill) => skill.name === name)?.description ?? ''
 const mentions = useMentionsStore()
 const place = inject(mentionPlaceKey, null)
 const files = computed(() => (place?.value ? mentions.known.get(place.value.chatId) : undefined))
@@ -17,7 +19,7 @@ const parts = computed(() => promptParts(props.fit && props.text.endsWith('\n') 
 
 // Message repris, rempli ou rouvert sans passer par le menu « / » : ses skills ne sont pas encore lus.
 watch(
-  () => props.text.startsWith('/') && !skills.loaded && !skills.loading,
+  () => props.text.includes('/') && !skills.loaded && !skills.loading,
   (missing) => missing && skills.loadSkills(),
   { immediate: true },
 )
@@ -31,7 +33,17 @@ watch(
 
 <template>
   <template v-for="(part, index) in parts" :key="index">
-    <span v-if="part.kind === 'skill'" class="text-skill">{{ part.text }}</span>
+    <span v-if="part.kind === 'skill' && fit" class="text-skill">{{ part.text }}</span>
+    <!-- Dans un message, la description du skill au survol, comme l'app Claude. -->
+    <HoverCardRoot v-else-if="part.kind === 'skill'" :open-delay="300" :close-delay="100">
+      <HoverCardTrigger as="span" class="text-skill">{{ part.text }}</HoverCardTrigger>
+      <HoverCardPortal>
+        <HoverCardContent side="bottom" align="start" :side-offset="6" :collision-padding="8" class="ui-pop z-50 w-72 px-3 py-2.5 text-xs text-content">
+          <p class="text-muted">{{ part.text }}</p>
+          <p v-if="describe(part.name)" class="mt-1 leading-relaxed">{{ describe(part.name) }}</p>
+        </HoverCardContent>
+      </HoverCardPortal>
+    </HoverCardRoot>
     <span v-else-if="part.kind === 'file'" class="text-mention" :title="fit ? undefined : part.path">{{ part.text }}</span>
     <template v-else>{{ part.text }}</template>
   </template>
