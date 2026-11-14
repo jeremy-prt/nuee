@@ -393,6 +393,21 @@ html[data-mode='light'] {
   animation: ui-toast-in 240ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Champ de recherche de l'Explorateur qui se déroule sous la ligne d'outils, l'arborescence descend avec lui. */
+.files-search-drop {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows var(--motion-open) var(--motion-ease), opacity var(--motion-open) var(--motion-ease);
+  @starting-style {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+  > * {
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
 /* Page des réglages qui apparaît (SettingsView) : opacité seule, rien à capturer ni à reflouter. */
 .page-in {
   animation: page-in 140ms ease-out;

@@ -168,34 +168,34 @@ function create(dir: boolean) {
       :style="editorShown ? { width: `${explorerWidth}px` } : undefined"
       :aria-label="t('dock.files.title')"
     >
-      <FilesSearch v-if="browse.searching" :place="place" @close="browse.searching = false" />
-      <template v-else>
-        <ShellDockToolbar :label="t('dock.files.title')">
-          <ChatDiffStat v-if="diff" v-bind="diff" plain class="px-1.5 text-xs" />
-          <template #end>
-            <ShellDockToolbarButton :label="t('dock.files.newFile')" :disabled="!root || !!failure" @mousedown.prevent @click="create(false)">
-              <FilePlus class="size-3.5" aria-hidden="true" />
-            </ShellDockToolbarButton>
-            <ShellDockToolbarButton :label="t('dock.files.newFolder')" :disabled="!root || !!failure" @mousedown.prevent @click="create(true)">
-              <FolderPlus class="size-3.5" aria-hidden="true" />
-            </ShellDockToolbarButton>
-            <ShellDockToolbarButton :label="t('dock.files.collapse')" :disabled="!browse.expanded.size || !!failure" @mousedown.prevent @click="browse.expanded.clear()">
-              <CollapseAll class="size-3.5" aria-hidden="true" />
-            </ShellDockToolbarButton>
-            <ShellDockToolbarButton :label="t('dock.files.search')" :disabled="!root || !!failure" @click="browse.searching = true">
-              <Search class="size-3.5" aria-hidden="true" />
-            </ShellDockToolbarButton>
-          </template>
-        </ShellDockToolbar>
-        <UiEmpty
-          v-if="failure"
-          tone="danger"
-          :icon="failure.missing ? FolderX : CircleAlert"
-          :title="t(failure.missing ? 'dock.files.folderMissingTitle' : 'dock.files.folderUnreadableTitle')"
-          :description="failure.missing ? t('dock.files.folderMissing', { path: place.worktree ?? place.path ?? '' }) : failure.detail"
-        />
-        <FilesTree v-else-if="root" :place="place" :root="root" :root-name="rootName" />
-      </template>
+      <ShellDockToolbar :label="t('dock.files.title')">
+        <ChatDiffStat v-if="diff" v-bind="diff" plain class="px-1.5 text-xs" />
+        <template #end>
+          <ShellDockToolbarButton :label="t('dock.files.newFile')" :disabled="!root || !!failure" @mousedown.prevent @click="create(false)">
+            <FilePlus class="size-3.5" aria-hidden="true" />
+          </ShellDockToolbarButton>
+          <ShellDockToolbarButton :label="t('dock.files.newFolder')" :disabled="!root || !!failure" @mousedown.prevent @click="create(true)">
+            <FolderPlus class="size-3.5" aria-hidden="true" />
+          </ShellDockToolbarButton>
+          <ShellDockToolbarButton :label="t('dock.files.collapse')" :disabled="!browse.expanded.size || !!failure" @mousedown.prevent @click="browse.expanded.clear()">
+            <CollapseAll class="size-3.5" aria-hidden="true" />
+          </ShellDockToolbarButton>
+          <ShellDockToolbarButton :label="t('dock.files.search')" :pressed="browse.searching" :disabled="!root || !!failure" @click="browse.searching = !browse.searching">
+            <Search class="size-3.5" aria-hidden="true" />
+          </ShellDockToolbarButton>
+        </template>
+      </ShellDockToolbar>
+      <UiEmpty
+        v-if="failure"
+        tone="danger"
+        :icon="failure.missing ? FolderX : CircleAlert"
+        :title="t(failure.missing ? 'dock.files.folderMissingTitle' : 'dock.files.folderUnreadableTitle')"
+        :description="failure.missing ? t('dock.files.folderMissing', { path: place.worktree ?? place.path ?? '' }) : failure.detail"
+      />
+      <FilesSearch v-else-if="root && browse.searching" :place="place" @close="browse.searching = false">
+        <FilesTree :place="place" :root="root" :root-name="rootName" />
+      </FilesSearch>
+      <FilesTree v-else-if="root" :place="place" :root="root" :root-name="rootName" />
     </section>
   </div>
 </template>

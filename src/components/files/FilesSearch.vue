@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { CaseSensitive, ChevronLeft, CircleAlert, File as FileGlyph, LoaderCircle, Regex, Search, WholeWord } from '@/components/ui/icons'
+import { CaseSensitive, CircleAlert, LoaderCircle, Regex, Search, WholeWord } from '@/components/ui/icons'
 import { computed, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import FilesIcon from '@/components/files/FilesIcon.vue'
-import ShellDockToolbar from '@/components/shell/ShellDockToolbar.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { field, fieldText } from '@/components/ui/field'
 import { useDebounced } from '@/composables/useDebounced'
@@ -13,50 +12,45 @@ import { filesList, filesSearch } from '@/ipc/files'
 import { parentOf, useFilesStore } from '@/stores/files'
 import { normalize } from '@/utils/search'
 
-// Recherche du volet Explorateur, à la place de l'arborescence. Deux champs, comme monocode sépare « aller au
-// fichier » et « chercher dans les fichiers » : le nom filtre les fichiers, le texte cherche dans leur contenu (limité
-// aux fichiers que filtre le nom). Un clic ouvre le fichier, à la ligne pour un résultat de contenu.
+// Recherche du volet Explorateur : un champ qui se déroule sous la ligne d'outils (demande de Jérémy), sans quitter la
+// page. Le même texte trouve les fichiers par leur nom puis les lignes qui le contiennent ; champ vide, l'arborescence
+// (slot) reste dessous. Un clic ouvre le fichier, à la ligne pour un résultat de contenu.
 const props = defineProps<{ place: FilesPlace }>()
 const emit = defineEmits<{ close: [] }>()
 
 const { t } = useI18n()
 const store = useFilesStore()
 
-const nameQuery = ref('')
 const query = ref('')
 const caseSensitive = ref(false)
 const wholeWord = ref(false)
 const regex = ref(false)
 const searched = useDebounced(query, 200)
-const nameSearched = useDebounced(nameQuery, 100)
+const nameSearched = useDebounced(query, 100)
 const results = ref<SearchResults | null>(null)
 const loading = ref(false)
 const failed = ref(false)
-const nameInput = useTemplateRef('nameInput')
+const input = useTemplateRef('input')
 // Liste complète, lue seulement ici : l'arbre ne lit que ses dossiers ouverts.
 const files = ref<string[]>([])
 onMounted(() => {
-  nameInput.value?.focus()
+  input.value?.focus()
   filesList(props.place)
     .then((listed) => (files.value = listed.files))
     .catch(() => {})
 })
 
 const nameOf = (file: string) => file.slice(file.lastIndexOf('/') + 1)
-const NAMES = 50
+const NAMES = 20
 
 const nameNeedle = computed(() => normalize(nameSearched.value).replaceAll(' ', ''))
-const nameMatches = (file: string) => {
-  const needle = nameNeedle.value
-  return !needle || normalize(file).replaceAll(' ', '').includes(needle)
-}
 // Le nom avant le chemin : « main » trouve d'abord main.ts, puis ce qui est rangé dans un dossier main.
 const named = computed(() => {
   const needle = nameNeedle.value
-  if (!needle || searched.value) return []
+  if (!needle) return []
   const byName = (file: string) => normalize(nameOf(file)).replaceAll(' ', '').includes(needle)
   return files.value
-    .filter(nameMatches)
+    .filter((file) => normalize(file).replaceAll(' ', '').includes(needle))
     .sort((a, b) => Number(byName(b)) - Number(byName(a)) || nameOf(a).length - nameOf(b).length)
     .sort((a, b) => nameOf(a).length - nameOf(b).length)
     .slice(0, NAMES)
@@ -64,7 +58,7 @@ const named = computed(() => {
 
 const groups = computed(() => {
   const byFile = new Map<string, SearchResults['matches']>()
-  for (const match of (results.value?.matches ?? []).filter((item) => nameMatches(item.path))) byFile.set(match.path, [...(byFile.get(match.path) ?? []), match])
+  for (const match of results.value?.matches ?? []) byFile.set(match.path, [...(byFile.get(match.path) ?? []), match])
   return [...byFile.entries()].map(([path, matches]) => ({ path, matches }))
 })
 
@@ -130,15 +124,14 @@ function open(path: string, line?: number) {
   store.openFile(props.place.chatId, path, { line })
 }
 
-function onKeydown(event: KeyboardEvent, which: 'name' | 'text') {
-  const target = which === 'name' ? nameQuery : query
+function onKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape') {
     event.stopPropagation()
-    if (target.value) target.value = ''
+    if (query.value) query.value = ''
     else emit('close')
   } else if (event.key === 'Enter') {
     const first = groups.value[0]?.matches[0]
-    if (which === 'name' && named.value[0]) open(named.value[0])
+    if (named.value[0]) open(named.value[0])
     else if (first) open(first.path, first.line)
   }
 }
@@ -150,78 +143,58 @@ const row = 'flex w-full min-w-0 items-center gap-1.5 rounded-md px-2 text-start
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col">
-    <ShellDockToolbar :label="t('dock.files.searchTitle')">
-      <UiTooltip :label="t('dock.files.backToFiles')">
-        <button type="button" :class="toggle" :aria-label="t('dock.files.backToFiles')" @click="emit('close')">
-          <ChevronLeft class="size-3.5" aria-hidden="true" />
-        </button>
-      </UiTooltip>
-      <h3 class="ms-0.5 min-w-0 truncate text-xs font-medium">{{ t('dock.files.searchTitle') }}</h3>
-    </ShellDockToolbar>
-    <div class="flex flex-col gap-1.5 p-2">
-      <label data-control :class="field">
-        <FileGlyph class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
-        <input
-          ref="nameInput"
-          v-model="nameQuery"
-          type="text"
-          :class="fieldText"
-          :placeholder="t('dock.files.namePlaceholder')"
-          :aria-label="t('dock.files.namePlaceholder')"
-          autocomplete="off"
-          autocorrect="off"
-          autocapitalize="off"
-          spellcheck="false"
-          writingsuggestions="false"
-          @keydown="onKeydown($event, 'name')"
-        />
-      </label>
-      <label data-control :class="field">
-        <Search class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
-        <input
-          v-model="query"
-          type="text"
-          :class="fieldText"
-          :placeholder="t('dock.files.searchPlaceholder')"
-          :aria-label="t('dock.files.searchPlaceholder')"
-          autocomplete="off"
-          autocorrect="off"
-          autocapitalize="off"
-          spellcheck="false"
-          writingsuggestions="false"
-          @keydown="onKeydown($event, 'text')"
-        />
-        <span class="-me-1.5 flex shrink-0">
-          <UiTooltip :label="t('dock.files.matchCase')">
-            <button type="button" :class="toggle" :aria-label="t('dock.files.matchCase')" :aria-pressed="caseSensitive" @click="caseSensitive = !caseSensitive">
-              <CaseSensitive class="size-3.5" aria-hidden="true" />
-            </button>
-          </UiTooltip>
-          <UiTooltip :label="t('dock.files.wholeWord')">
-            <button type="button" :class="toggle" :aria-label="t('dock.files.wholeWord')" :aria-pressed="wholeWord" @click="wholeWord = !wholeWord">
-              <WholeWord class="size-3.5" aria-hidden="true" />
-            </button>
-          </UiTooltip>
-          <UiTooltip :label="t('dock.files.regex')">
-            <button type="button" :class="toggle" :aria-label="t('dock.files.regex')" :aria-pressed="regex" @click="regex = !regex">
-              <Regex class="size-3.5" aria-hidden="true" />
-            </button>
-          </UiTooltip>
-        </span>
-      </label>
-      <p v-if="searched" class="flex items-center gap-1.5 px-1 pt-0.5 text-[11px] text-muted" role="status">
-        <LoaderCircle v-if="loading" class="size-3 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-        <span v-if="failed" class="flex items-center gap-1.5 text-danger">
-          <CircleAlert class="size-3" aria-hidden="true" />{{ t('dock.files.searchFailed') }}
-        </span>
-        <template v-else-if="results">
-          {{ t('dock.files.results', { n: count }, count) }}
-          <template v-if="results.truncated">{{ t('dock.files.limited') }}</template>
-        </template>
-      </p>
+    <!-- Se déroule à l'ouverture (`files-search-drop`, main.css). -->
+    <div class="files-search-drop shrink-0">
+      <div class="flex flex-col gap-1.5 p-2">
+        <label data-control :class="field">
+          <Search class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
+          <input
+            ref="input"
+            v-model="query"
+            type="text"
+            :class="fieldText"
+            :placeholder="t('dock.files.searchPlaceholder')"
+            :aria-label="t('dock.files.searchPlaceholder')"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
+            writingsuggestions="false"
+            @keydown="onKeydown"
+          />
+          <span class="-me-1.5 flex shrink-0">
+            <UiTooltip :label="t('dock.files.matchCase')">
+              <button type="button" :class="toggle" :aria-label="t('dock.files.matchCase')" :aria-pressed="caseSensitive" @click="caseSensitive = !caseSensitive">
+                <CaseSensitive class="size-3.5" aria-hidden="true" />
+              </button>
+            </UiTooltip>
+            <UiTooltip :label="t('dock.files.wholeWord')">
+              <button type="button" :class="toggle" :aria-label="t('dock.files.wholeWord')" :aria-pressed="wholeWord" @click="wholeWord = !wholeWord">
+                <WholeWord class="size-3.5" aria-hidden="true" />
+              </button>
+            </UiTooltip>
+            <UiTooltip :label="t('dock.files.regex')">
+              <button type="button" :class="toggle" :aria-label="t('dock.files.regex')" :aria-pressed="regex" @click="regex = !regex">
+                <Regex class="size-3.5" aria-hidden="true" />
+              </button>
+            </UiTooltip>
+          </span>
+        </label>
+        <p v-if="searched" class="flex items-center gap-1.5 px-1 pt-0.5 text-[11px] text-muted" role="status">
+          <LoaderCircle v-if="loading" class="size-3 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+          <span v-if="failed" class="flex items-center gap-1.5 text-danger">
+            <CircleAlert class="size-3" aria-hidden="true" />{{ t('dock.files.searchFailed') }}
+          </span>
+          <template v-else-if="results">
+            {{ t('dock.files.results', { n: count }, count) }}
+            <template v-if="results.truncated">{{ t('dock.files.limited') }}</template>
+          </template>
+        </p>
+      </div>
     </div>
 
-    <div class="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
+    <slot v-if="!query.trim()" />
+    <div v-else class="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
       <section v-if="named.length" class="mb-2" :aria-label="t('dock.files.byName')">
         <h4 class="px-2 pb-1 text-[11px] font-medium text-muted">{{ t('dock.files.byName') }}</h4>
         <button v-for="file in named" :key="file" type="button" :class="row" class="h-7 text-[13px]" :title="file" @click="open(file)">
@@ -230,6 +203,7 @@ const row = 'flex w-full min-w-0 items-center gap-1.5 rounded-md px-2 text-start
           <span class="min-w-0 flex-1 truncate text-[11px] text-muted">{{ parentOf(file) }}</span>
         </button>
       </section>
+      <h4 v-if="groups.length" class="px-2 pb-1 text-[11px] font-medium text-muted">{{ t('dock.files.inContent') }}</h4>
       <section v-for="group in groups" :key="group.path" class="mb-1">
         <button type="button" :class="row" class="h-7 text-[13px]" :title="group.path" @click="open(group.path, group.matches[0]?.line)">
           <FilesIcon :name="nameOf(group.path)" />

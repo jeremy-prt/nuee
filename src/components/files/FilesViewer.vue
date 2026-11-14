@@ -33,7 +33,7 @@ function svgSize(text: string) {
 </script>
 
 <script setup lang="ts">
-import { ChevronRight, CircleAlert, File as FileGlyph, LoaderCircle, TriangleAlert } from '@/components/ui/icons'
+import { ChevronRight, CircleAlert, File as FileGlyph, LoaderCircle, TriangleAlert, X } from '@/components/ui/icons'
 import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatMarkdown from '@/components/chat/ChatMarkdown.vue'
@@ -41,6 +41,7 @@ import FilesEditor from '@/components/files/FilesEditor.vue'
 import FilesImage from '@/components/files/FilesImage.vue'
 import FilesMenu from '@/components/files/FilesMenu.vue'
 import UiEmpty from '@/components/ui/UiEmpty.vue'
+import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiMoreMenu from '@/components/ui/UiMoreMenu.vue'
 import { isAppError } from '@/ipc/agent'
 import type { FileContent } from '@/ipc/bindings/FileContent'
@@ -50,7 +51,9 @@ import { parentOf, useFilesStore } from '@/stores/files'
 
 // Enregistré seul peu après la frappe, contre la version lue : si l'agent a réécrit le fichier entre-temps, rien
 // n'est écrasé et la ligne d'outils propose les deux versions. Sans frappe en cours, celle du disque est reprise.
-const props = defineProps<{ place: FilesPlace; root: string; file: string }>()
+// `single` : seul fichier ouvert, sans onglet ; le chemin va jusqu'au nom et une croix le ferme.
+const props = defineProps<{ place: FilesPlace; root: string; file: string; single?: boolean }>()
+const emit = defineEmits<{ close: [] }>()
 
 const { t } = useI18n()
 const store = useFilesStore()
@@ -121,7 +124,7 @@ const rootName = computed(() => {
 })
 // À la racine, le nom est déjà dans l'onglet : seul le dossier de la session reste.
 const crumbs = computed(() => {
-  if (!folder.value) return []
+  if (!folder.value && !props.single) return []
   const parts = props.file.split('/')
   return parts.map((label, index) => ({ label, path: parts.slice(0, index + 1).join('/'), last: index === parts.length - 1 }))
 })
@@ -320,8 +323,11 @@ const crumb = 'min-w-0 truncate rounded px-0.5 hover:text-content focus-visible:
       </template>
       <span v-else-if="text" class="max-w-40 shrink-0 truncate text-[11px]" :class="{ 'text-danger': saveError }" :title="saveError || undefined" aria-live="polite">{{ state }}</span>
       <UiMoreMenu :label="t('dock.files.actions')" tooltip-side="bottom">
-        <FilesMenu :place="place" :root="root" :target="{ path: file, folder: false }" />
+        <FilesMenu :place="place" :root="root" :target="{ path: file, folder: false }" opened />
       </UiMoreMenu>
+      <UiIconButton v-if="single" :label="t('dock.files.closeFile', { name })" @click="emit('close')">
+        <X class="size-3.5" aria-hidden="true" />
+      </UiIconButton>
     </div>
     <FilesImage v-if="shownPicture || (status === 'loading' && imageLike)" :picture="shownPicture" :name="name" :busy="slow" class="min-h-0 flex-1" />
     <template v-else-if="status === 'loading'">

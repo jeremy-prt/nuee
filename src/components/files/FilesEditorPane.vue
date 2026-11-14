@@ -21,11 +21,14 @@ const nameOf = (file: string) => file.slice(file.lastIndexOf('/') + 1)
 const items = computed(() => browse.value.tabs.map((file) => ({ key: file, name: nameOf(file), title: file })))
 // Sous les onglets, la ligne d'outils du fichier tient celle de l'arborescence.
 const inBar = computed(() => layout.spans('files'))
+// Un seul fichier : pas d'onglet, sa ligne d'outils porte le chemin et la croix (demande de Jérémy).
+const single = computed(() => items.value.length < 2)
 </script>
 
 <template>
   <div class="flex min-h-0 flex-col">
     <ShellEditorTabs
+      v-if="!single"
       :items="items"
       :open="browse.open"
       :preview="browse.preview"
@@ -40,9 +43,18 @@ const inBar = computed(() => layout.spans('files'))
         <FilesIcon :name="item.name" class="size-3.5!" />
       </template>
       <template #menu="{ item }">
-        <FilesMenu :place="place" :root="root" :target="{ path: item.key, folder: false }" />
+        <FilesMenu :place="place" :root="root" :target="{ path: item.key, folder: false }" opened />
       </template>
     </ShellEditorTabs>
-    <FilesViewer v-if="browse.open" :key="browse.open" :place="place" :root="root" :file="browse.open" class="min-h-0 flex-1" />
+    <FilesViewer
+      v-if="browse.open"
+      :key="browse.open"
+      :place="place"
+      :root="root"
+      :file="browse.open"
+      :single="single"
+      class="min-h-0 flex-1"
+      @close="store.closeFile(place.chatId, browse.open)"
+    />
   </div>
 </template>

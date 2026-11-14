@@ -36,6 +36,8 @@ const dockFocus = useDockFocus()
 const editorWidth = computed(() => {
   const view = layout.right.active
   if ((view !== 'files' && view !== 'changes') || !layout.spans(view) || !layout.editingIn(view)) return 0
+  // Un seul fichier de l'Explorateur n'a pas d'onglet : ni zone ni trait, les icônes des volets gardent toute la barre.
+  if (view === 'files' && files.of(workspace.activeTabId ?? '').tabs.length < 2) return 0
   return Math.max(0, layout.right.size - files.explorerShown(layout.right.size))
 })
 // Panneau fermé pendant que l'agent se sert du navigateur : une pastille sur son bouton.

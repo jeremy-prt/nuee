@@ -36,7 +36,8 @@ import { useToastsStore } from '@/stores/toasts'
 
 // Menu d'un fichier, d'un dossier ou du dossier de la session (chemin vide), comme l'explorateur de monocode. Posé
 // dans le clic droit des lignes et de la zone vide, et dans le « … » de l'aperçu. `root` : dossier de la session.
-const props = defineProps<{ place: FilesPlace; root: string; target: FileTarget }>()
+// `opened` : menu du fichier affiché dans l'éditeur, où créer un fichier ou un dossier n'a pas de sens.
+const props = defineProps<{ place: FilesPlace; root: string; target: FileTarget; opened?: boolean }>()
 
 const { t } = useI18n()
 const drafts = useDraftsStore()
@@ -159,9 +160,11 @@ async function reveal() {
 </script>
 
 <template>
-  <UiMenuItem :label="t('dock.files.newFile')" :icon="FilePlus" @select="create(false)" />
-  <UiMenuItem :label="t('dock.files.newFolder')" :icon="FolderPlus" @select="create(true)" />
-  <UiMenuSeparator />
+  <template v-if="!opened">
+    <UiMenuItem :label="t('dock.files.newFile')" :icon="FilePlus" @select="create(false)" />
+    <UiMenuItem :label="t('dock.files.newFolder')" :icon="FolderPlus" @select="create(true)" />
+    <UiMenuSeparator />
+  </template>
   <UiMenuItem :label="t('dock.files.cut')" :icon="Scissors" :disabled="isRoot" @select="hold(true)" />
   <UiMenuItem :label="t('dock.files.copy')" :icon="Copy" :disabled="isRoot" @select="hold(false)" />
   <UiMenuItem :label="t('dock.files.paste')" :icon="ClipboardPaste" :disabled="pasteBlocked" @select="clip && paste(clip.target, folder, clip.cut)" />
