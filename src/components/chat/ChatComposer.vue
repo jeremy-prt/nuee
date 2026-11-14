@@ -439,13 +439,13 @@ function onKeydown(event: KeyboardEvent) {
   <!-- Le menu des skills est hors du cadre flouté : un flou imbriqué ne verrait que le cadre derrière lui. -->
   <form ref="form" class="relative" :data-composer="chatId" @submit.prevent="submit()">
     <div
-      class="@container rounded-2xl border bg-selection/50 backdrop-blur-sm"
+      class="@container rounded-2xl border bg-composer/22 backdrop-blur-xl"
       :class="[
         summary
           ? 'border-note/45 shadow-[0_0_22px_-8px_var(--color-note)] has-[textarea:focus]:border-note/70'
           : orchestrating
             ? 'border-violet/45 shadow-[0_0_22px_-8px_var(--color-violet)] has-[textarea:focus]:border-violet/70'
-            : 'border-stroke has-[textarea:focus]:border-stroke-focus',
+            : 'composer-lift border-stroke has-[textarea:focus]:border-stroke-focus',
         { 'opacity-60': disabled },
       ]"
     >

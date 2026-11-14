@@ -11,10 +11,12 @@ import {
   onSignalColor,
   palette,
   type ResolvedMode,
+  solidEdgeColor,
   type ThemeId,
   themeIds,
   themes,
 } from '@/utils/themes'
+import { hslColor, measure, type Pixels, pickLook, TARGET, type View } from '@/utils/legibility'
 
 export const windowStyles = ['transparent', 'mixed', 'opaque'] as const
 export type WindowStyle = (typeof windowStyles)[number]
@@ -38,28 +40,61 @@ export function glassSettings(style: WindowStyle): GlassSetting[] {
 // Part de fond gardée dans le cadre (barres, liste des chats, terminal, panneau de droite) et au centre.
 // Moyenne laisse voir un peu plus d'un quart du bureau (monocode Focused : un cinquième) : à 66 %, un fond d'écran
 // sombre assombrissait toute l'app (choix de Jérémy). Le centre de Mixte reste au-dessus du cadre, sinon Mixte
-// deviendrait un second Transparent.
-const BARS_OPACITY: Record<Glass['opacity'], number> = { low: 45, medium: 72, high: 82 }
-const CENTER_OPACITY: Record<Glass['centerOpacity'], number> = { low: 80, medium: 88, high: 94 }
+// deviendrait un second Transparent. Ses crans, sous l'ancien 80/88/94, laissent ressortir l'image de fond sans
+// gêner la lecture. En clair, un bureau sombre grise le voile blanc bien plus qu'il n'assombrit le voile sombre :
+// les mêmes crans y couvrent davantage, sinon le texte atténué passait sous 3:1.
+const BARS_OPACITY: Record<ResolvedMode, Record<Glass['opacity'], number>> = {
+  dark: { low: 45, medium: 72, high: 82 },
+  light: { low: 70, medium: 80, high: 90 },
+}
+const CENTER_OPACITY: Record<ResolvedMode, Record<Glass['centerOpacity'], number>> = {
+  dark: { low: 60, medium: 74, high: 88 },
+  light: { low: 80, medium: 88, high: 94 },
+}
 const BLUR: Record<Glass['blur'], number> = { none: 0, low: 24, medium: 48, high: 72 }
 const LIGHTNESS: Record<ResolvedMode, Record<Glass['lightness'], number>> = {
   dark: { dark: 5, medium: 10, light: 14 },
   light: { dark: 92, medium: 96, light: 99 },
 }
+// Part du texte dans `--color-muted` (main.css), pour le calcul de lisibilité.
+const MUTED: Record<ResolvedMode, number> = { dark: 0.55, light: 0.62 }
 
 export interface GlassValues {
   chrome: number
   surface: number
 }
 
-function glassValues(style: WindowStyle, glass: Glass): GlassValues {
-  const chrome = style === 'opaque' ? 100 : BARS_OPACITY[glass.opacity]
-  const surface = style === 'mixed' ? CENTER_OPACITY[glass.centerOpacity] : chrome
+function glassValues(style: WindowStyle, glass: Glass, mode: ResolvedMode): GlassValues {
+  const chrome = style === 'opaque' ? 100 : BARS_OPACITY[mode][glass.opacity]
+  const surface = style === 'mixed' ? CENTER_OPACITY[mode][glass.centerOpacity] : chrome
   return { chrome, surface }
 }
 
 function blurRadius(glass: Glass) {
   return BLUR[glass.blur]
+}
+
+// Ce que donnent des crans dans un mode, pour le calcul de lisibilité (utils/legibility.ts).
+function legibilityView(
+  style: WindowStyle,
+  glass: Glass,
+  visibility: Background['visibility'],
+  fade: Background['blur'],
+  theme: ThemeId,
+  mode: ResolvedMode,
+): View {
+  const values = glassValues(style, glass, mode)
+  const colors = palette(theme, mode, LIGHTNESS[mode][glass.lightness])
+  return {
+    look: {
+      chrome: values.chrome / 100,
+      surface: values.surface / 100,
+      veil: hslColor(colors.veil),
+      image: BACKGROUND_OPACITY[mode][visibility] / 100,
+      fade: fade !== 'none',
+    },
+    scene: { canvas: hslColor(colors.canvas), content: hslColor(colors.content), muted: MUTED[mode] },
+  }
 }
 
 // Image de fond de la zone centrale : effets décrits dans utils/backgroundEffects.ts.
@@ -69,7 +104,7 @@ export const backgroundOptions = {
   where: ['chats', 'everywhere'],
   visibility: ['low', 'medium', 'high'],
   intensity: ['low', 'medium', 'high'],
-  blur: ['low', 'medium', 'high'],
+  blur: ['none', 'low', 'medium', 'high'],
   effect: backgroundEffects,
 } as const
 export const INTENSITY_LEVEL = { low: 0, medium: 1, high: 2 } as const
@@ -83,11 +118,20 @@ export interface Background {
   // Flou du bas de l'image, sous la conversation et la zone de saisie (voir ShellBackgroundImage).
   blur: (typeof backgroundOptions)['blur'][number]
 }
-// Discrète = l'opacité par défaut de monocode, dont Jérémy aime le rendu.
-export const BACKGROUND_OPACITY: Record<Background['visibility'], number> = { low: 24, medium: 36, high: 52 }
+// Discrète = l'opacité par défaut de monocode, dont Jérémy aime le rendu. En clair, les zones sombres d'une photo
+// tiraient tout le fond vers le gris : l'image y est plus discrète à cran égal.
+const BACKGROUND_OPACITY: Record<ResolvedMode, Record<Background['visibility'], number>> = {
+  dark: { low: 24, medium: 36, high: 52 },
+  light: { low: 16, medium: 24, high: 36 },
+}
+
+export interface FitChanges {
+  glass: GlassSetting[]
+  background: ('visibility' | 'blur')[]
+}
 
 function defaultBackground(path: string | null): Background {
-  return { path, effect: 'scanlines', where: 'everywhere', visibility: 'low', intensity: 'low', blur: 'medium' }
+  return { path, effect: 'none', where: 'everywhere', visibility: 'medium', intensity: 'medium', blur: 'medium' }
 }
 
 export const zoomLevels = [80, 90, 100, 110, 125, 150] as const
@@ -136,7 +180,7 @@ function defaults(): AppearanceState {
   return {
     mode: 'dark',
     theme: 'nuee',
-    accent: 'nuee',
+    accent: 'azur',
     windowStyle: 'mixed',
     glass: { transparent: defaultGlass(), mixed: defaultGlass(), opaque: defaultGlass() },
     background: defaultBackground(null),
@@ -232,6 +276,7 @@ export const useAppearanceStore = defineStore('appearance', () => {
   // Hors macOS, la fenêtre est toujours opaque : c'est le seul style qui s'applique.
   const effectiveStyle = computed<WindowStyle>(() => (isMacosApp() ? windowStyle.value : 'opaque'))
   const active = computed(() => glass[effectiveStyle.value])
+  const backgroundOpacity = computed(() => BACKGROUND_OPACITY[resolvedMode.value][background.visibility] / 100)
 
   watchEffect(() => {
     const root = document.documentElement
@@ -246,7 +291,8 @@ export const useAppearanceStore = defineStore('appearance', () => {
     root.style.setProperty('--color-veil', colors.veil)
     root.style.setProperty('--color-accent', accentColor(accent.value, resolved))
     root.style.setProperty('--color-on-signal', onSignalColor(accent.value, resolved))
-    const values = glassValues(effectiveStyle.value, active.value)
+    root.style.setProperty('--control-solid-edge', solidEdgeColor(accent.value, resolved))
+    const values = glassValues(effectiveStyle.value, active.value, resolved)
     root.style.setProperty('--chrome-alpha', `${values.chrome}%`)
     root.style.setProperty('--surface-alpha', `${values.surface}%`)
   })
@@ -302,6 +348,66 @@ export const useAppearanceStore = defineStore('appearance', () => {
     else background.path = path
   }
 
+  // « Ajuster automatiquement » : parmi les crans du style en vigueur et de l'image, le premier jeu lisible dans le mode
+  // affiché. Ordre de préférence : l'image la plus opaque, la luminosité inchangée (elle teinte toute la fenêtre), le
+  // moins de flou du bas, puis le moins de changements.
+  function fitToImage(pixels: Pixels): FitChanges {
+    const style = effectiveStyle.value
+    const mode = resolvedMode.value
+    const other: ResolvedMode = mode === 'dark' ? 'light' : 'dark'
+    const current = { ...glass[style] }
+    const settings = glassSettings(style)
+    const view = (target: ResolvedMode, next: Glass, visibility: Background['visibility'], fade: Background['blur']) =>
+      legibilityView(style, next, visibility, fade, theme.value, target)
+    // Les crans valent pour les deux modes : l'autre ne perd rien, il garde le seuil voulu ou au moins son contraste
+    // d'avant.
+    const kept = view(other, current, background.visibility, background.blur)
+    const before = measure(pixels, kept.look, kept.scene)
+    const otherTarget = { text: Math.min(TARGET.text, before.text), muted: Math.min(TARGET.muted, before.muted) }
+    // Le flou du bureau ne change pas le contraste moyen, mais à « Aucun » le texte des fenêtres de derrière reste net.
+    const blur = style !== 'opaque' && current.blur === 'none' ? 'low' : current.blur
+    const choices = <K extends 'opacity' | 'centerOpacity' | 'lightness'>(setting: K) =>
+      (settings.includes(setting) ? glassOptions[setting] : [current[setting]]) as readonly Glass[K][]
+    const step = <K extends GlassSetting>(setting: K, value: Glass[K]) =>
+      Math.abs((glassOptions[setting] as readonly string[]).indexOf(value) - (glassOptions[setting] as readonly string[]).indexOf(current[setting]))
+    const candidates = []
+    for (const opacity of choices('opacity')) {
+      for (const centerOpacity of choices('centerOpacity')) {
+        for (const lightness of choices('lightness')) {
+          for (const visibility of backgroundOptions.visibility) {
+            for (const fade of backgroundOptions.blur) {
+              const next: Glass = { opacity, centerOpacity, blur, lightness }
+              const views = [view(mode, next, visibility, fade), { ...view(other, next, visibility, fade), target: otherTarget }]
+              const rank = [
+                -backgroundOptions.visibility.indexOf(visibility),
+                step('lightness', lightness),
+                backgroundOptions.blur.indexOf(fade),
+                Number(opacity !== current.opacity) + Number(centerOpacity !== current.centerOpacity),
+                step('opacity', opacity) + step('centerOpacity', centerOpacity),
+              ]
+              candidates.push({ next, visibility, fade, views, rank })
+            }
+          }
+        }
+      }
+    }
+    candidates.sort((a, b) => {
+      const index = a.rank.findIndex((value, position) => value !== b.rank[position])
+      return index === -1 ? 0 : a.rank[index]! - b.rank[index]!
+    })
+    let pick = pickLook(candidates.map((candidate) => candidate.views), pixels)
+    if (!pick.legible) pick = pickLook(candidates.map((candidate) => candidate.views.slice(0, 1)), pixels)
+    const chosen = candidates[pick.index]!
+    const changes: FitChanges = {
+      glass: (Object.keys(chosen.next) as GlassSetting[]).filter((setting) => chosen.next[setting] !== current[setting]),
+      background: (['visibility', 'blur'] as const).filter((setting) => (setting === 'blur' ? chosen.fade : chosen.visibility) !== background[setting]),
+    }
+    Object.assign(glass[style], chosen.next)
+    background.visibility = chosen.visibility
+    background.blur = chosen.fade
+    return changes
+  }
+
   // Un thème pose l'accent qu'il propose, que l'on peut ensuite changer.
   function applyTheme(id: ThemeId) {
     theme.value = id
@@ -336,12 +442,14 @@ export const useAppearanceStore = defineStore('appearance', () => {
     effectiveStyle,
     glass,
     background,
+    backgroundOpacity,
     zoom,
     zoomFactor,
     chatWidth,
     layout,
     animations,
     applyTheme,
+    fitToImage,
     stepZoom,
     resetZoom,
     resetGlass,

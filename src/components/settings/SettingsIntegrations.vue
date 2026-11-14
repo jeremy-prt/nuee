@@ -9,6 +9,7 @@ import UiButton from '@/components/ui/UiButton.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiSwitch from '@/components/ui/UiSwitch.vue'
 import { useInstallPage } from '@/composables/useInstallPage'
+import { useSlow } from '@/composables/useSlow'
 import { useIntegrationsStore } from '@/stores/integrations'
 import { useNavigationStore } from '@/stores/navigation'
 
@@ -19,6 +20,7 @@ const openInstall = useInstallPage()
 store.load()
 
 const status = computed(() => store.github)
+const slow = useSlow(() => store.prefs.github && !status.value && !store.error)
 const accounts = computed(() => (status.value?.state === 'ready' ? status.value.accounts : []))
 const active = computed(() => accounts.value.find((account) => account.active && account.state === 'ok') ?? null)
 const missing = computed(() => store.prefs.github && status.value?.state === 'missing')
@@ -35,7 +37,13 @@ const retry = computed(() => store.prefs.github && (!!store.error || (!!status.v
           <span aria-live="polite">
             <template v-if="!store.prefs.github">{{ t('settings.github.off') }}</template>
             <span v-else-if="store.error" class="text-danger">{{ t('settings.github.unreachable') }}</span>
-            <template v-else-if="!status">{{ t('settings.github.checking') }}</template>
+            <span
+              v-else-if="!status"
+              class="inline-block h-2 w-44 rounded-full align-middle"
+              :class="{ skeleton: slow }"
+              role="status"
+              :aria-label="t('settings.github.checking')"
+            />
             <span v-else-if="status.state === 'missing' || status.state === 'outdated'" class="inline-flex items-center gap-1 text-warning">
               <TriangleAlert class="size-3" aria-hidden="true" />
               {{ status.state === 'missing' ? t('settings.install.notInstalled', { tool: 'GitHub CLI' }) : t('settings.github.outdatedShort') }}

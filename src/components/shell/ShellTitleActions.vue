@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { useDockFocus } from '@/composables/useDockFocus'
+import { useSlow } from '@/composables/useSlow'
 import { useTerminalChat } from '@/composables/useTerminalChat'
 import { useFilesStore } from '@/stores/files'
 import { useLayoutStore } from '@/stores/layout'
@@ -24,6 +25,8 @@ const { chat, place } = useTerminalChat()
 // Pas d'état sans dossier git : `sessionGit.refresh` l'efface.
 const changes = computed(() => (chat.value ? sessionGit.states[chat.value.id]?.changes : undefined))
 const clean = computed(() => !changes.value?.files)
+// Première lecture plus lente que 150 ms : une pastille de squelette tient la place du compteur.
+const slow = useSlow(() => !!chat.value && !changes.value && sessionGit.loading.has(chat.value.id))
 const counter = computed(() =>
   changes.value
     ? t('dock.changes.counter', {
@@ -60,6 +63,7 @@ function openSearch() {
         <span :class="clean ? 'text-muted' : 'text-danger'">−{{ changes.removed }}</span>
       </button>
     </UiTooltip>
+    <span v-else-if="slow" class="skeleton mx-1.5 h-2.5 w-12 rounded-full" role="status" :aria-label="t('dock.changes.modes.changes')" />
     <UiIconButton :label="t('dock.files.searchFiles')" @click="openSearch">
       <Search class="size-4" aria-hidden="true" />
     </UiIconButton>

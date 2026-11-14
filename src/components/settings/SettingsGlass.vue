@@ -6,25 +6,24 @@ import SettingsResetButton from '@/components/settings/SettingsResetButton.vue'
 import SettingsRow from '@/components/settings/SettingsRow.vue'
 import UiSegmented from '@/components/ui/UiSegmented.vue'
 import { useResetToast } from '@/composables/useResetToast'
-import { type GlassSetting, glassOptions, glassSettings, useAppearanceStore, type WindowStyle } from '@/stores/appearance'
-
-const props = defineProps<{ windowStyle: WindowStyle }>()
+import { type GlassSetting, glassOptions, glassSettings, useAppearanceStore } from '@/stores/appearance'
 
 const { t } = useI18n()
 const resetToast = useResetToast()
 const appearance = useAppearanceStore()
 
-const settings = computed(() => glassSettings(props.windowStyle))
+// Le style choisi sur la page Apparence : chacun garde ses propres valeurs.
+const style = computed(() => appearance.effectiveStyle)
+const settings = computed(() => glassSettings(style.value))
 
 // En Mixte, l'opacité principale ne règle plus que les barres : le centre a sa propre ligne.
 function label(setting: GlassSetting) {
-  if (setting === 'opacity' && props.windowStyle === 'mixed') return t('settings.glass.opacity.bars')
+  if (setting === 'opacity' && style.value === 'mixed') return t('settings.glass.opacity.bars')
   return t(`settings.glass.${setting}.label`)
 }
 
-// En Mixte, deux opacités : on précise quelle zone chacune règle.
 function hint(setting: GlassSetting) {
-  if (setting === 'opacity' && props.windowStyle === 'mixed') return t('settings.glass.opacity.barsHint')
+  if (setting === 'opacity' && style.value === 'mixed') return t('settings.glass.opacity.barsHint')
   if (setting === 'centerOpacity') return t('settings.glass.centerOpacity.hint')
   if (setting === 'blur') return t('settings.glass.blur.hint')
   return undefined
@@ -36,13 +35,13 @@ function options(setting: GlassSetting) {
 </script>
 
 <template>
-  <SettingsGroup :title="props.windowStyle === 'opaque' ? t('settings.glass.backgroundTitle') : t('settings.glass.title')">
+  <SettingsGroup :title="t('settings.glass.heading', { style: t(`settings.appearance.styles.${style}`) })">
     <template #action>
-      <SettingsResetButton @click="appearance.resetGlass(props.windowStyle); resetToast('section')" />
+      <SettingsResetButton @click="appearance.resetGlass(style); resetToast('section')" />
     </template>
     <SettingsRow v-for="setting in settings" :key="setting" v-slot="{ hintId }" :data-setting="`glass-${setting}`" :label="label(setting)" :hint="hint(setting)">
       <UiSegmented
-        v-model="appearance.glass[props.windowStyle][setting]"
+        v-model="appearance.glass[style][setting]"
         :label="label(setting)"
         :options="options(setting)"
         :aria-describedby="hintId"

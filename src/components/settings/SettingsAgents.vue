@@ -9,6 +9,7 @@ import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiSwitch from '@/components/ui/UiSwitch.vue'
 import { useInstallPage } from '@/composables/useInstallPage'
 import { useRefocus } from '@/composables/useRefocus'
+import { useSlow } from '@/composables/useSlow'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import { useAgentsStore } from '@/stores/agents'
 import { useNavigationStore } from '@/stores/navigation'
@@ -22,6 +23,7 @@ const refocusAfter = useRefocus()
 const kinds = Object.keys(agents) as AgentKind[]
 // Agents actualisés depuis cette page : leur bouton reste en place, en chargement, le temps de la sonde.
 const refreshing = reactive(new Set<AgentKind>())
+const slow = useSlow(() => kinds.some((kind) => store.status[kind].state === 'checking'))
 
 // Pas avec un chemin choisi à la main : il resterait prioritaire sur l'agent installé.
 function installable(kind: AgentKind) {
@@ -64,7 +66,13 @@ function action(kind: AgentKind) {
         <template #hint>
           <span aria-live="polite">
             <template v-if="!store.settings[kind].enabled">{{ t('settings.agents.status.off') }}</template>
-            <template v-else-if="store.status[kind].state === 'checking'">{{ t('settings.agents.status.checking') }}</template>
+            <span
+              v-else-if="store.status[kind].state === 'checking'"
+              class="inline-block h-2 w-40 rounded-full align-middle"
+              :class="{ skeleton: slow }"
+              role="status"
+              :aria-label="t('settings.agents.status.checking')"
+            />
             <span v-else-if="store.status[kind].state === 'missing'" class="inline-flex items-center gap-1 text-warning">
               <TriangleAlert class="size-3" aria-hidden="true" />{{ t('settings.install.notInstalled', { tool: agents[kind].name }) }}
             </span>

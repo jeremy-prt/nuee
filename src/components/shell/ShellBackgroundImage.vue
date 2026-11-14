@@ -15,7 +15,7 @@ const url = useBackgroundImage(toRef(props, 'path'), toRef(props, 'effect'), toR
 const image = computed(() => (url.value ? { backgroundImage: `url('${url.value}')` } : {}))
 
 // Deux couches floues, la plus forte plus bas : le flou s'installe progressivement. Moyen = les valeurs de monocode.
-const BLUR = { low: [4, 10], medium: [7, 18], high: [12, 30] } as const
+const BLUR = { none: [], low: [4, 10], medium: [7, 18], high: [12, 30] } as const
 const layers = computed(() => (props.blur ? BLUR[props.blur].map((radius) => ({ filter: `blur(${radius * props.scale}px)` })) : []))
 </script>
 
@@ -26,7 +26,7 @@ const layers = computed(() => (props.blur ? BLUR[props.blur].map((radius) => ({ 
   <Transition enter-from-class="opacity-0" enter-active-class="transition-opacity duration-500 ease-out motion-reduce:transition-none">
     <div v-if="url" class="absolute inset-0" aria-hidden="true">
       <div class="absolute inset-0 bg-cover bg-center" :style="image" />
-      <template v-if="blur">
+      <template v-if="layers.length">
         <div
           v-for="(layer, index) in layers"
           :key="index"

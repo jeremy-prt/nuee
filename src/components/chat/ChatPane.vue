@@ -156,14 +156,17 @@ async function checkout(branch: string) {
 
 const launch = useComposerLaunch()
 
-// État git de la session (ligne de commit d'Environnement, point sur son bouton), relu entre deux tours et au retour
-// de la fenêtre : un commit fait hors de Nuée s'y voit.
+// État git de la session (ligne de commit d'Environnement, point sur son bouton, compteur de la barre de titre), relu
+// entre deux tours et au retour de la fenêtre : un commit fait hors de Nuée s'y voit. Session vierge : le dossier où
+// elle va travailler, sauf un worktree pas encore créé, vide par nature.
 const sessionGit = useSessionGitStore()
 const idle = computed(() => loaded.value && conversation.value?.phase === 'idle')
 function refreshGit() {
-  if (idle.value && started.value && project.value) sessionGit.refresh(props.tab.id, project.value.path)
+  if (!idle.value || !project.value) return
+  if (!started.value && worktree.value && !props.tab.worktreePath) return void delete sessionGit.states[props.tab.id]
+  sessionGit.refresh(props.tab.id, project.value.path)
 }
-watch([idle, started, () => project.value?.path, () => props.tab.worktreePath], refreshGit, { immediate: true })
+watch([idle, started, () => project.value?.path, () => props.tab.worktreePath, worktree], refreshGit, { immediate: true })
 onMounted(() => window.addEventListener('focus', refreshGit))
 onBeforeUnmount(() => window.removeEventListener('focus', refreshGit))
 

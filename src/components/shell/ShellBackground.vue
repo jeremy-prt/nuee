@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import ShellBackgroundImage from '@/components/shell/ShellBackgroundImage.vue'
 import { preloadBackground } from '@/composables/useBackgroundImage'
-import { BACKGROUND_OPACITY, INTENSITY_LEVEL, useAppearanceStore } from '@/stores/appearance'
+import { INTENSITY_LEVEL, useAppearanceStore } from '@/stores/appearance'
 import { useNavigationStore } from '@/stores/navigation'
 
 const appearance = useAppearanceStore()
@@ -22,7 +22,7 @@ watch(
   { immediate: true },
 )
 
-const opacity = computed(() => (shown.value ? BACKGROUND_OPACITY[appearance.background.visibility] / 100 : 0))
+const opacity = computed(() => (shown.value ? appearance.backgroundOpacity : 0))
 
 // Un changement de vue reste instantané : le fond n'y fait pas de fondu. Seuls les réglages d'Apparence l'animent.
 const animated = ref(true)

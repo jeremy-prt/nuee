@@ -12,9 +12,7 @@ import UiEmpty from '@/components/ui/UiEmpty.vue'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import { useDockEditor } from '@/composables/useDockEditor'
 import { useSlow } from '@/composables/useSlow'
-import ChatDiffStat from '@/components/chat/ChatDiffStat.vue'
 import { useTerminalChat } from '@/composables/useTerminalChat'
-import { useSessionGitStore } from '@/stores/sessionGit'
 import type { FilesPlace } from '@/ipc/bindings/FilesPlace'
 import { isAppError } from '@/ipc/agent'
 import { filesDir, filesMarks, filesUnwatch, filesWatch } from '@/ipc/files'
@@ -26,12 +24,6 @@ import { useProjectsStore } from '@/stores/projects'
 // terminal y change apparaît seul.
 const { t } = useI18n()
 const { chat } = useTerminalChat()
-// Le nom du dossier est déjà en tête de l'arbre : la ligne d'outils montre plutôt le total des changements.
-const sessionGit = useSessionGitStore()
-const diff = computed(() => {
-  const changes = chat.value ? sessionGit.states[chat.value.id]?.changes : null
-  return changes && (changes.added || changes.removed) ? { added: changes.added, removed: changes.removed } : null
-})
 const projects = useProjectsStore()
 const store = useFilesStore()
 
@@ -199,7 +191,6 @@ function create(dir: boolean) {
       :aria-label="t('dock.files.title')"
     >
       <ShellDockToolbar :label="t('dock.files.title')">
-        <ChatDiffStat v-if="diff" v-bind="diff" plain class="px-1.5 text-xs" />
         <template #end>
           <ShellDockToolbarButton :label="t('dock.files.newFile')" :disabled="!root || !!failure" @mousedown.prevent @click="create(false)">
             <FilePlus class="size-3.5" aria-hidden="true" />

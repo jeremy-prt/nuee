@@ -6,6 +6,7 @@ import { useI18n } from 'vue-i18n'
 import SettingsAgentLogo from '@/components/settings/SettingsAgentLogo.vue'
 import UiSwitch from '@/components/ui/UiSwitch.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
+import { useSlow } from '@/composables/useSlow'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { Catalog } from '@/ipc/bindings/Catalog'
 import type { Effort } from '@/ipc/bindings/Effort'
@@ -36,6 +37,9 @@ const LEGACY = '\u0000legacy'
 const highlighted = ref<string | null>(null)
 
 const agentName = computed(() => agents[props.agent].name)
+// Sans catalogue, le libellé passerait du nom de l'agent à celui du modèle en changeant de largeur. Pas grisé
+// pendant l'attente : le squelette y serait presque invisible.
+const slow = useSlow(() => !props.catalog && store.loading(props.agent))
 const models = computed(() => props.catalog?.models ?? [])
 const current = computed(() => models.value.find((item) => item.value === model.value) ?? null)
 const efforts = computed(() => current.value?.efforts ?? [])
@@ -147,11 +151,13 @@ const flyout = 'ui-pop z-50 text-xs text-content select-none'
         <PopoverTrigger
           data-model-picker
           :disabled="disabled || !models.length"
-          class="group flex h-7 min-w-0 items-center gap-1.5 rounded-md px-2 text-xs whitespace-nowrap text-content/85 hover:bg-selection-inner hover:text-content focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-40 data-[state=open]:bg-selection-inner data-[state=open]:text-content"
+          class="group flex h-7 min-w-0 items-center gap-1.5 rounded-md px-2 text-xs whitespace-nowrap text-content/85 hover:bg-selection-inner hover:text-content focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none data-[state=open]:bg-selection-inner data-[state=open]:text-content"
+          :class="{ 'disabled:opacity-40': !slow }"
         >
           <span class="sr-only">{{ t('composer.model.menu') }}</span>
           <SettingsAgentLogo :id="agent" small class="-ms-0.5" />
-          <span class="min-w-0 truncate">{{ current?.label ?? agentName }}</span>
+          <span v-if="slow" class="skeleton h-2.5 w-16 shrink-0 rounded-full" role="status" :aria-label="t('composer.model.loading')" />
+          <span v-else class="min-w-0 truncate">{{ current?.label ?? agentName }}</span>
           <span v-if="effort && efforts.length" class="shrink-0 text-muted">{{ t(`composer.effort.${effort}`) }}</span>
           <template v-if="fast && current?.fast">
             <Zap class="size-3 shrink-0 fill-current text-warning" aria-hidden="true" />

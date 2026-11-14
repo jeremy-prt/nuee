@@ -2,7 +2,6 @@
 import { GitBranchPlus, RefreshCw, Undo } from '@/components/ui/icons'
 import { computed, inject, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import ChatDiffStat from '@/components/chat/ChatDiffStat.vue'
 import ChatGitRun from '@/components/chat/ChatGitRun.vue'
 import GitBranchRow from '@/components/git/GitBranchRow.vue'
 import GitCommitBox from '@/components/git/GitCommitBox.vue'
@@ -125,10 +124,6 @@ const note = 'px-3 py-6 text-center text-xs text-muted'
           <span v-if="files.length" class="flex shrink-0 items-center gap-1.5 text-[11px] text-muted tabular-nums" :title="t('dock.session.files', { n: files.length }, files.length)">
             <span class="sr-only">{{ t('dock.session.files', { n: files.length }, files.length) }}</span>
             <span aria-hidden="true">{{ files.length }}</span>
-            <!-- Liste étroite (à côté d'un diff) : le nombre de fichiers suffit. -->
-            <span class="hidden @[17rem]:contents">
-              <ChatDiffStat :added="changes.added.value" :removed="changes.removed.value" plain class="text-[11px]" />
-            </span>
           </span>
           <span class="-me-1 flex shrink-0 items-center">
             <UiIconButton :label="t('dock.changes.revertAll')" :disabled="!files.length || changes.acting.value" class="size-6!" @click="changes.revertAll()">

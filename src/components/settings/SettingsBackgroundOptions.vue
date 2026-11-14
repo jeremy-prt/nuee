@@ -1,80 +1,68 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import SettingsBackgroundThumb from '@/components/settings/SettingsBackgroundThumb.vue'
-import SettingsGroup from '@/components/settings/SettingsGroup.vue'
-import SettingsResetButton from '@/components/settings/SettingsResetButton.vue'
 import SettingsRow from '@/components/settings/SettingsRow.vue'
 import ShellBackgroundImage from '@/components/shell/ShellBackgroundImage.vue'
 import UiChoiceCard from '@/components/ui/UiChoiceCard.vue'
 import UiSegmented from '@/components/ui/UiSegmented.vue'
-import { useResetToast } from '@/composables/useResetToast'
 import { backgroundEffects, backgroundOptions, INTENSITY_LEVEL, useAppearanceStore } from '@/stores/appearance'
 
+defineProps<{ path: string }>()
+
 const { t } = useI18n()
-const resetToast = useResetToast()
 const appearance = useAppearanceStore()
 
-const rows = ['where', 'visibility', 'intensity', 'blur'] as const
+const rows = ['visibility', 'blur', 'where'] as const
 
-function options(setting: (typeof rows)[number]) {
+function options(setting: (typeof rows)[number] | 'intensity') {
   return backgroundOptions[setting].map((value) => ({ value, label: t(`settings.background.${setting}.${value}`) }))
 }
 </script>
 
 <template>
-  <SettingsGroup :title="t('settings.background.settingsTitle')">
-    <template #action>
-      <SettingsResetButton @click="appearance.resetBackground(); resetToast('section')" />
-    </template>
-    <SettingsRow
-      v-for="setting in rows"
-      :key="setting"
-      v-slot="{ hintId }"
-      :data-setting="`background-${setting}`"
+  <SettingsRow
+    v-for="setting in rows"
+    :key="setting"
+    v-slot="{ hintId }"
+    :data-setting="`background-${setting}`"
+    :label="t(`settings.background.${setting}.label`)"
+    :hint="setting === 'blur' ? t('settings.background.blur.hint') : undefined"
+  >
+    <UiSegmented
+      v-model="appearance.background[setting]"
       :label="t(`settings.background.${setting}.label`)"
-      :hint="setting === 'blur' ? t('settings.background.blur.hint') : undefined"
-      :disabled="setting === 'intensity' && appearance.background.effect === 'none'"
-    >
-      <UiSegmented
-        v-model="appearance.background[setting]"
-        :label="t(`settings.background.${setting}.label`)"
-        :options="options(setting)"
-        :disabled="setting === 'intensity' && appearance.background.effect === 'none'"
-        :aria-describedby="hintId"
-      />
-    </SettingsRow>
-  </SettingsGroup>
+      :options="options(setting)"
+      :aria-describedby="hintId"
+    />
+  </SettingsRow>
 
-  <template v-if="appearance.background.path">
-    <section class="pt-8" role="radiogroup" aria-labelledby="background-effect-title">
-      <h3 id="background-effect-title" class="pb-2.5 text-sm font-semibold">{{ t('settings.background.effect.label') }}</h3>
-      <div data-setting="background-effect" class="grid grid-cols-3 gap-2">
-        <UiChoiceCard
-          v-for="effect in backgroundEffects"
-          :key="effect"
-          v-model="appearance.background.effect"
-          name="background-effect"
-          :value="effect"
-          class="flex flex-col gap-1 p-1.5"
-        >
-          <span class="relative aspect-[3/1] overflow-hidden rounded-lg bg-canvas">
-            <ShellBackgroundImage
-              :path="appearance.background.path"
-              :effect="effect"
-              :level="INTENSITY_LEVEL[appearance.background.intensity]"
-              :scale="0.15"
-              size="small"
-            />
-          </span>
-          <span class="truncate px-0.5 text-center text-xs font-medium">{{ t(`settings.background.effect.${effect}`) }}</span>
-        </UiChoiceCard>
-      </div>
-    </section>
+  <SettingsRow data-setting="background-effect" :label="t('settings.background.effect.label')">
+    <div role="radiogroup" :aria-label="t('settings.background.effect.label')" class="grid w-full grid-cols-3 gap-2">
+      <UiChoiceCard
+        v-for="effect in backgroundEffects"
+        :key="effect"
+        v-model="appearance.background.effect"
+        name="background-effect"
+        :value="effect"
+        class="flex flex-col gap-1 p-1.5"
+      >
+        <span class="relative aspect-[3/1] overflow-hidden rounded-md bg-canvas">
+          <ShellBackgroundImage :path="path" :effect="effect" :level="INTENSITY_LEVEL[appearance.background.intensity]" :scale="0.15" size="small" />
+        </span>
+        <span class="truncate px-0.5 text-center text-xs font-medium">{{ t(`settings.background.effect.${effect}`) }}</span>
+      </UiChoiceCard>
+    </div>
+  </SettingsRow>
 
-    <!-- Les réglages masquent l'image : ce grand aperçu la montre telle qu'elle sera vue. -->
-    <section class="pt-8" aria-labelledby="background-preview-title">
-      <h3 id="background-preview-title" class="pb-2.5 text-sm font-semibold">{{ t('settings.background.preview') }}</h3>
-      <SettingsBackgroundThumb :path="appearance.background.path" large />
-    </section>
-  </template>
+  <SettingsRow
+    data-setting="background-intensity"
+    :label="t('settings.background.intensity.label')"
+    :disabled="appearance.background.effect === 'none'"
+  >
+    <UiSegmented
+      v-model="appearance.background.intensity"
+      :label="t('settings.background.intensity.label')"
+      :options="options('intensity')"
+      :disabled="appearance.background.effect === 'none'"
+    />
+  </SettingsRow>
 </template>

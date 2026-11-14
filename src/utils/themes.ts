@@ -13,7 +13,7 @@ interface ThemeShape {
 }
 
 export const themes = {
-  nuee: { hue: 240, dark: 0, light: 0, accent: 'nuee' },
+  nuee: { hue: 240, dark: 0, light: 0, accent: 'azur' },
   ardoise: { hue: 215, dark: 30, light: 36, accent: 'azur' },
   mousse: { hue: 120, dark: 13, light: 20, accent: 'foret' },
   cuivre: { hue: 22, dark: 20, light: 38, accent: 'ambre' },
@@ -28,15 +28,16 @@ export const themeIds = Object.keys(themes) as ThemeId[]
 
 // Luminosités par mode : en sombre, l'accent sert de texte (liens) et porte un texte sombre (boutons) ; en clair,
 // l'inverse, d'où une version bien plus foncée. Neutre suit le texte (blanc en sombre, noir en clair), états compris :
-// un bleu à côté des boutons blancs se lisait comme un second accent (choix de Jérémy).
+// un bleu à côté des boutons blancs se lisait comme un second accent (choix de Jérémy). Azur en tête, accent par
+// défaut et celui du thème Nuée.
 export const accents = {
+  azur: { hue: 211, saturation: 92, dark: 62, light: 46 },
   nuee: { hue: 240, saturation: 0, dark: 92, light: 12 },
   braise: { hue: 4, saturation: 80, dark: 64, light: 48 },
   ambre: { hue: 28, saturation: 90, dark: 60, light: 45 },
   // Trop clair en sombre pour un rond blanc d'interrupteur : il porte le fond sombre.
   soleil: { hue: 46, saturation: 92, dark: 58, light: 38, darkOnSignal: true },
   foret: { hue: 145, saturation: 52, dark: 52, light: 33 },
-  azur: { hue: 211, saturation: 92, dark: 62, light: 46 },
   iris: { hue: 262, saturation: 80, dark: 70, light: 55 },
   pivoine: { hue: 330, saturation: 78, dark: 67, light: 48 },
 } as const
@@ -53,6 +54,12 @@ export function accentColor(id: AccentId, mode: ResolvedMode) {
 export function onSignalColor(id: AccentId, mode: ResolvedMode) {
   if (id === 'nuee' || (mode === 'dark' && 'darkOnSignal' in accents[id])) return 'var(--color-canvas)'
   return 'hsl(0 0% 100%)'
+}
+
+// Bord sombre en bas d'un bouton plein : sur un accent presque blanc (Neutre en sombre), son trait clair du haut ne
+// se voit plus. Transparent ailleurs, le relief des accents colorés ne change pas.
+export function solidEdgeColor(id: AccentId, mode: ResolvedMode) {
+  return accents[id][mode] >= 80 ? 'rgb(0 0 0 / 0.28)' : 'transparent'
 }
 
 function surface(theme: ThemeId, mode: ResolvedMode, lightness: number) {

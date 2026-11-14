@@ -24,6 +24,8 @@ interface SettingEntry {
   keywords?: string[]
   names?: string[]
   needs?: 'macos' | 'image'
+  // Ligne propre à un style de fenêtre : la sous-page n'affiche que celles du style en vigueur.
+  style?: WindowStyle
   // Moins prioritaire : les raccourcis passent après les réglages.
   secondary?: boolean
 }
@@ -148,20 +150,28 @@ const entries: SettingEntry[] = [
     terms: options('settings.appearance.styles', WINDOW_STYLES),
     keywords: ['transparency'],
   },
+  {
+    id: 'windowBackground',
+    section: 'appearance',
+    label: 'settings.appearance.background',
+    hint: 'settings.appearance.backgroundHint',
+    keywords: ['background', 'transparency', 'blur'],
+  },
   ...WINDOW_STYLES.flatMap((style) =>
     glassSettings(style).map((setting) => ({
       id: `glass-${setting}`,
       section: 'appearance' as const,
-      detail: style,
+      detail: 'background' as const,
       label: setting === 'opacity' && style === 'mixed' ? 'settings.glass.opacity.bars' : `settings.glass.${setting}.label`,
       terms: options(`settings.glass.${setting}`, glassOptions[setting]),
       keywords: setting === 'blur' ? ['blur', 'desktop'] : ['transparency'],
-      needs: 'macos' as const,
+      style,
     })),
   ),
   {
     id: 'background',
     section: 'appearance',
+    detail: 'background',
     label: 'settings.background.title',
     terms: options('settings.background', ['choose', 'change', 'remove']),
     keywords: ['background'],
@@ -171,11 +181,21 @@ const entries: SettingEntry[] = [
     section: 'appearance' as const,
     detail: 'background' as const,
     label: `settings.background.${row}.label`,
-    hint: row === 'intensity' || row === 'blur' ? `settings.background.${row}.hint` : undefined,
+    hint: row === 'blur' ? 'settings.background.blur.hint' : undefined,
     terms: options(`settings.background.${row}`, values),
     keywords: ['background'],
     needs: 'image' as const,
   })),
+  {
+    id: 'background-fit',
+    section: 'appearance',
+    detail: 'background',
+    label: 'settings.background.fit.label',
+    hint: 'settings.background.fit.hint',
+    terms: ['settings.background.fit.action'],
+    keywords: ['background', 'legibility'],
+    needs: 'image',
+  },
   { id: 'agents', section: 'agents', label: 'settings.agents.title', keywords: ['agents'] },
   ...Object.keys(agents).flatMap((kind) => [
     {
@@ -384,11 +404,16 @@ export function useSettingsSearch(query: Ref<string>) {
   const appearance = useAppearanceStore()
   const projects = useProjectsStore()
 
-  // Sans image de fond, ses réglages mènent à la section qui permet d'en choisir une.
+  // Sans image de fond, ses réglages mènent à la ligne qui permet d'en choisir une. Ceux d'un autre style de
+  // fenêtre mènent à la même ligne du style en vigueur, ou au choix du style s'il ne l'a pas.
   const background = entries.find((entry) => entry.id === 'background')!
+  const windowStyle = entries.find((entry) => entry.id === 'windowStyle')!
   const available = (entry: SettingEntry) => {
     if (entry.needs === 'macos') return isMacosApp() ? entry : null
     if (entry.needs === 'image') return appearance.background.path ? entry : background
+    if (entry.style && entry.style !== appearance.effectiveStyle) {
+      return entries.find((other) => other.id === entry.id && other.style === appearance.effectiveStyle) ?? windowStyle
+    }
     return entry
   }
 

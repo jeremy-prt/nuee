@@ -27,6 +27,8 @@ function loadFavorites() {
 export const useCatalogStore = defineStore('catalog', () => {
   const catalogs = reactive<Partial<Record<AgentKind, Catalog>>>({})
   const requested = new Set<AgentKind>()
+  // Catalogues demandés sans réponse : la sonde de la CLI prend une à deux secondes au lancement.
+  const waiting = reactive(new Set<AgentKind>())
   // Modèles mis en tête du sélecteur, par agent (`claude:opus`).
   const favorites = reactive(new Set<string>(loadFavorites()))
   watch(favorites, () => localStorage.setItem(FAVORITES_KEY, JSON.stringify([...favorites])))
@@ -41,6 +43,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   function load(agent: AgentKind) {
     if (requested.has(agent)) return
     requested.add(agent)
+    waiting.add(agent)
     agentCatalog(agent)
       .then((catalog) => {
         catalogs[agent] = catalog
@@ -49,6 +52,7 @@ export const useCatalogStore = defineStore('catalog', () => {
         requested.delete(agent)
         console.error('catalogue', error)
       })
+      .finally(() => waiting.delete(agent))
   }
 
   // Après une sonde : la CLI peut annoncer d'autres modèles d'un lancement à l'autre (Fable 5.1 puis 5.2).
@@ -61,6 +65,8 @@ export const useCatalogStore = defineStore('catalog', () => {
   function get(agent: AgentKind) {
     return catalogs[agent] ?? null
   }
+
+  const loading = (agent: AgentKind) => waiting.has(agent)
 
   // Modèle réellement utilisé : un modèle absent du catalogue retombe sur celui par défaut.
   function modelOf(catalog: Catalog, value: string | null) {
@@ -88,5 +94,5 @@ export const useCatalogStore = defineStore('catalog', () => {
     return { mode: options.mode, model: model.value, effort, fast: !!options.fast && model.fast }
   }
 
-  return { load, reload, get, resolve, modelLabel, isFavorite, toggleFavorite }
+  return { load, reload, get, loading, resolve, modelLabel, isFavorite, toggleFavorite }
 })

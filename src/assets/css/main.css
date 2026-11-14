@@ -20,6 +20,8 @@
   --color-content: hsl(240 0% 92%);
   --color-muted: color-mix(in srgb, var(--color-content) 55%, transparent);
   --color-stroke: color-mix(in srgb, var(--color-content) 8%, transparent);
+  /* Champ de saisie : un gris entre le fond et le texte, posé en transparence (ni voile clair ni voile noir). */
+  --color-composer: color-mix(in srgb, var(--color-content) 22%, var(--color-canvas));
   /* Survol bien plus léger que la sélection (choix de Jérémy) : à 7 et 10 %, on les confondait. Partout : survol en
      selection-hover, actif ou coché en selection (gardé au survol), 2 px entre deux lignes. */
   --color-selection: color-mix(in srgb, var(--color-content) 14%, transparent);
@@ -119,7 +121,9 @@ html[data-mode='light'] {
   --icon-red: oklch(57.7% 0.245 27.3);
   --icon-orange: oklch(64.6% 0.222 41.1);
   color-scheme: light;
-  --color-muted: color-mix(in srgb, var(--color-content) 58%, transparent);
+  /* 62 % et non 58 % : 4,9:1 sur le blanc au lieu de 4,47, et encore 3:1 sur un fond grisé par l'image ou le bureau.
+     Repris dans MUTED de stores/appearance.ts. */
+  --color-muted: color-mix(in srgb, var(--color-content) 62%, transparent);
   --color-stroke: color-mix(in srgb, var(--color-content) 10%, transparent);
   --color-selection: color-mix(in srgb, var(--color-content) 9%, transparent);
   --color-selection-hover: color-mix(in srgb, var(--color-content) 4.5%, transparent);
@@ -1056,10 +1060,15 @@ html[data-mode='light'] .ui-tip {
       var(--hover-transition);
   }
 
-  /* Bouton plein (envoyer, arrêter) : le relief commun s'y perdait, trait et ombre plus marqués. */
+  /* Bouton plein (envoyer, arrêter) : le relief commun s'y perdait, trait et ombre plus marqués. Le bord du bas
+     (`solidEdgeColor`) ne se colore que sur un accent presque blanc, où le trait clair du haut disparaît. */
   [data-control='solid'] {
     --control-highlight: rgb(255 255 255 / 0.28);
     --control-shadow: rgb(0 0 0 / 0.45);
+    box-shadow:
+      inset 0 1px 0 var(--control-highlight),
+      inset 0 -1px 0 var(--control-solid-edge, transparent),
+      0 1px 2px var(--control-shadow);
   }
 
   /* Pas sur un bouton qui ouvre une liste : elle se placerait sous le bouton rétréci, puis décalée. */
@@ -1138,4 +1147,18 @@ html[data-mode='light'] .ui-tip {
   70% {
     transform: translateY(1px);
   }
+}
+
+/* Champ de saisie posé sur l'image de fond : il se détache par un liseré clair en haut et une ombre douce plutôt que
+   par un fond opaque, qui le rendait gris ou trop sombre selon l'image. */
+.composer-lift {
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--color-content) 8%, transparent),
+    0 4px 12px -8px color-mix(in srgb, black 30%, transparent);
+}
+
+html[data-mode='light'] .composer-lift {
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 70%, transparent),
+    0 4px 12px -8px color-mix(in srgb, black 12%, transparent);
 }

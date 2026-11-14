@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import AgentLogin from '@/components/agent/AgentLogin.vue'
-import { CircleCheck, LoaderCircle, TriangleAlert } from '@/components/ui/icons'
+import { CircleCheck, TriangleAlert } from '@/components/ui/icons'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsGroup from '@/components/settings/SettingsGroup.vue'
 import SettingsInstall from '@/components/settings/SettingsInstall.vue'
 import SettingsRow from '@/components/settings/SettingsRow.vue'
+import SettingsRowSkeleton from '@/components/settings/SettingsRowSkeleton.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiSegmented from '@/components/ui/UiSegmented.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
 import UiSwitch from '@/components/ui/UiSwitch.vue'
 import { useRefocus } from '@/composables/useRefocus'
+import { useSlow } from '@/composables/useSlow'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { Effort } from '@/ipc/bindings/Effort'
 import type { PermissionMode } from '@/ipc/bindings/PermissionMode'
@@ -32,6 +34,8 @@ if (store.status[props.kind].state === 'found') store.detect(props.kind, true)
 const name = agents[props.kind].name
 const settings = computed(() => store.settings[props.kind])
 const status = computed(() => store.status[props.kind])
+// La sonde prend une à trois secondes : version, compte et quotas n'existent qu'après elle.
+const slow = useSlow(() => status.value.state === 'checking')
 const models = computed(() => catalog.get(props.kind)?.models ?? [])
 // Valeurs réellement appliquées : un réglage laissé à null montre ce que l'agent choisira.
 const resolved = computed(() => catalog.resolve(props.kind, settings.value.defaults))
@@ -120,7 +124,14 @@ async function choosePath(event: MouseEvent) {
   <SettingsGroup :title="t('settings.agents.cli')">
     <SettingsRow :data-setting="`${kind}-cli`" :label="t('settings.agents.location')">
       <template #hint>
-        <template v-if="status.state === 'checking'">{{ t('settings.agents.checking', { agent: name }) }}</template>
+        <!-- Posée dès le début de la sonde, encore invisible : l'aide garde sa hauteur. -->
+        <span
+          v-if="status.state === 'checking'"
+          class="inline-block h-2 w-56 rounded-full align-middle"
+          :class="{ skeleton: slow }"
+          role="status"
+          :aria-label="t('settings.agents.checking', { agent: name })"
+        />
         <span v-else-if="status.state === 'missing'" class="inline-flex items-start gap-1 text-warning">
           <TriangleAlert class="mt-px size-3 shrink-0" aria-hidden="true" />{{ t('settings.agents.missing', { agent: name }) }}
         </span>
@@ -131,7 +142,7 @@ async function choosePath(event: MouseEvent) {
         </template>
       </template>
       <template #default="{ hintId }">
-        <LoaderCircle v-if="status.state === 'checking' && !running" class="size-4 animate-spin text-muted motion-reduce:animate-none" aria-hidden="true" />
+        <span v-if="status.state === 'checking' && !running" class="h-7 w-18 rounded-md" :class="{ skeleton: slow }" aria-hidden="true" />
         <div v-else class="flex flex-wrap justify-end gap-2">
           <UiButton
             v-if="settings.path || running === 'auto'"
@@ -159,6 +170,10 @@ async function choosePath(event: MouseEvent) {
       </template>
     </SettingsRow>
     <SettingsInstall v-if="status.state === 'missing' && !settings.path" :tool="kind" :name="name" />
+    <template v-if="slow">
+      <SettingsRowSkeleton :label="t('settings.agents.version')"><span class="skeleton h-2.5 w-12 rounded-full" /></SettingsRowSkeleton>
+      <SettingsRowSkeleton :label="t('settings.agents.account')"><span class="skeleton h-2.5 w-20 rounded-full" /></SettingsRowSkeleton>
+    </template>
     <SettingsRow
       v-if="status.state === 'found'"
       v-slot="{ hintId }"
@@ -195,7 +210,15 @@ async function choosePath(event: MouseEvent) {
     <AgentLogin v-if="status.state === 'found' && !status.account" class="px-4 pb-3" :kind="kind" :title="t('agentLogin.browserTitle')" />
   </SettingsGroup>
 
-  <SettingsGroup v-if="quotas.length" :title="t('settings.agents.usage')">
+  <SettingsGroup v-if="quotas.length || slow" :title="t('settings.agents.usage')">
+    <template v-if="!quotas.length">
+      <SettingsRowSkeleton v-for="index in 2" :key="index">
+        <div class="flex items-center gap-3">
+          <span class="skeleton h-1.5 w-32 rounded-full" />
+          <span class="skeleton h-2.5 w-20 rounded-full" />
+        </div>
+      </SettingsRowSkeleton>
+    </template>
     <SettingsRow
       v-for="row in quotas"
       :key="row.key"

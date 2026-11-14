@@ -2,20 +2,22 @@
 import { ImagePlus } from '@/components/ui/icons'
 import { ref, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
+import SettingsBackgroundFit from '@/components/settings/SettingsBackgroundFit.vue'
+import SettingsBackgroundOptions from '@/components/settings/SettingsBackgroundOptions.vue'
 import SettingsBackgroundThumb from '@/components/settings/SettingsBackgroundThumb.vue'
-import SettingsCustomizeButton from '@/components/settings/SettingsCustomizeButton.vue'
 import SettingsHeading from '@/components/settings/SettingsHeading.vue'
+import SettingsResetButton from '@/components/settings/SettingsResetButton.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import { forgetBackground } from '@/composables/useBackgroundImage'
 import { useFileDrop } from '@/composables/useFileDrop'
+import { useResetToast } from '@/composables/useResetToast'
 import { backgroundImport, backgroundRemove } from '@/ipc/background'
 import { IMAGE_EXTENSIONS, pickImage } from '@/ipc/dialog'
 import { useAppearanceStore } from '@/stores/appearance'
-import { useNavigationStore } from '@/stores/navigation'
 
 const { t } = useI18n()
+const resetToast = useResetToast()
 const appearance = useAppearanceStore()
-const navigation = useNavigationStore()
 const zone = useTemplateRef('zone')
 const error = ref('')
 // Une grosse image met une seconde à être copiée : le bouton le montre.
@@ -70,35 +72,36 @@ const { over } = useFileDrop(zone, (paths) => use(paths[0]!), true)
 
 <template>
   <section class="pt-8" aria-labelledby="background-title">
-    <SettingsHeading id="background-title" :title="t('settings.background.title')" />
+    <SettingsHeading id="background-title" :title="t('settings.background.title')">
+      <SettingsResetButton v-if="appearance.background.path" @click="appearance.resetBackground(); resetToast('section')" />
+    </SettingsHeading>
+    <!-- Toute la liste reçoit l'image glissée depuis le Finder. -->
     <div
       ref="zone"
-      data-setting="background"
-      class="relative rounded-xl border p-3 transition-colors motion-reduce:transition-none"
-      :class="over ? 'border-ring bg-signal/10' : appearance.background.path ? 'border-stroke' : 'border-dashed border-stroke'"
+      class="overflow-hidden rounded-xl border transition-colors motion-reduce:transition-none"
+      :class="over ? 'border-ring bg-signal/10' : 'border-stroke bg-content/3'"
     >
-      <div v-if="appearance.background.path" class="flex flex-wrap items-center gap-4">
-        <div class="relative w-48">
-          <SettingsBackgroundThumb :path="appearance.background.path" />
-          <SettingsCustomizeButton
-            show
-            data-customize="background"
-            class="top-1.5 end-1.5"
-            :label="t('settings.background.customize')"
-            @click="navigation.showSettingsDetail('background')"
-          />
+      <div data-setting="background" data-setting-row class="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-stroke px-4 py-2.5 last:border-b-0">
+        <div class="flex min-w-40 flex-1 items-center gap-3">
+          <SettingsBackgroundThumb v-if="appearance.background.path" :path="appearance.background.path" class="w-32 shrink-0" />
+          <template v-else>
+            <span class="grid aspect-video w-32 shrink-0 place-items-center rounded-md border border-dashed border-stroke" aria-hidden="true">
+              <ImagePlus class="size-5 text-muted" />
+            </span>
+            <p class="min-w-0 flex-1 text-xs/relaxed text-muted">{{ t('settings.background.drop') }}</p>
+          </template>
         </div>
-        <div class="flex flex-wrap gap-2">
+        <div v-if="appearance.background.path" class="flex flex-wrap gap-2">
           <UiButton size="sm" :loading="importing" :disabled="removing" @click="choose()">{{ t('settings.background.change') }}</UiButton>
           <UiButton size="sm" variant="danger" :loading="removing" :disabled="importing" @click="remove()">{{ t('settings.background.remove') }}</UiButton>
         </div>
+        <UiButton v-else size="sm" :loading="importing" @click="choose()">{{ t('settings.background.choose') }}</UiButton>
       </div>
-      <div v-else class="flex flex-col items-center gap-3 py-6 text-center">
-        <ImagePlus class="size-6 text-muted" aria-hidden="true" />
-        <p class="text-sm text-muted">{{ t('settings.background.drop') }}</p>
-        <UiButton size="sm" :loading="importing" @click="choose()">{{ t('settings.background.choose') }}</UiButton>
-      </div>
+      <template v-if="appearance.background.path">
+        <SettingsBackgroundFit :path="appearance.background.path" />
+        <SettingsBackgroundOptions :path="appearance.background.path" />
+      </template>
     </div>
-    <p aria-live="polite" class="mt-2 min-h-5 text-sm text-danger">{{ error }}</p>
+    <p aria-live="polite" class="mt-2 text-sm text-danger empty:mt-0">{{ error }}</p>
   </section>
 </template>

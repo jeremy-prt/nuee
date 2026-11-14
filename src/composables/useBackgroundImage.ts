@@ -2,6 +2,7 @@ import { type Ref, ref, watchEffect } from 'vue'
 import { previewSrc } from '@/ipc/attachment'
 import type { BackgroundEffect } from '@/stores/appearance'
 import { type EffectLevel, type PixelEffect, pixelEffects } from '@/utils/backgroundEffects'
+import type { Pixels } from '@/utils/legibility'
 
 // Un seul worker et un cache par image et par effet : les vignettes d'effets réutilisent le calcul du fond.
 let worker: Worker | null = null
@@ -79,6 +80,23 @@ export function preloadBackground(path: string, level: EffectLevel) {
   }
   if ('requestIdleCallback' in window) requestIdleCallback(run, { timeout: 2000 })
   else setTimeout(run, 500)
+}
+
+// L'image telle que la zone centrale l'affiche (effet compris, recadrée comme bg-cover), réduite pour le calcul de
+// lisibilité. Passe par les octets du fichier : la CSP refuse un fetch de `blob:`.
+export async function sampleBackground(path: string, effect: BackgroundEffect, level: EffectLevel, aspect: number): Promise<Pixels> {
+  const bytes = await read(previewSrc(path))
+  const blob = effect in pixelEffects ? await render(bytes, effect as PixelEffect, level, 'small') : new Blob([bytes])
+  const bitmap = await createImageBitmap(blob)
+  const height = 40
+  const width = Math.max(1, Math.round(height * aspect))
+  const context = new OffscreenCanvas(width, height).getContext('2d')
+  if (!context) throw new Error('canvas indisponible')
+  context.imageSmoothingQuality = 'high'
+  const scale = Math.max(width / bitmap.width, height / bitmap.height)
+  context.drawImage(bitmap, (width - bitmap.width * scale) / 2, (height - bitmap.height * scale) / 2, bitmap.width * scale, bitmap.height * scale)
+  bitmap.close()
+  return context.getImageData(0, 0, width, height)
 }
 
 // Image retirée ou remplacée : ses calculs gardés en mémoire partent avec elle.

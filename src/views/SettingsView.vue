@@ -10,7 +10,6 @@ import SettingsAppearance from '@/components/settings/SettingsAppearance.vue'
 import SettingsAnimations from '@/components/settings/SettingsAnimations.vue'
 import SettingsArchive from '@/components/settings/SettingsArchive.vue'
 import SettingsBackground from '@/components/settings/SettingsBackground.vue'
-import SettingsBackgroundOptions from '@/components/settings/SettingsBackgroundOptions.vue'
 import SettingsGithub from '@/components/settings/SettingsGithub.vue'
 import SettingsIntegrations from '@/components/settings/SettingsIntegrations.vue'
 import SettingsGlass from '@/components/settings/SettingsGlass.vue'
@@ -44,7 +43,6 @@ import {
   isWorktreesDetail,
   parentDetail,
   projectOfWorktrees,
-  type SettingsDetail,
   serverOfDetail,
   projectOfDetail,
   settingsDetailTitle,
@@ -123,8 +121,6 @@ watch(
   { flush: 'post' },
 )
 
-const isWindowStyle = (detail: SettingsDetail) => detail === 'transparent' || detail === 'mixed' || detail === 'opaque'
-
 function back(event?: MouseEvent) {
   restoreFocus = event?.detail === 0
   navigation.showSettingsDetail(parentDetail(navigation.settingsDetail))
@@ -173,12 +169,9 @@ onUnmounted(() => {
             <ArrowLeft class="size-4" aria-hidden="true" />
           </UiIconButton>
           <h2 ref="heading" tabindex="-1" class="min-w-0 flex-1 text-xl font-semibold outline-none">
-            <template v-if="isWindowStyle(navigation.settingsDetail)">
-              {{ t('settings.glass.heading', { style: settingsDetailTitle(navigation.settingsDetail, t) }) }}
-            </template>
             <!-- Changer de projet sans repasser par la liste. -->
             <ProjectPicker
-              v-else-if="isProjectDetail(navigation.settingsDetail)"
+              v-if="isProjectDetail(navigation.settingsDetail)"
               :model-value="projectOfDetail(navigation.settingsDetail)"
               :label="t('settings.projects.pick')"
               large
@@ -190,14 +183,16 @@ onUnmounted(() => {
             <Plus class="size-4" aria-hidden="true" />{{ t('settings.projects.worktrees.create') }}
           </UiButton>
         </div>
-        <SettingsBackgroundOptions v-if="navigation.settingsDetail === 'background'" />
+        <template v-if="navigation.settingsDetail === 'background'">
+          <SettingsGlass />
+          <SettingsBackground />
+        </template>
         <SettingsAgent v-else-if="isAgentDetail(navigation.settingsDetail)" :kind="navigation.settingsDetail" />
         <SettingsSkill v-else-if="isSkillDetail(navigation.settingsDetail)" :id="skillOfDetail(navigation.settingsDetail)" />
         <SettingsMcpServer v-else-if="isServerDetail(navigation.settingsDetail)" :name="serverOfDetail(navigation.settingsDetail)" />
         <SettingsGithub v-else-if="navigation.settingsDetail === 'github'" />
         <SettingsProject v-else-if="isProjectDetail(navigation.settingsDetail)" :id="projectOfDetail(navigation.settingsDetail)" />
         <SettingsWorktrees v-else-if="isWorktreesDetail(navigation.settingsDetail)" :id="projectOfWorktrees(navigation.settingsDetail)" />
-        <SettingsGlass v-else :window-style="navigation.settingsDetail" />
       </template>
       <template v-else>
         <div class="flex items-start gap-4">
@@ -228,7 +223,6 @@ onUnmounted(() => {
           <SettingsAccent />
           <SettingsLayout />
           <SettingsAppearance />
-          <SettingsBackground />
           <SettingsInterface />
           <SettingsAnimations />
         </template>

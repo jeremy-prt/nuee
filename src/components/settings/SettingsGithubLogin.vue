@@ -3,6 +3,7 @@ import { Check, Copy, ExternalLink, LoaderCircle, Plus } from '@/components/ui/i
 import { computed, onUnmounted, ref, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import UiButton from '@/components/ui/UiButton.vue'
+import { useSlow } from '@/composables/useSlow'
 import { useIntegrationsStore } from '@/stores/integrations'
 
 const { t } = useI18n()
@@ -10,6 +11,8 @@ const store = useIntegrationsStore()
 const hintId = useId()
 const copied = ref(false)
 const code = computed(() => store.login?.code ?? null)
+// gh demande le code à GitHub : les étapes gardent leur place, le code et les boutons en squelette.
+const slow = useSlow(() => !!store.login && !code.value)
 
 let timer: ReturnType<typeof setTimeout> | undefined
 async function copy() {
@@ -61,10 +64,24 @@ onUnmounted(() => clearTimeout(timer))
       </UiButton>
     </div>
 
-    <div v-if="store.login" class="mt-3 ms-11 rounded-lg border border-stroke bg-content/3 p-3" aria-live="polite">
-      <p v-if="!code" class="flex items-center gap-2 text-xs text-muted">
-        <LoaderCircle class="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" />{{ t('settings.github.starting') }}
-      </p>
+    <div v-if="code || slow" class="mt-3 ms-11 rounded-lg border border-stroke bg-content/3 p-3" aria-live="polite">
+      <ol v-if="!code" class="flex flex-col gap-3" role="status" :aria-label="t('settings.github.starting')">
+        <li class="flex items-center gap-3">
+          <span class="skeleton size-5 shrink-0 rounded-full" />
+          <span class="skeleton h-2.5 w-28 rounded-full" />
+          <span class="skeleton ms-auto h-8 w-32 rounded-md" />
+          <span class="skeleton h-7 w-20 rounded-md" />
+        </li>
+        <li class="flex items-center gap-3">
+          <span class="skeleton size-5 shrink-0 rounded-full" />
+          <span class="skeleton h-2.5 w-36 rounded-full" />
+          <span class="skeleton ms-auto h-7 w-32 rounded-md" />
+        </li>
+        <li class="flex items-center gap-3">
+          <span class="skeleton size-5 shrink-0 rounded-full" />
+          <span class="skeleton h-2.5 w-44 rounded-full" />
+        </li>
+      </ol>
       <ol v-else class="flex flex-col gap-3 text-xs">
         <li class="flex flex-wrap items-center gap-x-3 gap-y-2">
           <span class="grid size-5 shrink-0 place-items-center rounded-full bg-content/10 text-[11px] font-semibold" aria-hidden="true">1</span>

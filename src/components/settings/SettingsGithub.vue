@@ -7,7 +7,9 @@ import SettingsGithubLogin from '@/components/settings/SettingsGithubLogin.vue'
 import SettingsGroup from '@/components/settings/SettingsGroup.vue'
 import SettingsInstall from '@/components/settings/SettingsInstall.vue'
 import SettingsRow from '@/components/settings/SettingsRow.vue'
+import SettingsRowSkeleton from '@/components/settings/SettingsRowSkeleton.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
+import { useSlow } from '@/composables/useSlow'
 import { accountKey, useIntegrationsStore } from '@/stores/integrations'
 
 const { t } = useI18n()
@@ -15,6 +17,9 @@ const store = useIntegrationsStore()
 if (!store.github) store.load()
 
 const status = computed(() => store.github)
+// Première lecture de gh : il interroge GitHub, jusqu'à 5 s.
+const pending = computed(() => !status.value && !store.error)
+const slow = useSlow(pending)
 </script>
 
 <template>
@@ -31,16 +36,17 @@ const status = computed(() => store.github)
       <SettingsGithubAccount v-for="(account, index) in status.accounts" :key="`${accountKey(account)}#${index}`" :account="account" />
       <SettingsGithubLogin />
     </template>
-    <p v-else class="px-4 py-3 text-xs text-muted" role="status">
-      {{ status ? t('settings.github.needsCli') : t('settings.github.checking') }}
-    </p>
+    <div v-else-if="slow" role="status" :aria-label="t('settings.github.checking')">
+      <SettingsRowSkeleton v-for="index in 2" :key="index" avatar />
+    </div>
+    <p v-else-if="!pending" class="px-4 py-3 text-xs text-muted" role="status">{{ t('settings.github.needsCli') }}</p>
   </SettingsGroup>
 
   <SettingsGroup :title="t('settings.github.cli')">
     <SettingsRow data-setting="github-cli" :label="t('settings.github.version')" :hint="t('settings.github.cliHint')">
       <span class="max-w-72 text-end text-xs" aria-live="polite">
         <span v-if="store.error" class="wrap-break-word text-danger">{{ t('settings.github.error', { error: store.error }) }}</span>
-        <span v-else-if="!status" class="text-muted">{{ t('settings.github.checking') }}</span>
+        <span v-else-if="!status" class="inline-block h-2.5 w-12 rounded-full align-middle" :class="{ skeleton: slow }" role="status" :aria-label="t('settings.github.checking')" />
         <span v-else-if="status.state === 'missing' || status.state === 'outdated'" class="inline-flex items-start gap-1 text-warning">
           <TriangleAlert class="mt-px size-3 shrink-0" aria-hidden="true" />
           {{ status.state === 'missing' ? t('settings.install.notInstalled', { tool: 'GitHub CLI' }) : t('settings.github.outdated') }}

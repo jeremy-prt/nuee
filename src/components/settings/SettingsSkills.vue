@@ -6,8 +6,10 @@ import FilesFinderIcon from '@/components/files/FilesFinderIcon.vue'
 import SettingsAgentLogo from '@/components/settings/SettingsAgentLogo.vue'
 import SettingsMcpRow from '@/components/settings/SettingsMcpRow.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
+import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiSwitch from '@/components/ui/UiSwitch.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
+import { useSlow } from '@/composables/useSlow'
 import { isMacosApp } from '@/ipc/system'
 import { useNavigationStore } from '@/stores/navigation'
 import { type Group, type McpServer, type Skill, useSkillsStore } from '@/stores/skills'
@@ -35,6 +37,9 @@ const command = (skill: Skill) => store.mode(skill) === 'userInvocableOnly' || (
 const configured = computed(() => store.servers.filter((server) => !server.connector))
 const accountConnectors = computed(() => store.servers.filter((server) => server.connector))
 const servers = computed(() => configured.value.filter((server) => matches(server.name, server.target)))
+// Les serveurs arrivent au fil de la lecture (quelques secondes) : le squelette s'efface dès le premier.
+const serversPending = computed(() => store.checking && !configured.value.length && !store.errors.servers && !needle.value)
+const slowServers = useSlow(serversPending)
 const connectors = computed(() => accountConnectors.value.filter((server) => matches(server.name, server.target)))
 // Les connecteurs jamais autorisés pour l'agent (souvent la plupart de ceux du compte) restent repliés en bas : on ne
 // voit d'abord que ceux qui servent (demande de Jérémy). Une recherche les montre tous.
@@ -67,7 +72,7 @@ function empty(kind: Group) {
   if (needle.value) return t('settings.skills.noMatch')
   if (kind === 'skills') return store.errors.skills ? t('settings.skills.skillsError', { error: store.errors.skills }) : t('settings.skills.noSkills')
   if (store.errors.servers) return t('settings.skills.serversError', { error: store.errors.servers })
-  return store.checking ? t('settings.skills.loading') : t('settings.skills.noServers')
+  return t('settings.skills.noServers')
 }
 
 function onFilterKeydown(event: KeyboardEvent) {
@@ -239,7 +244,8 @@ function onFilterKeydown(event: KeyboardEvent) {
             </template>
 
             <template v-else>
-              <p v-if="!servers.length" class="px-4 py-3 text-xs" :class="store.errors.servers ? 'text-danger' : 'text-muted'">{{ empty(group.kind) }}</p>
+              <UiSkeleton v-if="slowServers" :label="t('settings.skills.loading')" :rows="3" />
+              <p v-else-if="!servers.length && !serversPending" class="px-4 py-3 text-xs" :class="store.errors.servers ? 'text-danger' : 'text-muted'">{{ empty(group.kind) }}</p>
               <SettingsMcpRow v-for="server in servers" :key="server.name" :server="server" />
             </template>
           </div>

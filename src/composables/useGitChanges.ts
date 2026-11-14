@@ -53,8 +53,6 @@ export function useGitChanges() {
   const status = ref<'loading' | 'ready' | 'notRepo' | 'failed'>('loading')
   const loading = ref(false)
   const files = computed(() => listing.value?.files ?? [])
-  const added = computed(() => files.value.reduce((sum, file) => sum + file.added, 0))
-  const removed = computed(() => files.value.reduce((sum, file) => sum + file.removed, 0))
 
   // Fichiers dépliés dans la liste (panneau étroit ou partagé) ; les onglets de gauche sont dans `gitPanel`.
   const opened = reactive(new Set<string>())
@@ -269,8 +267,6 @@ export function useGitChanges() {
     status,
     loading,
     files,
-    added,
-    removed,
     opened,
     diffs,
     ensureDiff,
