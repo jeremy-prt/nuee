@@ -485,6 +485,7 @@ export default {
     workspaceTitles: ["今天要做什么？", "从哪里开始？", "要处理什么？", "今天的计划是？", "有什么想法吗？", "要开始哪项任务？", "有什么要做的？", "今天的项目是？", "要推进什么？", "先做什么？"],
     sessionTitles: ["接下来做什么？", "还有别的想法吗？", "接着做什么？", "现在呢？", "另一个想法？", "转到什么？", "还剩什么？", "新的方向？", "并行做什么？", "然后呢？"],
     transcript: '对话',
+    transcriptLoading: '正在加载对话',
     working: '{agent} 正在处理…',
     waitingApproval: '等待授权',
     waitingAnswer: '等待回答',

@@ -485,6 +485,7 @@ export default {
     workspaceTitles: ["¿Qué construir hoy?", "¿Por dónde empezar?", "¿En qué trabajar?", "¿Cuál es el plan?", "¿Qué idea desarrollar?", "¿Qué tarea iniciar?", "¿Qué hay que hacer?", "¿Qué proyecto hoy?", "¿Qué hacer avanzar?", "¿Cuál es el primer paso?"],
     sessionTitles: ["¿Qué sigue?", "¿Qué otra tarea abordar?", "¿Con qué seguir?", "¿Y ahora qué?", "¿Otra idea?", "¿Cuál es el siguiente paso?", "¿Qué queda por hacer?", "¿Una nueva pista?", "¿Qué lanzar en paralelo?", "¿Y después?"],
     transcript: 'Conversación',
+    transcriptLoading: 'Cargando la conversación',
     working: '{agent} está trabajando…',
     waitingApproval: 'Esperando autorización',
     waitingAnswer: 'Esperando una respuesta',

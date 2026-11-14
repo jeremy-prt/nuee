@@ -483,6 +483,7 @@ export default {
     workspaceTitles: ["What to build today?", "Where to start?", "What's on the agenda?", "What to work on?", "Which idea to pursue?", "Which task to start?", "What needs doing?", "What's today's project?", "What should move forward?", "What is the first step?"],
     sessionTitles: ["What's next?", "Which other task to take on?", "What comes next?", "What now?", "Another idea?", "What is the next step?", "What's left to do?", "A new direction?", "What runs in parallel?", "And then?"],
     transcript: 'Conversation',
+    transcriptLoading: 'Loading conversation',
     working: '{agent} is working…',
     waitingApproval: 'Waiting for approval',
     waitingAnswer: 'Waiting for an answer',

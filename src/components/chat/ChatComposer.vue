@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowUp, Orchestra, ShieldAlert, ShieldCheck, ShieldQuestion, Square, X } from '@/components/ui/icons'
+import { ArrowUp, Orchestra, ShieldAlertSolid, ShieldCheckSolid, ShieldQuestionSolid, Square, X } from '@/components/ui/icons'
 import { type Component, computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatContextMeter from '@/components/chat/ChatContextMeter.vue'
@@ -73,11 +73,10 @@ const input = useTemplateRef('input')
 // Après un choix de mode, de modèle ou d'effort, on reprend la saisie là où on l'avait laissée.
 const focusInput = () => input.value?.focus()
 
-// Bouclier plein (demande de Jérémy) : les icônes n'existent qu'en contour, son fond prend sa couleur atténuée.
 const modeLooks = {
-  bypass: { icon: ShieldAlert, iconClass: 'text-warning [&_path]:fill-warning/25' },
-  auto: { icon: ShieldCheck, iconClass: 'text-info [&_path]:fill-info/25' },
-  ask: { icon: ShieldQuestion, iconClass: '[&_path]:fill-content/15' },
+  bypass: { icon: ShieldAlertSolid, iconClass: 'text-warning' },
+  auto: { icon: ShieldCheckSolid, iconClass: 'text-info' },
+  ask: { icon: ShieldQuestionSolid, iconClass: 'text-content/80' },
 } satisfies Record<PermissionMode, { icon: Component; iconClass?: string }>
 const modeLook = computed(() => modeLooks[options.value.mode])
 const modeSections = computed<UiMenuSection[]>(() => [

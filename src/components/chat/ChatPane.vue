@@ -12,9 +12,11 @@ import ChatQuestion from '@/components/chat/ChatQuestion.vue'
 import ChatQueue from '@/components/chat/ChatQueue.vue'
 import ChatTranscript from '@/components/chat/ChatTranscript.vue'
 import ProjectPicker from '@/components/project/ProjectPicker.vue'
+import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { useComposerLaunch } from '@/composables/useComposerLaunch'
 import { useFileDrop } from '@/composables/useFileDrop'
+import { useSlow } from '@/composables/useSlow'
 import { isAppError } from '@/ipc/agent'
 import { worktreeCheckout } from '@/ipc/worktree'
 import { useCatalogStore } from '@/stores/catalog'
@@ -82,6 +84,8 @@ const answering = computed(() => conversation.value?.phase === 'answering')
 // Une réponse est attendue : l'agent répond, ou un message attend la fin du tour précédent.
 const waiting = computed(() => answering.value || (conversation.value?.phase === 'finishing' && !!conversation.value.queue.length))
 const loaded = computed(() => conversation.value?.loaded ?? false)
+// Une session vierge n'a pas d'historique à lire : rien à attendre, pas de squelette.
+const slowHistory = useSlow(() => !loaded.value && props.tab.started)
 // Bandeau de limite tant que le dernier tour s'est arrêté sur elle.
 const limit = computed(() => {
   const current = conversation.value
@@ -295,6 +299,7 @@ onMounted(() => {
         </ChatPlaceRow>
       </div>
     </div>
+    <UiSkeleton v-else-if="slowHistory" :label="t('chat.transcriptLoading')" kind="chat" :rows="3" class="min-h-0 flex-1 justify-end overflow-hidden" />
     <div v-else class="flex-1" />
     <!-- La demande s'affiche au-dessus du champ sans le démonter : un brouillon en cours reste. Session commencée pas
          encore chargée : le champ est déjà en bas, sinon il passait par le milieu de l'écran le temps de la lecture. -->

@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { CaseSensitive, CircleAlert, File as FileGlyph, LoaderCircle, Regex, Search, WholeWord } from '@/components/ui/icons'
+import { CaseSensitive, CircleAlert, File as FileGlyph, Regex, Search, WholeWord } from '@/components/ui/icons'
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import FilesIcon from '@/components/files/FilesIcon.vue'
+import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { field, fieldText } from '@/components/ui/field'
 import { useDebounced } from '@/composables/useDebounced'
+import { useSlow } from '@/composables/useSlow'
 import type { FilesPlace } from '@/ipc/bindings/FilesPlace'
 import type { SearchResults } from '@/ipc/bindings/SearchResults'
 import { filesList, filesSearch } from '@/ipc/files'
@@ -31,7 +33,6 @@ const regex = ref(false)
 const searched = useDebounced(query, 200)
 const nameSearched = useDebounced(nameQuery, 100)
 const results = ref<SearchResults | null>(null)
-const loading = ref(false)
 const failed = ref(false)
 const input = useTemplateRef('input')
 const drop = useTemplateRef('drop')
@@ -113,6 +114,8 @@ const groups = computed(() => {
 })
 
 const count = computed(() => groups.value.reduce((sum, group) => sum + group.matches.length, 0))
+// Résultats précédents gardés pendant une nouvelle recherche : le squelette ne sert qu'à la première.
+const slowResults = useSlow(() => !!query.value.trim() && !results.value && !failed.value)
 
 let request = 0
 watch(
@@ -123,7 +126,6 @@ watch(
       results.value = null
       return
     }
-    loading.value = true
     try {
       const found = await filesSearch(props.place, {
         query: searched.value,
@@ -138,8 +140,6 @@ watch(
       if (id !== request) return
       results.value = null
       failed.value = true
-    } finally {
-      if (id === request) loading.value = false
     }
   },
   { immediate: true },
@@ -247,7 +247,6 @@ const row = 'flex w-full min-w-0 items-center gap-1.5 rounded-md px-2 text-start
           </span>
         </label>
         <p v-if="searched" class="flex items-center gap-1.5 px-1 pt-0.5 text-[11px] text-muted" role="status">
-          <LoaderCircle v-if="loading" class="size-3 animate-spin motion-reduce:animate-none" aria-hidden="true" />
           <span v-if="failed" class="flex items-center gap-1.5 text-danger">
             <CircleAlert class="size-3" aria-hidden="true" />{{ t('dock.files.searchFailed') }}
           </span>
@@ -270,6 +269,7 @@ const row = 'flex w-full min-w-0 items-center gap-1.5 rounded-md px-2 text-start
           <span class="min-w-0 flex-1 truncate text-[11px] text-muted">{{ parentOf(file) }}</span>
         </button>
       </section>
+      <UiSkeleton v-if="slowResults" :label="t('dock.files.loading')" :rows="6" class="p-0!" />
       <h4 v-if="groups.length" class="px-2 pb-1 text-[11px] font-medium text-muted">{{ t('dock.files.inContent') }}</h4>
       <section v-for="group in groups" :key="group.path" class="mb-1">
         <button type="button" :class="row" class="h-7 text-[13px]" :title="group.path" @click="open(group.path, group.matches[0]?.line)">

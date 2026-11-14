@@ -9,7 +9,9 @@ import ShellDockToolbar from '@/components/shell/ShellDockToolbar.vue'
 import ShellDockToolbarButton from '@/components/shell/ShellDockToolbarButton.vue'
 import ShellResizeHandle from '@/components/shell/ShellResizeHandle.vue'
 import UiEmpty from '@/components/ui/UiEmpty.vue'
+import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import { useDockEditor } from '@/composables/useDockEditor'
+import { useSlow } from '@/composables/useSlow'
 import ChatDiffStat from '@/components/chat/ChatDiffStat.vue'
 import { useTerminalChat } from '@/composables/useTerminalChat'
 import { useSessionGitStore } from '@/stores/sessionGit'
@@ -50,6 +52,8 @@ const rootName = computed(() => {
 const blank = computed(() => !chat.value || (!path.value && !chat.value.started))
 const editorShown = computed(() => !!browse.value?.tabs.length && !!root.value)
 const { area, listWidth: explorerWidth, track } = useDockEditor('files')
+// La racine lue une fois reste en mémoire : seule la toute première lecture montre le squelette.
+const slowRoot = useSlow(() => !blank.value && !root.value && !failure.value)
 track(() => editorShown.value)
 
 // ===== Lecture =====
@@ -218,6 +222,7 @@ function create(dir: boolean) {
         :title="t(failure.missing ? 'dock.files.folderMissingTitle' : 'dock.files.folderUnreadableTitle')"
         :description="failure.missing ? t('dock.files.folderMissing', { path: place.worktree ?? place.path ?? '' }) : failure.detail"
       />
+      <UiSkeleton v-else-if="slowRoot" :label="t('dock.files.loading')" :rows="10" />
       <FilesSearch v-else-if="root" ref="search" :place="place" :active="browse.searching" @close="browse.searching = false">
         <FilesTree :place="place" :root="root" :root-name="rootName" />
       </FilesSearch>

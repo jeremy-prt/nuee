@@ -9,9 +9,11 @@ import GitCommitBox from '@/components/git/GitCommitBox.vue'
 import GitDiffBody from '@/components/git/GitDiffBody.vue'
 import GitFileList from '@/components/git/GitFileList.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
+import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { useGitActions } from '@/composables/useGitActions'
 import { GIT_CHANGES } from '@/composables/useGitChanges'
+import { useSlow } from '@/composables/useSlow'
 import type { ChangedFile } from '@/ipc/bindings/ChangedFile'
 import type { ChangedFiles } from '@/ipc/bindings/ChangedFiles'
 import { useGitPanelStore, workKey } from '@/stores/gitPanel'
@@ -30,6 +32,7 @@ const { run, initRepo, start } = useGitActions()
 const gitPanel = useGitPanelStore()
 const layout = useLayoutStore()
 const toasts = useToastsStore()
+const slowList = useSlow(() => status.value === 'loading' && !files.value.length)
 
 async function refresh() {
   await changes.refresh()
@@ -139,7 +142,8 @@ const note = 'px-3 py-6 text-center text-xs text-muted'
       </div>
 
       <div ref="list" class="min-h-0 flex-1 overflow-y-auto p-2">
-        <p v-if="status === 'ready' && !files.length" :class="note">{{ t('dock.changes.clean') }}</p>
+        <UiSkeleton v-if="slowList" :label="t('dock.files.loading')" :rows="5" class="p-0!" />
+        <p v-else-if="status === 'ready' && !files.length" :class="note">{{ t('dock.changes.clean') }}</p>
         <GitFileList
           v-else
           :files="files"
