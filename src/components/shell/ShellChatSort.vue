@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Clock, Layers, RowsCompact, SlidersHorizontal } from '@/components/ui/icons'
+import { SlidersHorizontal } from '@/components/ui/icons'
 import { DropdownMenuContent, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuTrigger } from 'reka-ui'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -64,14 +64,14 @@ const openedBy = (pointer: boolean) => {
             :class="[menuPanel, 'min-w-56']"
             @close-auto-focus="byPointer && $event.preventDefault()"
           >
-            <UiMenuSub :label="t('chats.sort.title')" :icon="Clock" :value="chosen(section)?.label">
+            <UiMenuSub :label="t('chats.sort.title')" :value="chosen(section)?.label">
               <UiMenuChoices :section="section" @select="layout.sessionSort = $event as SessionSort" />
             </UiMenuSub>
-            <UiMenuSub :label="t('chats.sort.groupsTitle')" :icon="Layers" :value="chosen(groupSection)?.label">
+            <UiMenuSub :label="t('chats.sort.groupsTitle')" :value="chosen(groupSection)?.label">
               <UiMenuChoices :section="groupSection" @select="layout.sessionGroups = $event as SessionGroups" />
             </UiMenuSub>
             <UiMenuSeparator />
-            <UiMenuToggle v-model="layout.sessionCompact" :label="t('chats.sort.compact')" :icon="RowsCompact" />
+            <UiMenuToggle v-model="layout.sessionCompact" :label="t('chats.sort.compact')" />
           </DropdownMenuContent>
         </DropdownMenuPortal>
       </DropdownMenuRoot>

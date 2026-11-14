@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowUp, Copy, Orchestra, ShieldAlert, ShieldCheck, ShieldQuestion, Square, X } from '@/components/ui/icons'
+import { ArrowUp, Orchestra, ShieldAlert, ShieldCheck, ShieldQuestion, Square, X } from '@/components/ui/icons'
 import { type Component, computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatContextMeter from '@/components/chat/ChatContextMeter.vue'
@@ -346,7 +346,7 @@ function onKeydown(event: KeyboardEvent) {
               <img :src="previewSrc(attachment.preview)" :alt="attachment.name" class="size-full object-cover" />
             </UiImagePreview>
             <template #menu>
-              <UiMenuItem :label="t('composer.copyImage')" :icon="Copy" @select="copyImage(attachment)" />
+              <UiMenuItem :label="t('composer.copyImage')" @select="copyImage(attachment)" />
             </template>
           </UiContextMenu>
           <div v-else class="flex h-12 max-w-48 items-center gap-2 rounded-lg bg-content/6 ps-2.5 pe-7 text-xs">
