@@ -1,5 +1,19 @@
 @import 'tailwindcss';
 
+/* Un seul rayon de base, le reste en découle ; les valeurs restent celles de Tailwind (4/6/8/12/16). `inline` : un
+   `--radius` redéfini sur un conteneur s'applique à ses enfants. Règle d'usage dans `.claude/rules/arrondis.md`. */
+:root {
+  --radius: 8px;
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 0.75);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.5);
+  --radius-2xl: calc(var(--radius) * 2);
+}
+
 @theme {
   --color-canvas: hsl(240 0% 9%);
   --color-overlay: hsl(240 0% 14%);
@@ -185,8 +199,8 @@ html[data-mode='light'] {
 @utility center-card {
   overflow: hidden;
   box-shadow: 0 0 0 100vmax var(--color-chrome);
-  border-start-start-radius: 10px;
-  border-start-end-radius: 10px;
+  border-start-start-radius: var(--radius-xl);
+  border-start-end-radius: var(--radius-xl);
   &::after {
     content: '';
     position: absolute;
@@ -224,7 +238,7 @@ html[data-mode='light'] {
 
 /* Le défilement d'une longue liste reste à ses propres classes (`overflow-y-auto`). */
 [data-reka-popper-content-wrapper]:has(> .ui-pop) {
-  border-radius: 0.75rem;
+  border-radius: var(--radius-xl);
 }
 
 /* Dans un verre, tout élément dont le fond, la couleur ou l'opacité s'anime passe sur son propre calque, que WebKit
@@ -671,7 +685,7 @@ html[data-mode='light'] .ui-tip {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  border-radius: var(--radius-2xl, 1rem);
+  border-radius: var(--radius-2xl);
   animation: orchestra-halo 1000ms ease-out both;
 }
 

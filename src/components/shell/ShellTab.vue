@@ -49,7 +49,7 @@ const statusIcons = { approval: ShieldQuestion, question: MessageQuestion, done:
         class="group relative flex min-w-0 items-center gap-1.5 text-xs focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
         :class="[
           pinned
-            ? ['pin-card h-5 w-6 justify-center rounded-[5px]', active ? 'text-content' : 'text-muted hover:text-content']
+            ? ['pin-card h-5 w-6 justify-center rounded-sm', active ? 'text-content' : 'text-muted hover:text-content']
             : ['h-7 w-full rounded-md px-2', active ? 'bg-selection text-content' : 'text-muted hover:bg-selection-hover hover:text-content'],
           { 'opacity-50': drag.source?.kind === 'tab' && drag.source.id === tab.id },
         ]"
@@ -63,7 +63,7 @@ const statusIcons = { approval: ShieldQuestion, question: MessageQuestion, done:
              logo de l'agent. Mêmes icônes et couleurs que les cartes de la liste. -->
         <!-- Case fixe : le chiffre affiché sous ⌘ prend la place de l'icône sans décaler le titre. -->
         <span class="-my-0.5 grid size-5 shrink-0 place-items-center">
-          <kbd v-if="rank" class="grid size-4 shrink-0 place-items-center rounded-[4px] border border-content/25 bg-content/8 font-sans text-[10px] text-content/80 tabular-nums">{{ rank }}</kbd>
+          <kbd v-if="rank" class="grid size-4 shrink-0 place-items-center rounded-sm border border-content/25 bg-content/8 font-sans text-[10px] text-content/80 tabular-nums">{{ rank }}</kbd>
           <template v-else-if="status">
             <ChatSpinner v-if="status === 'working'" :agent="tab.agent" class="size-3.5 text-xs" />
             <component :is="statusIcons[status as keyof typeof statusIcons]" v-else class="size-3.5 shrink-0" :class="sessionStatusColor[status]" aria-hidden="true" />
@@ -88,7 +88,7 @@ const statusIcons = { approval: ShieldQuestion, question: MessageQuestion, done:
           <button
             type="button"
             tabindex="-1"
-            class="absolute end-1 top-1/2 grid size-5 -translate-y-1/2 place-items-center rounded-md text-muted opacity-0 transition-opacity duration-(--hover-duration) group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-selection-inner hover:text-content motion-reduce:transition-none"
+            class="absolute end-1 top-1/2 grid size-5 -translate-y-1/2 place-items-center rounded-sm text-muted opacity-0 transition-opacity duration-(--hover-duration) group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-selection-inner hover:text-content motion-reduce:transition-none"
             :aria-label="t('workspace.closeTab')"
             @click.stop="workspace.closeTab(tab.id)"
           >

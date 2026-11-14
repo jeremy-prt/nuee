@@ -127,7 +127,7 @@ onBeforeUnmount(() => observer?.disconnect())
         <button
           v-if="group && group.shells.length > 1"
           type="button"
-          class="absolute end-1 top-1/2 grid size-5 -translate-y-1/2 place-items-center rounded-md text-muted opacity-0 group-hover/shell:opacity-100 hover:bg-selection-inner hover:text-content focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-ring"
+          class="absolute end-1 top-1/2 grid size-5 -translate-y-1/2 place-items-center rounded-sm text-muted opacity-0 group-hover/shell:opacity-100 hover:bg-selection-inner hover:text-content focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-ring"
           :aria-label="t('dock.terminal.closeShell', { name: labels[shell.key] ?? '' })"
           @click="terminals.close(chat.id, shell.key)"
         >

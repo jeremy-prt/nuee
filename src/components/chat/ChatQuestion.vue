@@ -169,7 +169,7 @@ onMounted(() => card.value?.focus({ preventScroll: true }))
           <span
             class="mt-px grid size-[18px] shrink-0 place-items-center border"
             :class="[
-              question.multiple ? 'rounded-[5px]' : 'rounded-full',
+              question.multiple ? 'rounded-sm' : 'rounded-full',
               picked[step]?.includes(index) ? 'border-signal bg-signal text-on-signal' : 'border-muted/60',
             ]"
             aria-hidden="true"

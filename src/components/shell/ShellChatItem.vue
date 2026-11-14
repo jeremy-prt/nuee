@@ -241,7 +241,7 @@ watch(
         <UiTooltip :label="t('chats.archive')">
           <button
             type="button"
-            class="grid size-6 place-items-center rounded-md text-muted hover:bg-selection-inner hover:text-content focus-visible:outline-2 focus-visible:outline-ring"
+            class="grid size-6 place-items-center rounded-sm text-muted hover:bg-selection-inner hover:text-content focus-visible:outline-2 focus-visible:outline-ring"
             :aria-label="t('chats.archive')"
             @click="actions.archiveChat(tab)"
           >

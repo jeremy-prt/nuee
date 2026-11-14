@@ -20,7 +20,7 @@ const thumb = computed(() => ({
 }))
 
 const item =
-  'relative flex h-6 items-center justify-center gap-1.5 rounded-[5px] px-2.5 whitespace-nowrap text-muted transition-colors duration-200 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring enabled:cursor-pointer enabled:hover:text-content disabled:opacity-40 data-[state=checked]:text-content motion-reduce:transition-none'
+  'relative flex h-6 items-center justify-center gap-1.5 rounded-sm px-2.5 whitespace-nowrap text-muted transition-colors duration-200 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring enabled:cursor-pointer enabled:hover:text-content disabled:opacity-40 data-[state=checked]:text-content motion-reduce:transition-none'
 </script>
 
 <template>
@@ -34,7 +34,7 @@ const item =
   >
     <span
       v-if="index >= 0"
-      class="pointer-events-none absolute inset-y-0.5 start-0.5 rounded-[5px] bg-selection transition-transform duration-200 ease-out motion-reduce:transition-none"
+      class="pointer-events-none absolute inset-y-0.5 start-0.5 rounded-sm bg-selection transition-transform duration-200 ease-out motion-reduce:transition-none"
       :style="thumb"
       aria-hidden="true"
     />
