@@ -238,8 +238,11 @@ const flyout = 'ui-pop z-50 text-xs text-content select-none'
                 @keydown.right.prevent="sub = 'model'"
               >
                 <span class="min-w-0 flex-1 truncate">{{ t('composer.model.label') }}</span>
-                <SettingsAgentLogo :id="agent" small />
-                <span class="max-w-28 shrink-0 truncate text-muted">{{ current?.label ?? agentName }}</span>
+                <!-- Logo et nom à l'écart du bouton du champ (gap-1.5), pas à celui de la ligne. -->
+                <span class="flex min-w-0 shrink-0 items-center gap-1.5">
+                  <SettingsAgentLogo :id="agent" small />
+                  <span class="max-w-28 truncate text-muted">{{ current?.label ?? agentName }}</span>
+                </span>
                 <ChevronRight class="size-3.5 shrink-0 text-muted rtl:rotate-180" aria-hidden="true" />
               </PopoverTrigger>
               <PopoverPortal>
