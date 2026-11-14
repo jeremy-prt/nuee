@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Pin } from '@/components/ui/icons'
+import { ChevronDown, Pin } from '@/components/ui/icons'
 import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ShellChatGroup from '@/components/shell/ShellChatGroup.vue'
@@ -65,20 +65,45 @@ const recent = computed(() => {
 })
 const { shown: recentShown, more, limit, sentinel } = useProgressiveList(recent, () => navigation.projectId)
 
+type GroupId = `${DateGroup}` | `status.${StatusGroup}`
+
 // Intertitres sur demande (menu de tri) ; ceux de date jamais en tri par nom, ils couperaient l'ordre alphabétique.
-const groups = computed(() => {
+const groupOf = computed<((tab: Tab) => GroupId) | null>(() => {
   const key = dateKey.value
-  const mode = layout.sessionGroups
-  if (mode === 'none' || (mode === 'date' && !key)) return [{ id: null, tabs: recentShown.value }]
-  const result: { id: `${DateGroup}` | `status.${StatusGroup}` | null; tabs: Tab[] }[] = []
+  if (layout.sessionGroups === 'status') return (tab) => `status.${statusGroup(tab)}`
+  if (layout.sessionGroups === 'date' && key) return (tab) => dateGroup(tab[key], clock.now)
+  return null
+})
+
+const groups = computed(() => {
+  const of = groupOf.value
+  if (!of) return [{ id: null, tabs: recentShown.value }]
+  const result: { id: GroupId | null; tabs: Tab[] }[] = []
   for (const tab of recentShown.value) {
-    const id = mode === 'status' ? (`status.${statusGroup(tab)}` as const) : dateGroup(tab[key!], clock.now)
+    const id = of(tab)
     const last = result.at(-1)
     if (last?.id === id) last.tabs.push(tab)
     else result.push({ id, tabs: [tab] })
   }
   return result
 })
+
+// Compté sur toute la liste, pas seulement la part déjà affichée.
+const counts = computed(() => {
+  const result = new Map<GroupId, number>()
+  const of = groupOf.value
+  if (!of) return result
+  for (const tab of recent.value) {
+    const id = of(tab)
+    result.set(id, (result.get(id) ?? 0) + 1)
+  }
+  return result
+})
+
+const isCollapsed = (id: GroupId) => layout.collapsedGroups.includes(id)
+function toggleGroup(id: GroupId) {
+  layout.collapsedGroups = isCollapsed(id) ? layout.collapsedGroups.filter((other) => other !== id) : [...layout.collapsedGroups, id]
+}
 
 // Branches des sessions : relues à chaque arrivée sur le projet, une branche a pu changer hors de Nuée.
 watch(
@@ -103,18 +128,28 @@ watch(
     </div>
     <div data-chat-zone="recent">
       <template v-for="(group, index) in groups" :key="group.id ?? 'all'">
-        <h2
-          v-if="group.id"
-          class="flex h-7 items-center px-2 text-[11px] text-muted"
-          :class="{ 'mt-3': index || pinned.length }"
-        >
-          {{ t(`chats.groups.${group.id}`) }}
+        <h2 v-if="group.id" :class="{ 'mt-3': index || pinned.length }">
+          <button
+            type="button"
+            class="group/head flex h-7 w-full items-center gap-1 rounded-md px-2 text-[11px] font-medium text-content/60 hover:text-content focus-visible:outline-2 focus-visible:outline-ring"
+            :aria-expanded="!isCollapsed(group.id)"
+            :aria-controls="`chat-group-${group.id}`"
+            @click="toggleGroup(group.id)"
+          >
+            <span class="min-w-0 flex-1 truncate text-start">{{ t(`chats.groups.${group.id}`) }}</span>
+            <span class="font-normal text-muted tabular-nums">{{ counts.get(group.id) }}</span>
+            <ChevronDown
+              class="size-3 shrink-0 text-muted transition-transform duration-150 motion-reduce:transition-none"
+              :class="{ '-rotate-90 rtl:rotate-90': isCollapsed(group.id) }"
+              aria-hidden="true"
+            />
+          </button>
         </h2>
         <!-- Tri par nom : un titre seulement pour séparer des épinglées, et pas deux « Sessions » de suite. -->
         <template v-else-if="pinned.length && group.tabs.length">
           <h2 class="mt-3 flex h-7 items-center px-2 text-[11px] text-muted">{{ t('chats.recent') }}</h2>
         </template>
-        <ul class="space-y-0.5">
+        <ul v-if="!group.id || !isCollapsed(group.id)" :id="group.id ? `chat-group-${group.id}` : undefined" class="space-y-0.5">
           <li v-for="tab in group.tabs" :key="tab.id" :data-chat-id="tab.id"><ShellChatGroup :tab="tab" /></li>
         </ul>
       </template>
