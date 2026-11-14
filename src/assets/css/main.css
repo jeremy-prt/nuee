@@ -51,6 +51,8 @@
   --color-orange: hsl(16 70% 58%);
   /* Effort Max dans le choix du modèle : la couleur d'Iris, pour qu'on le remarque sans qu'il alarme. */
   --color-violet: hsl(262 80% 72%);
+  /* Effort Max : corail chaud, distinct du violet d'Orchestre et sans jaune. */
+  --color-max: oklch(72% 0.17 32);
   /* Skill et `@fichier` dans le champ de saisie (couleurs de monocode). */
   --color-skill: hsl(48 78% 59%);
   --color-mention: hsl(199 89% 60%);
@@ -130,6 +132,7 @@ html[data-mode='light'] {
   --color-info: hsl(210 80% 44%);
   --color-orange: hsl(16 72% 46%);
   --color-violet: hsl(262 58% 54%);
+  --color-max: oklch(57% 0.2 32);
   --color-skill: hsl(40 88% 36%);
   --color-mention: hsl(199 86% 38%);
   --project-slate: oklch(0.55 0.03 260);
@@ -687,6 +690,8 @@ html[data-mode='light'] .ui-tip {
 /* Éclat du mode Orchestre (`ChatOrchestraBurst`), posé à côté du cadre flouté et non dedans : WebKit cesse de
    flouter un calque qui contient une animation. */
 .orchestra-burst {
+  --burst-tone: var(--color-violet);
+  --burst-accent: var(--color-mention);
   position: absolute;
   inset: 0;
   z-index: 1;
@@ -708,8 +713,8 @@ html[data-mode='light'] .ui-tip {
   background: linear-gradient(
     105deg,
     transparent 30%,
-    color-mix(in srgb, var(--color-violet) 30%, transparent) 48%,
-    color-mix(in srgb, var(--color-mention) 18%, transparent) 54%,
+    color-mix(in srgb, var(--burst-tone) 30%, transparent) 48%,
+    color-mix(in srgb, var(--burst-accent) 18%, transparent) 54%,
     transparent 70%
   );
   transform: translateX(-120%);
@@ -721,7 +726,7 @@ html[data-mode='light'] .ui-tip {
   width: 12px;
   height: 12px;
   margin: -6px 0 0 -6px;
-  border: 1.5px solid var(--color-violet);
+  border: 1.5px solid var(--burst-tone);
   border-radius: 9999px;
   animation: orchestra-ring 600ms ease-out both;
 }
@@ -750,8 +755,8 @@ html[data-mode='light'] .ui-tip {
   }
   30% {
     box-shadow:
-      0 0 0 1px color-mix(in srgb, var(--color-violet) 60%, transparent),
-      0 0 26px 2px color-mix(in srgb, var(--color-violet) 40%, transparent);
+      0 0 0 1px color-mix(in srgb, var(--burst-tone) 60%, transparent),
+      0 0 26px 2px color-mix(in srgb, var(--burst-tone) 40%, transparent);
   }
   100% {
     box-shadow: 0 0 0 0 transparent;

@@ -3,11 +3,13 @@ import { onMounted } from 'vue'
 
 // Éclat joué une fois à l'activation du mode Orchestre, d'après monocode : un reflet balaie le cadre, un halo
 // s'allume puis s'éteint, des étincelles partent de la puce du mode. Retiré dès la fin, rien ne tourne au repos.
-const props = defineProps<{ x: number; y: number }>()
+// `tone` : sa couleur, violet d'Orchestre par défaut (corail pour l'effort Max).
+const props = withDefaults(defineProps<{ x: number; y: number; tone?: string }>(), { tone: 'var(--color-violet)' })
 const emit = defineEmits<{ done: [] }>()
 
 const DURATION = 1100
-const tones = ['var(--color-violet)', 'color-mix(in srgb, var(--color-violet) 55%, white)', 'var(--color-mention)']
+const accent = props.tone === 'var(--color-violet)' ? 'var(--color-mention)' : `color-mix(in srgb, ${props.tone} 60%, white)`
+const tones = [props.tone, `color-mix(in srgb, ${props.tone} 55%, white)`, accent]
 
 // Vers le haut surtout : sous le champ, il n'y a souvent que le bord de la fenêtre.
 const COUNT = 22
@@ -34,7 +36,7 @@ onMounted(() => setTimeout(() => emit('done'), DURATION))
 </script>
 
 <template>
-  <div class="orchestra-burst" aria-hidden="true">
+  <div class="orchestra-burst" :style="{ '--burst-tone': tone, '--burst-accent': accent }" aria-hidden="true">
     <span class="orchestra-burst-frame" />
     <span class="orchestra-burst-ring" :style="{ left: `${x}px`, top: `${y}px` }" />
     <span v-for="(spark, index) in sparks" :key="index" class="orchestra-spark" :data-streak="spark.streak || undefined" :style="spark.style" />

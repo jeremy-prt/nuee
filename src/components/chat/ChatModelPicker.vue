@@ -133,10 +133,10 @@ function onCloseAutoFocus(event: Event) {
   props.focusAfter()
 }
 
-// Seul l'effort Max est en couleur, pour qu'on le remarque (choix de Jérémy). `soft` : dans la liste, les autres
+// Seul l'effort Max est en couleur (corail), pour qu'on le remarque (choix de Jérémy). `soft` : dans la liste, les autres
 // niveaux gardent la couleur du texte.
 function effortTone(value: Effort, soft = false) {
-  if (value === 'max') return 'text-violet'
+  if (value === 'max') return 'text-max'
   return soft ? '' : 'text-muted'
 }
 
@@ -154,6 +154,7 @@ const flyout = 'ui-pop z-50 text-xs text-content select-none'
     <span class="flex min-w-0">
       <PopoverRoot v-model:open="open">
         <PopoverTrigger
+          data-model-picker
           :disabled="disabled || !models.length"
           class="group flex h-7 min-w-0 items-center gap-1.5 rounded-md px-2 text-xs whitespace-nowrap text-content/85 hover:bg-selection-inner hover:text-content focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-40 data-[state=open]:bg-selection-inner data-[state=open]:text-content"
         >

@@ -222,7 +222,7 @@ async function placeCaret(position: number) {
 
 const form = useTemplateRef('form')
 const orchestraChip = useTemplateRef('orchestraChip')
-const burst = ref<{ id: number; x: number; y: number } | null>(null)
+const burst = ref<{ id: number; x: number; y: number; tone?: string } | null>(null)
 
 async function setOrchestra(on: boolean, event?: MouseEvent) {
   orchestra.set(props.chatId, on)
@@ -236,6 +236,19 @@ async function setOrchestra(on: boolean, event?: MouseEvent) {
   if (!chip || !box) return
   burst.value = { id: Date.now(), x: chip.left + chip.width / 2 - box.left, y: chip.top + chip.height / 2 - box.top }
 }
+
+// Passage en effort Max : même éclat qu'Orchestre, en corail, depuis le bouton du modèle.
+watch(
+  () => chosenEffort.value,
+  async (now, before) => {
+    if (now !== 'max' || before === 'max' || matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    await nextTick()
+    const trigger = form.value?.querySelector('[data-model-picker]')?.getBoundingClientRect()
+    const box = form.value?.getBoundingClientRect()
+    if (!trigger || !box) return
+    burst.value = { id: Date.now(), x: trigger.left + trigger.width / 2 - box.left, y: trigger.top + trigger.height / 2 - box.top, tone: 'var(--color-max)' }
+  },
+)
 
 // Capture d'écran ou fichier copié. WebKit tronque parfois `files` : `items` en a plus.
 // macOS ajoute à une capture sa copie TIFF sans nom : on la laisse de côté.
@@ -484,7 +497,7 @@ function onKeydown(event: KeyboardEvent) {
         </UiTooltip>
       </div>
     </div>
-    <ChatOrchestraBurst v-if="burst" :key="burst.id" :x="burst.x" :y="burst.y" @done="burst = null" />
+    <ChatOrchestraBurst v-if="burst" :key="burst.id" :x="burst.x" :y="burst.y" :tone="burst.tone" @done="burst = null" />
     <ChatSlashMenu ref="slashMenu" :id="`${id}-skills`" :query="slashQuery" @choose="chooseSkill" />
     <ChatMentionMenu v-if="project" ref="mentionMenu" :id="`${id}-files`" :query="mention?.query ?? null" :chat-id="chatId" :project="project.path" @choose="chooseFile" />
   </form>
