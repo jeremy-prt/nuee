@@ -1265,6 +1265,19 @@ fn version_of(id: &str) -> Option<Version> {
     (!version.is_empty()).then_some((family, version))
 }
 
+/// Anciens modèles que la CLI connaît sans les proposer, dans l'ordre de « Plus de modèles » de l'app Claude.
+const OLDER_MODELS: [(&str, &str); 9] = [
+    ("claude-fable-5-1", "Fable 5.1"),
+    ("claude-haiku-4-5", "Haiku 4.5"),
+    ("claude-sonnet-5", "Sonnet 5"),
+    ("claude-opus-5", "Opus 5"),
+    ("claude-fable-5", "Fable 5"),
+    ("claude-opus-4-8", "Opus 4.8"),
+    ("claude-opus-4-7", "Opus 4.7"),
+    ("claude-opus-4-6", "Opus 4.6"),
+    ("claude-sonnet-4-6", "Sonnet 4.6"),
+];
+
 /// Nom exact du modèle : la CLI affiche « Opus » et garde « Opus 5.5 » en tête de sa description (« Opus 5.5 · … »).
 fn label_of(row: &Value) -> String {
     let name = str_of(&row["displayName"]);
@@ -1340,6 +1353,26 @@ fn catalog_of(response: &Value) -> Option<Catalog> {
                 })
             });
             model.legacy = if *full { !newest } else { outdated };
+        }
+    }
+    // La CLI ne propose que les modèles du moment mais accepte les anciens par leur identifiant : ceux de « Plus de
+    // modèles » de l'app Claude sont ajoutés à part, sauf déjà proposés. Pas sur Bedrock ou Vertex (pas de nom de famille).
+    if versions.iter().any(|(full, _)| !full) {
+        let offered = |id: &str| {
+            rows.iter().any(|row| {
+                str_of(&row["resolvedModel"]) == id || str_of(&row["value"]).starts_with(id)
+            })
+        };
+        for (id, label) in OLDER_MODELS {
+            if !offered(id) {
+                models.push(ModelInfo {
+                    value: (*id).to_owned(),
+                    label: (*label).to_owned(),
+                    efforts: Vec::new(),
+                    fast: false,
+                    legacy: true,
+                });
+            }
         }
     }
     // Sans modèle demandé, la CLI prend celui de `settings.json` avant son propre choix (la ligne « default »).
@@ -1942,7 +1975,18 @@ mod tests {
             .iter()
             .map(|model| model.label.as_str())
             .collect();
-        assert_eq!(labels, ["Opus 5.5", "Haiku 4.5"]);
+        assert_eq!(labels[..2], ["Opus 5.5", "Haiku 4.5"]);
+        // Les anciens modèles connus s'ajoutent à part, sans doubler celui que la CLI propose déjà.
+        assert_eq!(
+            labels.iter().filter(|label| **label == "Haiku 4.5").count(),
+            1
+        );
+        assert!(
+            catalog
+                .models
+                .iter()
+                .any(|model| model.label == "Opus 4.8" && model.legacy)
+        );
         assert_eq!(
             catalog.models[0].efforts,
             [Effort::Low, Effort::High, Effort::Xhigh]
@@ -1982,8 +2026,16 @@ mod tests {
             .iter()
             .map(|model| (model.label.as_str(), model.legacy))
             .collect();
+        // Les anciens modèles connus suivent, sans « Fable 5.1 » ni « Haiku 4.5 » déjà proposés.
         assert_eq!(
-            legacy,
+            legacy
+                .iter()
+                .filter(|(label, _)| *label == "Haiku 4.5")
+                .count(),
+            1
+        );
+        assert_eq!(
+            legacy[..4],
             [
                 ("Fable 5.1", true),
                 ("Haiku 5.5", false),
