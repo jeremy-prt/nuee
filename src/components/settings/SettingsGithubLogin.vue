@@ -69,7 +69,7 @@ onUnmounted(() => clearTimeout(timer))
         <li class="flex flex-wrap items-center gap-x-3 gap-y-2">
           <span class="grid size-5 shrink-0 place-items-center rounded-full bg-content/10 text-[11px] font-semibold" aria-hidden="true">1</span>
           <span class="min-w-32 flex-1">{{ t('settings.github.stepCopy') }}</span>
-          <span class="rounded-md bg-selection px-2.5 py-1 font-mono text-base font-semibold tracking-widest select-text">{{ code.code }}</span>
+          <span class="rounded-md bg-selection px-2.5 py-1 text-base font-semibold tracking-widest tabular-nums select-text">{{ code.code }}</span>
           <UiButton size="sm" @click="copy()">
             <component :is="copied ? Check : Copy" class="size-3.5" :class="{ 'text-success': copied }" aria-hidden="true" />
             {{ copied ? t('settings.github.copied') : t('settings.github.copy') }}

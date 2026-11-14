@@ -136,7 +136,7 @@ const crumbs = computed(() => {
           <UiIconButton :label="t('dock.changes.previousChange')" class="size-6!" :disabled="index <= 0" @click="step(-1)">
             <ChevronDown class="size-3.5 rotate-180" aria-hidden="true" />
           </UiIconButton>
-          <span class="min-w-9 text-center font-mono text-[11px] tabular-nums" aria-hidden="true">{{ total ? index + 1 : 0 }}/{{ total }}</span>
+          <span class="min-w-9 text-center text-[11px] tabular-nums" aria-hidden="true">{{ total ? index + 1 : 0 }}/{{ total }}</span>
           <UiIconButton :label="t('dock.changes.nextChange')" class="size-6!" :disabled="index >= total - 1" @click="step(1)">
             <ChevronDown class="size-3.5" aria-hidden="true" />
           </UiIconButton>

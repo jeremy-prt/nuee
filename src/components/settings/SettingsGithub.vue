@@ -45,7 +45,7 @@ const status = computed(() => store.github)
           <TriangleAlert class="mt-px size-3 shrink-0" aria-hidden="true" />
           {{ status.state === 'missing' ? t('settings.install.notInstalled', { tool: 'GitHub CLI' }) : t('settings.github.outdated') }}
         </span>
-        <span v-else class="font-mono text-muted">{{ status.version ?? '?' }}</span>
+        <span v-else class="text-muted tabular-nums">{{ status.version ?? '?' }}</span>
       </span>
     </SettingsRow>
     <SettingsInstall v-if="status?.state === 'missing'" tool="gh" name="GitHub CLI" />

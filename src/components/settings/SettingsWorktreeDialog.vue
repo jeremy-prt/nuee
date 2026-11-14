@@ -115,7 +115,7 @@ const field =
               spellcheck="false"
               writingsuggestions="false"
               placeholder="feat/…"
-              data-control :class="[field, 'mt-1.5 font-mono']"
+              data-control :class="[field, 'mt-1.5']"
               :aria-describedby="`${id}-from`"
             />
             <p :id="`${id}-from`" class="mt-1.5 text-xs/relaxed text-muted">
@@ -151,7 +151,7 @@ const field =
                 :disabled="item.taken"
                 class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-start text-xs outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring enabled:cursor-pointer enabled:hover:not-aria-checked:bg-selection-hover disabled:cursor-not-allowed disabled:opacity-50 aria-checked:bg-selection"
               >
-                <span class="min-w-0 flex-1 truncate font-mono">{{ item.branch }}</span>
+                <span class="min-w-0 flex-1 truncate">{{ item.branch }}</span>
                 <span v-if="item.taken" class="shrink-0 text-muted">{{ t('settings.projects.worktrees.dialog.taken') }}</span>
               </RadioGroupItem>
             </RadioGroupRoot>
