@@ -7,6 +7,7 @@ import ChatFoldText from '@/components/chat/ChatFoldText.vue'
 import ChatSpinner from '@/components/chat/ChatSpinner.vue'
 import { useConversationsStore } from '@/stores/conversations'
 import { useWorkspaceStore } from '@/stores/workspace'
+import UiCollapse from '@/components/ui/UiCollapse.vue'
 
 // Consigne d'une session lancée par une autre, comme la carte « Tâche » de l'app Claude : dans la session qui l'a
 // lancée (`sessionId` : le titre suit ses renommages) et en tête de celle-ci.
@@ -39,6 +40,8 @@ const bodyId = useId()
       <ChatSpinner v-if="working && session" :agent="session.agent" muted class="ms-auto text-sm" />
       <span v-if="working" class="sr-only">{{ t('chat.tool.running') }}</span>
     </button>
-    <ChatFoldText v-if="open" :id="bodyId" class="px-3 pb-2.5" :text="text" />
+    <UiCollapse>
+      <ChatFoldText v-if="open" :id="bodyId" class="px-3 pb-2.5" :text="text" />
+    </UiCollapse>
   </section>
 </template>

@@ -4,6 +4,7 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatMarkdown from '@/components/chat/ChatMarkdown.vue'
 import { formatDuration } from '@/utils/duration'
+import UiCollapse from '@/components/ui/UiCollapse.vue'
 
 // Réflexion de l'agent (son résumé) : en cours, la dernière phrase défile sous le titre ; finie, elle se replie.
 const props = defineProps<{ text: string; durationMs: number | null; live: boolean }>()
@@ -43,8 +44,10 @@ const latest = computed(() => {
       />
     </button>
     <p v-if="live && !open && latest" class="ms-7.5 me-2 line-clamp-2 text-muted">{{ latest }}</p>
-    <div v-if="open" class="ms-7.5 me-3 text-muted">
-      <ChatMarkdown :text="text" :streaming="live" />
-    </div>
+    <UiCollapse>
+      <div v-if="open" class="ms-7.5 me-3 text-muted">
+        <ChatMarkdown :text="text" :streaming="live" />
+      </div>
+    </UiCollapse>
   </div>
 </template>

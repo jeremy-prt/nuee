@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { LoaderCircle } from '@/components/ui/icons'
 import { useI18n } from 'vue-i18n'
 import ChatDiff from '@/components/chat/ChatDiff.vue'
+import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import type { DiffState } from '@/composables/useGitChanges'
 import type { DiffComment } from '@/stores/diffComments'
 
@@ -14,10 +14,7 @@ const { t } = useI18n()
 
 <template>
   <div :class="flush ? 'min-h-0 flex-1 overflow-auto' : 'ps-2 pt-1 pb-2'">
-    <p v-if="state === 'loading' || state === undefined" class="flex items-center gap-1.5 px-2 py-1 text-xs text-muted" role="status">
-      <LoaderCircle class="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-      {{ t('dock.changes.loading') }}
-    </p>
+    <UiSkeleton v-if="state === 'loading' || state === undefined" :label="t('dock.changes.loading')" kind="code" :rows="flush ? 12 : 4" />
     <p v-else-if="state === 'failed'" class="px-2 py-1 text-xs text-muted">{{ t('dock.changes.diffFailed') }}</p>
     <p v-else-if="binary" class="px-2 py-1 text-xs text-muted">{{ t('dock.changes.binary') }}</p>
     <p v-else-if="state.tooLarge" class="px-2 py-1 text-xs text-muted">{{ t('dock.changes.tooLarge') }}</p>

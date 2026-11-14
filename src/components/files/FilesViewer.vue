@@ -33,7 +33,7 @@ function svgSize(text: string) {
 </script>
 
 <script setup lang="ts">
-import { ChevronRight, CircleAlert, File as FileGlyph, LoaderCircle, TriangleAlert, X } from '@/components/ui/icons'
+import { ChevronRight, CircleAlert, File as FileGlyph, TriangleAlert, X } from '@/components/ui/icons'
 import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatMarkdown from '@/components/chat/ChatMarkdown.vue'
@@ -43,6 +43,7 @@ import FilesMenu from '@/components/files/FilesMenu.vue'
 import UiEmpty from '@/components/ui/UiEmpty.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiMoreMenu from '@/components/ui/UiMoreMenu.vue'
+import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import { isAppError } from '@/ipc/agent'
 import type { FileContent } from '@/ipc/bindings/FileContent'
 import type { FilesPlace } from '@/ipc/bindings/FilesPlace'
@@ -331,10 +332,7 @@ const crumb = 'min-w-0 truncate rounded px-0.5 hover:text-content focus-visible:
     </div>
     <FilesImage v-if="shownPicture || (status === 'loading' && imageLike)" :picture="shownPicture" :name="name" :busy="slow" class="min-h-0 flex-1" />
     <template v-else-if="status === 'loading'">
-      <p v-if="slow" class="flex items-center gap-1.5 p-3 text-xs text-muted" role="status">
-        <LoaderCircle class="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-        {{ t('dock.files.loading') }}
-      </p>
+      <UiSkeleton v-if="slow" :label="t('dock.files.loading')" kind="code" :rows="14" />
     </template>
     <UiEmpty v-else-if="status === 'missing'" :icon="FileGlyph" :title="t('dock.files.missingTitle')" :description="t('dock.files.missing')" />
     <UiEmpty v-else-if="status === 'failed'" :icon="CircleAlert" tone="danger" :title="t('dock.files.readFailed', { name })" :description="error" />

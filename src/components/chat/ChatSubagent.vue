@@ -9,6 +9,7 @@ import type { TaskStep, ToolItem } from '@/stores/conversations'
 import { useLayoutStore } from '@/stores/layout'
 import { modelName, toolName } from '@/utils/activity'
 import { formatDuration } from '@/utils/duration'
+import UiCollapse from '@/components/ui/UiCollapse.vue'
 
 // Sous-agent lancé par l'agent, d'après monocode : sa mission, son modèle, ses étapes ; déplié, chaque outil qu'il
 // appelle, reliés par un trait, puis son rapport. Durée comme T3 Code.
@@ -74,15 +75,17 @@ const rail =
         {{ t('chat.tool.live') }}
       </button>
     </div>
-    <ol v-if="open" class="ms-3 mt-0.5 mb-2 text-xs">
-      <li v-if="details" :class="[rail, 'px-2 py-1 text-muted']">{{ details }}</li>
-      <li v-for="step in steps" :key="step.id" :class="rail">
-        <ChatTool :item="stepItem(step)" />
-      </li>
-      <li v-if="report" :class="[rail, 'py-1']">
-        <ChatMarkdown class="px-2 text-xs!" :class="failed ? 'text-danger' : 'text-muted'" :text="report" />
-      </li>
-    </ol>
+    <UiCollapse>
+      <ol v-if="open" class="ms-3 mt-0.5 mb-2 text-xs">
+        <li v-if="details" :class="[rail, 'px-2 py-1 text-muted']">{{ details }}</li>
+        <li v-for="step in steps" :key="step.id" :class="rail">
+          <ChatTool :item="stepItem(step)" />
+        </li>
+        <li v-if="report" :class="[rail, 'py-1']">
+          <ChatMarkdown class="px-2 text-xs!" :class="failed ? 'text-danger' : 'text-muted'" :text="report" />
+        </li>
+      </ol>
+    </UiCollapse>
   </div>
 </template>
 

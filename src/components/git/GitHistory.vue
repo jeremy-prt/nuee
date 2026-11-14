@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import { Copy, GitCommit, LoaderCircle, RefreshCw, Search, X } from '@/components/ui/icons'
+import { Copy, GitCommit, RefreshCw, Search, X } from '@/components/ui/icons'
 import { computed, inject, nextTick, onBeforeUnmount, reactive, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import GitBranchRow from '@/components/git/GitBranchRow.vue'
 import GitDiffBody from '@/components/git/GitDiffBody.vue'
 import GitFileList from '@/components/git/GitFileList.vue'
+import UiCollapse from '@/components/ui/UiCollapse.vue'
 import UiContextMenu from '@/components/ui/UiContextMenu.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiMenuItem from '@/components/ui/UiMenuItem.vue'
 import UiMoreMenu from '@/components/ui/UiMoreMenu.vue'
+import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import { field, fieldText } from '@/components/ui/field'
 import { useDebounced } from '@/composables/useDebounced'
 import { useGitActions } from '@/composables/useGitActions'
@@ -18,6 +20,7 @@ import type { CommitEntry } from '@/ipc/bindings/CommitEntry'
 import { worktreeCommitDiff, worktreeCommitFiles, worktreeLog } from '@/ipc/worktree'
 import { useGitActionsStore } from '@/stores/gitActions'
 import { commitKey, useGitPanelStore } from '@/stores/gitPanel'
+import { useLayoutStore } from '@/stores/layout'
 import { useToastsStore } from '@/stores/toasts'
 
 // Mode Historique du volet Git, comme monocode : les commits de la branche courante en chronologie, 50 à la fois, la
@@ -65,14 +68,28 @@ async function more() {
   }
 }
 
-// Repart de la première page ; les commits dépliés et leurs fichiers restent si on les retrouve.
-function reload() {
-  generation++
+// Repart de la première page ; les commits dépliés et leurs fichiers restent si on les retrouve. Panneau en train de
+// s'ouvrir : lu une fois le glissement fini, sinon git et le rendu des lignes le saccadent.
+const layout = useLayoutStore()
+async function reload() {
+  const id = ++generation
   busy.value = false
   commits.value = []
   next.value = 0
   status.value = 'loading'
-  return more()
+  if (layout.moving.dock) {
+    await new Promise<void>((done) => {
+      const stop = watch(
+        () => layout.moving.dock,
+        (moving) => {
+          if (moving) return
+          stop()
+          done()
+        },
+      )
+    })
+  }
+  if (id === generation) return more()
 }
 watch([() => chat.value?.id, path, search, () => changes.status.value === 'notRepo', () => chat.value?.worktreePath, changes.pending], reload, {
   immediate: true,
@@ -231,10 +248,7 @@ const note = 'px-3 py-6 text-center text-xs text-muted'
       </div>
 
       <p v-if="status === 'failed'" :class="[note, 'text-danger!']" role="alert">{{ t('dock.changes.history.failed') }}</p>
-      <p v-else-if="status === 'loading' && !commits.length" :class="note" class="flex items-center justify-center gap-1.5" role="status">
-        <LoaderCircle class="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-        {{ t('dock.changes.history.loading') }}
-      </p>
+      <UiSkeleton v-else-if="status === 'loading' && !commits.length" :label="t('dock.changes.history.loading')" :rows="10" />
       <p v-else-if="!commits.length && next === null" :class="note">{{ search ? t('dock.changes.history.noMatch') : t('dock.changes.history.noCommits') }}</p>
       <ol v-else class="min-h-0 flex-1 overflow-y-auto p-2" :aria-label="t('dock.changes.modes.history')">
         <li v-for="(commit, at) in commits" :key="commit.sha" class="relative">
@@ -286,29 +300,29 @@ const note = 'px-3 py-6 text-center text-xs text-muted'
               <UiMenuItem :label="t('dock.changes.history.copySubject')" :icon="Copy" @select="copy(commit.subject)" />
             </template>
           </UiContextMenu>
-          <div v-if="expanded.has(commit.sha)" class="ps-6 pt-0.5 pb-1" role="group" :aria-label="t('dock.changes.history.files', { short: commit.short })">
-            <p v-if="files.get(commit.sha) === 'loading'" class="flex items-center gap-1.5 px-2 py-1 text-xs text-muted" role="status">
-              <LoaderCircle class="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-              {{ t('dock.changes.loading') }}
-            </p>
-            <p v-else-if="files.get(commit.sha) === 'failed'" class="px-2 py-1 text-xs text-muted">{{ t('dock.changes.history.failed') }}</p>
-            <GitFileList
-              v-else
-              :files="listOf(commit.sha)"
-              :inline="!side"
-              :expanded="openedIn(commit.sha)"
-              :active="activeIn(commit.sha)"
-              @select="openFile(commit, $event)"
-              @pin="openFile(commit, $event, true)"
-            >
-              <template #detail="{ file }">
-                <GitDiffBody :state="inlineDiffs.get(commitKey(commit.sha, file.path))" :binary="file.binary" />
-              </template>
-            </GitFileList>
-          </div>
+          <UiCollapse>
+            <div v-if="expanded.has(commit.sha)" class="ps-6 pt-0.5 pb-1" role="group" :aria-label="t('dock.changes.history.files', { short: commit.short })">
+              <UiSkeleton v-if="files.get(commit.sha) === 'loading'" :label="t('dock.changes.loading')" :rows="2" class="p-0!" />
+              <p v-else-if="files.get(commit.sha) === 'failed'" class="px-2 py-1 text-xs text-muted">{{ t('dock.changes.history.failed') }}</p>
+              <GitFileList
+                v-else
+                :files="listOf(commit.sha)"
+                :inline="!side"
+                :expanded="openedIn(commit.sha)"
+                :active="activeIn(commit.sha)"
+                @select="openFile(commit, $event)"
+                @pin="openFile(commit, $event, true)"
+              >
+                <template #detail="{ file }">
+                  <GitDiffBody :state="inlineDiffs.get(commitKey(commit.sha, file.path))" :binary="file.binary" />
+                </template>
+              </GitFileList>
+            </div>
+          </UiCollapse>
         </li>
-        <li v-if="next !== null" :key="`${commits.length}:${next}`" ref="sentinel" class="flex h-8 items-center justify-center" aria-hidden="true">
-          <LoaderCircle v-if="busy" class="size-3.5 animate-spin text-muted motion-reduce:animate-none" />
+        <li v-if="next !== null" :key="`${commits.length}:${next}`" ref="sentinel" aria-hidden="true">
+          <UiSkeleton v-if="busy" :label="t('dock.changes.history.loading')" :rows="3" class="p-0!" />
+          <div v-else class="h-8" />
         </li>
       </ol>
     </template>

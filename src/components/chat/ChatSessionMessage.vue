@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import UiCollapse from '@/components/ui/UiCollapse.vue'
 import { ChevronDown, ChevronRight } from '@/components/ui/icons'
 import { computed, ref, useId } from 'vue'
 import { Translation, useI18n } from 'vue-i18n'
@@ -56,9 +57,11 @@ const bodyId = useId()
         <component :is="open ? ChevronDown : ChevronRight" class="size-3.5" aria-hidden="true" />
       </button>
     </div>
-    <template v-if="open">
-      <ChatTaskCard v-if="from.task" :id="bodyId" class="mt-2" :title="chatTitle ?? null" :text="text" />
-      <ChatFoldText v-else :id="bodyId" class="mt-1 text-muted" :text="text" />
-    </template>
+    <UiCollapse>
+      <div v-if="open">
+        <ChatTaskCard v-if="from.task" :id="bodyId" class="mt-2" :title="chatTitle ?? null" :text="text" />
+        <ChatFoldText v-else :id="bodyId" class="mt-1 text-muted" :text="text" />
+      </div>
+    </UiCollapse>
   </div>
 </template>

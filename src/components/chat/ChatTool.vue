@@ -10,6 +10,7 @@ import type { ToolItem } from '@/stores/conversations'
 import { useLayoutStore } from '@/stores/layout'
 import { capitalize, fileName, fileVerb, toolName } from '@/utils/activity'
 import { formatDuration } from '@/utils/duration'
+import UiCollapse from '@/components/ui/UiCollapse.vue'
 
 // Une étape d'une suite d'outils, comme dans l'app Claude : sans icône, le verbe puis le fichier en clair, ou la
 // phrase que l'agent donne à sa commande.
@@ -88,18 +89,20 @@ const open = ref(false)
       </button>
       <ChatThumb v-if="item.image" :path="item.image" :alt="item.summary ?? item.name" :caption="item.name" class="ms-auto me-1" />
     </div>
-    <div v-if="open" class="mx-2 mt-1 mb-2 flex flex-col gap-2 text-xs">
-      <pre
-        v-if="full"
-        class="max-h-48 overflow-auto rounded-md bg-selection/50 p-2 font-mono whitespace-pre-wrap break-all text-content select-text"
-      >{{ item.tool === 'command' ? `$ ${full}` : full }}</pre>
-      <ChatDiff v-if="item.change" :patch="item.change.patch" />
-      <ChatMarkdown v-if="task?.progress && !running" class="text-xs! text-muted" :text="task.progress" />
-      <pre
-        v-if="output"
-        class="max-h-64 overflow-auto rounded-md bg-selection/30 p-2 font-mono whitespace-pre-wrap break-words select-text"
-        :class="item.status === 'failed' ? 'text-danger' : 'text-muted'"
-      >{{ output }}</pre>
-    </div>
+    <UiCollapse>
+      <div v-if="open" class="mx-2 mt-1 mb-2 flex flex-col gap-2 text-xs">
+        <pre
+          v-if="full"
+          class="max-h-48 overflow-auto rounded-md bg-selection/50 p-2 font-mono whitespace-pre-wrap break-all text-content select-text"
+        >{{ item.tool === 'command' ? `$ ${full}` : full }}</pre>
+        <ChatDiff v-if="item.change" :patch="item.change.patch" />
+        <ChatMarkdown v-if="task?.progress && !running" class="text-xs! text-muted" :text="task.progress" />
+        <pre
+          v-if="output"
+          class="max-h-64 overflow-auto rounded-md bg-selection/30 p-2 font-mono whitespace-pre-wrap break-words select-text"
+          :class="item.status === 'failed' ? 'text-danger' : 'text-muted'"
+        >{{ output }}</pre>
+      </div>
+    </UiCollapse>
   </div>
 </template>

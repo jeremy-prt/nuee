@@ -9,6 +9,7 @@ const toggled = reactive<Record<string, boolean>>({})
 import { computed, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ShellChatItem from '@/components/shell/ShellChatItem.vue'
+import UiCollapse from '@/components/ui/UiCollapse.vue'
 import { useAttentionStore } from '@/stores/attention'
 import { useConversationsStore } from '@/stores/conversations'
 import { type Tab, useWorkspaceStore } from '@/stores/workspace'
@@ -62,11 +63,13 @@ watch(
       <span class="shrink-0 text-signal-text">{{ t('chats.nested.unread', { n: unread }) }}</span>
     </template>
   </button>
-  <ul v-if="children.length && open" :id="listId" class="ms-4 pt-0.5">
-    <li v-for="(child, index) in children" :key="child.id" class="relative ps-3" :class="{ 'pb-0.5': index < children.length - 1 }">
-      <span v-if="index < children.length - 1" class="absolute start-0 top-0 h-full w-px bg-content/20" aria-hidden="true" />
-      <span v-else class="absolute start-0 top-0 h-1/2 w-2 rounded-es-md border-s border-b border-content/20" aria-hidden="true" />
-      <ShellChatItem :tab="child" />
-    </li>
-  </ul>
+  <UiCollapse>
+    <ul v-if="children.length && open" :id="listId" class="ms-4 pt-0.5">
+      <li v-for="(child, index) in children" :key="child.id" class="relative ps-3" :class="{ 'pb-0.5': index < children.length - 1 }">
+        <span v-if="index < children.length - 1" class="absolute start-0 top-0 h-full w-px bg-content/20" aria-hidden="true" />
+        <span v-else class="absolute start-0 top-0 h-1/2 w-2 rounded-es-md border-s border-b border-content/20" aria-hidden="true" />
+        <ShellChatItem :tab="child" />
+      </li>
+    </ul>
+  </UiCollapse>
 </template>

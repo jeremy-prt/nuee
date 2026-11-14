@@ -3,6 +3,7 @@ import { ChevronDown, Pin } from '@/components/ui/icons'
 import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ShellChatGroup from '@/components/shell/ShellChatGroup.vue'
+import UiCollapse from '@/components/ui/UiCollapse.vue'
 import { useProgressiveList } from '@/composables/useProgressiveList'
 import { useSessionStatus } from '@/composables/useSessionStatus'
 import { useTabTitle } from '@/composables/useTabTitle'
@@ -150,9 +151,11 @@ watch(
         <template v-else-if="pinned.length && group.tabs.length">
           <h2 class="mt-4 flex h-7 items-center px-2 text-xs font-semibold text-muted">{{ t('chats.recent') }}</h2>
         </template>
-        <ul v-if="!group.id || !isCollapsed(group.id)" :id="group.id ? `chat-group-${group.id}` : undefined" class="space-y-0.5">
-          <li v-for="tab in group.tabs" :key="tab.id" :data-chat-id="tab.id"><ShellChatGroup :tab="tab" /></li>
-        </ul>
+        <UiCollapse>
+          <ul v-if="!group.id || !isCollapsed(group.id)" :id="group.id ? `chat-group-${group.id}` : undefined" class="space-y-0.5">
+            <li v-for="tab in group.tabs" :key="tab.id" :data-chat-id="tab.id"><ShellChatGroup :tab="tab" /></li>
+          </ul>
+        </UiCollapse>
       </template>
     </div>
     <div v-if="more" :key="limit" ref="sentinel" class="h-px" aria-hidden="true" />

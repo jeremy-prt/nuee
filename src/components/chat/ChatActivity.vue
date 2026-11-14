@@ -11,6 +11,7 @@ import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import { type ActivityItem, capitalize, lastStep, summarize } from '@/utils/activity'
 import { agents } from '@/utils/agents'
 import { formatDuration } from '@/utils/duration'
+import UiCollapse from '@/components/ui/UiCollapse.vue'
 
 // Suite d'outils entre deux textes de l'agent, repliée en une ligne. Avec `clock` (tour en cours, horloge de
 // performance.now), c'est la seule ligne qui dit que l'agent travaille, comme dans l'app Claude. `writing` : l'agent
@@ -154,11 +155,13 @@ const entries = computed(() => props.items.filter((item) => item.kind === 'tool'
         class="ms-auto me-1"
       />
     </div>
-    <ul v-if="open && entries.length" class="mt-1 mb-2 ms-2 divide-y divide-stroke rounded-lg border border-stroke">
-      <li v-for="item in entries" :key="item.id" class="p-0.5">
-        <ChatTool v-if="item.kind === 'tool'" :item="item" />
-        <ChatThinking v-else :text="item.text" :duration-ms="item.durationMs" :live="live && item.durationMs === null" />
-      </li>
-    </ul>
+    <UiCollapse>
+      <ul v-if="open && entries.length" class="mt-1 mb-2 ms-2 divide-y divide-stroke rounded-lg border border-stroke">
+        <li v-for="item in entries" :key="item.id" class="p-0.5">
+          <ChatTool v-if="item.kind === 'tool'" :item="item" />
+          <ChatThinking v-else :text="item.text" :duration-ms="item.durationMs" :live="live && item.durationMs === null" />
+        </li>
+      </ul>
+    </UiCollapse>
   </div>
 </template>
