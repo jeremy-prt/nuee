@@ -1,32 +1,28 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 
-// Éclat joué une fois à l'activation du mode Orchestre, d'après monocode : un reflet balaie le cadre, un halo
-// s'allume puis s'éteint, des étincelles partent de la puce du mode. Retiré dès la fin, rien ne tourne au repos.
+// Éclat joué une fois à l'activation du mode Orchestre, d'après monocode : le bord violet se dessine depuis la puce,
+// un reflet balaie le cadre, quelques points partent, puis un halo allume le bord. Retiré dès la fin, rien ne tourne
+// au repos ; le cadre prend alors sa couleur fixe (ChatComposer).
 const props = defineProps<{ x: number; y: number }>()
 const emit = defineEmits<{ done: [] }>()
 
-const DURATION = 1100
-const tones = ['var(--color-violet)', 'color-mix(in srgb, var(--color-violet) 55%, white)', 'var(--color-mention)']
+const DURATION = 1350
+const tones = ['var(--color-violet)', 'color-mix(in srgb, var(--color-violet) 55%, white)']
 
 // Vers le haut surtout : sous le champ, il n'y a souvent que le bord de la fenêtre.
-const COUNT = 22
+const COUNT = 8
 const sparks = Array.from({ length: COUNT }, (_, index) => {
-  const angle = (-175 + (index / (COUNT - 1)) * 180 + (Math.random() - 0.5) * 12) * (Math.PI / 180)
-  const distance = 50 + Math.random() * 100
-  const streak = index % 3 === 0
+  const angle = (-165 + (index / (COUNT - 1)) * 150 + (Math.random() - 0.5) * 16) * (Math.PI / 180)
+  const distance = 20 + Math.random() * 35
   return {
-    streak,
-    style: {
-      left: `${props.x}px`,
-      top: `${props.y}px`,
-      '--dx': `${Math.cos(angle) * distance}px`,
-      '--dy': `${Math.sin(angle) * distance}px`,
-      '--turn': `${angle}rad`,
-      '--size': `${streak ? 2 : 3 + Math.random() * 3.5}px`,
-      '--delay': `${Math.round(Math.random() * 90)}ms`,
-      '--tone': tones[index % tones.length],
-    },
+    left: `${props.x}px`,
+    top: `${props.y}px`,
+    '--dx': `${Math.cos(angle) * distance}px`,
+    '--dy': `${Math.sin(angle) * distance}px`,
+    '--size': `${2 + Math.random() * 1.5}px`,
+    '--delay': `${Math.round(Math.random() * 60)}ms`,
+    '--tone': tones[index % tones.length],
   }
 })
 
@@ -35,8 +31,10 @@ onMounted(() => setTimeout(() => emit('done'), DURATION))
 
 <template>
   <div class="orchestra-burst" aria-hidden="true">
+    <span class="mode-reveal" :style="{ '--x': `${x}px`, '--y': `${y}px`, '--tone': 'var(--color-violet)' }" />
+    <span class="orchestra-burst-halo" />
     <span class="orchestra-burst-frame" />
     <span class="orchestra-burst-ring" :style="{ left: `${x}px`, top: `${y}px` }" />
-    <span v-for="(spark, index) in sparks" :key="index" class="orchestra-spark" :data-streak="spark.streak || undefined" :style="spark.style" />
+    <span v-for="(spark, index) in sparks" :key="index" class="orchestra-spark" :style="spark" />
   </div>
 </template>

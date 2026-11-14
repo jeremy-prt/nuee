@@ -9,7 +9,7 @@ export const TOOLTIP_SIDE: InjectionKey<Side> = Symbol('tooltipSide')
 
 <script setup lang="ts">
 import { TooltipContent, TooltipPortal, TooltipRoot, TooltipTrigger } from 'reka-ui'
-import { computed, inject } from 'vue'
+import { computed, inject, ref, useTemplateRef } from 'vue'
 
 const props = withDefaults(
   defineProps<{
@@ -25,11 +25,21 @@ const props = withDefaults(
 // Au-dessus par défaut (choix de Jérémy) ; reka la retourne en dessous quand la place manque (barre de titre).
 const inherited = inject(TOOLTIP_SIDE, 'top')
 const placed = computed(() => props.side ?? inherited)
+
+// Un menu, un popover ou une liste ouverts ailleurs : pas d'infobulle par-dessus, elle les masquait au survol des
+// boutons voisins. Celles des éléments du menu ouvert restent.
+const MENUS = '[data-reka-popper-content-wrapper] :is([role="menu"], [role="dialog"], [role="listbox"])'
+const open = ref(false)
+const trigger = useTemplateRef<{ $el: Element }>('trigger')
+function setOpen(value: boolean) {
+  const host = trigger.value?.$el
+  open.value = value && ![...document.querySelectorAll(MENUS)].some((menu) => !host || !menu.contains(host))
+}
 </script>
 
 <template>
-  <TooltipRoot :disabled="disabled">
-    <TooltipTrigger as-child>
+  <TooltipRoot :open="open" :disabled="disabled" @update:open="setOpen">
+    <TooltipTrigger ref="trigger" as-child>
       <slot />
     </TooltipTrigger>
     <TooltipPortal>

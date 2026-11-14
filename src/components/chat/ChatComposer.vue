@@ -303,15 +303,29 @@ function centerOf(element: Element | null | undefined) {
   return { x: target.left + target.width / 2 - box.left, y: target.top + target.height / 2 - box.top }
 }
 
+// Le menu « + » se ferme d'un coup, dans la même image que le choix : l'éclat attend qu'il ait disparu (deux images
+// puis 120 ms), sinon tout s'empile et saccade.
+async function afterMenu() {
+  await nextTick()
+  await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))
+  await new Promise((done) => setTimeout(done, 120))
+}
+
+// Bord coloré du mode tenu en attente pendant l'éclat, qui le dessine depuis la puce : posé d'emblée, il était déjà là
+// avant que l'animation ait pu le révéler.
+const accentHeld = ref(false)
+
 async function setOrchestra(on: boolean, event?: MouseEvent) {
   orchestra.set(props.chatId, on)
   burst.value = null
+  accentHeld.value = on && effects.value
   // Validée au clavier, la puce disparaît : le focus va au champ.
   if (!on && event?.detail === 0) input.value?.focus()
   if (!on || !effects.value) return
-  await nextTick()
-  const center = centerOf(orchestraChip.value)
+  await afterMenu()
+  const center = orchestrating.value ? centerOf(orchestraChip.value) : null
   if (center) burst.value = { id: Date.now(), kind: 'orchestra', ...center }
+  else accentHeld.value = false
 }
 
 const summaryChip = useTemplateRef('summaryChip')
@@ -327,12 +341,19 @@ async function setSummary(on: boolean, event?: MouseEvent) {
     if (prompt.value.trim() === preset) prompt.value = ''
   }
   burst.value = null
+  accentHeld.value = on && effects.value
   if (on) void placeCaret(prompt.value.length)
   else if (event?.detail === 0) input.value?.focus()
   if (!on || !effects.value) return
-  await nextTick()
-  const center = centerOf(summaryChip.value)
+  await afterMenu()
+  const center = summary.value ? centerOf(summaryChip.value) : null
   if (center) burst.value = { id: Date.now(), kind: 'ascii', ...center }
+  else accentHeld.value = false
+}
+
+function burstDone() {
+  burst.value = null
+  accentHeld.value = false
 }
 
 // Capture d'écran ou fichier copié. WebKit tronque parfois `files` : `items` en a plus.
@@ -441,9 +462,9 @@ function onKeydown(event: KeyboardEvent) {
     <div
       class="@container rounded-2xl border bg-composer/22 backdrop-blur-xl"
       :class="[
-        summary
+        summary && !accentHeld
           ? 'border-note/45 shadow-[0_0_22px_-8px_var(--color-note)] has-[textarea:focus]:border-note/70'
-          : orchestrating
+          : orchestrating && !accentHeld
             ? 'border-violet/45 shadow-[0_0_22px_-8px_var(--color-violet)] has-[textarea:focus]:border-violet/70'
             : 'composer-lift border-stroke has-[textarea:focus]:border-stroke-focus',
         { 'opacity-60': disabled },
@@ -628,8 +649,8 @@ function onKeydown(event: KeyboardEvent) {
         </UiTooltip>
       </div>
     </div>
-    <ChatOrchestraBurst v-if="burst?.kind === 'orchestra'" :key="burst.id" :x="burst.x" :y="burst.y" @done="burst = null" />
-    <ChatAsciiWave v-else-if="burst" :key="burst.id" :x="burst.x" :y="burst.y" @done="burst = null" />
+    <ChatOrchestraBurst v-if="burst?.kind === 'orchestra'" :key="burst.id" :x="burst.x" :y="burst.y" @done="burstDone" />
+    <ChatAsciiWave v-else-if="burst" :key="burst.id" :x="burst.x" :y="burst.y" @done="burstDone" />
     <ChatSlashMenu ref="slashMenu" :id="`${id}-skills`" :query="slashQuery" @choose="chooseSkill" />
     <ChatMentionMenu v-if="project" ref="mentionMenu" :id="`${id}-files`" :query="mention?.query ?? null" :chat-id="chatId" :project="project.path" @choose="chooseFile" />
     <ChatNoteMenu ref="noteMenu" :id="`${id}-notes`" :query="hash?.query ?? null" @choose="chooseNote" />

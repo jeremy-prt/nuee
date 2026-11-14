@@ -63,5 +63,6 @@ onBeforeUnmount(() => cancelAnimationFrame(frame))
 </script>
 
 <template>
+  <span class="mode-reveal z-1" :style="{ '--x': `${x}px`, '--y': `${y}px`, '--tone': 'var(--color-note)' }" aria-hidden="true" />
   <canvas ref="canvas" class="pointer-events-none absolute inset-0 z-1 size-full rounded-2xl" aria-hidden="true" />
 </template>
