@@ -27,7 +27,8 @@ Ton pro et clair (choix de Jérémy), dans les 6 langues : les textes ne s'adres
 - Tauri 2 uniquement : les crates `tauri*` en 3.x sur crates.io sont des alphas, et aucune recette Tauri 1 (allowlist, `@tauri-apps/api/tauri`).
 - Un plugin Tauri ajouté doit avoir sa permission dans `src-tauri/capabilities/default.json`, sinon ses appels sont refusés.
 - La fenêtre est définie deux fois : `tauri.conf.json` et `tauri.macos.conf.json` (transparence, barre de titre). Le tableau `windows` est remplacé, pas fusionné : toute modif de fenêtre se fait dans les deux.
-- Icône : `icons/Nuee.icon` (Icon Composer, variantes claire et sombre, déclaré seulement dans `tauri.macos.conf.json`) n'est compilé que par l'`actool` d'Xcode 26 ; sans Xcode, le build le saute et garde `icon.icns` (sombre). Changer de logo = `pnpm tauri icon` (supprimer les `android/` et `ios/` qu'il ajoute) ET régénérer `Nuee.icon` (`~/Pictures/Logos/Nuee/retenue/icon_composer.py`)
+- Icône macOS claire/sombre : `icons/Assets.car`, compilé depuis `icons/Nuee.icon` (Icon Composer) par le workflow manuel « Compiler l'icône macOS » (actool exige Xcode 26, absent en local), puis commité. Changer de logo = `pnpm tauri icon` (supprimer les `android/` et `ios/` qu'il ajoute), régénérer `Nuee.icon` (`~/Pictures/Logos/Nuee/retenue/icon_composer.py`), relancer le workflow et recommiter `Assets.car`
+- Réglages d'apparence (fond d'écran compris) en `localStorage`, propre à l'origine : `tauri dev` et l'app empaquetée ne les partagent pas
 - `productName` reste en ASCII (`Nuee`) : un accent casse le paquet `.deb`. Le titre de fenêtre garde « Nuée ».
 - Pinia 4 exige `@vue/devtools-api` installé à côté.
 - Dev et build partagent l'historique (même `identifier`) : `nuee.db` dans le dossier de données de l'app (`~/Library/Application Support/io.github.jeremy-prt.nuee/` sur macOS).
