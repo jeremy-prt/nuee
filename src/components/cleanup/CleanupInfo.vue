@@ -8,7 +8,7 @@ defineProps<{ title: string; items: string[]; empty?: string; note?: string; tri
 </script>
 
 <template>
-  <HoverCardRoot :open-delay="150" :close-delay="150">
+  <HoverCardRoot :open-delay="100" :close-delay="0">
     <HoverCardTrigger
       as="button"
       type="button"

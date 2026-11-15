@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onUnmounted, reactive, ref, shallowRef, useTemplateRef } from 'vue'
+import { computed, nextTick, onUnmounted, reactive, ref, shallowRef, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import CleanupGroupRow from '@/components/cleanup/CleanupGroupRow.vue'
 import CleanupInfo from '@/components/cleanup/CleanupInfo.vue'
@@ -43,7 +43,16 @@ const report = ref<CleanupReport | null>(null)
 const forcing = ref(false)
 // Orphelins, autres process de développement et agents inactifs par défaut : rien ne s'y perd. Les serveurs de
 // développement servent peut-être encore.
-const included = reactive<Record<Cleanable, boolean>>({ leftovers: true, others: true, agents: true, servers: false })
+const INCLUDED_KEY = 'nuee.cleanup.included'
+const included = reactive<Record<Cleanable, boolean>>({ leftovers: true, others: true, agents: true, servers: false, ...savedChoice() })
+// Un choix décoché tient d'une visite à l'autre : sinon un serveur qu'on protège redeviendrait une cible.
+watch(included, (value) => {
+  try {
+    localStorage.setItem(INCLUDED_KEY, JSON.stringify(value))
+  } catch {
+    // Stockage indisponible : le choix vaut pour cette visite seulement.
+  }
+})
 // Étape de chaque catégorie nettoyée ; les autres s'estompent.
 const steps = reactive<Partial<Record<Cleanable, Step>>>({})
 const pace = ref(MIN_ROW)
@@ -52,6 +61,15 @@ const runButton = useTemplateRef<HTMLButtonElement>('runButton')
 const doneButton = useTemplateRef<{ $el: HTMLElement }>('doneButton')
 let timer = 0
 let disposed = false
+
+function savedChoice(): Partial<Record<Cleanable, boolean>> {
+  try {
+    const saved = JSON.parse(localStorage.getItem(INCLUDED_KEY) ?? '{}') as Record<string, unknown>
+    return Object.fromEntries(CLEANABLE.filter((group) => typeof saved[group] === 'boolean').map((group) => [group, saved[group]]))
+  } catch {
+    return {}
+  }
+}
 
 // ===== Initialisation =====
 poll()
