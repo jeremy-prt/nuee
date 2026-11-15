@@ -288,7 +288,7 @@ function finish(event: MouseEvent) {
               :title="t('cleanup.remainingTitle')"
               :items="report.left"
               :note="t('cleanup.remainingNote')"
-              trigger-class="flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-xs text-warning hover:bg-warning/10 focus-visible:outline-2 focus-visible:outline-ring aria-expanded:bg-warning/10"
+              trigger-class="flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-xs text-warning hover:bg-warning/10 focus-visible:outline-2 focus-visible:outline-ring data-[state=open]:bg-warning/10"
             >
               <template #trigger>
                 <CircleAlert class="size-3.5" aria-hidden="true" />
@@ -319,7 +319,7 @@ function finish(event: MouseEvent) {
             <!-- Dans le rond, au survol ou au focus : le bouton reste seul au repos. -->
             <span
               v-if="phase === 'idle'"
-              class="absolute bottom-8 left-1/2 -translate-x-1/2 opacity-0 transition-opacity duration-(--hover-duration) group-hover:opacity-100 focus-within:opacity-100 has-[[aria-expanded=true]]:opacity-100"
+              class="absolute bottom-8 left-1/2 -translate-x-1/2 opacity-0 transition-opacity duration-(--hover-duration) group-hover:opacity-100 focus-within:opacity-100 has-[[data-state=open]]:opacity-100"
               :class="toStop ? 'text-on-signal' : 'text-muted'"
             >
               <CleanupInfo :title="t('cleanup.plan.title')" :items="plan" :empty="t('cleanup.plan.pick')" />
