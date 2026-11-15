@@ -867,7 +867,8 @@ export default {
     noReset: 'Aucune session en cours',
     resets: 'Remise à zéro {when}',
     resetsOn: 'Remise à zéro {when}',
-    noLimits: 'Les limites s\'affichent une fois {agent} connecté avec un abonnement.',
+    unpublished: 'Non publiée par ce compte',
+    signedOut: '{agent} non connecté',
     error: 'Les sessions de cet ordinateur sont illisibles.',
     state: {
       good: 'Sous le rythme idéal',

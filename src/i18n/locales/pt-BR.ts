@@ -867,7 +867,8 @@ export default {
     noReset: 'Nenhuma sessão em andamento',
     resets: 'Reinicia {when}',
     resetsOn: 'Reinicia {when}',
-    noLimits: 'Os limites aparecem quando o {agent} estiver conectado com uma assinatura.',
+    unpublished: 'Não publicado por esta conta',
+    signedOut: '{agent} não conectado',
     error: 'Não foi possível ler as sessões deste computador.',
     state: {
       good: 'Abaixo do ritmo ideal',

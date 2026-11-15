@@ -865,7 +865,8 @@ export default {
     noReset: 'No session in progress',
     resets: 'Resets {when}',
     resetsOn: 'Resets {when}',
-    noLimits: 'The limits show up once {agent} is connected with a subscription.',
+    unpublished: 'Not published by this account',
+    signedOut: '{agent} not connected',
     error: 'The sessions on this computer could not be read.',
     state: {
       good: 'Below the ideal pace',

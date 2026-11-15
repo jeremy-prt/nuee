@@ -867,7 +867,8 @@ export default {
     noReset: '進行中のセッションなし',
     resets: '{when}にリセット',
     resetsOn: '{when}にリセット',
-    noLimits: '{agent} がサブスクリプションで接続されると上限が表示されます。',
+    unpublished: 'このアカウントでは非公開',
+    signedOut: '{agent} 未接続',
     error: 'このコンピュータのセッションを読み取れませんでした。',
     state: {
       good: '理想のペース以下',

@@ -867,7 +867,8 @@ export default {
     noReset: '没有进行中的会话',
     resets: '{when}重置',
     resetsOn: '{when}重置',
-    noLimits: '{agent} 以订阅方式连接后会显示限额。',
+    unpublished: '此账号未公开',
+    signedOut: '{agent} 未连接',
     error: '无法读取这台电脑上的会话。',
     state: {
       good: '低于理想节奏',

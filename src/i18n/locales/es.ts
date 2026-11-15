@@ -867,7 +867,8 @@ export default {
     noReset: 'Ninguna sesión en curso',
     resets: 'Se restablece {when}',
     resetsOn: 'Se restablece el {when}',
-    noLimits: 'Los límites aparecen una vez que {agent} está conectado con una suscripción.',
+    unpublished: 'No publicado por esta cuenta',
+    signedOut: '{agent} no conectado',
     error: 'No se pudieron leer las sesiones de este ordenador.',
     state: {
       good: 'Por debajo del ritmo ideal',

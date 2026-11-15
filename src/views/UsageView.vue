@@ -76,6 +76,11 @@ const windows = computed(() => {
   }
   return list.map((entry) => ({ ...entry, pace: pace(entry.window, now.value) }))
 })
+// Pas de limites : connecté sans quotas publiés (abonnement d'équipe, clé d'API) ou pas de compte du tout.
+const emptyNote = computed(() =>
+  status.value.state === 'found' && status.value.account ? t('usage.unpublished') : t('usage.signedOut', { agent: agents[kind].name }),
+)
+
 // Une fenêtre sans remise à zéro (pas de session en cours) n'a rien à tracer.
 const charted = computed(() => windows.value.filter((entry) => entry.pace))
 const current = computed(() => charted.value.find((entry) => entry.window.key === selected.value) ?? charted.value[0])
@@ -193,7 +198,9 @@ function onFocus() {
             <span class="skeleton h-10 rounded-lg" />
           </div>
         </div>
-        <p v-else-if="status.state !== 'checking'" class="text-sm text-muted">{{ t('usage.noLimits', { agent: agents[kind].name }) }}</p>
+        <div v-else-if="status.state !== 'checking'" class="flex flex-col gap-3">
+          <UsageQuotaCard v-for="label in [t('usage.session'), t('usage.weekly')]" :key="label" :label="label" :window="null" :pace="null" :note="emptyNote" />
+        </div>
 
         <section v-if="current?.pace" class="flex flex-col gap-3 pt-4">
           <div class="flex items-center gap-3">
