@@ -50,8 +50,8 @@ function run(toast: Toast) {
     >
       <!-- Ce contenu ne quitte le DOM qu'après l'animation de sortie : le message peut alors partir du store. -->
       <div class="ui-toast-body min-h-0 overflow-hidden border-stroke in-[li+li]:border-t" @vue:unmounted="store.remove(toast.id)">
-        <div class="flex items-start gap-3 p-3 ps-3.5">
-          <component :is="KINDS[toast.kind].icon" class="mt-1 size-4 shrink-0" :class="KINDS[toast.kind].tint" aria-hidden="true" />
+        <div class="flex items-start gap-2.5 p-3 ps-3.5">
+          <component :is="KINDS[toast.kind].icon" class="mt-1.25 size-3.5 shrink-0" :class="KINDS[toast.kind].tint" aria-hidden="true" />
           <div class="min-w-0 flex-1 py-0.5">
             <ToastTitle class="text-sm font-medium text-pretty wrap-break-word">{{ toast.title }}</ToastTitle>
             <ToastDescription
