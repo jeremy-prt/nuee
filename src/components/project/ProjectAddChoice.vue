@@ -2,7 +2,7 @@
 import { DialogDescription, DialogTitle, ListboxContent, ListboxFilter, ListboxGroup, ListboxGroupLabel, ListboxItem, ListboxRoot } from 'reka-ui'
 import { computed, onMounted, ref, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { paletteHead, paletteInput, paletteRow } from '@/components/project/palette'
+import { paletteHead, paletteInput, paletteRow } from '@/components/ui/palette'
 import { Folder, GitBranch, Github, Search } from '@/components/ui/icons'
 import { menuHint, menuLabel, menuTitle } from '@/components/ui/menuRow'
 import { normalize } from '@/utils/search'

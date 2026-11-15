@@ -65,7 +65,7 @@ pub struct ChatSummary {
     pub background: bool,
 }
 
-/// Texte d'une session archivée (messages et réponses, sans les outils) pour la recherche.
+/// Texte d'une session (messages et réponses, sans les outils) pour la recherche.
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
@@ -359,15 +359,17 @@ impl ChatService {
         Ok(at)
     }
 
-    pub fn archived_texts(&self) -> Result<Vec<ChatText>, AppError> {
+    /// `since` (ms) : seulement les sessions enregistrées depuis, la palette garde les autres.
+    pub fn texts(&self, since: Option<i64>) -> Result<Vec<ChatText>, AppError> {
         let db = self.lock();
         let mut query = db.prepare(
             "SELECT chats.id, group_concat(json_extract(item.value, '$.text'), char(10))
              FROM chats, json_each(chats.items) AS item
-             WHERE chats.archived = 1 AND json_extract(item.value, '$.kind') IN ('user', 'text')
+             WHERE chats.started = 1 AND chats.updated_at >= ?1
+               AND json_extract(item.value, '$.kind') IN ('user', 'text')
              GROUP BY chats.id",
         )?;
-        let texts = query.query_map([], |row| {
+        let texts = query.query_map([since.unwrap_or(0)], |row| {
             Ok(ChatText {
                 id: row.get(0)?,
                 text: row.get::<_, Option<String>>(1)?.unwrap_or_default(),
@@ -485,7 +487,7 @@ mod tests {
         let archived_at = chats.set_archived(&["c1".into()], true).expect("archive");
         assert!(archived_at.is_some());
         assert_eq!(
-            chats.archived_texts().expect("textes"),
+            chats.texts(None).expect("textes"),
             vec![ChatText {
                 id: "c1".into(),
                 text: "salut".into()

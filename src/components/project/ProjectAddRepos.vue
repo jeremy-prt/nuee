@@ -3,7 +3,7 @@ import { DialogDescription, DialogTitle, ListboxContent, ListboxFilter, ListboxI
 import { computed, onMounted, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ProjectGithubMenu from '@/components/project/ProjectGithubMenu.vue'
-import { paletteHead, paletteInput, paletteRow } from '@/components/project/palette'
+import { paletteHead, paletteInput, paletteRow } from '@/components/ui/palette'
 import { ArrowLeft, GitFork, Github, Lock, RefreshCw } from '@/components/ui/icons'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'

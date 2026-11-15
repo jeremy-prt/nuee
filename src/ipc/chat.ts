@@ -45,8 +45,8 @@ export function chatSetArchived(ids: string[], archived: boolean) {
   return invoke<number | null>('chat_set_archived', { ids, archived })
 }
 
-export function chatArchivedTexts() {
-  return invoke<ChatText[]>('chat_archived_texts')
+export function chatTexts(since: number | null = null) {
+  return invoke<ChatText[]>('chat_texts', { since })
 }
 
 // Rend le chemin du worktree du chat s'il a été gardé parce qu'il avait des changements non commités.

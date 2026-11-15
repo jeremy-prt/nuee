@@ -27,6 +27,7 @@ import { useAppearanceStore } from '@/stores/appearance'
 import { RAIL_COLLAPSED_WIDTH, useLayoutStore } from '@/stores/layout'
 import { useNavigationStore } from '@/stores/navigation'
 import { useProjectsStore } from '@/stores/projects'
+import { useSearchStore } from '@/stores/search'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { useUpdatesStore } from '@/stores/updates'
 
@@ -34,6 +35,7 @@ const { t } = useI18n()
 const shortcuts = useShortcutsStore()
 const layout = useLayoutStore()
 const navigation = useNavigationStore()
+const search = useSearchStore()
 const projects = useProjectsStore()
 const updates = useUpdatesStore()
 const pickProject = useAddProject()
@@ -84,11 +86,12 @@ async function addProject() {
   if (project) navigation.openChats(project.id)
 }
 
+// Rechercher n'est pas une vue : le bouton ouvre la palette.
 const pages = [
-  { view: 'new', icon: Plus, shortcut: 'newChat' },
-  { view: 'github', icon: Github },
-  { view: 'notes', icon: NotebookPen },
-  { view: 'search', icon: Search, shortcut: 'search' },
+  { id: 'new', icon: Plus, shortcut: 'newChat', open: () => navigation.go('new') },
+  { id: 'github', icon: Github, open: () => navigation.go('github') },
+  { id: 'notes', icon: NotebookPen, open: () => navigation.go('notes') },
+  { id: 'search', icon: Search, shortcut: 'search', open: () => (search.open = true) },
 ] as const
 
 
@@ -116,13 +119,13 @@ function footerLabel(id: (typeof footer)[number]['id']) {
         <nav class="flex shrink-0 flex-col gap-0.5 ps-2 pe-2 pt-1" :aria-label="t('rail.label')">
           <ShellRailItem
             v-for="item in pages"
-            :key="item.view"
+            :key="item.id"
             :icon="item.icon"
-            :label="t(`rail.${item.view}`)"
+            :label="t(`rail.${item.id}`)"
             :shortcut="'shortcut' in item ? shortcuts.label(item.shortcut) : undefined"
             expanded
-            :active="navigation.view === item.view"
-            @click="navigation.go(item.view)"
+            :active="navigation.view === item.id"
+            @click="item.open()"
           />
         </nav>
         <div class="ms-4 me-2.5 mt-3 mb-2 h-px shrink-0 bg-stroke" />
@@ -154,13 +157,13 @@ function footerLabel(id: (typeof footer)[number]['id']) {
         <template v-else>
           <ShellRailItem
             v-for="item in pages"
-            :key="item.view"
+            :key="item.id"
             :icon="item.icon"
-            :label="t(`rail.${item.view}`)"
+            :label="t(`rail.${item.id}`)"
             :shortcut="'shortcut' in item ? shortcuts.label(item.shortcut) : undefined"
             :expanded="expanded"
-            :active="navigation.view === item.view"
-            @click="navigation.go(item.view)"
+            :active="navigation.view === item.id"
+            @click="item.open()"
           />
 
           <div class="my-3 h-px shrink-0 bg-stroke" />

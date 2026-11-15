@@ -4,11 +4,12 @@ import { computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ProjectAddChoice, { type AddSource } from '@/components/project/ProjectAddChoice.vue'
 import ProjectAddRepos from '@/components/project/ProjectAddRepos.vue'
-import { paletteHead, paletteInput } from '@/components/project/palette'
+import { paletteHead, paletteInput } from '@/components/ui/palette'
 import { ArrowLeft, Folder } from '@/components/ui/icons'
 import { field, fieldText } from '@/components/ui/field'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
+import UiPaletteKeys from '@/components/ui/UiPaletteKeys.vue'
 import { isAppError } from '@/ipc/agent'
 import type { CloneProgress } from '@/ipc/bindings/CloneProgress'
 import { pickFolder } from '@/ipc/dialog'
@@ -254,14 +255,7 @@ const stage = computed(() => progress.value?.stage ?? t('addProject.starting'))
               </span>
               <span class="truncate">{{ stage }}<template v-if="progress?.percent != null"> {{ progress.percent }} %</template></span>
             </div>
-            <ul v-else class="flex min-w-0 flex-1 items-center gap-3.5 overflow-hidden text-xs whitespace-nowrap text-muted" aria-hidden="true">
-              <li v-for="item in keys" :key="item.id" class="flex items-center gap-1.5">
-                <kbd v-for="label in item.keys" :key="label" class="grid h-5 min-w-5 place-items-center rounded-sm bg-content/8 px-1 font-sans text-[11px] text-content/80">
-                  {{ label }}
-                </kbd>
-                {{ item.label }}
-              </li>
-            </ul>
+            <UiPaletteKeys v-else :items="keys" />
             <template v-if="step !== 'choose'">
               <UiButton v-if="cloning" size="sm" @click="stop">{{ t('addProject.stop') }}</UiButton>
               <UiButton type="submit" size="sm" variant="primary" :disabled="!source || !target || !ready" :loading="cloning">

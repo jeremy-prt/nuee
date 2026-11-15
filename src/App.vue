@@ -10,14 +10,13 @@ import ShellResizeHandle from '@/components/shell/ShellResizeHandle.vue'
 import ShellSidePanel from '@/components/shell/ShellSidePanel.vue'
 import ShellTitleBar from '@/components/shell/ShellTitleBar.vue'
 import ProjectAddDialog from '@/components/project/ProjectAddDialog.vue'
+import SearchPalette from '@/components/search/SearchPalette.vue'
 import UiConfirmDialog from '@/components/ui/UiConfirmDialog.vue'
 import UiToasts from '@/components/ui/UiToasts.vue'
 import UiTextMenu from '@/components/ui/UiTextMenu.vue'
 import AgentUpdateNotice from '@/components/agent/AgentUpdateNotice.vue'
-import { useDockClose } from '@/composables/useDockClose'
-import { useDockFocus } from '@/composables/useDockFocus'
 import { useColumnSlide } from '@/composables/useColumnSlide'
-import { useNewChat } from '@/composables/useNewChat'
+import { useShortcutActions } from '@/composables/useShortcutActions'
 import { appQuit, onQuitRequested } from '@/ipc/app'
 import { isTauriApp } from '@/ipc/system'
 import { useAgentsStore } from '@/stores/agents'
@@ -34,11 +33,9 @@ import { useShortcutsStore } from '@/stores/shortcuts'
 import { useSkillsStore } from '@/stores/skills'
 import { useUpdatesStore } from '@/stores/updates'
 import { useWorkspaceStore } from '@/stores/workspace'
-import type { ShortcutId } from '@/utils/shortcuts'
 import NewWorkspaceView from '@/views/NewWorkspaceView.vue'
 import NotesView from '@/views/NotesView.vue'
 import PlaceholderView from '@/views/PlaceholderView.vue'
-import SearchView from '@/views/SearchView.vue'
 import SettingsView from '@/views/SettingsView.vue'
 import WorkspaceView from '@/views/WorkspaceView.vue'
 
@@ -66,12 +63,10 @@ watch(
   },
 )
 const drag = useDragStore()
-const newTab = useNewChat('tab')
 const shortcuts = useShortcutsStore()
-const dockFocus = useDockFocus()
-const dockClose = useDockClose()
+const { actions, run } = useShortcutActions()
 // Branché dès le lancement : les onglets ouverts par l'agent arrivent même volet fermé.
-const browser = useBrowserStore()
+useBrowserStore()
 // Pose le style de fenêtre sur <html> dès le démarrage, pas seulement à l'ouverture des réglages.
 const appearance = useAppearanceStore()
 // Langue choisie et mise en veille : appliquées avant le premier rendu.
@@ -101,75 +96,13 @@ const previewedSkill = computed(() => (navigation.view === 'settings' ? skills.p
 // Une colonne borde le centre à gauche (barre latérale ou panneau).
 const columnAtStart = computed(() => !menu.value || layout.rail.expanded || layout.moving.rail)
 
-// Raccourcis propres aux chats : sans effet sur les autres vues.
-function inChatsOnly(action: () => void) {
-  return () => {
-    if (inChats.value) action()
-  }
-}
-
-// ⌘L : le volet Navigateur s'ouvre au besoin, son adresse est sélectionnée.
-function browserAddress() {
-  layout.showView('browser')
-  browser.focusAddress++
-}
-
-function togglePanel() {
-  if (navigation.hasPanel && !menu.value) layout.togglePanel()
-}
-
-// La liste des projets est en haut de la barre latérale : elle s'ouvre au besoin.
-function openSwitcher() {
-  if (!menu.value) return
-  layout.rail.expanded = true
-  if (navigation.view === 'settings') navigation.closeSettings()
-  navigation.switcherOpen = true
-}
-
-// La ligne de la session doit être visible pour s'éditer : le panneau ou la barre latérale s'ouvre au besoin.
-function renameActive() {
-  if (menu.value) layout.rail.expanded = true
-  else layout.panel.open = true
-  workspace.requestRename()
-}
-
-const actions: [ShortcutId, (event: KeyboardEvent) => void][] = [
-  ['toggleRail', layout.toggleRail],
-  // ⌘N mène à « Nouvel espace de travail », où l'on choisit projet et dossier ; ⌘T ouvre un onglet dans le projet affiché.
-  ['newChat', () => navigation.go('new')],
-  ['search', () => navigation.go('search')],
-  ['switchProject', openSwitcher],
-  ['previousProject', () => navigation.stepProject(-1)],
-  ['nextProject', () => navigation.stepProject(1)],
-  ['togglePanel', togglePanel],
-  ['toggleRightDock', inChatsOnly(() => dockFocus.toggleDock())],
-  ['toggleTerminal', inChatsOnly(() => dockFocus.toggleView('terminal'))],
-  ['toggleBrowser', inChatsOnly(() => dockFocus.toggleView('browser'))],
-  ['toggleExplorer', inChatsOnly(() => dockFocus.toggleView('files'))],
-  ['toggleChanges', inChatsOnly(() => dockFocus.toggleView('changes'))],
-  ['browserAddress', inChatsOnly(browserAddress)],
-  ['newTab', () => newTab()],
-  ['closeTab', (event) => inChatsOnly(() => dockClose.closeFrom(event.target) || workspace.closeActiveTab())()],
-  ['closeAllTabs', inChatsOnly(() => workspace.activeTabId && workspace.closeTabs(workspace.activeTabId, 'all'))],
-  ['reopenTab', inChatsOnly(workspace.reopenTab)],
-  ['nextTab', inChatsOnly(() => workspace.stepTab(1))],
-  ['previousTab', inChatsOnly(() => workspace.stepTab(-1))],
-  ['goToTab', (event) => inChatsOnly(() => workspace.goToTab(Number(event.code.slice(-1))))()],
-  ['split', inChatsOnly(workspace.split)],
-  ['rename', inChatsOnly(renameActive)],
-  ['settings', () => navigation.go('settings')],
-  ['zoomIn', () => appearance.stepZoom(1)],
-  ['zoomOut', () => appearance.stepZoom(-1)],
-  ['zoomReset', appearance.resetZoom],
-]
-
 function onKeydown(event: KeyboardEvent) {
   // CodeMirror a déjà traité la touche (⌘D, ⌘[, ⌘]) sans arrêter sa propagation.
   if (event.defaultPrevented && event.target instanceof Element && event.target.closest('.cm-editor')) return
-  const action = actions.find(([id]) => shortcuts.matches(event, id))
+  const action = actions.find(({ id }) => shortcuts.matches(event, id))
   if (!action) return
   event.preventDefault()
-  action[1](event)
+  run(action, event)
 }
 
 // Rust ne demande que si un agent travaille encore ; un second ⌘Q pendant la question est ignoré.
@@ -291,7 +224,6 @@ onUnmounted(() => {
               >
                 <ShellBackground />
                 <NewWorkspaceView v-if="navigation.view === 'new'" />
-                <SearchView v-else-if="navigation.view === 'search'" />
                 <SettingsView v-else-if="navigation.view === 'settings'" />
                 <NotesView v-else-if="navigation.view === 'notes'" />
                 <PlaceholderView v-else :view="navigation.view" />
@@ -350,6 +282,7 @@ onUnmounted(() => {
     </div>
     <UiConfirmDialog />
     <ProjectAddDialog />
+    <SearchPalette />
     <UiToasts />
     <UiTextMenu />
   </TooltipProvider>

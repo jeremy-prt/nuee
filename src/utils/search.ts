@@ -74,3 +74,34 @@ export function matchScore(query: string, fields: SearchField[]) {
   }
   return matched ? total : null
 }
+
+// Casse et accents seulement : la ponctuation reste, les positions d'un extrait se retrouvent.
+export const fold = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
+
+export interface Snippet {
+  before: string
+  match: string
+  after: string
+}
+
+// Extrait du message autour du premier mot trouvé ; chaque caractère est replié seul, les positions restent justes.
+export function snippet(raw: string, token: string, before = 30, after = 90): Snippet | null {
+  const chars = [...raw]
+  const folded = chars.map(fold)
+  const flat = folded.join('')
+  const at = flat.indexOf(token)
+  if (at === -1) return null
+  let start = 0
+  let offset = 0
+  while (start < chars.length && offset + folded[start]!.length <= at) offset += folded[start++]!.length
+  let end = start
+  let length = 0
+  while (end < chars.length && length < token.length) length += folded[end++]!.length
+  const clean = (text: string) => text.replace(/\s+/g, ' ')
+  const from = Math.max(0, start - before)
+  return {
+    before: (from ? '…' : '') + clean(chars.slice(from, start).join('')).trimStart(),
+    match: chars.slice(start, end).join(''),
+    after: clean(chars.slice(end, end + after).join('')),
+  }
+}

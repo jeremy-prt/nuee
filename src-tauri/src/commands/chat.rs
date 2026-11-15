@@ -101,8 +101,11 @@ pub async fn chat_set_archived(
 }
 
 #[tauri::command]
-pub async fn chat_archived_texts(chats: State<'_, ChatService>) -> Result<Vec<ChatText>, AppError> {
-    chats.archived_texts()
+pub async fn chat_texts(
+    since: Option<i64>,
+    chats: State<'_, ChatService>,
+) -> Result<Vec<ChatText>, AppError> {
+    chats.texts(since)
 }
 
 /// Renvoie le chemin du worktree du chat s'il a été gardé (changements non commités). Un worktree que

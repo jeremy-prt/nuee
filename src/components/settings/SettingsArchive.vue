@@ -10,16 +10,14 @@ import UiSelect from '@/components/ui/UiSelect.vue'
 import { useDebounced } from '@/composables/useDebounced'
 import { useProgressiveList } from '@/composables/useProgressiveList'
 import { useTabTitle } from '@/composables/useTabTitle'
-import { chatArchivedTexts } from '@/ipc/chat'
+import { chatTexts } from '@/ipc/chat'
 import { useDialogStore } from '@/stores/dialog'
 import { type ArchiveDays, type AutoArchiveDays, archiveDayChoices, autoArchiveChoices, useGeneralStore } from '@/stores/general'
 import { useProjectsStore } from '@/stores/projects'
 import { type Tab, useWorkspaceStore } from '@/stores/workspace'
-import { normalize } from '@/utils/search'
+import { fold, normalize, snippet } from '@/utils/search'
 
 const DAY = 86_400_000
-const SNIPPET_BEFORE = 30
-const SNIPPET_AFTER = 90
 
 const { t, locale } = useI18n()
 const workspace = useWorkspaceStore()
@@ -83,14 +81,12 @@ const tokens = computed(() => normalize(searched.value).split(' ').filter(Boolea
 // Texte de chaque archive, lu à la première recherche puis à chaque nouvelle archive.
 const texts = shallowRef(new Map<string, { raw: string; folded: string }>())
 
-const fold = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
-
 watch(
   () => tokens.value.length > 0 && workspace.archivedChats.some((tab) => !texts.value.has(tab.id)),
   async (missing) => {
     if (!missing) return
     try {
-      const loaded = await chatArchivedTexts()
+      const loaded = await chatTexts()
       texts.value = new Map(loaded.map(({ id, text }) => [id, { raw: text, folded: fold(text) }]))
       for (const tab of workspace.archivedChats) if (!texts.value.has(tab.id)) texts.value.set(tab.id, { raw: '', folded: '' })
     } catch (error) {
@@ -99,34 +95,6 @@ watch(
   },
   { immediate: true },
 )
-
-interface Snippet {
-  before: string
-  match: string
-  after: string
-}
-
-// Extrait du message autour du premier mot trouvé ; chaque caractère est replié seul, les positions restent justes.
-function snippet(raw: string, token: string): Snippet | null {
-  const chars = [...raw]
-  const folded = chars.map(fold)
-  const flat = folded.join('')
-  const at = flat.indexOf(token)
-  if (at === -1) return null
-  let start = 0
-  let offset = 0
-  while (start < chars.length && offset + folded[start]!.length <= at) offset += folded[start++]!.length
-  let end = start
-  let length = 0
-  while (end < chars.length && length < token.length) length += folded[end++]!.length
-  const clean = (text: string) => text.replace(/\s+/g, ' ')
-  const from = Math.max(0, start - SNIPPET_BEFORE)
-  return {
-    before: (from ? '…' : '') + clean(chars.slice(from, start).join('')).trimStart(),
-    match: chars.slice(start, end).join(''),
-    after: clean(chars.slice(end, end + SNIPPET_AFTER).join('')),
-  }
-}
 
 // L'extrait n'est calculé que pour les lignes affichées : le mot cherché suffit pour filtrer.
 const rows = computed(() => {

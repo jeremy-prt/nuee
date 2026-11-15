@@ -76,7 +76,7 @@ export function settingsDetailTitle(detail: SettingsDetail, t: (key: string) => 
   return t('settings.appearance.background')
 }
 
-export type View = 'new' | 'chats' | 'github' | 'notes' | 'search' | 'usage' | 'settings'
+export type View = 'new' | 'chats' | 'github' | 'notes' | 'usage' | 'settings'
 
 // Vues « liste à gauche, détail au centre » : elles affichent le second panneau.
 const PANEL_VIEWS: readonly View[] = ['chats', 'github']
