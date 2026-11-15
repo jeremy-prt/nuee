@@ -13,7 +13,7 @@ App desktop Tauri 2 + Vue pour piloter des agents de code, open source (MIT). In
 - Réglages › Skills et MCP écrit dans la config de Claude Code (`settings.json`, `skills/`) : tester les écritures avec `CLAUDE_CONFIG_DIR=<dossier leurre>`, jamais sur la vraie (la CLI n'y est pas connectée, les tours de chat échouent)
 - Simuler un outil absent : `NUEE_HIDE_BINARIES=gh,claude pnpm tauri dev` (debug seulement)
 - Devtools coupés même en dev (`"devtools": false` dans les deux confs de fenêtre, demande de Jérémy) : les remettre le temps d'un débogage, sans les committer
-- Taille et position de la fenêtre retenues dans `.window-state.json` (dossier de données de l'app) : le supprimer pour retester le premier lancement, où la fenêtre occupe l'écran
+- Taille et position de la fenêtre retenues dans `.window-state.json` (dossier de données de l'app) : le supprimer pour retester le premier lancement, où la fenêtre s'ouvre presque plein écran (comme ⌥⌘F)
 - `pnpm tauri build` : ne builde que pour l'OS courant. Les trois OS passent par le workflow `.github/workflows/build.yml`
 
 ## Textes d'interface

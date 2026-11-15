@@ -8,52 +8,16 @@ pub const SAVED_STATE: StateFlags = StateFlags::SIZE
     .union(StateFlags::POSITION)
     .union(StateFlags::MAXIMIZED);
 
-// Marge autour de la fenêtre au lancement, en points logiques.
-const MARGIN: f64 = 16.0;
-
-// Fenêtre remise comme à la dernière fermeture ; au premier lancement, elle occupe l'écran. Le plugin ne retrouve
+// Fenêtre remise comme à la dernière fermeture ; au premier lancement, presque plein écran. Le plugin ne retrouve
 // pas un écran débranché depuis : la position est alors laissée à l'OS.
 pub fn restore_or_fit(window: &WebviewWindow) -> tauri::Result<()> {
     let app = window.app_handle();
     if app.path().app_config_dir()?.join(app.filename()).exists() {
         window.restore_state(SAVED_STATE)?;
-        return window.show();
+    } else if let Some(target) = fill_target(window)? {
+        // Créée invisible : pas d'animation ni de saut de taille.
+        set_outer_frame(window, target, false)?;
     }
-    fit_to_screen(window)
-}
-
-// Occupe tout l'écran utile (hors barre des menus et Dock) moins la marge, puis affiche la fenêtre,
-// créée invisible pour éviter un saut de taille.
-fn fit_to_screen(window: &WebviewWindow) -> tauri::Result<()> {
-    let monitor = match window.current_monitor()? {
-        Some(monitor) => Some(monitor),
-        None => window.primary_monitor()?,
-    };
-
-    if let Some(monitor) = monitor {
-        let area = monitor.work_area();
-        let margin = (MARGIN * monitor.scale_factor()).round() as u32;
-        // set_size règle l'intérieur : on retire la barre de titre native (Windows, Linux).
-        let (outer, inner) = (window.outer_size()?, window.inner_size()?);
-        let decorations = PhysicalSize::new(
-            outer.width.saturating_sub(inner.width),
-            outer.height.saturating_sub(inner.height),
-        );
-
-        window.set_size(PhysicalSize::new(
-            area.size
-                .width
-                .saturating_sub(2 * margin + decorations.width),
-            area.size
-                .height
-                .saturating_sub(2 * margin + decorations.height),
-        ))?;
-        window.set_position(PhysicalPosition::new(
-            area.position.x + margin as i32,
-            area.position.y + margin as i32,
-        ))?;
-    }
-
     window.show()
 }
 
@@ -86,6 +50,18 @@ fn fill_frame(area: Frame, scale: f64) -> Frame {
     )
 }
 
+// Zone utile (hors barre des menus et Dock) de l'écran de la fenêtre.
+fn fill_target(window: &WebviewWindow) -> tauri::Result<Option<Frame>> {
+    let monitor = match window.current_monitor()? {
+        Some(monitor) => Some(monitor),
+        None => window.primary_monitor()?,
+    };
+    Ok(monitor.map(|monitor| {
+        let area = monitor.work_area();
+        fill_frame((area.position, area.size), monitor.scale_factor())
+    }))
+}
+
 fn same_frame(a: Frame, b: Frame, tolerance: u32) -> bool {
     a.0.x.abs_diff(b.0.x) <= tolerance
         && a.0.y.abs_diff(b.0.y) <= tolerance
@@ -98,24 +74,18 @@ pub fn toggle_fill(window: &WebviewWindow) -> tauri::Result<()> {
     if window.is_fullscreen()? {
         return Ok(());
     }
-    let monitor = match window.current_monitor()? {
-        Some(monitor) => monitor,
-        None => match window.primary_monitor()? {
-            Some(monitor) => monitor,
-            None => return Ok(()),
-        },
+    let Some(target) = fill_target(window)? else {
+        return Ok(());
     };
-    let area = monitor.work_area();
-    let scale = monitor.scale_factor();
-    let target = fill_frame((area.position, area.size), scale);
     let current = (window.outer_position()?, window.outer_size()?);
+    let tolerance = (2.0 * window.scale_factor()?).round() as u32;
 
     let mut before = BEFORE_FILL
         .lock()
         .unwrap_or_else(|error| error.into_inner());
-    if same_frame(current, target, (2.0 * scale).round() as u32) {
+    if same_frame(current, target, tolerance) {
         if let Some(frame) = before.take() {
-            set_outer_frame(window, frame)?;
+            set_outer_frame(window, frame, true)?;
         }
         return Ok(());
     }
@@ -123,10 +93,20 @@ pub fn toggle_fill(window: &WebviewWindow) -> tauri::Result<()> {
         window.unmaximize()?;
     }
     *before = Some(current);
-    set_outer_frame(window, target)
+    set_outer_frame(window, target, true)
 }
 
-fn set_outer_frame(window: &WebviewWindow, (position, size): Frame) -> tauri::Result<()> {
+fn set_outer_frame(
+    window: &WebviewWindow,
+    (position, size): Frame,
+    animate: bool,
+) -> tauri::Result<()> {
+    #[cfg(target_os = "macos")]
+    if animate && animate_frame(window, (position, size))? {
+        return Ok(());
+    }
+    #[cfg(not(target_os = "macos"))]
+    let _ = animate;
     // set_size règle l'intérieur : on retire la barre de titre native (Windows, Linux).
     let (outer, inner) = (window.outer_size()?, window.inner_size()?);
     window.set_size(PhysicalSize::new(
@@ -136,6 +116,59 @@ fn set_outer_frame(window: &WebviewWindow, (position, size): Frame) -> tauri::Re
             .saturating_sub(outer.height.saturating_sub(inner.height)),
     ))?;
     window.set_position(position)
+}
+
+// Par Core Animation, qui laisse le thread principal libre : WebKit redessine à chaque image, là où
+// setFrame:display:animate: le bloquait. Cocoa compte y depuis le bas de l'écran principal : le décalage se déduit
+// du cadre actuel, connu dans les deux repères.
+#[cfg(target_os = "macos")]
+fn animate_frame(window: &WebviewWindow, (position, size): Frame) -> tauri::Result<bool> {
+    use objc2::runtime::AnyObject;
+    use objc2::{class, msg_send};
+    use objc2_foundation::{NSPoint, NSRect, NSSize};
+
+    // Réglage « Réduire les animations » de macOS : changement d'un coup.
+    let reduce_motion: bool = unsafe {
+        let workspace: *mut AnyObject = msg_send![class!(NSWorkspace), sharedWorkspace];
+        msg_send![workspace, accessibilityDisplayShouldReduceMotion]
+    };
+    let Ok(ns_window) = window.ns_window() else {
+        return Ok(false);
+    };
+    if reduce_motion {
+        return Ok(false);
+    }
+    let native = unsafe { &*ns_window.cast::<objc2_app_kit::NSWindow>() };
+    let scale = window.scale_factor()?;
+    let current = native.frame();
+    let flip =
+        current.origin.y + current.size.height + f64::from(window.outer_position()?.y) / scale;
+    let (width, height) = (
+        f64::from(size.width) / scale,
+        f64::from(size.height) / scale,
+    );
+    let frame = NSRect::new(
+        NSPoint::new(
+            f64::from(position.x) / scale,
+            flip - f64::from(position.y) / scale - height,
+        ),
+        NSSize::new(width, height),
+    );
+    unsafe {
+        let context = class!(NSAnimationContext);
+        let _: () = msg_send![context, beginGrouping];
+        let current: *mut AnyObject = msg_send![context, currentContext];
+        let _: () = msg_send![current, setDuration: 0.3f64];
+        // Courbe « default » de Core Animation : départ franc, arrivée douce.
+        let name = objc2_foundation::NSString::from_str("default");
+        let timing: *mut AnyObject =
+            msg_send![class!(CAMediaTimingFunction), functionWithName: &*name];
+        let _: () = msg_send![current, setTimingFunction: timing];
+        let animator: *mut AnyObject = msg_send![native, animator];
+        let _: () = msg_send![animator, setFrame: frame, display: true];
+        let _: () = msg_send![context, endGrouping];
+    }
+    Ok(true)
 }
 
 // Flou du bureau derrière la fenêtre transparente : une NSVisualEffectView posée sous la webview, dont on règle le
