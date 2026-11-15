@@ -16,6 +16,7 @@ import type { UsageBucket } from '@/ipc/bindings/UsageBucket'
 import type { QuotaSample } from '@/ipc/bindings/QuotaSample'
 import { usageHistory, usageSamples } from '@/ipc/usage'
 import { useAgentsStore } from '@/stores/agents'
+import { useToastsStore } from '@/stores/toasts'
 import { agents, defaultAgent } from '@/utils/agents'
 import { byModel, columns, DAY, HOUR, MINUTE, pace, totals, type Window } from '@/utils/usage'
 
@@ -25,6 +26,7 @@ type Period = 'today' | 'week' | 'month' | 'quarter'
 const { t } = useI18n()
 const { formats, cost, money, rate } = useUsageFormat()
 const store = useAgentsStore()
+const toasts = useToastsStore()
 const kind = defaultAgent
 
 // Assez fin pour la fenêtre de 5 h, assez gros pour que 8 jours restent légers.
@@ -47,7 +49,7 @@ let loadedAt = 0
 
 // ===== Initialisation =====
 // Les quotas bougent à chaque message : relus à chaque ouverture de la page.
-if (store.status[kind].state === 'found') store.detect(kind, true)
+store.refreshUsage(kind)
 load()
 const clock = window.setInterval(() => (now.value = Date.now()), MINUTE)
 window.addEventListener('focus', onFocus)
@@ -62,27 +64,50 @@ const periods = computed(() => (Object.keys(PERIOD_DAYS) as Period[]).map((value
 
 // ===== Limites =====
 const status = computed(() => store.status[kind])
-const slowQuotas = useSlow(() => status.value.state === 'checking' && !status.value.usage)
 const slowPace = useSlow(() => paceBuckets.value === null)
 
+// Après un redémarrage sans relevé possible (429), les dernières valeurs gardées en base, si la fenêtre court encore.
+const lastKnown = computed(() => {
+  const latest = new Map<string, QuotaSample>()
+  for (const sample of samples.value) latest.set(sample.window, sample)
+  const alive = [...latest.values()].filter((sample) => sample.resetsAt === null || sample.resetsAt > now.value)
+  if (!alive.some((sample) => sample.window !== 'session')) return null
+  const quota = (sample?: QuotaSample) => (sample ? { used: sample.used, resetsAt: sample.resetsAt } : null)
+  return {
+    at: Math.max(...alive.map((sample) => sample.at)),
+    usage: {
+      session: quota(latest.get('session')),
+      weekly: quota(latest.get('weekly')),
+      models: alive.filter((sample) => sample.window.startsWith('weekly-')).map((sample) => ({ model: sample.window.slice(7), quota: quota(sample)! })),
+    },
+  }
+})
+const usage = computed(() => status.value.usage ?? lastKnown.value?.usage ?? null)
+const usageAt = computed(() => (status.value.usage ? status.value.usageAt : (lastKnown.value?.at ?? null)))
+const slowQuotas = useSlow(() => status.value.state === 'checking' && !usage.value)
+
 const windows = computed(() => {
-  const usage = status.value.usage
-  if (!usage) return []
+  if (!usage.value) return []
+  const known = usage.value
   const list: { label: string; window: Window }[] = []
-  if (usage.session) list.push({ label: t('usage.session'), window: { key: 'session', model: null, duration: 5 * HOUR, quota: usage.session } })
-  if (usage.weekly) list.push({ label: t('usage.weekly'), window: { key: 'weekly', model: null, duration: 7 * DAY, quota: usage.weekly } })
-  for (const { model, quota } of usage.models) {
+  if (known.session) list.push({ label: t('usage.session'), window: { key: 'session', model: null, duration: 5 * HOUR, quota: known.session } })
+  if (known.weekly) list.push({ label: t('usage.weekly'), window: { key: 'weekly', model: null, duration: 7 * DAY, quota: known.weekly } })
+  for (const { model, quota } of known.models) {
     list.push({ label: t('usage.weeklyModel', { model }), window: { key: `weekly-${model}`, model, duration: 7 * DAY, quota } })
   }
   return list.map((entry) => ({ ...entry, pace: pace(entry.window, now.value) }))
 })
-// Le compte de la CLI peut changer hors de Nuée (`claude auth login`) : il est rappelé en tête des limites.
+// Le compte de la CLI peut changer hors de Nuée (`claude auth login`) : il est rappelé en tête des limites, avec
+// l'heure du relevé, qui peut dater quand Claude refuse les relevés trop rapprochés.
 const account = computed(() => {
   const { email, plan } = status.value.account ?? {}
-  return [email, plan].filter(Boolean).join(' · ')
+  const parts = [email, plan]
+  if (usageAt.value) parts.push(t('usage.readAt', { time: formats.value.time.format(usageAt.value) }))
+  return parts.filter(Boolean).join(' · ')
 })
 // Pas de limites : connecté sans quotas communiqués (abonnement d'équipe, clé d'API) ou pas de compte du tout.
 const connected = computed(() => status.value.state === 'found' && !!status.value.account)
+const nextTime = computed(() => formats.value.time.format(store.nextUsageAt(kind) ?? now.value))
 
 // Une fenêtre sans remise à zéro (pas de session en cours) n'a rien à tracer.
 const charted = computed(() => windows.value.filter((entry) => entry.pace))
@@ -163,12 +188,17 @@ async function load() {
   await loadSpend()
 }
 
+// Coûts et tokens relus à chaque clic ; les limites au plus toutes les 5 minutes, sinon Claude les refuse un moment.
 async function refresh() {
+  const next = store.nextUsageAt(kind)
   refreshing.value = true
   try {
-    await Promise.all([store.detect(kind, true), load()])
+    await Promise.all([store.refreshUsage(kind), load()])
   } finally {
     refreshing.value = false
+  }
+  if (next && tab.value === 'limits') {
+    toasts.push({ kind: 'info', title: t('usage.nextUpdate', { time: formats.value.time.format(next) }), body: '' })
   }
 }
 
@@ -211,7 +241,7 @@ function onFocus() {
             :pace="null"
             :note="connected ? t('usage.unpublished') : t('usage.signedOut', { agent: agents[kind].name })"
           />
-          <p class="text-sm text-muted">{{ connected ? t('usage.unpublishedHint', { agent: agents[kind].name }) : t('usage.signedOutHint') }}</p>
+          <p class="text-sm text-muted">{{ connected ? t('usage.unpublishedHint', { time: nextTime }) : t('usage.signedOutHint') }}</p>
         </div>
 
         <section v-if="current?.pace" class="flex flex-col gap-3 pt-4">

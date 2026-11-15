@@ -846,6 +846,7 @@ export default {
   usage: {
     title: 'Usage',
     refresh: 'Refresh',
+    nextUpdate: 'Next limits update at {time}',
     loading: 'Loading',
     tab: 'View',
     tabs: {
@@ -868,8 +869,9 @@ export default {
     resets: 'Resets {when}',
     resetsOn: 'Resets {when}',
     account: 'Signed in with {account}',
-    unpublished: 'Not shared',
-    unpublishedHint: 'This subscription does not share its limits with {agent}. They can be checked in the claude.ai settings.',
+    readAt: 'updated at {time}',
+    unpublished: 'Unavailable',
+    unpublishedHint: 'Limits unavailable for now. Next update at {time}.',
     signedOutHint: 'Sign in from Settings › Agents to see the limits.',
     signedOut: '{agent} not connected',
     error: 'The sessions on this computer could not be read.',

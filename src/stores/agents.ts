@@ -29,10 +29,12 @@ export interface AgentStatus extends Omit<Probed, 'path'> {
   state: 'checking' | 'found' | 'missing' | 'error'
   path: string | null
   updating: boolean
+  // Moment du dernier relevé de quotas réussi : une sonde refusée (429) garde les valeurs d'avant.
+  usageAt: number | null
 }
 
 const STORAGE_KEY = 'nuee.agents.v1'
-const BLANK = { path: null, version: null, latest: null, account: null, usage: null }
+const BLANK = { path: null, version: null, latest: null, account: null, usage: null, usageAt: null }
 const MODES: PermissionMode[] = ['bypass', 'auto', 'ask']
 const kinds = Object.keys(agents) as AgentKind[]
 
@@ -103,8 +105,11 @@ export const useAgentsStore = defineStore('agents', () => {
     try {
       const probed = await agentProbe(kind, settings[kind].path)
       if (runs[kind] !== run) return
-      Object.assign(current, probed, { state: 'found' })
+      // Claude refuse les relevés trop rapprochés (429) : la CLI rend alors des quotas vides, pas une erreur.
+      const kept = !probed.usage && current.account?.email === probed.account?.email ? current.usage : null
+      Object.assign(current, probed, { state: 'found', usage: probed.usage ?? kept })
       if (probed.usage) {
+        current.usageAt = Date.now()
         remember('session', probed.usage.session)
         remember('weekly', probed.usage.weekly)
         for (const { model, quota } of probed.usage.models) remember(`weekly-${model}`, quota)
@@ -219,6 +224,7 @@ export const useAgentsStore = defineStore('agents', () => {
     const [only, ...others] = usage.models
     if (model && only && !others.length) usage.models = [{ ...only, quota: model }]
     current.usage = usage
+    current.usageAt = Date.now()
     remember('session', session)
     remember('weekly', weekly)
     if (model && only && !others.length) remember(`weekly-${only.model}`, model)
@@ -251,6 +257,17 @@ export const useAgentsStore = defineStore('agents', () => {
       if (status[kind].state === 'found' && Date.now() - (probedAt[kind] ?? 0) > REPROBE) detect(kind, true)
     }
   })
+
+  // Quotas relus au plus toutes les 5 minutes : Claude bloque les relevés trop rapprochés (429), comme sa CLI.
+  const USAGE_EVERY = 5 * 60 * 1000
+  // Prochain relevé de quotas permis ; null : il peut partir tout de suite.
+  function nextUsageAt(kind: AgentKind) {
+    const next = (probedAt[kind] ?? 0) + USAGE_EVERY
+    return next > Date.now() ? next : null
+  }
+  function refreshUsage(kind: AgentKind) {
+    if (status[kind].state === 'found' && !nextUsageAt(kind)) return detect(kind, true)
+  }
 
   // Nouvelle recherche demandée par un clic : le message dit si l'agent est là.
   async function refresh(kind: AgentKind) {
@@ -287,5 +304,5 @@ export const useAgentsStore = defineStore('agents', () => {
     // Stockage indisponible : rien à effacer.
   }
 
-  return { settings, status, notice, detect, refresh, update, confirm, track, setPath, chatDefaults, reset, login, loginError, signIn, sendLoginCode, openLoginPage, cancelSignIn }
+  return { settings, status, notice, detect, refresh, refreshUsage, nextUsageAt, update, confirm, track, setPath, chatDefaults, reset, login, loginError, signIn, sendLoginCode, openLoginPage, cancelSignIn }
 })

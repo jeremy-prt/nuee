@@ -848,6 +848,7 @@ export default {
   usage: {
     title: 'Utilisation',
     refresh: 'Actualiser',
+    nextUpdate: 'Prochaine actualisation des limites à {time}',
     loading: 'Chargement',
     tab: 'Vue',
     tabs: {
@@ -870,8 +871,9 @@ export default {
     resets: 'Remise à zéro {when}',
     resetsOn: 'Remise à zéro {when}',
     account: 'Connecté avec {account}',
-    unpublished: 'Non communiquée',
-    unpublishedHint: 'Cet abonnement ne communique pas ses limites à {agent}. Elles se consultent dans les réglages de claude.ai.',
+    readAt: 'mis à jour à {time}',
+    unpublished: 'Indisponible',
+    unpublishedHint: 'Limites indisponibles pour l\'instant. Prochaine actualisation à {time}.',
     signedOutHint: 'La connexion se fait dans Réglages › Agents.',
     signedOut: '{agent} non connecté',
     error: 'Les sessions de cet ordinateur sont illisibles.',

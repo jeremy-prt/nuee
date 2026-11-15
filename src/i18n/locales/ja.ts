@@ -848,6 +848,7 @@ export default {
   usage: {
     title: '使用状況',
     refresh: '更新',
+    nextUpdate: '上限の次回更新 {time}',
     loading: '読み込み中',
     tab: '表示',
     tabs: {
@@ -870,8 +871,9 @@ export default {
     resets: '{when}にリセット',
     resetsOn: '{when}にリセット',
     account: '{account} で接続中',
-    unpublished: '非公開',
-    unpublishedHint: 'このサブスクリプションは {agent} に上限を伝えません。claude.ai の設定で確認できます。',
+    readAt: '{time} に更新',
+    unpublished: '取得不可',
+    unpublishedHint: '現在上限を取得できません。次回更新 {time}。',
     signedOutHint: '設定 › エージェント から接続します。',
     signedOut: '{agent} 未接続',
     error: 'このコンピュータのセッションを読み取れませんでした。',

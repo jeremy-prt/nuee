@@ -139,6 +139,7 @@ pub struct QuotaSample {
 
 /// Relevés gardés un mois : la plus longue fenêtre dure une semaine.
 const SAMPLES_KEPT: i64 = 30 * 24 * 3_600_000;
+const SAMPLE_REPEAT: i64 = 30 * 60_000;
 
 /// Historique de consommation lu dans les transcripts de Claude Code (`<config>/projects/**/*.jsonl`).
 pub struct UsageService {
@@ -173,7 +174,8 @@ impl UsageService {
         })
     }
 
-    /// Un relevé identique au précédent de la même fenêtre n'apprend rien : il n'est pas gardé.
+    /// Un relevé identique au précédent de la même fenêtre n'apprend rien, sauf l'heure : il est gardé toutes les
+    /// 30 minutes, pour que la page dise de quand date la valeur affichée.
     pub fn record(&self, sample: &QuotaSample) -> Result<(), AppError> {
         if !(0.0..=1.0).contains(&sample.used)
             || sample.window.is_empty()
@@ -182,14 +184,16 @@ impl UsageService {
             return Err(AppError::InvalidInput("relevé de quota invalide".into()));
         }
         let db = self.db.lock().unwrap_or_else(|poison| poison.into_inner());
-        let last: Option<f64> = db
+        let last: Option<(f64, i64)> = db
             .query_row(
-                "SELECT used FROM quota_samples WHERE window = ?1 ORDER BY at DESC LIMIT 1",
+                "SELECT used, at FROM quota_samples WHERE window = ?1 ORDER BY at DESC LIMIT 1",
                 params![sample.window],
-                |row| row.get(0),
+                |row| Ok((row.get(0)?, row.get(1)?)),
             )
             .ok();
-        if last.is_some_and(|used| (used - sample.used).abs() < 0.001) {
+        if last.is_some_and(|(used, at)| {
+            (used - sample.used).abs() < 0.001 && sample.at - at < SAMPLE_REPEAT
+        }) {
             return Ok(());
         }
         db.execute(

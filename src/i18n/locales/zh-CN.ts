@@ -848,6 +848,7 @@ export default {
   usage: {
     title: '用量',
     refresh: '刷新',
+    nextUpdate: '限额下次更新于 {time}',
     loading: '加载中',
     tab: '视图',
     tabs: {
@@ -870,8 +871,9 @@ export default {
     resets: '{when}重置',
     resetsOn: '{when}重置',
     account: '已通过 {account} 连接',
-    unpublished: '未提供',
-    unpublishedHint: '此订阅不会向 {agent} 提供其限额，可在 claude.ai 的设置中查看。',
+    readAt: '更新于 {time}',
+    unpublished: '不可用',
+    unpublishedHint: '暂时无法获取限额。下次更新于 {time}。',
     signedOutHint: '在 设置 › 智能体 中连接。',
     signedOut: '{agent} 未连接',
     error: '无法读取这台电脑上的会话。',

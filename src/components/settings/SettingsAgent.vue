@@ -28,8 +28,8 @@ const { t, locale } = useI18n()
 const store = useAgentsStore()
 const catalog = useCatalogStore()
 catalog.load(props.kind)
-// Les quotas bougent à chaque message : relus à chaque ouverture de la page.
-if (store.status[props.kind].state === 'found') store.detect(props.kind, true)
+// Les quotas bougent à chaque message : relus à l'ouverture de la page, 5 minutes après le dernier relevé au plus tôt.
+store.refreshUsage(props.kind)
 
 const name = agents[props.kind].name
 const settings = computed(() => store.settings[props.kind])
