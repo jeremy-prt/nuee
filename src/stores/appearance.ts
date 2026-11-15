@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, reactive, ref, watch, watchEffect } from 'vue'
 import { isMacosApp, isTauriApp } from '@/ipc/system'
-import { windowSetBlur, windowSetTheme, windowSetZoom } from '@/ipc/window'
+import { windowSetBlur, windowSetDockIcon, windowSetTheme, windowSetZoom } from '@/ipc/window'
 import {
   type AccentId,
   accentColor,
@@ -269,6 +269,14 @@ export const useAppearanceStore = defineStore('appearance', () => {
     mode,
     (value) => {
       if (isTauriApp()) windowSetTheme(value === 'system' ? null : value).catch(() => {})
+    },
+    { immediate: true },
+  )
+
+  watch(
+    resolvedMode,
+    (value) => {
+      if (isMacosApp()) windowSetDockIcon(value === 'light').catch(() => {})
     },
     { immediate: true },
   )

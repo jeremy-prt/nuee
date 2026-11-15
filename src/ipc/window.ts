@@ -7,6 +7,11 @@ export function windowSetBlur(radius: number) {
   return invoke<void>('window_set_blur', { radius })
 }
 
+// macOS seulement : icône claire dans le Dock, ou celle du paquet (sombre) avec false.
+export function windowSetDockIcon(light: boolean) {
+  return invoke<void>('window_set_dock_icon', { light })
+}
+
 export function windowToggleFill() {
   return invoke<void>('window_toggle_fill')
 }

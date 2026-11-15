@@ -171,6 +171,24 @@ fn animate_frame(window: &WebviewWindow, (position, size): Frame) -> tauri::Resu
     Ok(true)
 }
 
+// Le style d'icônes « Par défaut » de macOS ne suit pas le thème : l'icône claire est posée à la main en mode clair.
+// Sans image, le Dock reprend celle du paquet (Assets.car, sombre) ; Finder et Launchpad la gardent toujours.
+#[cfg(target_os = "macos")]
+pub fn set_dock_icon(light: bool) {
+    use objc2::{AllocAnyThread, MainThreadMarker};
+    use objc2_app_kit::{NSApplication, NSImage};
+    use objc2_foundation::NSData;
+
+    static LIGHT: &[u8] = include_bytes!("../icons/dock-light.png");
+    let Some(mtm) = MainThreadMarker::new() else {
+        return;
+    };
+    let image = light
+        .then(|| NSImage::initWithData(NSImage::alloc(), &NSData::with_bytes(LIGHT)))
+        .flatten();
+    unsafe { NSApplication::sharedApplication(mtm).setApplicationIconImage(image.as_deref()) };
+}
+
 // Flou du bureau derrière la fenêtre transparente : une NSVisualEffectView posée sous la webview, dont on règle le
 // rayon (comme monocode). Le flou privé de WindowServer ne sert plus qu'en repli : avec lui, macOS redessinait sans
 // flou la zone sous le curseur, et le texte de l'app transparaissait un instant dans les menus en verre.

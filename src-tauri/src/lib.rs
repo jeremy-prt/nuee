@@ -244,6 +244,7 @@ pub fn run() {
             commands::tools::tools_update,
             commands::tools::tools_open_release,
             commands::window::window_set_blur,
+            commands::window::window_set_dock_icon,
             commands::window::window_toggle_fill,
             commands::worktree::worktree_support,
             commands::worktree::worktree_list,
