@@ -2,6 +2,7 @@ import { computed } from 'vue'
 import { useDockClose } from '@/composables/useDockClose'
 import { useDockFocus } from '@/composables/useDockFocus'
 import { useNewChat } from '@/composables/useNewChat'
+import { windowToggleFill } from '@/ipc/window'
 import { useAppearanceStore } from '@/stores/appearance'
 import { useBrowserStore } from '@/stores/browser'
 import { useLayoutStore } from '@/stores/layout'
@@ -84,6 +85,7 @@ export function useShortcutActions() {
     { id: 'zoomIn', run: () => appearance.stepZoom(1) },
     { id: 'zoomOut', run: () => appearance.stepZoom(-1) },
     { id: 'zoomReset', run: appearance.resetZoom },
+    { id: 'fillScreen', run: () => void windowToggleFill().catch(() => {}) },
   ]
 
   function run(action: ShortcutAction, event?: KeyboardEvent) {

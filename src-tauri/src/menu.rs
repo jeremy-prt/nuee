@@ -2,6 +2,7 @@ use tauri::menu::{AboutMetadata, Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::{AppHandle, Runtime};
 
 pub const QUIT: &str = "quit";
+pub const FILL: &str = "fill";
 
 // Menu macOS par défaut de Tauri, sans « Fermer la fenêtre » : son ⌘W doit atteindre la webview pour fermer un onglet.
 // « Quitter » est un élément à nous : le natif quitterait sans laisser demander si un agent travaille.
@@ -64,6 +65,8 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
                 &[
                     &PredefinedMenuItem::minimize(app, None)?,
                     &PredefinedMenuItem::maximize(app, None)?,
+                    // Sans raccourci affiché : celui de Réglages › Raccourcis clavier peut changer.
+                    &MenuItem::with_id(app, FILL, "Fill Screen", true, None::<&str>)?,
                 ],
             )?,
         ],

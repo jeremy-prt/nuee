@@ -8,3 +8,8 @@ pub fn window_set_blur(window: WebviewWindow, radius: u8) {
     #[cfg(not(target_os = "macos"))]
     let _ = (window, radius);
 }
+
+#[tauri::command]
+pub fn window_toggle_fill(window: WebviewWindow) -> Result<(), String> {
+    crate::window::toggle_fill(&window).map_err(|error| error.to_string())
+}

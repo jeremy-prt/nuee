@@ -1491,6 +1491,7 @@ export default {
         zoomIn: 'Aumentar a interface',
         zoomOut: 'Diminuir a interface',
         zoomReset: 'Redefinir o tamanho da interface',
+        fillScreen: "Preencher a tela",
       },
     },
     general: {

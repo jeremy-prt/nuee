@@ -1491,6 +1491,7 @@ export default {
         zoomIn: 'インターフェースを拡大',
         zoomOut: 'インターフェースを縮小',
         zoomReset: 'インターフェースのサイズをリセット',
+        fillScreen: "画面いっぱいに広げる",
       },
     },
     general: {

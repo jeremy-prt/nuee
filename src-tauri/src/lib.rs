@@ -31,6 +31,10 @@ pub fn run() {
     let builder = builder.menu(menu::build).on_menu_event(|app, event| {
         if event.id() == menu::QUIT {
             commands::app::request_quit(app);
+        } else if event.id() == menu::FILL
+            && let Some(main) = app.get_webview_window("main")
+        {
+            let _ = window::toggle_fill(&main);
         }
     });
 
@@ -236,6 +240,7 @@ pub fn run() {
             commands::terminal::terminal_close_chat,
             commands::operator::operator_reply,
             commands::window::window_set_blur,
+            commands::window::window_toggle_fill,
             commands::worktree::worktree_support,
             commands::worktree::worktree_list,
             commands::worktree::worktree_branches,

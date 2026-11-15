@@ -1489,6 +1489,7 @@ export default {
         zoomIn: 'Make the interface bigger',
         zoomOut: 'Make the interface smaller',
         zoomReset: 'Reset the interface size',
+        fillScreen: "Fill the screen",
       },
     },
     general: {

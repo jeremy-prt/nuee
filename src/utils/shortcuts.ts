@@ -77,6 +77,8 @@ export const defaultShortcuts = {
   zoomIn: { group: 'interface', key: '=', shift: 'any', also: ['+'], codes: ['NumpadAdd'], label: '+' },
   zoomOut: { group: 'interface', key: '-', shift: 'any', codes: ['NumpadSubtract'], label: '−' },
   zoomReset: { group: 'interface', key: '0', shift: 'any', codes: ['Digit0', 'Numpad0'] },
+  // ⌃⌘F est le plein écran de macOS, qui perd la transparence.
+  fillScreen: { group: 'interface', key: 'f', alt: true },
 } satisfies Record<keyof Labels['items'], Shortcut>
 
 export type ShortcutId = keyof typeof defaultShortcuts

@@ -1,3 +1,5 @@
+use std::sync::Mutex;
+
 use tauri::{Manager, PhysicalPosition, PhysicalSize, WebviewWindow};
 use tauri_plugin_window_state::{AppHandleExt, StateFlags, WindowExt};
 
@@ -53,6 +55,87 @@ fn fit_to_screen(window: &WebviewWindow) -> tauri::Result<()> {
     }
 
     window.show()
+}
+
+// « Presque plein écran » : petite marge sur un portable ; sur un grand écran, le plafond laisse une marge bien plus
+// large pour ne pas étirer l'app. En points logiques.
+const FILL_MARGIN: f64 = 24.0;
+const FILL_MAX: (f64, f64) = (1800.0, 1200.0);
+
+// Cadre d'avant le remplissage, rendu à la frappe suivante.
+static BEFORE_FILL: Mutex<Option<Frame>> = Mutex::new(None);
+
+type Frame = (PhysicalPosition<i32>, PhysicalSize<u32>);
+
+// Cadre extérieur centré dans la zone utile `area` (pixels physiques).
+fn fill_frame(area: Frame, scale: f64) -> Frame {
+    let (origin, size) = area;
+    let fit = |available: u32, max: f64| {
+        let margin = (FILL_MARGIN * scale).round() as u32;
+        available
+            .saturating_sub(2 * margin)
+            .min((max * scale).round() as u32)
+    };
+    let (width, height) = (fit(size.width, FILL_MAX.0), fit(size.height, FILL_MAX.1));
+    (
+        PhysicalPosition::new(
+            origin.x + ((size.width - width) / 2) as i32,
+            origin.y + ((size.height - height) / 2) as i32,
+        ),
+        PhysicalSize::new(width, height),
+    )
+}
+
+fn same_frame(a: Frame, b: Frame, tolerance: u32) -> bool {
+    a.0.x.abs_diff(b.0.x) <= tolerance
+        && a.0.y.abs_diff(b.0.y) <= tolerance
+        && a.1.width.abs_diff(b.1.width) <= tolerance
+        && a.1.height.abs_diff(b.1.height) <= tolerance
+}
+
+// Garde la transparence, que le plein écran de macOS perd. Une fenêtre déjà remplie reprend son cadre d'avant.
+pub fn toggle_fill(window: &WebviewWindow) -> tauri::Result<()> {
+    if window.is_fullscreen()? {
+        return Ok(());
+    }
+    let monitor = match window.current_monitor()? {
+        Some(monitor) => monitor,
+        None => match window.primary_monitor()? {
+            Some(monitor) => monitor,
+            None => return Ok(()),
+        },
+    };
+    let area = monitor.work_area();
+    let scale = monitor.scale_factor();
+    let target = fill_frame((area.position, area.size), scale);
+    let current = (window.outer_position()?, window.outer_size()?);
+
+    let mut before = BEFORE_FILL
+        .lock()
+        .unwrap_or_else(|error| error.into_inner());
+    if same_frame(current, target, (2.0 * scale).round() as u32) {
+        if let Some(frame) = before.take() {
+            set_outer_frame(window, frame)?;
+        }
+        return Ok(());
+    }
+    if window.is_maximized()? {
+        window.unmaximize()?;
+    }
+    *before = Some(current);
+    set_outer_frame(window, target)
+}
+
+fn set_outer_frame(window: &WebviewWindow, (position, size): Frame) -> tauri::Result<()> {
+    // set_size règle l'intérieur : on retire la barre de titre native (Windows, Linux).
+    let (outer, inner) = (window.outer_size()?, window.inner_size()?);
+    window.set_size(PhysicalSize::new(
+        size.width
+            .saturating_sub(outer.width.saturating_sub(inner.width)),
+        size.height
+            .saturating_sub(outer.height.saturating_sub(inner.height)),
+    ))?;
+    window.set_position(position)
 }
 
 // Flou du bureau derrière la fenêtre transparente : une NSVisualEffectView posée sous la webview, dont on règle le
@@ -255,5 +338,51 @@ mod backdrop {
         // Wry garde la vue de contenu et sa WKWebView : on ajoute une sœur dessous, sans rien remplacer.
         content.addSubview_positioned_relativeTo(&view, NSWindowOrderingMode::Below, None);
         true
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn frame(x: i32, y: i32, width: u32, height: u32) -> Frame {
+        (
+            PhysicalPosition::new(x, y),
+            PhysicalSize::new(width, height),
+        )
+    }
+
+    #[test]
+    fn fill_keeps_a_small_margin_on_a_laptop() {
+        // MacBook Air 13 pouces, Retina, barre des menus de 33 points et Dock masqué.
+        let area = frame(0, 66, 2940, 1846);
+        assert_eq!(fill_frame(area, 2.0), frame(48, 114, 2844, 1750));
+    }
+
+    #[test]
+    fn fill_caps_the_window_on_a_large_screen() {
+        // Écran 27 pouces en 2560 x 1440 points, Dock en bas.
+        let area = frame(0, 25, 2560, 1340);
+        assert_eq!(fill_frame(area, 1.0), frame(380, 95, 1800, 1200));
+    }
+
+    #[test]
+    fn fill_follows_a_secondary_screen() {
+        let area = frame(-1920, -200, 1920, 1080);
+        assert_eq!(fill_frame(area, 1.0), frame(-1860, -176, 1800, 1032));
+    }
+
+    #[test]
+    fn same_frame_tolerates_rounding() {
+        assert!(same_frame(
+            frame(10, 10, 100, 100),
+            frame(11, 9, 102, 100),
+            2
+        ));
+        assert!(!same_frame(
+            frame(10, 10, 100, 100),
+            frame(10, 10, 104, 100),
+            2
+        ));
     }
 }

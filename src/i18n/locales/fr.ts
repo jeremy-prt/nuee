@@ -1491,6 +1491,7 @@ export default {
         zoomIn: 'Agrandir l\'interface',
         zoomOut: 'Réduire l\'interface',
         zoomReset: 'Rétablir la taille de l\'interface',
+        fillScreen: "Remplir l'écran",
       },
     },
     general: {

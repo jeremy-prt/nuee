@@ -7,6 +7,10 @@ export function windowSetBlur(radius: number) {
   return invoke<void>('window_set_blur', { radius })
 }
 
+export function windowToggleFill() {
+  return invoke<void>('window_toggle_fill')
+}
+
 // Zoom natif de la webview : tout l'intérieur grandit, mais pas les boutons de fenêtre macOS.
 export function windowSetZoom(factor: number) {
   return getCurrentWebview().setZoom(factor)

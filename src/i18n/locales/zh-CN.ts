@@ -1491,6 +1491,7 @@ export default {
         zoomIn: '放大界面',
         zoomOut: '缩小界面',
         zoomReset: '重置界面大小',
+        fillScreen: "填满屏幕",
       },
     },
     general: {
