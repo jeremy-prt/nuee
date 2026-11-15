@@ -1,0 +1,32 @@
+name: Compiler l'icône macOS
+
+# Lancement manuel, seulement quand Nuee.icon change : actool n'existe qu'avec Xcode 26.
+# L'Assets.car obtenu se commite dans src-tauri/icons/, les builds n'ont plus besoin d'Xcode.
+on:
+  workflow_dispatch:
+
+jobs:
+  assets-car:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Choisir Xcode 26 ou plus
+        run: |
+          xcode=$(ls -d /Applications/Xcode_2[6-9]*.app 2>/dev/null | sort -V | tail -1)
+          [ -n "$xcode" ] && sudo xcode-select -s "$xcode"
+          xcrun actool --version
+      - name: Compiler
+        run: |
+          mkdir -p sortie
+          cp -R src-tauri/icons/Nuee.icon sortie/Icon.icon
+          xcrun actool sortie/Icon.icon --compile sortie \
+            --output-format human-readable-text --notices --warnings \
+            --output-partial-info-plist sortie/info.plist \
+            --app-icon Icon --include-all-app-icons \
+            --enable-on-demand-resources NO --development-region en \
+            --target-device mac --minimum-deployment-target 26.0 --platform macosx
+          assetutil --info sortie/Assets.car | head -40
+      - uses: actions/upload-artifact@v4
+        with:
+          name: assets-car
+          path: sortie/Assets.car
