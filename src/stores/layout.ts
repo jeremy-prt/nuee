@@ -120,7 +120,7 @@ function defaults(): LayoutState {
     panel: { open: true, width: SIZES.panel.defaultSize },
     right: { open: false, size: SIZES.right.defaultSize, width: null, editorWidth: null, tabs: [], active: null, aside: null, asideRatio: 0.5, preferOpen: true, sessions: {}, projects: {}, gitModes: {} },
     sessionSort: 'activity',
-    sessionGroups: 'none',
+    sessionGroups: 'status',
     collapsedGroups: ['status.idle'],
     sessionCompact: true,
     pinnedOrder: [],
@@ -162,7 +162,7 @@ function load(): LayoutState {
     delete (state.right as { split?: unknown }).split
     // Ancien interrupteur « Regrouper par date ».
     const groups = state.sessionGroups as unknown
-    state.sessionGroups = groups === true ? 'date' : groups === 'date' || groups === 'status' ? groups : 'none'
+    state.sessionGroups = groups === true ? 'date' : groups === 'date' || groups === 'status' || groups === 'none' ? groups : 'status'
     if (!Array.isArray(state.collapsedGroups)) state.collapsedGroups = defaults().collapsedGroups
     const legacy = state as LayoutState & { bottom?: unknown; views?: unknown }
     delete legacy.bottom

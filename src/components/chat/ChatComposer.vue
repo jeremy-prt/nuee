@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowUp, LoaderCircle, NotebookPen, Orchestra, ShieldAlertSolid, ShieldCheckSolid, ShieldQuestionSolid, Square, X } from '@/components/ui/icons'
+import { ArrowUp, LoaderCircle, LockCheckSolid, LockOpenSolid, LockSolid, NotebookPen, Orchestra, Square, X } from '@/components/ui/icons'
 import { type Component, computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatContextMeter from '@/components/chat/ChatContextMeter.vue'
@@ -83,9 +83,9 @@ const input = useTemplateRef('input')
 const focusInput = () => input.value?.focus()
 
 const modeLooks = {
-  bypass: { icon: ShieldAlertSolid, iconClass: 'text-warning' },
-  auto: { icon: ShieldCheckSolid, iconClass: 'text-info' },
-  ask: { icon: ShieldQuestionSolid, iconClass: 'text-content/80' },
+  bypass: { icon: LockOpenSolid, iconClass: 'text-warning' },
+  auto: { icon: LockCheckSolid, iconClass: 'text-info' },
+  ask: { icon: LockSolid, iconClass: 'text-content/80' },
 } satisfies Record<PermissionMode, { icon: Component; iconClass?: string }>
 const modeLook = computed(() => modeLooks[options.value.mode])
 const modeSections = computed<UiMenuSection[]>(() => [

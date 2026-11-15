@@ -65,7 +65,7 @@ const statusIcons = { approval: ShieldQuestion, question: MessageQuestion, done:
         <span class="-my-0.5 grid size-5 shrink-0 place-items-center">
           <kbd v-if="rank" class="grid size-4 shrink-0 place-items-center rounded-sm border border-content/25 bg-content/8 font-sans text-[10px] text-content/80 tabular-nums">{{ rank }}</kbd>
           <template v-else-if="status">
-            <ChatSpinner v-if="status === 'working'" :agent="tab.agent" class="size-3.5 text-xs" />
+            <ChatSpinner v-if="status === 'working'" :agent="tab.agent" inherit class="size-3.5 text-xs" :class="sessionStatusColor.working" />
             <component :is="statusIcons[status as keyof typeof statusIcons]" v-else class="size-3.5 shrink-0" :class="sessionStatusColor[status]" aria-hidden="true" />
             <span class="sr-only">{{ t(`chats.status.${status}`) }}</span>
           </template>

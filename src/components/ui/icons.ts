@@ -164,24 +164,27 @@ const panel = (x: number) =>
     ['rect', { x: '3', y: '4', width: '18', height: '16', rx: '3.5', stroke: 'currentColor', strokeWidth: '1.5', key: '0' }],
     ['path', { d: `M${x} 4V20`, stroke: 'currentColor', strokeWidth: '1.5', key: '1' }],
   ] as Glyph
-// Boucliers pleins des modes d'autorisation (demande de Jérémy) : Hugeicons gratuit n'a pas de version pleine. Le symbole
-// est tracé dans la couleur du fond de l'app, comme découpé dans le bouclier.
-const SHIELD = 'M12 2.5 4.5 5.4v6.1c0 4.6 3.1 8.4 7.5 10 4.4-1.6 7.5-5.4 7.5-10V5.4Z'
+// Cadenas pleins des modes d'autorisation (demande de Jérémy) : Hugeicons gratuit n'a pas de version pleine. Le symbole
+// est tracé dans la couleur du fond de l'app, comme découpé dans le corps du cadenas.
 const cut = { stroke: 'var(--color-canvas)', strokeWidth: '1.9', strokeLinecap: 'round', strokeLinejoin: 'round', fill: 'none' }
-const solidShield = (...marks: Glyph) =>
-  [['path', { d: SHIELD, fill: 'currentColor', stroke: 'currentColor', strokeWidth: '1.5', strokeLinejoin: 'round', key: 's' }], ...marks] as Glyph
+const shackle = { stroke: 'currentColor', strokeWidth: '2', strokeLinecap: 'round', fill: 'none' }
+const solidLock = (shackleD: string, ...marks: Glyph) =>
+  [
+    ['path', { d: shackleD, ...shackle, key: 'h' }],
+    ['rect', { x: '4.5', y: '10', width: '15', height: '11.5', rx: '3', fill: 'currentColor', key: 'b' }],
+    ...marks,
+  ] as Glyph
 // Sans `strokeWidth` : HugeiconsIcon le recopierait sur chaque élément avec `stroke="currentColor"`, et le symbole découpé
-// disparaîtrait dans le bouclier.
+// disparaîtrait dans le cadenas.
 const solid = (glyph: Glyph): FunctionalComponent => (_, { attrs }) => h(HugeiconsIcon, { icon: glyph, ...attrs })
-const ShieldAlertSolidGlyph = solidShield(
-  ['path', { d: 'M12 8v4.6', ...cut, key: 'a' }],
-  ['circle', { cx: '12', cy: '15.9', r: '1.15', fill: 'var(--color-canvas)', key: 'b' }],
-)
-const ShieldCheckSolidGlyph = solidShield(['path', { d: 'M8.9 12.1l2.2 2.2 4.1-4.3', ...cut, key: 'a' }])
-const ShieldQuestionSolidGlyph = solidShield(
-  ['path', { d: 'M10.1 9.7a2 2 0 1 1 2.9 1.8c-.6.3-1 .8-1 1.4v.3', ...cut, key: 'a' }],
-  ['circle', { cx: '12', cy: '15.9', r: '1.15', fill: 'var(--color-canvas)', key: 'b' }],
-)
+const CLOSED = 'M8 10.5V7.5a4 4 0 0 1 8 0v3'
+const keyhole: Glyph = [
+  ['circle', { cx: '12', cy: '14.6', r: '1.35', fill: 'var(--color-canvas)', key: 'k' }],
+  ['path', { d: 'M12 15.4v2.3', ...cut, key: 'l' }],
+]
+const LockSolidGlyph = solidLock(CLOSED, ...keyhole)
+const LockOpenSolidGlyph = solidLock('M8 10.5V7.5a4 4 0 0 1 7.7-1.5', ...keyhole)
+const LockCheckSolidGlyph = solidLock(CLOSED, ['path', { d: 'M9.2 15.6l1.9 1.9 3.7-3.8', ...cut, key: 'a' }])
 // Environnement, comme le « SquareMenu » de T3 Code : Hugeicons n'a pas de carré à lignes.
 const SquareMenuGlyph = [
   ['rect', { x: '3', y: '3', width: '18', height: '18', rx: '4', stroke: 'currentColor', strokeWidth: '1.5', key: '0' }],
@@ -329,9 +332,9 @@ export const Settings = icon(Settings01Icon)
 export const ShieldAlert = icon(ShieldAlertIcon)
 export const ShieldCheck = icon(SecurityCheckIcon)
 export const ShieldQuestion = icon(ShieldQuestionMarkIcon)
-export const ShieldAlertSolid = solid(ShieldAlertSolidGlyph)
-export const ShieldCheckSolid = solid(ShieldCheckSolidGlyph)
-export const ShieldQuestionSolid = solid(ShieldQuestionSolidGlyph)
+export const LockOpenSolid = solid(LockOpenSolidGlyph)
+export const LockCheckSolid = solid(LockCheckSolidGlyph)
+export const LockSolid = solid(LockSolidGlyph)
 export const SlidersHorizontal = icon(FilterHorizontalIcon)
 export const Smartphone = icon(SmartPhone01Icon)
 export const Sparkles = icon(SparklesIcon)

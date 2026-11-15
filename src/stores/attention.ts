@@ -9,7 +9,6 @@ import { useNavigationStore } from '@/stores/navigation'
 import { useProjectsStore } from '@/stores/projects'
 import { useToastsStore } from '@/stores/toasts'
 import { type Tab, useWorkspaceStore } from '@/stores/workspace'
-import { agents } from '@/utils/agents'
 import { playCue } from '@/utils/sounds'
 
 // done : réponse complète. failed : arrêt sur une erreur. approval : l'agent attend une autorisation. question : il
@@ -87,8 +86,8 @@ export const useAttentionStore = defineStore('attention', () => {
     unseen.set(chatId, kind)
     if (!tab || muted) return
     const { t } = i18nGlobal()
-    const title = tab.title ?? t('workspace.chatTitle')
-    const body = t(`attention.${kind}`, { agent: agents[tab.agent].name })
+    const title = t(`attention.${kind}`)
+    const body = tab.title ?? t('workspace.chatTitle')
     if (!focused.value && general.systemNotifications && isTauriApp()) {
       notificationSend(chatId, title, body).catch(() => {})
     }
