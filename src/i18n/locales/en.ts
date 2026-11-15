@@ -1881,7 +1881,7 @@ export default {
     check: 'Check for updates',
     upToDate: 'Nuée is up to date.',
     available: 'Version {version} is available.',
-    view: 'View the release',
+    install: 'Install and restart',
     failed: 'Couldn\'t check right now.',
   },
 }

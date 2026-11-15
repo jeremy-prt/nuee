@@ -158,7 +158,7 @@ src-tauri/src/
 - Capabilities ciblées sur `"main"`, jamais `"*"`. Pas de permission `fs:` ni `shell:` exposée au front : tout passe par nos commandes, qui canonisent les chemins sous la racine du workspace.
 - Pas de `v-html` sur une sortie d'agent : le markdown passe par `ChatMarkdown` (lexer marked rendu en nœuds Vue). Une XSS dans la webview donne accès aux commandes, donc au lancement de process.
 - La webview n'affiche un fichier local que via le protocole asset, limité à `$APPDATA/attachments/**` et `$APPDATA/backgrounds/**` (image de fond, lue aussi en `fetch` pour ses effets, d'où `asset:` dans `connect-src`) : ne pas élargir ce scope, copier l'image dedans.
-- CSP définie dans `tauri.conf.json` : ne pas la repasser à `null`, ne pas charger de CDN. Seul domaine externe autorisé : `api.github.com` (vérification des mises à jour).
+- CSP définie dans `tauri.conf.json` : ne pas la repasser à `null`, ne pas charger de CDN. Aucun domaine externe : les mises à jour passent par `tauri-plugin-updater`, côté Rust.
 - `opener` n'ouvre que les pages du dépôt listées dans la capability (releases, issues/new, LICENSE) : élargir ce scope au cas par cas.
 
 ## Divers

@@ -1,39 +1,44 @@
 # Nuée
 
-A desktop app (macOS, Windows, Linux) to run and orchestrate coding agents.
+A desktop app to run several Claude Code sessions side by side, each with its own project, browser, terminal and Git panel.
 
-Status: pre-alpha, nothing usable yet.
+![Nuée](.github/assets/screenshot.png)
 
-Stack: Tauri 2 (Rust) + Vue 3, Pinia, Tailwind 4, TypeScript, Vite.
+## Features
+
+- **Sessions in tabs**: one per task, grouped by project, restored on restart, optionally in their own Git worktree.
+- **Side panels**: a real browser Claude can drive, a terminal, a file explorer and a Git panel (diff, commit, push, pull).
+- **Orchestration**: Claude can start, read and message other sessions to split a job into parallel tasks.
+- **Dev servers**: start the commands from `.claude/launch.json` and stop leftover processes in one click.
+- **Usage and notes**: rate limits, cost and tokens at a glance, plus Markdown notes you can hand back to Claude.
+
+## Download
+
+Get the latest version from [Releases](https://github.com/jeremy-prt/nuee/releases/latest).
+
+- **macOS**: the app is not signed by Apple. On first launch, right-click the app and choose **Open**, or run `xattr -cr /Applications/Nuée.app`.
+- **Windows**: if SmartScreen blocks it, click **More info > Run anyway**.
+- **Linux**: AppImage or `.deb`.
 
 ## Requirements
 
-- Node 24 and pnpm 12
-- Rust stable (`rustup`), with `cargo` on your `PATH`
-- [Tauri system dependencies](https://v2.tauri.app/start/prerequisites/) (Xcode CLT on macOS, WebView2 + MSVC on Windows, webkit2gtk-4.1 on Linux)
+- [Claude Code](https://code.claude.com) installed and signed in (`claude` on your `PATH`).
+- Git.
+- Optional: [GitHub CLI](https://cli.github.com) (`gh`) to clone your repositories.
 
-## Run
+## Build from source
+
+Needs Node, pnpm, Rust and the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/).
 
 ```bash
 pnpm install
-pnpm tauri dev
+pnpm tauri dev     # run
+pnpm tauri build   # build for the current OS
 ```
-
-## Build
-
-```bash
-pnpm tauri build
-```
-
-This only builds for the current OS. For all three, run the **Build installers** workflow from the Actions tab: it runs the checks first, then uploads the installers as workflow artifacts. Pushing a `v*` tag does the same and also creates a draft release.
-
-Binaries are not signed yet: macOS and Windows will show a warning on first launch.
 
 ## Translations
 
-The UI follows the system language and falls back to English. Available: English, French, Spanish, Portuguese (Brazil), Japanese and Simplified Chinese.
-
-To add a language: copy `src/i18n/locales/en.ts` to `<code>.ts`, translate it, and register it in `src/i18n/index.ts`. `pnpm type-check` fails if a key is missing.
+English, French, Spanish, Portuguese (Brazil), Japanese and Simplified Chinese. To add one, copy `src/i18n/locales/en.ts` and register it in `src/i18n/index.ts`.
 
 ## License
 

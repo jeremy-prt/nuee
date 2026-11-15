@@ -28,11 +28,14 @@
     "security": {
       "assetProtocol": {
         "enable": true,
-        "scope": ["$APPDATA/attachments/**", "$APPDATA/backgrounds/**"]
+        "scope": [
+          "$APPDATA/attachments/**",
+          "$APPDATA/backgrounds/**"
+        ]
       },
       "csp": {
         "default-src": "'self'",
-        "connect-src": "ipc: http://ipc.localhost asset: http://asset.localhost https://api.github.com",
+        "connect-src": "ipc: http://ipc.localhost asset: http://asset.localhost",
         "img-src": "'self' asset: http://asset.localhost data: blob:",
         "style-src": "'self' 'unsafe-inline'"
       }
@@ -40,6 +43,7 @@
   },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "targets": "all",
     "icon": [
       "icons/32x32.png",
@@ -49,7 +53,30 @@
       "icons/icon.ico"
     ],
     "macOS": {
-      "signingIdentity": "-"
+      "signingIdentity": "-",
+      "dmg": {
+        "background": "./icons/dmg/background.png",
+        "windowSize": {
+          "width": 660,
+          "height": 420
+        },
+        "appPosition": {
+          "x": 170,
+          "y": 200
+        },
+        "applicationFolderPosition": {
+          "x": 490,
+          "y": 200
+        }
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDlBQTFDQkIxQTNDRUZDREUKUldUZS9NNmpzY3VobWlsbFVYRWh1R0hsSlRzaGllaUZiMGFEQ0JIdlBLM2Q0cUFEa2YvUnJFSW0K",
+      "endpoints": [
+        "https://github.com/jeremy-prt/nuee/releases/latest/download/latest.json"
+      ]
     }
   }
 }

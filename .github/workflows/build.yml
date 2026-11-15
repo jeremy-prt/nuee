@@ -69,10 +69,15 @@ jobs:
         uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Signe les paquets de mise à jour ; latest.json est joint à la release (uploadUpdaterJson, vrai par défaut).
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
           releaseName: 'Nuée ${{ github.ref_name }}'
           releaseDraft: true
+          # GitHub retire les accents des noms de fichiers : « Nuée » sur macOS donnerait « Nu.e_... ».
+          releaseAssetNamePattern: 'Nuee_[version]_[platform]_[arch][setup][ext]'
           args: ${{ matrix.args }}
 
       - name: Upload installers

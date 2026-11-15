@@ -1882,7 +1882,7 @@ export default {
     check: 'Procurar atualizações',
     upToDate: 'O Nuée está atualizado.',
     available: 'A versão {version} está disponível.',
-    view: 'Ver a versão',
+    install: 'Instalar e reiniciar',
     failed: 'Não foi possível verificar agora.',
   },
 } satisfies typeof en

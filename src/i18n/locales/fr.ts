@@ -1882,7 +1882,7 @@ export default {
     check: 'Rechercher une mise à jour',
     upToDate: 'Nuée est à jour.',
     available: 'La version {version} est disponible.',
-    view: 'Voir la version',
+    install: 'Installer et redémarrer',
     failed: 'Impossible de vérifier pour le moment.',
   },
 } satisfies typeof en

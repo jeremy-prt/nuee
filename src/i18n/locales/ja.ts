@@ -1882,7 +1882,7 @@ export default {
     check: 'アップデートを確認',
     upToDate: 'Nuée は最新です。',
     available: 'バージョン {version} が利用可能です。',
-    view: 'リリースを見る',
+    install: 'インストールして再起動',
     failed: '現在確認できません。',
   },
 } satisfies typeof en

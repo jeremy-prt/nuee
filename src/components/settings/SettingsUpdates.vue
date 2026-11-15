@@ -26,17 +26,18 @@ onMounted(async () => {
 const result = computed(() => {
   if (updates.status === 'upToDate') return { text: t('updates.upToDate'), tone: 'text-muted' }
   if (updates.status === 'failed') return { text: t('updates.failed'), tone: 'text-danger' }
-  if (updates.status === 'available' && updates.latest) {
+  if ((updates.status === 'available' || updates.status === 'installing') && updates.latest) {
     return { text: t('updates.available', { version: updates.latest.version }), tone: 'text-signal-text' }
   }
   return null
 })
 
-// Un seul bouton qui devient « Voir la version » : validé au clavier, il garde le focus après la recherche.
-const release = computed(() => (updates.status === 'available' ? updates.latest : null))
+// Un seul bouton qui devient « Installer et redémarrer » : validé au clavier, il garde le focus après la recherche.
+const installing = computed(() => updates.status === 'installing')
+const release = computed(() => (updates.status === 'available' || installing.value ? updates.latest : null))
 
-function checkOrView() {
-  if (release.value) openGithubPage(release.value.url)
+function checkOrInstall() {
+  if (release.value) updates.install()
   else updates.check()
 }
 </script>
@@ -61,8 +62,13 @@ function checkOrView() {
         <UiButton size="sm" @click="openGithubPage(RELEASES)">
           <ExternalLink class="size-3.5" aria-hidden="true" />{{ t('settings.general.updates.notes') }}
         </UiButton>
-        <UiButton size="sm" :variant="release ? 'primary' : 'secondary'" :loading="updates.status === 'checking'" @click="checkOrView()">
-          <ExternalLink v-if="release" class="size-3.5" aria-hidden="true" />{{ release ? t('updates.view') : t('updates.check') }}
+        <UiButton
+          size="sm"
+          :variant="release ? 'primary' : 'secondary'"
+          :loading="updates.status === 'checking' || installing"
+          @click="checkOrInstall()"
+        >
+          {{ release ? t('updates.install') : t('updates.check') }}
         </UiButton>
       </div>
     </SettingsRow>

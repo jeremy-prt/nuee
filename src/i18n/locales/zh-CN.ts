@@ -1882,7 +1882,7 @@ export default {
     check: '检查更新',
     upToDate: 'Nuée 已是最新版本。',
     available: '版本 {version} 已发布。',
-    view: '查看版本',
+    install: '安装并重启',
     failed: '暂时无法检查。',
   },
 } satisfies typeof en

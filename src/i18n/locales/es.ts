@@ -1882,7 +1882,7 @@ export default {
     check: 'Buscar actualizaciones',
     upToDate: 'Nuée está actualizada.',
     available: 'La versión {version} está disponible.',
-    view: 'Ver la versión',
+    install: 'Instalar y reiniciar',
     failed: 'No se pudo comprobar ahora.',
   },
 } satisfies typeof en

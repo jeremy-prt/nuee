@@ -38,6 +38,7 @@ auto-launch = "0.6.0"
 tauri-plugin-window-state = "2.5.0"
 portable-pty = "0.9.0"
 tauri-plugin-clipboard-manager = "2.5.0"
+tauri-plugin-process = "2.4.0"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2.190"
@@ -53,6 +54,9 @@ objc2-foundation = { version = "0.3.2", default-features = false, features = ["s
 objc2-web-kit = { version = "0.3.2", default-features = false, features = ["std", "block2", "objc2-app-kit", "WKContentWorld", "WKFrameInfo", "WKNavigation", "WKNavigationAction", "WKNavigationDelegate", "WKNavigationResponse", "WKPreferences", "WKScriptMessage", "WKScriptMessageHandler", "WKSnapshotConfiguration", "WKUIDelegate", "WKUserContentController", "WKUserScript", "WKWebView", "WKWebViewConfiguration", "WKWebsiteDataRecord", "WKWebsiteDataStore", "WKWindowFeatures"] }
 objc2-quartz-core = { version = "0.3.2", default-features = false, features = ["std", "objc2-core-graphics", "CALayer"] }
 objc2-user-notifications = { version = "0.3.2", default-features = false, features = ["std", "bitflags", "block2", "UNNotification", "UNNotificationContent", "UNNotificationRequest", "UNNotificationResponse", "UNNotificationSettings", "UNNotificationTrigger", "UNUserNotificationCenter"] }
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-updater = "2.14.1"
 
 # Le cache de compilation debug dépassait 30 Go : les infos de débogage complètes de chaque dépendance en font
 # l'essentiel. On garde les numéros de ligne pour notre code (traces lisibles), rien pour les dépendances.
