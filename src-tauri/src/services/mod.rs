@@ -16,4 +16,5 @@ pub mod project;
 pub mod server;
 pub mod skills;
 pub mod terminal;
+pub mod usage;
 pub mod worktree;

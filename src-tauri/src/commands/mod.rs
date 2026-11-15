@@ -18,5 +18,6 @@ pub mod server;
 pub mod skills;
 pub mod system;
 pub mod terminal;
+pub mod usage;
 pub mod window;
 pub mod worktree;

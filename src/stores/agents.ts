@@ -6,8 +6,10 @@ import type { AgentEvent } from '@/ipc/bindings/AgentEvent'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { AgentStatus as Probed } from '@/ipc/bindings/AgentStatus'
 import type { PermissionMode } from '@/ipc/bindings/PermissionMode'
+import type { Quota } from '@/ipc/bindings/Quota'
 import type { TurnOptions } from '@/ipc/bindings/TurnOptions'
 import type { TurnStatus } from '@/ipc/bindings/TurnStatus'
+import { usageRecord } from '@/ipc/usage'
 import { useCatalogStore } from '@/stores/catalog'
 import { useToastsStore } from '@/stores/toasts'
 import { agents } from '@/utils/agents'
@@ -33,6 +35,11 @@ const STORAGE_KEY = 'nuee.agents.v1'
 const BLANK = { path: null, version: null, latest: null, account: null, usage: null }
 const MODES: PermissionMode[] = ['bypass', 'auto', 'ask']
 const kinds = Object.keys(agents) as AgentKind[]
+
+// Chaque relevé de quota est gardé : la page Utilisation trace la vraie courbe de la fenêtre avec.
+function remember(window: string, quota: Quota | null) {
+  if (quota) usageRecord({ at: Date.now(), window, used: quota.used, resetsAt: quota.resetsAt }).catch(() => {})
+}
 
 export const DEFAULT_OPTIONS: TurnOptions = { mode: 'bypass', model: null, effort: null, fast: false }
 
@@ -97,6 +104,11 @@ export const useAgentsStore = defineStore('agents', () => {
       const probed = await agentProbe(kind, settings[kind].path)
       if (runs[kind] !== run) return
       Object.assign(current, probed, { state: 'found' })
+      if (probed.usage) {
+        remember('session', probed.usage.session)
+        remember('weekly', probed.usage.weekly)
+        for (const { model, quota } of probed.usage.models) remember(`weekly-${model}`, quota)
+      }
       useCatalogStore().reload(kind)
     } catch (error) {
       if (runs[kind] !== run) return
@@ -207,6 +219,9 @@ export const useAgentsStore = defineStore('agents', () => {
     const [only, ...others] = usage.models
     if (model && only && !others.length) usage.models = [{ ...only, quota: model }]
     current.usage = usage
+    remember('session', session)
+    remember('weekly', weekly)
+    if (model && only && !others.length) remember(`weekly-${only.model}`, model)
   }
 
   function setPath(kind: AgentKind, path: string | null) {

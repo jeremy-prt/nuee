@@ -56,6 +56,13 @@ impl AgentKind {
             Self::Claude => claude::config_dir().map(|dir| dir.join("settings.json")),
         }
     }
+
+    /// Transcripts des sessions, ceux du terminal compris : la page Utilisation y lit les tokens.
+    pub fn transcripts_dir(self) -> Option<PathBuf> {
+        match self {
+            Self::Claude => claude::config_dir().map(|dir| dir.join("projects")),
+        }
+    }
 }
 
 /// Ce qui définit le process d'un chat. Le même process sert tous les tours tant que ça ne change pas.

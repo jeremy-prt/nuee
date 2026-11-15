@@ -22,7 +22,12 @@ watch(
   { immediate: true },
 )
 
-const opacity = computed(() => (shown.value ? appearance.backgroundOpacity : 0))
+// Pages de lecture (texte, graphiques) : l'image reste mais s'efface derrière le contenu.
+const READING = ['notes', 'usage']
+const opacity = computed(() => {
+  if (!shown.value) return 0
+  return appearance.backgroundOpacity * (READING.includes(navigation.view) ? 0.3 : 1)
+})
 
 // Un changement de vue reste instantané : le fond n'y fait pas de fondu. Seuls les réglages d'Apparence l'animent.
 const animated = ref(true)

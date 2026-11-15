@@ -70,6 +70,7 @@ pub fn run() {
             }
             app.manage(chats);
             app.manage(services::note::NoteService::open(&data.join("nuee.db"))?);
+            app.manage(services::usage::UsageService::open(&data)?);
             let agents = AgentService::new(data.join("scratch"));
             let handle = app.handle().clone();
             agents.set_tools(std::sync::Arc::new(move |chat_id, cwd, message| {
@@ -140,6 +141,10 @@ pub fn run() {
             commands::note::note_save,
             commands::note::note_delete,
             commands::note::note_summarize,
+            commands::usage::usage_history,
+            commands::usage::usage_rate,
+            commands::usage::usage_record,
+            commands::usage::usage_samples,
             commands::chat::chat_list,
             commands::chat::chat_create,
             commands::chat::chat_content,

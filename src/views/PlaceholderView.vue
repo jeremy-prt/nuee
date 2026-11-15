@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import { Github, Usage } from '@/components/ui/icons'
+import { Github } from '@/components/ui/icons'
 import { useI18n } from 'vue-i18n'
 
 // Écrans pas encore construits : chacun aura sa propre vue quand il aura du contenu.
-const props = defineProps<{ view: 'github' | 'usage' }>()
+const props = defineProps<{ view: 'github' }>()
 
 // GitHub a sa liste dans le panneau latéral : le centre attend une sélection.
 const hasList = props.view === 'github'
 
 const { t } = useI18n()
-const icons = { github: Github, usage: Usage }
+const icons = { github: Github }
 </script>
 
 <template>
