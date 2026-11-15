@@ -89,10 +89,7 @@ const rows = computed<Row[]>(() => {
       done: item.done,
       error: item.error,
       update: () => tools.update(item.tool),
-      dismiss: () => {
-        tools.dismissed[item.tool] = item.latest
-        item.done = null
-      },
+      dismiss: () => tools.dismiss(item),
       open: () => tools.openRelease(item.tool),
     })
   }
