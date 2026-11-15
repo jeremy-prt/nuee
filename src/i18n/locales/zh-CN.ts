@@ -955,6 +955,8 @@ export default {
     stopped: '已停止 {n} 个进程 | 已停止 {n} 个进程',
     remaining: '{n} 个进程未响应 | {n} 个进程未响应',
     force: '强制停止',
+    remainingTitle: '未响应的进程',
+    remainingNote: '这些进程忽略正常停止信号。“强制停止”会立即结束它们，不留关闭时间。',
     forceConfirm: {
       title: '强制停止？',
       message: '剩余进程将立即停止，无法保存其工作。',

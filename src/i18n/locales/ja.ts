@@ -955,6 +955,8 @@ export default {
     stopped: '{n} 個のプロセスを停止 | {n} 個のプロセスを停止',
     remaining: '{n} 個のプロセスが応答しません | {n} 個のプロセスが応答しません',
     force: '強制停止',
+    remainingTitle: '応答しなかったプロセス',
+    remainingNote: '通常の停止を無視しています。「強制停止」は終了処理を待たずに即座に停止します。',
     forceConfirm: {
       title: '強制停止しますか？',
       message: '残りのプロセスは作業を保存できずに即座に停止します。',

@@ -4,4 +4,8 @@ export type CleanupReport = { stopped: number, freed: number,
 /**
  * Toujours là après le délai : « Forcer l'arrêt » les vise.
  */
-remaining: number, };
+remaining: number, 
+/**
+ * Programme et dossier de chacun d'eux, pour savoir ce qu'on force.
+ */
+left: Array<string>, };

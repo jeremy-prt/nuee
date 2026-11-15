@@ -953,6 +953,8 @@ export default {
     stopped: '{n} process stopped | {n} processes stopped',
     remaining: '{n} process did not respond | {n} processes did not respond',
     force: 'Force stop',
+    remainingTitle: 'Processes that did not respond',
+    remainingNote: 'They ignore a gentle stop. “Force stop” ends them immediately, without time to close.',
     forceConfirm: {
       title: 'Force stop?',
       message: 'The remaining processes are stopped immediately, without a chance to save their work.',

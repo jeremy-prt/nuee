@@ -69,6 +69,8 @@ pub struct CleanupReport {
     pub freed: u64,
     /// Toujours là après le délai : « Forcer l'arrêt » les vise.
     pub remaining: u32,
+    /// Programme et dossier de chacun d'eux, pour savoir ce qu'on force.
+    pub left: Vec<String>,
 }
 
 /// Process que Nuée suit en ce moment, par PID de tête.
@@ -115,11 +117,12 @@ struct Ledger {
     seen: HashSet<Stamp>,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 struct Target {
     pid: Pid,
     start: u64,
     memory: u64,
+    label: String,
 }
 
 pub struct CleanupService {
@@ -276,6 +279,7 @@ impl CleanupService {
                         pid: process.pid(),
                         start: process.start_time(),
                         memory: footprint(*pid, process),
+                        label: label(process),
                     })
                 })
                 .collect()
@@ -340,6 +344,7 @@ impl CleanupService {
             stopped: u32::try_from(gone.len()).unwrap_or(u32::MAX),
             freed: gone.iter().map(|target| target.memory).sum(),
             remaining: u32::try_from(alive.len()).unwrap_or(u32::MAX),
+            left: alive.iter().map(|target| target.label.clone()).collect(),
         };
         *lock(&self.survivors) = alive;
         report
@@ -567,6 +572,19 @@ fn describe(pid: u32, process: &Process, class: Class, head: bool) -> CleanupPro
         group: class.group,
         idle: class.idle,
         head,
+    }
+}
+
+/// « zsh · mon-projet » : le programme et le dossier où il tourne.
+fn label(process: &Process) -> String {
+    let name = process
+        .name()
+        .to_string_lossy()
+        .trim_start_matches('-')
+        .to_owned();
+    match process.cwd().and_then(Path::file_name) {
+        Some(folder) => format!("{name} · {}", folder.to_string_lossy()),
+        None => name,
     }
 }
 

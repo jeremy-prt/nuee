@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import ShellPageBack from '@/components/shell/ShellPageBack.vue'
 import { Info, RefreshCw } from '@/components/ui/icons'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiSegmented from '@/components/ui/UiSegmented.vue'
@@ -211,7 +212,10 @@ function onFocus() {
   <div class="h-full overflow-y-auto">
     <div class="page-in flex w-full flex-col gap-6 px-8 pt-6 pb-14">
       <header class="flex items-center gap-3">
-        <h2 class="min-w-0 flex-1 text-xl font-semibold">{{ t('usage.title') }}</h2>
+        <div class="-ms-1.5 flex min-w-0 flex-1 items-center gap-1.5">
+          <ShellPageBack />
+          <h2 class="min-w-0 text-xl font-semibold">{{ t('usage.title') }}</h2>
+        </div>
         <UiSegmented v-model="tab" :label="t('usage.tab')" :options="tabs" />
         <UiIconButton :label="t('usage.refresh')" :loading="refreshing" @click="refresh">
           <RefreshCw class="size-4" aria-hidden="true" />

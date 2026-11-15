@@ -80,6 +80,8 @@ export type View = 'new' | 'chats' | 'github' | 'notes' | 'usage' | 'cleanup' | 
 
 // Vues « liste à gauche, détail au centre » : elles affichent le second panneau.
 const PANEL_VIEWS: readonly View[] = ['chats', 'github']
+// Pages ouvertes depuis le bas de la barre latérale ou la palette : leur flèche Retour ramène là où l'on était.
+const PAGES: readonly View[] = ['usage', 'cleanup']
 
 const PROJECT_KEY = 'nuee.navigation.project'
 
@@ -112,6 +114,8 @@ export const useNavigationStore = defineStore('navigation', () => {
   const settingsProjectId = ref<string | null>(null)
   // Vue que le bouton Retour des réglages retrouve.
   const beforeSettings = ref<View>('new')
+  // Vue que la flèche Retour d'Utilisation et d'Activité retrouve.
+  const beforePage = ref<View>('new')
   // Réglage choisi dans la recherche : SettingsView le fait défiler jusqu'à lui et le met en avant.
   const revealed = ref<{ id: string; focus: boolean } | null>(null)
 
@@ -131,6 +135,9 @@ export const useNavigationStore = defineStore('navigation', () => {
     switcherOpen.value = false
     const update = () => {
       if (target === 'settings' && view.value !== 'settings') beforeSettings.value = view.value
+      if (PAGES.includes(target) && !PAGES.includes(view.value)) {
+        beforePage.value = view.value === 'settings' ? beforeSettings.value : view.value
+      }
       view.value = target
       if (PANEL_VIEWS.includes(target)) layout.panel.open = true
       if (target === 'settings') layout.rail.expanded = true
@@ -198,6 +205,10 @@ export const useNavigationStore = defineStore('navigation', () => {
     go(beforeSettings.value)
   }
 
+  function leavePage() {
+    go(beforePage.value)
+  }
+
   // `focus` : choisi au clavier, le focus passe sur le réglage trouvé.
   function revealSetting(section: SettingsSection, detail: SettingsDetail | null, id: string, focus: boolean) {
     if (detail && isProjectDetail(detail)) settingsProjectId.value = projectOfDetail(detail)
@@ -226,6 +237,7 @@ export const useNavigationStore = defineStore('navigation', () => {
     showSettingsSection,
     showSettingsDetail,
     closeSettings,
+    leavePage,
     revealed,
     revealSetting,
   }

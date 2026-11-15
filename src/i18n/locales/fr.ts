@@ -955,6 +955,8 @@ export default {
     stopped: '{n} processus arrêté | {n} processus arrêtés',
     remaining: "{n} processus n'a pas répondu | {n} processus n'ont pas répondu",
     force: "Forcer l'arrêt",
+    remainingTitle: "Processus qui n'ont pas répondu",
+    remainingNote: "Ils ignorent l'arrêt en douceur. « Forcer l'arrêt » les coupe sur-le-champ, sans leur laisser le temps de se fermer.",
     forceConfirm: {
       title: "Forcer l'arrêt ?",
       message: 'Les processus restants sont arrêtés sur-le-champ, sans pouvoir enregistrer leur travail.',

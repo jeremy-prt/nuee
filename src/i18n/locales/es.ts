@@ -955,6 +955,8 @@ export default {
     stopped: '{n} proceso detenido | {n} procesos detenidos',
     remaining: '{n} proceso no ha respondido | {n} procesos no han respondido',
     force: 'Forzar la parada',
+    remainingTitle: 'Procesos que no han respondido',
+    remainingNote: 'Ignoran la parada suave. «Forzar la parada» los detiene de inmediato, sin darles tiempo a cerrarse.',
     forceConfirm: {
       title: '¿Forzar la parada?',
       message: 'Los procesos restantes se detienen de inmediato, sin poder guardar su trabajo.',

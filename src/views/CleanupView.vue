@@ -4,8 +4,9 @@ import { useI18n } from 'vue-i18n'
 import CleanupGroupRow from '@/components/cleanup/CleanupGroupRow.vue'
 import CleanupInfo from '@/components/cleanup/CleanupInfo.vue'
 import CleanupRing from '@/components/cleanup/CleanupRing.vue'
+import ShellPageBack from '@/components/shell/ShellPageBack.vue'
 import UiButton from '@/components/ui/UiButton.vue'
-import { Bot, CircleAlert, CodeFolder, Ghost, Server } from '@/components/ui/icons'
+import { Bot, CircleAlert, CodeFolder, Ghost, Info, Server } from '@/components/ui/icons'
 import { useSlow } from '@/composables/useSlow'
 import { useTween } from '@/composables/useTween'
 import type { CleanupReport } from '@/ipc/bindings/CleanupReport'
@@ -180,7 +181,7 @@ async function force() {
   forcing.value = true
   try {
     const result = await cleanupForce()
-    report.value = { stopped: report.value.stopped + result.stopped, freed: report.value.freed + result.freed, remaining: result.remaining }
+    report.value = { stopped: report.value.stopped + result.stopped, freed: report.value.freed + result.freed, remaining: result.remaining, left: result.left }
   } catch (error) {
     toasts.push({ kind: 'error', title: t('cleanup.failed'), body: String(error) })
   } finally {
@@ -206,7 +207,10 @@ function finish(event: MouseEvent) {
   <div class="h-full overflow-y-auto">
     <div class="page-in flex min-h-full w-full flex-col px-8 pt-6 pb-14">
       <header>
-        <h2 class="text-xl font-semibold">{{ t('cleanup.title') }}</h2>
+        <div class="-ms-1.5 flex items-center gap-1.5">
+          <ShellPageBack />
+          <h2 class="text-xl font-semibold">{{ t('cleanup.title') }}</h2>
+        </div>
         <p class="mt-1.5 text-sm text-muted">{{ t('cleanup.subtitle') }}</p>
       </header>
 
@@ -278,10 +282,20 @@ function finish(event: MouseEvent) {
           <div v-if="phase === 'done' && report" class="result flex flex-col items-center gap-3">
             <p class="sr-only">{{ t('cleanup.freed', { size: bytes(report.freed) }) }}</p>
             <p class="text-sm text-muted">{{ t('cleanup.stopped', report.stopped) }}</p>
-            <p v-if="report.remaining" class="flex items-center gap-1.5 text-xs text-warning">
-              <CircleAlert class="size-3.5" aria-hidden="true" />
-              {{ t('cleanup.remaining', report.remaining) }}
-            </p>
+            <!-- Cliquable : lesquels, et ce que fait « Forcer l'arrêt », avant de le faire. -->
+            <CleanupInfo
+              v-if="report.remaining"
+              :title="t('cleanup.remainingTitle')"
+              :items="report.left"
+              :note="t('cleanup.remainingNote')"
+              trigger-class="flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-xs text-warning hover:bg-warning/10 focus-visible:outline-2 focus-visible:outline-ring aria-expanded:bg-warning/10"
+            >
+              <template #trigger>
+                <CircleAlert class="size-3.5" aria-hidden="true" />
+                {{ t('cleanup.remaining', report.remaining) }}
+                <Info class="size-3.5 opacity-70" aria-hidden="true" />
+              </template>
+            </CleanupInfo>
             <div class="flex gap-2">
               <UiButton v-if="report.remaining" variant="danger" :loading="forcing" @click="force">{{ t('cleanup.force') }}</UiButton>
               <UiButton ref="doneButton" @click="finish">{{ t('cleanup.done') }}</UiButton>
@@ -308,7 +322,7 @@ function finish(event: MouseEvent) {
               class="absolute bottom-8 left-1/2 -translate-x-1/2 opacity-0 transition-opacity duration-(--hover-duration) group-hover:opacity-100 focus-within:opacity-100 has-[[aria-expanded=true]]:opacity-100"
               :class="toStop ? 'text-on-signal' : 'text-muted'"
             >
-              <CleanupInfo :items="plan" :empty="t('cleanup.plan.pick')" />
+              <CleanupInfo :title="t('cleanup.plan.title')" :items="plan" :empty="t('cleanup.plan.pick')" />
             </span>
           </div>
         </div>
