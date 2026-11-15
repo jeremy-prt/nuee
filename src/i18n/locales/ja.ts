@@ -869,7 +869,10 @@ export default {
     noReset: '進行中のセッションなし',
     resets: '{when}にリセット',
     resetsOn: '{when}にリセット',
-    unpublished: 'このアカウントでは非公開',
+    account: '{account} で接続中',
+    unpublished: '非公開',
+    unpublishedHint: 'このサブスクリプションは {agent} に上限を伝えません。claude.ai の設定で確認できます。',
+    signedOutHint: '設定 › エージェント から接続します。',
     signedOut: '{agent} 未接続',
     error: 'このコンピュータのセッションを読み取れませんでした。',
     state: {

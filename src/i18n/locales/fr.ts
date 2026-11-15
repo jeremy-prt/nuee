@@ -869,7 +869,10 @@ export default {
     noReset: 'Aucune session en cours',
     resets: 'Remise à zéro {when}',
     resetsOn: 'Remise à zéro {when}',
-    unpublished: 'Non publiée par ce compte',
+    account: 'Connecté avec {account}',
+    unpublished: 'Non communiquée',
+    unpublishedHint: 'Cet abonnement ne communique pas ses limites à {agent}. Elles se consultent dans les réglages de claude.ai.',
+    signedOutHint: 'La connexion se fait dans Réglages › Agents.',
     signedOut: '{agent} non connecté',
     error: 'Les sessions de cet ordinateur sont illisibles.',
     state: {

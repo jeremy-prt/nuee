@@ -869,7 +869,10 @@ export default {
     noReset: 'Nenhuma sessão em andamento',
     resets: 'Reinicia {when}',
     resetsOn: 'Reinicia {when}',
-    unpublished: 'Não publicado por esta conta',
+    account: 'Conectado com {account}',
+    unpublished: 'Não informado',
+    unpublishedHint: 'Esta assinatura não informa seus limites ao {agent}. Eles podem ser consultados nas configurações do claude.ai.',
+    signedOutHint: 'A conexão é feita em Configurações › Agentes.',
     signedOut: '{agent} não conectado',
     error: 'Não foi possível ler as sessões deste computador.',
     state: {

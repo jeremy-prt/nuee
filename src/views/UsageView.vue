@@ -76,10 +76,13 @@ const windows = computed(() => {
   }
   return list.map((entry) => ({ ...entry, pace: pace(entry.window, now.value) }))
 })
-// Pas de limites : connecté sans quotas publiés (abonnement d'équipe, clé d'API) ou pas de compte du tout.
-const emptyNote = computed(() =>
-  status.value.state === 'found' && status.value.account ? t('usage.unpublished') : t('usage.signedOut', { agent: agents[kind].name }),
-)
+// Le compte de la CLI peut changer hors de Nuée (`claude auth login`) : il est rappelé en tête des limites.
+const account = computed(() => {
+  const { email, plan } = status.value.account ?? {}
+  return [email, plan].filter(Boolean).join(' · ')
+})
+// Pas de limites : connecté sans quotas communiqués (abonnement d'équipe, clé d'API) ou pas de compte du tout.
+const connected = computed(() => status.value.state === 'found' && !!status.value.account)
 
 // Une fenêtre sans remise à zéro (pas de session en cours) n'a rien à tracer.
 const charted = computed(() => windows.value.filter((entry) => entry.pace))
@@ -186,6 +189,7 @@ function onFocus() {
       </header>
 
       <template v-if="tab === 'limits'">
+        <p v-if="connected && account" class="-mt-2 text-xs text-muted">{{ t('usage.account', { account }) }}</p>
         <div v-if="windows.length" class="flex flex-col gap-3">
           <UsageQuotaCard v-for="entry in windows" :key="entry.window.key" :label="entry.label" :window="entry.window" :pace="entry.pace" />
         </div>
@@ -199,7 +203,15 @@ function onFocus() {
           </div>
         </div>
         <div v-else-if="status.state !== 'checking'" class="flex flex-col gap-3">
-          <UsageQuotaCard v-for="label in [t('usage.session'), t('usage.weekly')]" :key="label" :label="label" :window="null" :pace="null" :note="emptyNote" />
+          <UsageQuotaCard
+            v-for="label in [t('usage.session'), t('usage.weekly')]"
+            :key="label"
+            :label="label"
+            :window="null"
+            :pace="null"
+            :note="connected ? t('usage.unpublished') : t('usage.signedOut', { agent: agents[kind].name })"
+          />
+          <p class="text-sm text-muted">{{ connected ? t('usage.unpublishedHint', { agent: agents[kind].name }) : t('usage.signedOutHint') }}</p>
         </div>
 
         <section v-if="current?.pace" class="flex flex-col gap-3 pt-4">

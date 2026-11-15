@@ -867,7 +867,10 @@ export default {
     noReset: 'No session in progress',
     resets: 'Resets {when}',
     resetsOn: 'Resets {when}',
-    unpublished: 'Not published by this account',
+    account: 'Signed in with {account}',
+    unpublished: 'Not shared',
+    unpublishedHint: 'This subscription does not share its limits with {agent}. They can be checked in the claude.ai settings.',
+    signedOutHint: 'Sign in from Settings › Agents to see the limits.',
     signedOut: '{agent} not connected',
     error: 'The sessions on this computer could not be read.',
     state: {

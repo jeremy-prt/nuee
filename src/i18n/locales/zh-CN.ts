@@ -869,7 +869,10 @@ export default {
     noReset: '没有进行中的会话',
     resets: '{when}重置',
     resetsOn: '{when}重置',
-    unpublished: '此账号未公开',
+    account: '已通过 {account} 连接',
+    unpublished: '未提供',
+    unpublishedHint: '此订阅不会向 {agent} 提供其限额，可在 claude.ai 的设置中查看。',
+    signedOutHint: '在 设置 › 智能体 中连接。',
     signedOut: '{agent} 未连接',
     error: '无法读取这台电脑上的会话。',
     state: {
