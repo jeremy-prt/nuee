@@ -627,13 +627,17 @@ export default {
     deny: 'Refuser',
   },
   agentUpdate: {
-    heading: "Mise à jour disponible",
+    heading: "Mise à jour disponible | Mises à jour disponibles",
     done: "Mis à jour vers la {version}",
     retry: "Réessayer",
     close: "Fermer",
     title: "Nouvelle version de {agent}",
     action: "Mettre à jour",
     dismiss: "Masquer pour cette version",
+    all: "Tout mettre à jour",
+    release: "Voir la version",
+    managedBy: "Installé avec {manager}, qui fait la mise à jour",
+    manual: "Installé hors d'un gestionnaire reconnu, à mettre à jour à la main",
   },
   agentLogin: {
     browserTitle: 'Connexion par le navigateur',

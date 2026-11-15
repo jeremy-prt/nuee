@@ -627,13 +627,17 @@ export default {
     deny: '拒绝',
   },
   agentUpdate: {
-    heading: "有可用更新",
+    heading: "有可用更新 | 有可用更新",
     done: "已更新到 {version}",
     retry: "重试",
     close: "关闭",
     title: "{agent} 有新版本",
     action: "更新",
     dismiss: "此版本不再提示",
+    all: "全部更新",
+    release: "查看版本",
+    managedBy: "通过 {manager} 安装，由它负责更新",
+    manual: "未通过已知的包管理器安装，需手动更新",
   },
   agentLogin: {
     browserTitle: '通过浏览器登录',

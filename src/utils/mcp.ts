@@ -50,6 +50,8 @@ const brandColors: Record<string, string> = {
   intercom: '#1F8DED',
   jira: '#0052CC',
   linear: '#5E6AD2',
+  nodejs: '#5FA04E',
+  pnpm: '#F69220',
   stripe: '#635BFF',
   supabase: '#3FCF8E',
   todoist: '#E44332',

@@ -295,8 +295,8 @@ export const useAgentsStore = defineStore('agents', () => {
   // Carte de mise à jour : fermeture gardée en mémoire seulement (elle revient au lancement), dernier résultat affiché.
   const notice = reactive<{
     dismissed: Partial<Record<AgentKind, string>>
-    result: { kind: AgentKind; version: string | null; error: string | null } | null
-  }>({ dismissed: {}, result: null })
+    results: Partial<Record<AgentKind, { version: string | null; error: string | null }>>
+  }>({ dismissed: {}, results: {} })
   // Ancienne fermeture retenue d'un lancement à l'autre : effacée pour que la carte revienne.
   try {
     localStorage.removeItem('nuee.agentUpdates.dismissed.v1')

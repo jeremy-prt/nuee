@@ -625,13 +625,17 @@ export default {
     deny: 'Deny',
   },
   agentUpdate: {
-    heading: "Update available",
+    heading: "Update available | Updates available",
     done: "Updated to {version}",
     retry: "Retry",
     close: "Close",
     title: "New version of {agent}",
     action: "Update",
     dismiss: "Hide for this version",
+    all: "Update all",
+    release: "View release",
+    managedBy: "Installed with {manager}, which handles the update",
+    manual: "Installed outside a known package manager, update it by hand",
   },
   agentLogin: {
     browserTitle: 'Sign in with the browser',

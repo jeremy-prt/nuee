@@ -627,13 +627,17 @@ export default {
     deny: 'Rechazar',
   },
   agentUpdate: {
-    heading: "Actualización disponible",
+    heading: "Actualización disponible | Actualizaciones disponibles",
     done: "Actualizado a la {version}",
     retry: "Reintentar",
     close: "Cerrar",
     title: "Nueva versión de {agent}",
     action: "Actualizar",
     dismiss: "Ocultar para esta versión",
+    all: "Actualizar todo",
+    release: "Ver la versión",
+    managedBy: "Instalado con {manager}, que se encarga de la actualización",
+    manual: "Instalado fuera de un gestor conocido, actualizar a mano",
   },
   agentLogin: {
     browserTitle: 'Inicio de sesión con el navegador',

@@ -2,7 +2,7 @@ mod claude;
 mod login;
 mod mcp;
 pub(crate) mod process;
-mod release;
+pub(crate) mod release;
 mod session;
 pub mod settings;
 

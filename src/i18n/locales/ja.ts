@@ -627,13 +627,17 @@ export default {
     deny: '拒否',
   },
   agentUpdate: {
-    heading: "アップデートがあります",
+    heading: "アップデートがあります | アップデートがあります",
     done: "{version} にアップデートしました",
     retry: "再試行",
     close: "閉じる",
     title: "{agent} の新しいバージョン",
     action: "アップデート",
     dismiss: "このバージョンでは非表示",
+    all: "すべてアップデート",
+    release: "リリースを見る",
+    managedBy: "{manager} でインストール済み。アップデートは {manager} で行います",
+    manual: "既知のパッケージマネージャー以外でインストール済み。手動でアップデートします",
   },
   agentLogin: {
     browserTitle: 'ブラウザーでサインイン',
