@@ -3,25 +3,6 @@
     {
       "value": {
         "linear-gradient": [
-          "srgb:0.98431,0.98431,0.98824,1.00000",
-          "srgb:0.89412,0.89804,0.91373,1.00000"
-        ],
-        "orientation": {
-          "start": {
-            "x": 0.5,
-            "y": 0
-          },
-          "stop": {
-            "x": 0.5,
-            "y": 1
-          }
-        }
-      }
-    },
-    {
-      "appearance": "dark",
-      "value": {
-        "linear-gradient": [
           "srgb:0.14902,0.14902,0.16471,1.00000",
           "srgb:0.04314,0.04314,0.05098,1.00000"
         ],
@@ -47,25 +28,6 @@
           "glass": false,
           "fill-specializations": [
             {
-              "value": {
-                "linear-gradient": [
-                  "srgb:0.11373,0.11373,0.12549,1.00000",
-                  "srgb:0.22745,0.23137,0.25490,1.00000"
-                ],
-                "orientation": {
-                  "start": {
-                    "x": 0.5,
-                    "y": 0
-                  },
-                  "stop": {
-                    "x": 0.5,
-                    "y": 1
-                  }
-                }
-              }
-            },
-            {
-              "appearance": "dark",
               "value": {
                 "linear-gradient": [
                   "srgb:1.00000,1.00000,1.00000,1.00000",
@@ -100,25 +62,6 @@
             {
               "value": {
                 "linear-gradient": [
-                  "srgb:0.35294,0.36078,0.38824,1.00000",
-                  "srgb:0.41961,0.42745,0.45490,1.00000"
-                ],
-                "orientation": {
-                  "start": {
-                    "x": 0.5,
-                    "y": 0
-                  },
-                  "stop": {
-                    "x": 0.5,
-                    "y": 1
-                  }
-                }
-              }
-            },
-            {
-              "appearance": "dark",
-              "value": {
-                "linear-gradient": [
                   "srgb:0.70196,0.71373,0.74118,1.00000",
                   "srgb:0.57255,0.58431,0.61569,1.00000"
                 ],
@@ -149,25 +92,6 @@
           "glass": false,
           "fill-specializations": [
             {
-              "value": {
-                "linear-gradient": [
-                  "srgb:0.52941,0.53725,0.56471,1.00000",
-                  "srgb:0.58824,0.59608,0.62353,1.00000"
-                ],
-                "orientation": {
-                  "start": {
-                    "x": 0.5,
-                    "y": 0
-                  },
-                  "stop": {
-                    "x": 0.5,
-                    "y": 1
-                  }
-                }
-              }
-            },
-            {
-              "appearance": "dark",
               "value": {
                 "linear-gradient": [
                   "srgb:0.52941,0.54118,0.57255,1.00000",
