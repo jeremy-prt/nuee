@@ -30,7 +30,7 @@ const FILL = {
 </script>
 
 <template>
-  <div class="grid grid-cols-[13rem_minmax(0,1fr)] items-center gap-6 rounded-xl border border-stroke bg-content/3 px-5 py-4">
+  <div class="grid grid-cols-[13rem_minmax(0,1fr)] items-center gap-6">
     <span class="flex flex-col gap-1">
       <span class="text-[13px] font-medium">{{ label }}</span>
       <span class="flex items-baseline gap-1.5">

@@ -224,11 +224,11 @@ function onFocus() {
 
       <template v-if="tab === 'limits'">
         <p v-if="connected && account" class="-mt-2 text-xs text-muted">{{ t('usage.account', { account }) }}</p>
-        <div v-if="windows.length" class="flex flex-col gap-3">
+        <div v-if="windows.length" class="flex flex-col gap-6">
           <UsageQuotaCard v-for="entry in windows" :key="entry.window.key" :label="entry.label" :window="entry.window" :pace="entry.pace" />
         </div>
-        <div v-else-if="slowQuotas" class="flex flex-col gap-3" role="status" :aria-label="t('usage.loading')">
-          <div v-for="index in 3" :key="index" class="grid grid-cols-[13rem_minmax(0,1fr)] items-center gap-6 rounded-xl border border-stroke px-5 py-4">
+        <div v-else-if="slowQuotas" class="flex flex-col gap-6" role="status" :aria-label="t('usage.loading')">
+          <div v-for="index in 3" :key="index" class="grid grid-cols-[13rem_minmax(0,1fr)] items-center gap-6">
             <span class="flex flex-col gap-2.5">
               <span class="skeleton h-2.5 w-24 rounded-full" />
               <span class="skeleton h-7 w-20 rounded-md" />
@@ -236,7 +236,7 @@ function onFocus() {
             <span class="skeleton h-10 rounded-lg" />
           </div>
         </div>
-        <div v-else-if="status.state !== 'checking'" class="flex flex-col gap-3">
+        <div v-else-if="status.state !== 'checking'" class="flex flex-col gap-6">
           <UsageQuotaCard
             v-for="label in [t('usage.session'), t('usage.weekly')]"
             :key="label"
