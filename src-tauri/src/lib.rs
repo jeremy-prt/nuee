@@ -54,10 +54,20 @@ pub fn run() {
                 commands::app::request_quit(window.app_handle());
             }
         })
-        // Page rechargée : ses terminaux n'ont plus d'onglet pour les montrer ni les fermer.
-        .on_page_load(|webview, payload| {
-            if payload.event() == PageLoadEvent::Started {
-                webview.state::<TerminalService>().close_all();
+        .on_page_load(|webview, payload| match payload.event() {
+            // Page rechargée : ses terminaux n'ont plus d'onglet pour les montrer ni les fermer.
+            PageLoadEvent::Started => webview.state::<TerminalService>().close_all(),
+            // L'écran de démarrage d'index.html est peint : la fenêtre s'ouvre dessus.
+            PageLoadEvent::Finished => {
+                if let Some(window) = webview.app_handle().get_webview_window(webview.label()) {
+                    let _ = window.show();
+                    // Active d'emblée : une fenêtre inactive n'a pas son flou et WebKit y gèle l'animation du logo.
+                    let _ = window.set_focus();
+                    // Le logo ne s'anime qu'à partir d'ici (index.html, useBootSplash).
+                    let _ = window.eval(
+                        "document.documentElement.classList.add('boot-shown'); dispatchEvent(new Event('boot-shown'))",
+                    );
+                }
             }
         })
         .setup(|app| {

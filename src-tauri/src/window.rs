@@ -3,13 +3,14 @@ use std::sync::Mutex;
 use tauri::{Manager, PhysicalPosition, PhysicalSize, WebviewWindow};
 use tauri_plugin_window_state::{AppHandleExt, StateFlags, WindowExt};
 
-// Retenus d'une ouverture à l'autre. Pas VISIBLE : la fenêtre, créée invisible, s'affiche ici une fois placée.
+// Retenus d'une ouverture à l'autre. Pas VISIBLE : la fenêtre, créée invisible, s'affiche une fois la page chargée.
 pub const SAVED_STATE: StateFlags = StateFlags::SIZE
     .union(StateFlags::POSITION)
     .union(StateFlags::MAXIMIZED);
 
 // Fenêtre remise comme à la dernière fermeture ; au premier lancement, presque plein écran. Le plugin ne retrouve
-// pas un écran débranché depuis : la position est alors laissée à l'OS.
+// pas un écran débranché depuis : la position est alors laissée à l'OS. Elle reste invisible jusqu'au chargement de
+// la page, pour s'ouvrir sur l'écran de démarrage et non sur une webview vide.
 pub fn restore_or_fit(window: &WebviewWindow) -> tauri::Result<()> {
     let app = window.app_handle();
     if app.path().app_config_dir()?.join(app.filename()).exists() {
@@ -18,7 +19,7 @@ pub fn restore_or_fit(window: &WebviewWindow) -> tauri::Result<()> {
         // Créée invisible : pas d'animation ni de saut de taille.
         set_outer_frame(window, target, false)?;
     }
-    window.show()
+    Ok(())
 }
 
 // « Presque plein écran » : petite marge sur un portable ; sur un grand écran, le plafond laisse une marge bien plus

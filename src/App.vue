@@ -15,6 +15,7 @@ import UiConfirmDialog from '@/components/ui/UiConfirmDialog.vue'
 import UiToasts from '@/components/ui/UiToasts.vue'
 import UiTextMenu from '@/components/ui/UiTextMenu.vue'
 import AgentUpdateNotice from '@/components/agent/AgentUpdateNotice.vue'
+import { useBootSplash } from '@/composables/useBootSplash'
 import { useColumnSlide } from '@/composables/useColumnSlide'
 import { useShortcutActions } from '@/composables/useShortcutActions'
 import { appQuit, onQuitRequested } from '@/ipc/app'
@@ -80,6 +81,7 @@ useAttentionStore()
 useOperatorStore()
 // Cherche les agents installés dès le lancement, pas à l'ouverture des réglages.
 useAgentsStore()
+useBootSplash()
 
 const inChats = computed(() => navigation.view === 'chats')
 // Montées à la première visite puis gardées : revenir des réglages ne reconstruit pas chaque chat.

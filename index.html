@@ -4,8 +4,318 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Nuée</title>
+    <!-- En ligne pour être peint avant le bundle : Rust n'affiche la fenêtre qu'une fois la page chargée. -->
+    <style>
+      #boot-splash {
+        --lead-0: #ffffff;
+        --lead-1: #e9ebef;
+        --lead-2: #b9bcc4;
+        --mid-0: #b3b6bd;
+        --mid-1: #92959d;
+        --far-0: #878a92;
+        --far-1: #6a6d74;
+        --sheen: rgb(255 255 255 / 0.7);
+        position: fixed;
+        inset: 0;
+        z-index: 2147483647;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        /* Voile du thème (posé par main.ts), un peu assombri en mode sombre : plus foncé, l'app paraît s'éclaircir
+           d'un coup à l'arrivée. */
+        --boot-veil: color-mix(
+          in srgb,
+          var(--color-veil, hsl(240 0% 10%)) 80%,
+          black
+        );
+        background: var(--boot-veil);
+        will-change: opacity;
+        transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      html[data-mode="light"] #boot-splash {
+        --lead-0: #1d1d20;
+        --lead-1: #2b2c30;
+        --lead-2: #3a3b41;
+        --mid-0: #5a5c63;
+        --mid-1: #6b6d74;
+        --far-0: #878990;
+        --far-1: #96989f;
+        --sheen: rgb(255 255 255 / 0.35);
+        --boot-veil: var(--color-veil, hsl(240 5% 96%));
+      }
+      html.is-macos:not([data-window="opaque"]) #boot-splash {
+        background: color-mix(in srgb, var(--boot-veil) 90%, transparent);
+      }
+      /* Le verre laisse voir le bureau, pas l'app qui se monte dessous. Au départ, elle monte d'abord sous le voile et
+         le logo, qui ne s'effacent qu'ensuite : WebKit coupe le flou de ses éléments tant qu'elle n'est pas opaque, il
+         s'allumait d'un coup en fin de fondu, et montée d'un coup elle assombrissait l'écran (mesuré en vidéo). */
+      #boot-splash:not(.boot-out) + #app {
+        opacity: 0;
+      }
+      #boot-splash + #app {
+        transition: opacity 0.3s ease-in-out;
+      }
+      #boot-splash.boot-out,
+      #boot-splash.boot-out svg {
+        transition-delay: 0.3s;
+      }
+      #boot-splash svg {
+        width: 72px;
+        height: 72px;
+        overflow: visible;
+        transition:
+          transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+          opacity 0.3s ease-in-out;
+      }
+      #boot-splash.boot-out {
+        opacity: 0;
+        pointer-events: none;
+      }
+      /* Le logo part avant le voile : sinon il traîne en fantôme sur l'app déjà lisible. */
+      #boot-splash.boot-out svg {
+        opacity: 0;
+        transform: scale(1.12);
+      }
+      /* Figé jusqu'à l'affichage de la fenêtre (classe posée par Rust) : sinon l'éventail est déjà à moitié ouvert. */
+      html:not(.boot-shown) #boot-splash * {
+        animation-play-state: paused;
+      }
+      /* Aucun attribut style dans ce fichier : la CSP de l'app empaquetée les bloque (Tauri y ajoute les empreintes
+         des styles, ce qui annule 'unsafe-inline'), le logo sortait noir et figé. */
+      #boot-splash .lead-0 {
+        stop-color: var(--lead-0);
+      }
+      #boot-splash .lead-1 {
+        stop-color: var(--lead-1);
+      }
+      #boot-splash .lead-2 {
+        stop-color: var(--lead-2);
+      }
+      #boot-splash .mid-0 {
+        stop-color: var(--mid-0);
+      }
+      #boot-splash .mid-1 {
+        stop-color: var(--mid-1);
+      }
+      #boot-splash .far-0 {
+        stop-color: var(--far-0);
+      }
+      #boot-splash .far-1 {
+        stop-color: var(--far-1);
+      }
+      #boot-splash .sheen-mid {
+        stop-color: var(--sheen);
+      }
+      #boot-splash .sheen-edge {
+        stop-color: var(--sheen);
+        stop-opacity: 0;
+      }
+      #boot-splash .blade-far {
+        --fold: 40deg;
+        --delay: 0.28s;
+        --wave: 0.24s;
+      }
+      #boot-splash .blade-high {
+        --fold: 20deg;
+        --delay: 0.2s;
+        --wave: 0.12s;
+      }
+      #boot-splash .blade-low {
+        --fold: -20deg;
+        --delay: 0.12s;
+        --wave: 0s;
+      }
+      #boot-splash .lead,
+      #boot-splash .blade {
+        transform-box: view-box;
+        transform-origin: 300px 750px;
+      }
+      /* Les lames grises s'ouvrent une à une derrière la blanche, puis une vague les traverse de bas en haut avec un
+         reflet sur la blanche, tant que l'app charge. La blanche ne grandit pas : le montage de l'app tombe à ce
+         moment et la faisait sauter d'un coup. */
+      #boot-splash .lead {
+        animation: boot-kick 2s ease-in-out 0.8s infinite;
+      }
+      #boot-splash .blade {
+        animation:
+          boot-open 0.5s cubic-bezier(0.34, 1.5, 0.64, 1) var(--delay) both,
+          boot-wave 2s ease-in-out calc(0.8s + var(--wave)) infinite;
+      }
+      #boot-splash .sheen {
+        transform: translateX(-160px);
+        animation: boot-sheen 2s cubic-bezier(0.4, 0, 0.2, 1) 0.8s infinite;
+      }
+      /* Sortie : les grises se replient derrière la blanche pendant que tout s'efface. */
+      #boot-splash.boot-out .lead {
+        animation: none;
+      }
+      #boot-splash.boot-out .blade {
+        animation: boot-close 0.3s cubic-bezier(0.4, 0, 0.2, 1) 0.3s both;
+      }
+      #boot-splash.boot-out .sheen {
+        animation: none;
+        opacity: 0;
+      }
+      /* Aucune opacité : WebKit gèle les animations d'une fenêtre masquée, le logo y resterait invisible. */
+      @keyframes boot-open {
+        from {
+          transform: rotate(var(--fold));
+        }
+      }
+      @keyframes boot-close {
+        to {
+          transform: rotate(var(--fold));
+        }
+      }
+      @keyframes boot-kick {
+        0%,
+        30%,
+        100% {
+          transform: scale(1);
+        }
+        12% {
+          transform: scale(1.05);
+        }
+      }
+      @keyframes boot-wave {
+        0%,
+        45%,
+        100% {
+          transform: rotate(0);
+        }
+        20% {
+          transform: rotate(calc(var(--fold) * -0.2));
+        }
+      }
+      @keyframes boot-sheen {
+        from {
+          transform: translateX(-160px);
+        }
+        50%,
+        to {
+          transform: translateX(720px);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #boot-splash .lead,
+        #boot-splash .blade,
+        #boot-splash.boot-out .blade {
+          animation: none;
+        }
+        #boot-splash .sheen {
+          display: none;
+        }
+        #boot-splash,
+        #boot-splash + #app {
+          transition: opacity 0.2s ease-out;
+        }
+        #boot-splash svg {
+          transition: none;
+        }
+        #boot-splash.boot-out {
+          transition-delay: 0s;
+        }
+        #boot-splash.boot-out svg {
+          transform: none;
+        }
+      }
+    </style>
   </head>
   <body>
+    <div id="boot-splash" aria-hidden="true">
+      <!-- Calques de src-tauri/icons/Nuee.icon : le logo sans sa tuile. -->
+      <svg viewBox="252 249 549 549">
+        <defs>
+          <!-- Les lames grises s'arrêtent à distance de la blanche, sur son contour élargi. -->
+          <clipPath id="boot-gap">
+            <path
+              clip-rule="evenodd"
+              d="M0,0H1024V1024H0Z M335.26,782.79 L751.74,445.53 A48.00,48.00 0 0 0 758.84,378.02 A583.91,583.91 0 0 0 672.52,291.70 A48.00,48.00 0 0 0 605.01,298.80 L267.75,715.28 A48.00,48.00 0 0 0 335.26,782.79 Z"
+            />
+          </clipPath>
+          <clipPath id="boot-lead-shape">
+            <path
+              d="M325.19,770.36 L741.68,433.10 A32.00,32.00 0 0 0 746.41,388.09 A567.91,567.91 0 0 0 662.45,304.14 A32.00,32.00 0 0 0 617.45,308.87 L280.19,725.35 A32.00,32.00 0 0 0 325.19,770.36 Z"
+            />
+          </clipPath>
+          <linearGradient
+            id="boot-lead"
+            x1="0"
+            y1="262.8"
+            x2="0"
+            y2="777.5"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop offset="0" class="lead-0" />
+            <stop offset="0.45" class="lead-1" />
+            <stop offset="1" class="lead-2" />
+          </linearGradient>
+          <linearGradient
+            id="boot-mid"
+            x1="0"
+            y1="262.8"
+            x2="0"
+            y2="777.5"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop offset="0" class="mid-0" />
+            <stop offset="1" class="mid-1" />
+          </linearGradient>
+          <linearGradient
+            id="boot-far"
+            x1="0"
+            y1="262.8"
+            x2="0"
+            y2="777.5"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop offset="0" class="far-0" />
+            <stop offset="1" class="far-1" />
+          </linearGradient>
+          <linearGradient id="boot-sheen">
+            <stop offset="0" class="sheen-edge" />
+            <stop offset="0.5" class="sheen-mid" />
+            <stop offset="1" class="sheen-edge" />
+          </linearGradient>
+        </defs>
+        <g clip-path="url(#boot-gap)">
+          <path
+            class="blade blade-far"
+            d="M267.75,715.28 L396.41,351.97 A32.00,32.00 0 0 0 371.03,309.64 A440.81,440.81 0 0 0 299.34,304.72 A32.00,32.00 0 0 0 267.75,336.71 Z"
+            fill="url(#boot-far)"
+          />
+          <path
+            class="blade blade-high"
+            d="M297.92,678.03 L565.04,348.16 A32.00,32.00 0 0 0 555.87,300.14 A511.12,511.12 0 0 0 478.44,264.67 A32.00,32.00 0 0 0 437.42,284.09 Z"
+            fill="url(#boot-mid)"
+          />
+          <path
+            class="blade blade-low"
+            d="M372.51,752.63 L766.45,613.12 A32.00,32.00 0 0 0 785.87,572.11 A511.12,511.12 0 0 0 750.40,494.67 A32.00,32.00 0 0 0 702.38,485.50 Z"
+            fill="url(#boot-mid)"
+          />
+        </g>
+        <g class="lead">
+          <path
+            d="M325.19,770.36 L741.68,433.10 A32.00,32.00 0 0 0 746.41,388.09 A567.91,567.91 0 0 0 662.45,304.14 A32.00,32.00 0 0 0 617.45,308.87 L280.19,725.35 A32.00,32.00 0 0 0 325.19,770.36 Z"
+            fill="url(#boot-lead)"
+          />
+          <!-- Reflet qui remonte la lame : bande perpendiculaire, déplacée le long de son axe (45°). -->
+          <g clip-path="url(#boot-lead-shape)">
+            <g transform="rotate(-45 300 750)">
+              <rect
+                class="sheen"
+                x="240"
+                y="450"
+                width="120"
+                height="600"
+                fill="url(#boot-sheen)"
+              />
+            </g>
+          </g>
+        </g>
+      </svg>
+    </div>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

@@ -233,6 +233,15 @@ function load(): AppearanceState {
   }
 }
 
+// Lu avant le montage : l'écran de démarrage prend déjà le mode, le style de fenêtre et le voile enregistrés.
+export function bootAppearance() {
+  const state = load()
+  const mode: ResolvedMode = state.mode === 'system' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : state.mode
+  const window: WindowStyle = isMacosApp() ? state.windowStyle : 'opaque'
+  const { veil } = palette(state.theme, mode, LIGHTNESS[mode][state.glass[window].lightness])
+  return { mode, window, veil }
+}
+
 export const useAppearanceStore = defineStore('appearance', () => {
   const state = load()
   const mode = ref<ColorMode>(state.mode)

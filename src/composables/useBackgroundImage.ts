@@ -67,6 +67,17 @@ export function backgroundUrl(path: string, effect: BackgroundEffect, level: Eff
   return url
 }
 
+// Résolue une fois l'image du fond décodée, prête à s'afficher sans le fond d'attente ; jamais en échec.
+export function backgroundReady(path: string, effect: BackgroundEffect, level: EffectLevel) {
+  return backgroundUrl(path, effect, level, 'full')
+    .then((url) => {
+      const image = new Image()
+      image.src = url
+      return image.decode()
+    })
+    .catch(() => {})
+}
+
 function readyUrl(path: string, effect: BackgroundEffect, level: EffectLevel, size: BackgroundSize) {
   if (!(effect in pixelEffects)) return previewSrc(path)
   return done.get(`${path}|${effect}|${level}|${size}`) ?? null

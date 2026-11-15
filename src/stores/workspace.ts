@@ -729,6 +729,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   return {
+    ready,
     tabs,
     hidden,
     reveal,
