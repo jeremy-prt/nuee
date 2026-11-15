@@ -2,6 +2,7 @@ import type en from './en'
 
 export default {
   rail: {
+    cleanup: 'Actividad',
     label: 'Navegación principal',
     toggle: 'Expandir o contraer la barra lateral',
     resize: 'Cambiar el tamaño de la barra lateral',
@@ -822,6 +823,7 @@ export default {
     },
   },
   search: {
+    cleanup: 'Abrir la actividad',
     placeholder: 'Buscar una sesión, un mensaje, un proyecto, un comando…',
     hint: 'Sesiones, mensajes, proyectos, comandos, ajustes y archivos.',
     actions: 'Acciones',
@@ -913,6 +915,46 @@ export default {
       tokens: 'Tokens por día',
       tokensHourly: 'Tokens por hora',
     },
+  },
+  cleanup: {
+    title: 'Actividad',
+    subtitle: 'Detener los procesos innecesarios que dejan los agentes, los servidores y los terminales para liberar memoria.',
+    loading: 'Leyendo los procesos',
+    error: 'No se pueden leer los procesos',
+    hero: 'Procesos de desarrollo',
+    legend: { tracked: 'Procesos de desarrollo', trackedValue: '{percent} de la memoria', machine: 'Memoria del ordenador' },
+    machineValue: '{used} de {total}',
+    groups: {
+      leftovers: { title: 'Procesos huérfanos', help: 'Siguen activos tras terminar su sesión' },
+      others: { title: 'Otros procesos de desarrollo', help: 'Siguen activos tras cerrar un terminal o un editor' },
+      agents: { title: 'Agentes', help: 'Un agente inactivo se reanuda con el siguiente mensaje' },
+      servers: { title: 'Servidores de desarrollo', help: 'Iniciados desde el menú Servidores' },
+    },
+    include: 'Incluir {name} en la limpieza',
+    clean: 'Limpiar',
+    plan: {
+      title: 'Qué hace la limpieza',
+      leftovers: 'Detener {n} proceso huérfano ({size}) | Detener {n} procesos huérfanos ({size})',
+      others: 'Detener {n} otro proceso de desarrollo ({size}) | Detener {n} otros procesos de desarrollo ({size})',
+      agents: 'Detener {n} agente inactivo ({size}), que se reanudará con el siguiente mensaje | Detener {n} agentes inactivos ({size}), que se reanudarán con el siguiente mensaje',
+      servers: 'Detener {n} servidor de desarrollo ({size}) | Detener {n} servidores de desarrollo ({size})',
+      none: { leftovers: 'Ningún proceso huérfano por ahora', others: 'Ningún otro proceso de desarrollo por ahora', agents: 'Ningún agente inactivo por ahora', servers: 'Ningún servidor de desarrollo en marcha' },
+      pick: 'Marcar al menos una categoría para limpiar',
+    },
+    noneSelected: 'Ninguna categoría marcada',
+    nothing: 'Nada que limpiar',
+    cleaning: 'Limpieza en curso',
+    freed: '{size} liberados',
+    freedLabel: 'liberados',
+    failed: 'La limpieza no ha podido terminar',
+    stopped: '{n} proceso detenido | {n} procesos detenidos',
+    remaining: '{n} proceso no ha respondido | {n} procesos no han respondido',
+    force: 'Forzar la parada',
+    forceConfirm: {
+      title: '¿Forzar la parada?',
+      message: 'Los procesos restantes se detienen de inmediato, sin poder guardar su trabajo.',
+    },
+    done: 'Hecho',
   },
   empty: {
     github: 'Las issues y pull requests de los proyectos aparecerán aquí.',

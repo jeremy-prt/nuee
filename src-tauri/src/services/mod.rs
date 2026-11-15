@@ -4,6 +4,7 @@ pub mod autostart;
 pub mod background;
 pub mod browser;
 pub mod chat;
+pub mod cleanup;
 pub mod files;
 pub mod github;
 pub mod github_clone;

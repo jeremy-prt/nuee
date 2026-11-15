@@ -94,6 +94,17 @@ pub fn run() {
             app.manage(services::github_clone::CloneService::default());
             app.manage(TerminalService::default());
             app.manage(ServerService::default());
+            app.manage(services::cleanup::CleanupService::new(&data));
+            let observer = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                loop {
+                    tokio::time::sleep(std::time::Duration::from_secs(15)).await;
+                    let mut roots = commands::cleanup::roots(&observer);
+                    observer
+                        .state::<services::cleanup::CleanupService>()
+                        .observe(&mut roots);
+                }
+            });
             app.manage(services::files::FilesService::default());
             app.manage(AutostartService::new(&app.package_info().name));
             // Le login shell met parfois une seconde à répondre : autant que ce ne soit pas au premier message.
@@ -205,6 +216,9 @@ pub fn run() {
             commands::server::server_start,
             commands::server::server_stop,
             commands::server::server_stop_all,
+            commands::cleanup::cleanup_scan,
+            commands::cleanup::cleanup_run,
+            commands::cleanup::cleanup_force,
             commands::server::server_watch,
             commands::skills::skills_list,
             commands::skills::skills_read,

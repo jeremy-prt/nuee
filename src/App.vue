@@ -36,6 +36,7 @@ import { useWorkspaceStore } from '@/stores/workspace'
 import NewWorkspaceView from '@/views/NewWorkspaceView.vue'
 import NotesView from '@/views/NotesView.vue'
 import UsageView from '@/views/UsageView.vue'
+import CleanupView from '@/views/CleanupView.vue'
 import PlaceholderView from '@/views/PlaceholderView.vue'
 import SettingsView from '@/views/SettingsView.vue'
 import WorkspaceView from '@/views/WorkspaceView.vue'
@@ -228,6 +229,7 @@ onUnmounted(() => {
                 <SettingsView v-else-if="navigation.view === 'settings'" />
                 <NotesView v-else-if="navigation.view === 'notes'" />
                 <UsageView v-else-if="navigation.view === 'usage'" />
+                <CleanupView v-else-if="navigation.view === 'cleanup'" />
                 <PlaceholderView v-else :view="navigation.view" />
                 <AgentUpdateNotice />
               </main>

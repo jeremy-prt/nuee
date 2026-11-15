@@ -22,6 +22,7 @@ import Cancel01Icon from '@hugeicons/core-free-icons/Cancel01Icon'
 import ChartColumnIcon from '@hugeicons/core-free-icons/ChartColumnIcon'
 import CheckmarkCircle02Icon from '@hugeicons/core-free-icons/CheckmarkCircle02Icon'
 import Clock01Icon from '@hugeicons/core-free-icons/Clock01Icon'
+import CodeFolderIcon from '@hugeicons/core-free-icons/CodeFolderIcon'
 import Coffee02Icon from '@hugeicons/core-free-icons/Coffee02Icon'
 import CloudDownloadIcon from '@hugeicons/core-free-icons/CloudDownloadIcon'
 import DashedLineCircleIcon from '@hugeicons/core-free-icons/DashedLineCircleIcon'
@@ -33,6 +34,7 @@ import ClipboardPasteIcon from '@hugeicons/core-free-icons/ClipboardPasteIcon'
 import Copy02Icon from '@hugeicons/core-free-icons/Copy02Icon'
 import FolderXIcon from '@hugeicons/core-free-icons/FolderXIcon'
 import CaseSensitiveIcon from '@hugeicons/core-free-icons/CaseSensitiveIcon'
+import GhostIcon from '@hugeicons/core-free-icons/GhostIcon'
 import LetterSpacingIcon from '@hugeicons/core-free-icons/LetterSpacingIcon'
 import RegexIcon from '@hugeicons/core-free-icons/RegexIcon'
 import EraserIcon from '@hugeicons/core-free-icons/EraserIcon'
@@ -106,6 +108,7 @@ import PinIcon from '@hugeicons/core-free-icons/PinIcon'
 import PinOffIcon from '@hugeicons/core-free-icons/PinOffIcon'
 import PlayIcon from '@hugeicons/core-free-icons/PlayIcon'
 import Plug01Icon from '@hugeicons/core-free-icons/Plug01Icon'
+import Pulse01Icon from '@hugeicons/core-free-icons/Pulse01Icon'
 import PythonIcon from '@hugeicons/core-free-icons/PythonIcon'
 import Refresh01Icon from '@hugeicons/core-free-icons/Refresh01Icon'
 import RoboticIcon from '@hugeicons/core-free-icons/RoboticIcon'
@@ -345,6 +348,9 @@ export const TriangleAlert = icon(Alert02Icon)
 export const Trash2 = icon(Delete02Icon)
 export const Undo = icon(ArrowTurnBackwardIcon)
 export const Usage = icon(ChartColumnIcon)
+export const CodeFolder = icon(CodeFolderIcon)
+export const Ghost = icon(GhostIcon)
+export const Pulse = icon(Pulse01Icon)
 export const Volume2 = icon(VolumeHighIcon)
 export const Wrench = icon(Wrench01Icon)
 export const X = icon(Cancel01Icon)

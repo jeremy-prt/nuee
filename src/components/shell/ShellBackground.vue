@@ -23,7 +23,7 @@ watch(
 )
 
 // Pages de lecture (texte, graphiques) : l'image reste mais s'efface derrière le contenu.
-const READING = ['notes', 'usage']
+const READING = ['notes', 'usage', 'cleanup']
 const opacity = computed(() => {
   if (!shown.value) return 0
   return appearance.backgroundOpacity * (READING.includes(navigation.view) ? 0.3 : 1)

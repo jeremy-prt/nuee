@@ -2,6 +2,7 @@ import type en from './en'
 
 export default {
   rail: {
+    cleanup: 'Atividade',
     label: 'Navegação principal',
     toggle: 'Expandir ou recolher a barra lateral',
     resize: 'Redimensionar a barra lateral',
@@ -822,6 +823,7 @@ export default {
     },
   },
   search: {
+    cleanup: 'Abrir a atividade',
     placeholder: 'Pesquisar uma sessão, uma mensagem, um projeto, um comando…',
     hint: 'Sessões, mensagens, projetos, comandos, ajustes e arquivos.',
     actions: 'Ações',
@@ -913,6 +915,46 @@ export default {
       tokens: 'Tokens por dia',
       tokensHourly: 'Tokens por hora',
     },
+  },
+  cleanup: {
+    title: 'Atividade',
+    subtitle: 'Parar os processos desnecessários deixados pelos agentes, servidores e terminais para liberar memória.',
+    loading: 'Lendo os processos',
+    error: 'Não foi possível ler os processos',
+    hero: 'Processos de desenvolvimento',
+    legend: { tracked: 'Processos de desenvolvimento', trackedValue: '{percent} da memória', machine: 'Memória do computador' },
+    machineValue: '{used} de {total}',
+    groups: {
+      leftovers: { title: 'Processos órfãos', help: 'Ainda ativos após o fim da sessão' },
+      others: { title: 'Outros processos de desenvolvimento', help: 'Ainda ativos após fechar um terminal ou editor' },
+      agents: { title: 'Agentes', help: 'Um agente inativo retoma na próxima mensagem' },
+      servers: { title: 'Servidores de desenvolvimento', help: 'Iniciados pelo menu Servidores' },
+    },
+    include: 'Incluir {name} na limpeza',
+    clean: 'Limpar',
+    plan: {
+      title: 'O que a limpeza faz',
+      leftovers: 'Parar {n} processo órfão ({size}) | Parar {n} processos órfãos ({size})',
+      others: 'Parar {n} outro processo de desenvolvimento ({size}) | Parar {n} outros processos de desenvolvimento ({size})',
+      agents: 'Parar {n} agente inativo ({size}), que será retomado na próxima mensagem | Parar {n} agentes inativos ({size}), que serão retomados na próxima mensagem',
+      servers: 'Parar {n} servidor de desenvolvimento ({size}) | Parar {n} servidores de desenvolvimento ({size})',
+      none: { leftovers: 'Nenhum processo órfão no momento', others: 'Nenhum outro processo de desenvolvimento no momento', agents: 'Nenhum agente inativo no momento', servers: 'Nenhum servidor de desenvolvimento em execução' },
+      pick: 'Marcar pelo menos uma categoria para limpar',
+    },
+    noneSelected: 'Nenhuma categoria marcada',
+    nothing: 'Nada para limpar',
+    cleaning: 'Limpeza em andamento',
+    freed: '{size} liberados',
+    freedLabel: 'liberados',
+    failed: 'Não foi possível concluir a limpeza',
+    stopped: '{n} processo parado | {n} processos parados',
+    remaining: '{n} processo não respondeu | {n} processos não responderam',
+    force: 'Forçar a parada',
+    forceConfirm: {
+      title: 'Forçar a parada?',
+      message: 'Os processos restantes são parados na hora, sem poder salvar o trabalho.',
+    },
+    done: 'Concluído',
   },
   empty: {
     github: 'As issues e pull requests dos projetos aparecerão aqui.',

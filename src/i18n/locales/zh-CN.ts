@@ -2,6 +2,7 @@ import type en from './en'
 
 export default {
   rail: {
+    cleanup: '活动',
     label: '主导航',
     toggle: '展开或收起侧边栏',
     resize: '调整侧边栏大小',
@@ -822,6 +823,7 @@ export default {
     },
   },
   search: {
+    cleanup: '打开活动',
     placeholder: '搜索会话、消息、项目、命令…',
     hint: '会话、消息、项目、命令、设置和文件。',
     actions: '操作',
@@ -913,6 +915,46 @@ export default {
       tokens: '每天令牌',
       tokensHourly: '每小时令牌',
     },
+  },
+  cleanup: {
+    title: '活动',
+    subtitle: '停止代理、服务器和终端留下的无用进程，以释放内存。',
+    loading: '正在读取进程',
+    error: '无法读取进程',
+    hero: '开发进程',
+    legend: { tracked: '开发进程', trackedValue: '占内存的 {percent}', machine: '电脑内存' },
+    machineValue: '{used} / {total}',
+    groups: {
+      leftovers: { title: '孤立进程', help: '会话结束后仍在运行' },
+      others: { title: '其他开发进程', help: '关闭终端或编辑器后仍在运行' },
+      agents: { title: '代理', help: '空闲代理会在下一条消息时恢复' },
+      servers: { title: '开发服务器', help: '从服务器菜单启动' },
+    },
+    include: '将{name}纳入清理',
+    clean: '清理',
+    plan: {
+      title: '清理会做什么',
+      leftovers: '停止 {n} 个孤立进程（{size}）',
+      others: '停止 {n} 个其他开发进程（{size}）',
+      agents: '停止 {n} 个空闲代理（{size}），下一条消息时会恢复',
+      servers: '停止 {n} 个开发服务器（{size}）',
+      none: { leftovers: '目前没有孤立进程', others: '目前没有其他开发进程', agents: '目前没有空闲代理', servers: '没有正在运行的开发服务器' },
+      pick: '至少勾选一个类别才能清理',
+    },
+    noneSelected: '未勾选任何类别',
+    nothing: '没有需要清理的内容',
+    cleaning: '正在清理',
+    freed: '已释放 {size}',
+    freedLabel: '已释放',
+    failed: '清理未能完成',
+    stopped: '已停止 {n} 个进程 | 已停止 {n} 个进程',
+    remaining: '{n} 个进程未响应 | {n} 个进程未响应',
+    force: '强制停止',
+    forceConfirm: {
+      title: '强制停止？',
+      message: '剩余进程将立即停止，无法保存其工作。',
+    },
+    done: '完成',
   },
   empty: {
     github: '项目的议题和拉取请求将显示在这里。',

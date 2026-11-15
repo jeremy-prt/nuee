@@ -913,6 +913,31 @@ impl AgentService {
             .count()
     }
 
+    /// PID de chaque agent et s'il est au repos, pour l'écran Nettoyage.
+    pub fn pids(&self) -> Vec<(u32, bool)> {
+        lock(&self.sessions)
+            .values()
+            .map(|session| (session.pid, session.idle()))
+            .collect()
+    }
+
+    /// Nettoyage : arrête les agents au repos, comme après cinq minutes d'inactivité. Le prochain message relance le
+    /// process et reprend la conversation.
+    pub fn retire_idle(&self) {
+        let idle: Vec<Session> = {
+            let mut sessions = lock(&self.sessions);
+            let ids: Vec<String> = sessions
+                .iter()
+                .filter(|(_, session)| session.idle())
+                .map(|(id, _)| id.clone())
+                .collect();
+            ids.iter().filter_map(|id| sessions.remove(id)).collect()
+        };
+        for session in idle {
+            session.retire();
+        }
+    }
+
     /// À la fermeture de l'app : sans ça, les agents survivraient à la fenêtre.
     pub fn stop_all(&self) {
         for session in lock(&self.sessions).values() {

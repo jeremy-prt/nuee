@@ -15,6 +15,7 @@ use super::{
     AgentEvent, AgentKind, CONTEXT_EVENT, Driver, GRACE, TaskStatus, TurnOptions, TurnStatus, lock,
     process,
 };
+use crate::services::cleanup;
 use crate::utils::shell_env;
 
 const STDERR_TAIL: usize = 2000;
@@ -357,6 +358,12 @@ impl Session {
         });
     }
 
+    /// Ni tour ni tâche de fond : rien ne se perd si le process s'arrête.
+    pub fn idle(&self) -> bool {
+        let slot = lock(&self.slot);
+        slot.current.is_none() && slot.tasks.is_empty()
+    }
+
     fn idle_for(&self) -> Duration {
         let slot = lock(&self.slot);
         if slot.current.is_some() || !slot.tasks.is_empty() {
@@ -480,6 +487,7 @@ pub(super) fn spawn(
         .envs(env.iter().copied())
         .current_dir(cwd)
         .env("PATH", shell_env::search_path())
+        .env(cleanup::MARKER, cleanup::marker_value())
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

@@ -13,6 +13,7 @@ use ts_rs::TS;
 
 use crate::error::AppError;
 use crate::services::agent::process::kill_tree;
+use crate::services::cleanup;
 use crate::utils::shell_env;
 
 /// Même fichier que l'app Claude : ses serveurs se lancent aussi depuis Nuée.
@@ -313,6 +314,7 @@ impl ServerService {
         builder.env("TERM", "xterm-256color");
         builder.env("COLORTERM", "truecolor");
         builder.env("PORT", port.to_string());
+        builder.env(cleanup::MARKER, cleanup::marker_value());
         for (name, value) in &entry.env {
             builder.env(name, value);
         }
@@ -414,6 +416,17 @@ impl ServerService {
             .get(&(root.to_owned(), name.to_owned()))
             .cloned();
         if let Some(process) = process.filter(|process| process.alive()) {
+            terminate(process);
+        }
+    }
+
+    /// PID des serveurs qui tournent, pour l'écran Nettoyage.
+    pub fn pids(&self) -> Vec<u32> {
+        self.alive(None).iter().map(|process| process.pid).collect()
+    }
+
+    pub fn stop_everything(&self) {
+        for process in self.alive(None) {
             terminate(process);
         }
     }

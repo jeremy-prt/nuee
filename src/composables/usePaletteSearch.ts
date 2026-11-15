@@ -91,6 +91,7 @@ export function usePaletteSearch(query: Ref<string>) {
     { id: 'notes', label: t('search.notes'), run: go('notes') },
     { id: 'github', label: t('search.github'), run: go('github') },
     { id: 'usage', label: t('search.usage'), run: go('usage') },
+    { id: 'cleanup', label: t('search.cleanup'), run: go('cleanup') },
   ])
   // Ne dépend que du texte posé : la frappe ne refait pas ce parcours à chaque touche.
   const inText = computed(() => {

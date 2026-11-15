@@ -12,6 +12,7 @@ use ts_rs::TS;
 
 use crate::error::AppError;
 use crate::services::chat::ChatService;
+use crate::services::cleanup;
 use crate::utils::shell_env;
 
 /// Sortie d'une commande lancée depuis la conversation : assez large pour les barres de progression.
@@ -62,6 +63,7 @@ impl TerminalService {
         command.env("TERM", "xterm-256color");
         command.env("COLORTERM", "truecolor");
         command.env("TERM_PROGRAM", "Nuee");
+        command.env(cleanup::MARKER, cleanup::marker_value());
         self.spawn(chat_id, command, size, channel)
     }
 
@@ -107,6 +109,7 @@ impl TerminalService {
         command.env("TERM", "xterm-256color");
         command.env("COLORTERM", "truecolor");
         command.env("TERM_PROGRAM", "Nuee");
+        command.env(cleanup::MARKER, cleanup::marker_value());
         self.spawn(chat_id, command, RUN_SIZE, channel)
     }
 
@@ -220,6 +223,13 @@ impl TerminalService {
                 hang_up(terminal);
             }
         }
+    }
+
+    pub fn pids(&self) -> Vec<u32> {
+        lock(&self.terminals)
+            .values()
+            .map(|terminal| terminal.pid)
+            .collect()
     }
 
     pub fn close_all(&self) {

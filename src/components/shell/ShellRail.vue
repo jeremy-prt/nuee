@@ -6,6 +6,7 @@ import {
   NoProject,
   NotebookPen,
   Plus,
+  Pulse,
   RefreshCw,
   Search,
   Settings,
@@ -99,6 +100,7 @@ const pages = [
 const footer = [
   { id: 'settings', icon: Settings, shortcut: 'settings', open: () => navigation.go('settings') },
   { id: 'usage', icon: Usage, open: () => navigation.go('usage') },
+  { id: 'cleanup', icon: Pulse, open: () => navigation.go('cleanup') },
   { id: 'updates', icon: RefreshCw, open: () => navigation.openSettings('general') },
 ] as const
 
@@ -153,7 +155,11 @@ function footerLabel(id: (typeof footer)[number]['id']) {
         :class="edge"
         :aria-label="navigation.view === 'settings' ? t('settings.nav') : t('rail.label')"
       >
-        <SettingsNav v-if="navigation.view === 'settings'" :focus-current="byKeyboard" />
+        <!-- Retour en haut, pas en bas : le bas de la barre sort souvent de l'écran quand on déplace la fenêtre (Apple HIG). -->
+        <template v-if="navigation.view === 'settings'">
+          <ShellRailItem :icon="ArrowLeft" :label="t('settings.back')" :expanded="expanded" class="mb-2" @click="closeSettings($event)" />
+          <SettingsNav :focus-current="byKeyboard" />
+        </template>
         <template v-else>
           <ShellRailItem
             v-for="item in pages"
@@ -241,17 +247,9 @@ function footerLabel(id: (typeof footer)[number]['id']) {
         </template>
       </nav>
 
-      <div v-if="navigation.view === 'settings'" class="shrink-0 py-2 ps-2" :class="edge">
-        <ShellRailItem
-          :icon="ArrowLeft"
-          :label="t('settings.back')"
-          :expanded="expanded"
-          @click="closeSettings($event)"
-        />
-      </div>
       <!-- Dépliée : une ligne (Réglages et Quota à gauche, Mises à jour à droite). Repliée : une colonne de 48 px. -->
       <div
-        v-else
+        v-if="navigation.view !== 'settings'"
         class="flex shrink-0 gap-0.5 py-2 ps-2"
         :class="[expanded ? 'flex-row' : 'flex-col', edge]"
       >

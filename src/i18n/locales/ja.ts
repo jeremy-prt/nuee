@@ -2,6 +2,7 @@ import type en from './en'
 
 export default {
   rail: {
+    cleanup: 'アクティビティ',
     label: 'メインナビゲーション',
     toggle: 'サイドバーを展開・折りたたむ',
     resize: 'サイドバーのサイズを変更',
@@ -822,6 +823,7 @@ export default {
     },
   },
   search: {
+    cleanup: 'アクティビティを開く',
     placeholder: 'セッション、メッセージ、プロジェクト、コマンドを検索…',
     hint: 'セッション、メッセージ、プロジェクト、コマンド、設定、ファイル。',
     actions: 'アクション',
@@ -913,6 +915,46 @@ export default {
       tokens: '日別のトークン',
       tokensHourly: '時間別のトークン',
     },
+  },
+  cleanup: {
+    title: 'アクティビティ',
+    subtitle: 'エージェント、サーバー、ターミナルが残した不要なプロセスを停止してメモリを解放します。',
+    loading: 'プロセスを読み込み中',
+    error: 'プロセスを読み込めません',
+    hero: '開発プロセス',
+    legend: { tracked: '開発プロセス', trackedValue: 'メモリの {percent}', machine: 'コンピュータのメモリ' },
+    machineValue: '{used} / {total}',
+    groups: {
+      leftovers: { title: '孤立したプロセス', help: 'セッション終了後も動作中' },
+      others: { title: 'その他の開発プロセス', help: 'ターミナルやエディタを閉じた後も動作中' },
+      agents: { title: 'エージェント', help: '待機中のエージェントは次のメッセージで再開' },
+      servers: { title: '開発サーバー', help: 'サーバーメニューから起動' },
+    },
+    include: '{name} をクリーンアップに含める',
+    clean: 'クリーンアップ',
+    plan: {
+      title: 'クリーンアップの内容',
+      leftovers: '孤立したプロセス {n} 個を停止 ({size})',
+      others: 'その他の開発プロセス {n} 個を停止 ({size})',
+      agents: '待機中のエージェント {n} 個を停止 ({size})。次のメッセージで再開します',
+      servers: '開発サーバー {n} 個を停止 ({size})',
+      none: { leftovers: '現在、孤立したプロセスはありません', others: '現在、その他の開発プロセスはありません', agents: '現在、待機中のエージェントはありません', servers: '起動中の開発サーバーはありません' },
+      pick: 'クリーンアップするにはカテゴリを 1 つ以上選択します',
+    },
+    noneSelected: 'カテゴリが選択されていません',
+    nothing: 'クリーンアップするものはありません',
+    cleaning: 'クリーンアップ中',
+    freed: '{size} を解放',
+    freedLabel: '解放済み',
+    failed: 'クリーンアップを完了できませんでした',
+    stopped: '{n} 個のプロセスを停止 | {n} 個のプロセスを停止',
+    remaining: '{n} 個のプロセスが応答しません | {n} 個のプロセスが応答しません',
+    force: '強制停止',
+    forceConfirm: {
+      title: '強制停止しますか？',
+      message: '残りのプロセスは作業を保存できずに即座に停止します。',
+    },
+    done: '完了',
   },
   empty: {
     github: 'プロジェクトの Issue とプルリクエストがここに表示されます。',

@@ -2,6 +2,7 @@ import type en from './en'
 
 export default {
   rail: {
+    cleanup: 'Activité',
     label: 'Navigation principale',
     toggle: 'Déplier ou replier la barre latérale',
     resize: 'Redimensionner la barre latérale',
@@ -822,6 +823,7 @@ export default {
     },
   },
   search: {
+    cleanup: "Ouvrir l'activité",
     placeholder: 'Rechercher une session, un message, un projet, une commande…',
     hint: 'Sessions, messages, projets, commandes, réglages et fichiers.',
     actions: 'Actions',
@@ -913,6 +915,46 @@ export default {
       tokens: 'Tokens par jour',
       tokensHourly: 'Tokens par heure',
     },
+  },
+  cleanup: {
+    title: 'Activité',
+    subtitle: 'Arrêter les processus inutiles laissés par les agents, les serveurs et les terminaux pour libérer de la mémoire.',
+    loading: 'Lecture des processus',
+    error: 'Lecture des processus impossible',
+    hero: 'Processus de développement',
+    legend: { tracked: 'Processus de développement', trackedValue: '{percent} de la mémoire', machine: "Mémoire de l'ordinateur" },
+    machineValue: '{used} sur {total}',
+    groups: {
+      leftovers: { title: 'Processus orphelins', help: 'Restés actifs après la fin de leur session' },
+      others: { title: 'Autres processus de développement', help: 'Restés actifs après un terminal ou un éditeur fermé' },
+      agents: { title: 'Agents', help: 'Un agent inactif reprend au prochain message' },
+      servers: { title: 'Serveurs de développement', help: 'Lancés depuis le menu Serveurs' },
+    },
+    include: 'Inclure {name} dans le nettoyage',
+    clean: 'Nettoyer',
+    plan: {
+      title: 'Ce que fait le nettoyage',
+      leftovers: 'Arrêter {n} processus orphelin ({size}) | Arrêter {n} processus orphelins ({size})',
+      others: 'Arrêter {n} autre processus de développement ({size}) | Arrêter {n} autres processus de développement ({size})',
+      agents: 'Arrêter {n} agent inactif ({size}), qui reprendra au prochain message | Arrêter {n} agents inactifs ({size}), qui reprendront au prochain message',
+      servers: 'Arrêter {n} serveur de développement ({size}) | Arrêter {n} serveurs de développement ({size})',
+      none: { leftovers: 'Aucun processus orphelin pour le moment', others: 'Aucun autre processus de développement pour le moment', agents: 'Aucun agent inactif pour le moment', servers: 'Aucun serveur de développement lancé' },
+      pick: 'Cocher au moins une catégorie pour nettoyer',
+    },
+    noneSelected: 'Aucune catégorie cochée',
+    nothing: 'Rien à nettoyer',
+    cleaning: 'Nettoyage en cours',
+    freed: '{size} libérés',
+    freedLabel: 'libérés',
+    failed: "Le nettoyage n'a pas pu aboutir",
+    stopped: '{n} processus arrêté | {n} processus arrêtés',
+    remaining: "{n} processus n'a pas répondu | {n} processus n'ont pas répondu",
+    force: "Forcer l'arrêt",
+    forceConfirm: {
+      title: "Forcer l'arrêt ?",
+      message: 'Les processus restants sont arrêtés sur-le-champ, sans pouvoir enregistrer leur travail.',
+    },
+    done: 'Terminé',
   },
   empty: {
     github: 'Les issues et pull requests des projets apparaîtront ici.',
