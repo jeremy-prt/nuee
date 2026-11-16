@@ -34,7 +34,8 @@ export interface UiMenuSection {
 }
 
 // Pastille d'une barre d'outils : le slot montre la valeur, `label` nomme le menu (infobulle, lecteur d'écran).
-// `look` remplace le fond et la taille de la pastille (bouton discret dans une ligne de texte).
+// `look` remplace le fond et la taille de la pastille (bouton discret dans une ligne de texte). `chevron` à false : sans
+// flèche, comme les pastilles du champ de saisie.
 const props = withDefaults(
   defineProps<{
     label: string
@@ -43,8 +44,9 @@ const props = withDefaults(
     side?: 'top' | 'bottom'
     focusAfter?: () => void
     look?: string
+    chevron?: boolean
   }>(),
-  { side: 'top' },
+  { side: 'top', chevron: true },
 )
 const emit = defineEmits<{ select: [section: string, value: string] }>()
 
@@ -83,6 +85,7 @@ function onCloseAutoFocus(event: Event) {
           <span class="sr-only">{{ label }}</span>
           <slot />
           <ChevronDown
+            v-if="chevron"
             class="size-3 shrink-0 text-muted transition-transform duration-150 ease-out group-aria-expanded:rotate-180 motion-reduce:transition-none"
             aria-hidden="true"
           />

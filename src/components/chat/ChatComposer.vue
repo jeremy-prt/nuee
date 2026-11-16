@@ -569,6 +569,7 @@ function onKeydown(event: KeyboardEvent) {
           :label="t('composer.mode.label')"
           :sections="modeSections"
           :disabled="disabled"
+          :chevron="false"
           :focus-after="focusInput"
           @select="chooseMode"
         >

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronDown, ChevronRight, Star, Zap } from '@/components/ui/icons'
+import { ChevronRight, Star, Zap } from '@/components/ui/icons'
 import { ListboxContent, ListboxFilter, ListboxItem, ListboxRoot, PopoverAnchor, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from 'reka-ui'
 import { computed, nextTick, onBeforeUnmount, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -163,10 +163,6 @@ const flyout = 'ui-pop z-50 text-xs text-content select-none'
             <Zap class="size-3 shrink-0 fill-current text-warning" aria-hidden="true" />
             <span class="sr-only">{{ t('composer.fast.label') }}</span>
           </template>
-          <ChevronDown
-            class="size-3 shrink-0 text-muted transition-transform duration-150 ease-out group-data-[state=open]:rotate-180 motion-reduce:transition-none"
-            aria-hidden="true"
-          />
         </PopoverTrigger>
         <PopoverPortal>
           <PopoverContent

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Check, CheckDouble, CircleAlert, File, Folder, NotebookPen, Orchestra, TriangleAlert, Undo } from '@/components/ui/icons'
-import { computed, nextTick, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AgentLogin from '@/components/agent/AgentLogin.vue'
 import ChatCommandRow from '@/components/chat/ChatCommandRow.vue'
@@ -26,7 +26,7 @@ import { useNotesStore } from '@/stores/notes'
 import type { ChatItem } from '@/stores/conversations'
 import { START_SESSION } from '@/utils/activity'
 import { agents } from '@/utils/agents'
-import { formatClock, formatDuration } from '@/utils/duration'
+import { formatClock, formatDuration, formatSince } from '@/utils/duration'
 
 // Un élément de la conversation hors activité groupée. `streaming` : texte que l'agent écrit encore ;
 // `afterText` : l'élément précédent est un texte de l'agent ; `answer` : réponse du tour, sur sa ligne de fin.
@@ -43,6 +43,13 @@ const props = defineProps<{
   // Dernière fin de tour, sans tour en cours : une connexion manquante s'y règle et le message repart.
   latest?: boolean
 }>()
+// Heure d'envoi relative la première heure (« Maintenant », « il y a 5 min »), puis l'heure ; relue au survol.
+const now = ref(Date.now())
+function sent(at: number) {
+  if (now.value - at >= 3_600_000) return formatClock(at, locale.value)
+  const since = formatSince(at, now.value, locale.value)
+  return since.charAt(0).toLocaleUpperCase(locale.value) + since.slice(1)
+}
 // Hors d'un tour en cours, un message ajouté sans identifiant (ancien historique) passe pour lu.
 const steerPending = computed(() => props.item.kind === 'user' && !!props.item.steered && !props.item.agentId && props.running)
 const emit = defineEmits<{ rewind: []; resend: [] }>()
@@ -116,17 +123,21 @@ watch(signedIn, async (now) => {
     <p v-if="item.orchestra" class="flex items-center gap-1 text-[11px] text-violet" :title="t('composer.orchestra.sent')">
       <Orchestra class="size-3" aria-hidden="true" />{{ t('composer.orchestra.label') }}
     </p>
-    <!-- La CLI renvoie le message ajouté quand l'agent le lit vraiment, pas à l'envoi : son identifiant arrive alors. -->
-    <p v-if="item.steered" class="flex items-center gap-1 text-[11px] text-muted" role="status">
-      <template v-if="steerPending"><Check class="size-3" aria-hidden="true" />{{ t('chat.queue.steeredPending') }}</template>
-      <template v-else><CheckDouble class="size-3" aria-hidden="true" />{{ t('chat.queue.steeredRead') }}</template>
-    </p>
+    <!-- Comme l'app Claude, le pied tient l'heure, ou l'état d'un message ajouté pendant la réponse, montré tant qu'il
+         attend : la CLI ne le renvoie (avec son identifiant) qu'au moment où l'agent le lit. -->
     <div
       v-if="item.text"
-      class="mt-0.5 flex items-center gap-0.5 opacity-0 transition-opacity duration-(--hover-duration) group-hover:opacity-100 focus-within:opacity-100 motion-reduce:transition-none"
+      class="mt-0.5 flex items-center gap-0.5 transition-opacity duration-(--hover-duration) group-hover:opacity-100 focus-within:opacity-100 motion-reduce:transition-none"
+      :class="steerPending ? 'opacity-100' : 'opacity-0'"
+      @pointerenter="now = Date.now()"
+      @focusin="now = Date.now()"
     >
-      <time v-if="item.at" :datetime="new Date(item.at).toISOString()" :title="formatClock(item.at, locale, true)" class="px-1 text-[11px] text-muted tabular-nums">
-        {{ formatClock(item.at, locale) }}
+      <p v-if="item.steered" class="flex items-center gap-1 px-1 text-[11px] text-muted" role="status">
+        <template v-if="steerPending"><Check class="size-3" aria-hidden="true" />{{ t('chat.queue.steeredPending') }}</template>
+        <template v-else><CheckDouble class="size-3" aria-hidden="true" />{{ t('chat.queue.steeredRead') }}</template>
+      </p>
+      <time v-else-if="item.at" :datetime="new Date(item.at).toISOString()" :title="formatClock(item.at, locale, true)" class="px-1 text-[11px] text-muted tabular-nums">
+        {{ sent(item.at) }}
       </time>
       <ChatCopyButton :text="() => item.kind === 'user' ? item.text : ''" :label="t('chat.copy.message')" />
       <UiIconButton v-if="rewindable" :label="t('chat.rewind.action')" @click="emit('rewind')">
