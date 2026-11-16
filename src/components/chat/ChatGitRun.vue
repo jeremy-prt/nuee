@@ -6,7 +6,7 @@ import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { useConversationsStore } from '@/stores/conversations'
 import { type GitRun, useGitActionsStore } from '@/stores/gitActions'
-import { lastStep } from '@/utils/activity'
+import { lastStep, stepKey } from '@/utils/activity'
 import { formatDuration } from '@/utils/duration'
 
 // Action git de fond en cours, à la place de son bouton, comme T3 Code : l'étape tirée de l'activité de sa session, le
@@ -42,7 +42,7 @@ const step = computed(() => {
   if (git) return { text: t(`gitActions.steps.${git[1]}`), name: null, command }
   const found = lastStep(items)
   // La description que l'agent donne à sa commande est en anglais : nos verbes, elle reste dans l'infobulle.
-  if (found) return { text: t(`chat.activity.doing.${found.doing}`), name: found.name, command: command || found.description || null }
+  if (found) return { text: t(stepKey(found)), name: found.name, command: command || found.description || null }
   return { text: t('gitActions.steps.starting'), name: null, command: null }
 })
 

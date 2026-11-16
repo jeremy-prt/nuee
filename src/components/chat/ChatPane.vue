@@ -103,7 +103,7 @@ const approval = computed(() => conversation.value?.approvals[0] ?? null)
 const clock = computed(() => {
   const current = conversation.value
   return current?.startedAt
-    ? { since: current.startedAt, pausedMs: current.pausedMs, pausedAt: current.pausedAt, asking: !!current.approvals[0]?.questions }
+    ? { since: current.startedAt, pausedMs: current.pausedMs, pausedAt: current.pausedAt, asking: !!current.approvals[0]?.questions, tokens: current.tokens }
     : null
 })
 

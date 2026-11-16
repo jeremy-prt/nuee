@@ -8,7 +8,7 @@ import ChatMarkdown from '@/components/chat/ChatMarkdown.vue'
 import ChatThumb from '@/components/chat/ChatThumb.vue'
 import type { ToolItem } from '@/stores/conversations'
 import { useLayoutStore } from '@/stores/layout'
-import { capitalize, fileName, fileVerb, toolName } from '@/utils/activity'
+import { capitalize, fileName, fileVerb, ownTool, toolName } from '@/utils/activity'
 import { formatDuration } from '@/utils/duration'
 import UiCollapse from '@/components/ui/UiCollapse.vue'
 
@@ -27,7 +27,9 @@ const verb = computed(() => (props.item.summary ? fileVerb(props.item) : null))
 const title = computed(() => {
   const { detail, summary, name } = props.item
   if (detail?.description && props.item.tool !== 'search') return { text: detail.description, mono: false }
-  return summary ? { text: summary, mono: props.item.tool !== 'question' } : { text: toolName(name), mono: false }
+  if (summary) return { text: summary, mono: props.item.tool !== 'question' }
+  const own = ownTool(name)
+  return { text: own ? t(`chat.activity.tools.${own}`) : toolName(name), mono: false }
 })
 // Une sortie de modification (« fichier mis à jour ») n'apprend rien quand le diff est là ; celle d'un sous-agent
 // est son rapport, déjà dans le bilan de sa tâche.
@@ -52,7 +54,7 @@ const open = ref(false)
       <component
         :is="expandable ? 'button' : 'div'"
         :type="expandable ? 'button' : undefined"
-        class="flex min-w-0 items-center gap-1.5 rounded-md px-2 py-1 text-start text-muted"
+        class="flex h-7 min-w-0 items-center gap-1.5 rounded-md px-2 text-start text-muted"
         :class="{ 'hover:text-content focus-visible:outline-2 focus-visible:outline-ring': expandable }"
         :aria-expanded="expandable ? open : undefined"
         @click="expandable && (open = !open)"

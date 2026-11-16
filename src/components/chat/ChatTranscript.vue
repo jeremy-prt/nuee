@@ -20,7 +20,7 @@ const props = defineProps<{
   items: readonly ChatItem[]
   running: boolean
   agent: AgentKind
-  clock: { since: number; pausedMs: number; pausedAt: number | null; asking: boolean } | null
+  clock: { since: number; pausedMs: number; pausedAt: number | null; asking: boolean; tokens: number } | null
   // Titre de la session : celui de la carte « Tâche » d'une session lancée par une autre.
   title?: string | null
   // Session qui a lancé celle-ci : son premier message est sa consigne, même enregistré avant `from`.

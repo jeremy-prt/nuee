@@ -8,8 +8,7 @@ import ChatThinking from '@/components/chat/ChatThinking.vue'
 import ChatThumb from '@/components/chat/ChatThumb.vue'
 import ChatTool from '@/components/chat/ChatTool.vue'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
-import { type ActivityItem, capitalize, lastStep, summarize } from '@/utils/activity'
-import { agents } from '@/utils/agents'
+import { type ActivityItem, capitalize, lastStep, stepKey, summarize } from '@/utils/activity'
 import { formatDuration } from '@/utils/duration'
 import UiCollapse from '@/components/ui/UiCollapse.vue'
 
@@ -19,7 +18,7 @@ import UiCollapse from '@/components/ui/UiCollapse.vue'
 const props = defineProps<{
   items: readonly ActivityItem[]
   agent: AgentKind
-  clock?: { since: number; pausedMs: number; pausedAt: number | null; asking?: boolean } | null
+  clock?: { since: number; pausedMs: number; pausedAt: number | null; asking?: boolean; tokens?: number } | null
   background?: number
   writing?: boolean
 }>()
@@ -68,15 +67,16 @@ const imageTool = computed(() => {
 // Dernière étape outillée : son nom reste affiché jusqu'à la suivante, sans repasser par un texte générique.
 const step = computed(() => {
   const found = lastStep(props.items)
-  return found && { text: found.description ?? t(`chat.activity.doing.${found.doing}`), name: found.name }
+  return found && { text: found.description ?? t(stepKey(found)), name: found.name }
 })
 // Ce que dit la ligne vivante : l'attente d'une autorisation, la réflexion en cours, la dernière étape outillée (gardée
 // jusqu'à la suivante), sinon que l'agent travaille.
 const label = computed(() => {
-  if (props.clock?.pausedAt != null) return { text: t(props.clock.asking ? 'chat.waitingAnswer' : 'chat.waitingApproval'), name: null, shimmer: false, waiting: true }
-  if (props.items.at(-1)?.kind === 'thinking') return { text: t('chat.activity.thinking'), name: null, shimmer: true, waiting: false }
-  if (step.value && !props.writing) return { ...step.value, shimmer: true, waiting: false }
-  return { text: t('chat.working', { agent: agents[props.agent].name }), name: null, shimmer: true, waiting: false }
+  if (props.clock?.pausedAt != null) return { text: t(props.clock.asking ? 'chat.waitingAnswer' : 'chat.waitingApproval'), name: null, shimmer: false, waiting: true, step: false }
+  if (props.items.at(-1)?.kind === 'thinking') return { text: t('chat.activity.thinking'), name: null, shimmer: true, waiting: false, step: false }
+  if (props.writing) return { text: '', name: null, shimmer: false, waiting: false, step: false }
+  if (step.value) return { ...step.value, shimmer: true, waiting: false, step: true }
+  return { text: t('chat.activity.thinking'), name: null, shimmer: true, waiting: false, step: false }
 })
 
 // Une seule horloge à l'écran : celle de la ligne vivante.
@@ -95,6 +95,15 @@ const elapsed = computed(() => {
   const clock = props.clock
   if (!clock) return ''
   return formatDuration((clock.pausedAt ?? now.value) - clock.since - clock.pausedMs, locale.value)
+})
+
+// Comme le compteur de Claude Code : « 1,2 k jetons », estimé pendant l'écriture, montré seulement pendant la réflexion
+// ou l'écriture ; pendant un outil, la ligne dit son nom et sa durée.
+const tokens = computed(() => {
+  const output = props.clock?.tokens ?? 0
+  if (!output) return ''
+  const n = new Intl.NumberFormat(locale.value, { notation: 'compact', maximumFractionDigits: 1 }).format(output)
+  return t('chat.tokens', { n })
 })
 
 // La réflexion ne reste dans la liste que pendant le tour.
@@ -122,15 +131,24 @@ const entries = computed(() => props.items.filter((item) => item.kind === 'tool'
             <span class="shrink-0 rounded-md bg-warning/15 px-1.5 py-px text-xs font-medium text-warning">{{ t('chat.needsYou') }}</span>
             <span class="sr-only">{{ label.text }}</span>
           </template>
+          <!-- Comme l'app Claude : « 6 min 1 s · 14,1 k jetons · Réflexion en cours », sans libellé pendant l'écriture (le
+               texte qui s'écrit le dit) ; pendant un outil, son nom puis la durée, sans jetons. -->
+          <template v-else-if="!label.step">
+            <ChatSpinner :agent="agent" class="me-0.5 text-base" />
+            <span class="shrink-0 tabular-nums">{{ elapsed }}</span>
+            <span v-if="tokens" class="shrink-0 tabular-nums">· {{ tokens }}</span>
+            <template v-if="label.text">
+              <span class="shrink-0">·</span>
+              <span class="min-w-0 truncate" :class="{ 'text-shimmer': label.shimmer }">{{ label.text }}</span>
+            </template>
+          </template>
           <template v-else>
             <ChatSpinner :agent="agent" class="me-0.5 text-base" />
             <span class="shrink-0" :class="{ 'text-shimmer': label.shimmer }">{{ label.text }}</span>
-          </template>
-          <span v-if="label.name" class="min-w-0 truncate text-content">{{ label.name }}</span>
-          <template v-if="!label.waiting">
+            <span v-if="label.name" class="min-w-0 truncate text-content">{{ label.name }}</span>
             <span class="shrink-0 text-xs tabular-nums">{{ elapsed }}</span>
-            <span v-if="background" class="min-w-0 truncate text-xs">· {{ t('chat.backgroundTasks', { n: background }, background) }}</span>
           </template>
+          <span v-if="background && !label.waiting" class="min-w-0 truncate text-xs">· {{ t('chat.backgroundTasks', { n: background }, background) }}</span>
         </template>
         <span v-else class="min-w-0 truncate">
           <template v-for="(segment, index) in summary.segments" :key="index">

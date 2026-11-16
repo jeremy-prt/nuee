@@ -426,6 +426,15 @@ html[data-mode='light'] {
   }
 }
 
+/* Réponse en cours d'écriture : chaque nouveau bloc (paragraphe, liste, code) entre en fondu, comme T3 Code. Seuls
+   les blocs créés pendant l'écriture le jouent, pas un fil rouvert. */
+.md-live > * {
+  transition: opacity var(--motion-launch) var(--motion-ease);
+  @starting-style {
+    opacity: 0;
+  }
+}
+
 /* Texte d'une note (NotesBody, Tiptap) : mêmes tailles et teintes que les réponses de l'agent, titres un cran plus
    grands puisque la note est une page. */
 .note-editor {

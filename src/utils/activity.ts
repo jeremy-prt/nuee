@@ -5,10 +5,11 @@ export type ThinkingItem = Extract<ChatItem, { kind: 'thinking' }>
 export type ActivityItem = ToolItem | ThinkingItem
 
 export type FileVerb = 'created' | 'read' | 'edited'
+export type SummaryTool = Exclude<ToolKind, 'read' | 'edit'> | 'page' | 'session'
 
 // Une partie du résumé d'une suite d'outils. `files` : opérations sur des fichiers, `name` s'il n'y en a qu'un.
 export type SummaryPart =
-  | { kind: 'count'; tool: Exclude<ToolKind, 'read' | 'edit'>; n: number; failed: number }
+  | { kind: 'count'; tool: SummaryTool; n: number; failed: number }
   | { kind: 'files'; verbs: FileVerb[]; n: number; name: string | null }
 
 export function fileVerb(item: ToolItem): FileVerb | null {
@@ -48,7 +49,8 @@ export function summarize(items: readonly ActivityItem[]) {
       } else parts.push({ kind: 'files', verbs: [verb], n: 0, name: null })
       continue
     }
-    const kind = tool.tool as Exclude<ToolKind, 'read' | 'edit'>
+    const kind = family(tool)
+    if (!kind) continue
     const part = parts.find((part) => part.kind === 'count' && part.tool === kind)
     const failed = tool.status === 'failed' ? 1 : 0
     if (part?.kind === 'count') {
@@ -80,9 +82,42 @@ export function lastStep(items: readonly ChatItem[]) {
     const verb = item.summary ? fileVerb(item) : null
     if (verb) return { doing: verb === 'created' ? 'create' : item.tool, description: null, name: fileName(item.summary ?? '') }
     if (item.tool === 'agent') return { doing: 'agent', description: null, name: null }
-    return { doing: item.tool, description: item.detail?.description ?? null, name: null }
+    // Outils de Nuée (navigateur, sessions) et chargement d'outils : leur propre libellé ; autre outil MCP : son nom.
+    const own = ownTool(item.name)
+    if (own) return { doing: item.tool, tool: own, description: item.detail?.description ?? null, name: null }
+    const mcp = item.tool === 'other' && item.name.startsWith('mcp__') ? toolName(item.name) : null
+    return { doing: item.tool, description: item.detail?.description ?? null, name: mcp }
   }
   return null
+}
+
+// Outils de Nuée qui ont un libellé sous `chat.activity.tools`, rangés par famille pour le résumé.
+const PAGE_TOOLS = new Set([
+  'navigate', 'computer', 'find', 'form_input', 'get_page_text', 'read_page', 'inspect', 'javascript_tool', 'read_console_messages',
+  'read_network_requests', 'preview_start', 'preview_stop', 'preview_logs', 'preview_list', 'resize_window', 'scroll', 'browser_batch',
+  'tabs_create', 'tabs_close', 'tabs_select', 'tabs_context', 'cursor',
+])
+const SESSION_TOOLS = new Set(['list_sessions', 'read_session', 'start_session', 'send_message', 'rename_session', 'archive_session'])
+
+// Clé de libellé d'un outil connu de Nuée ; ToolSearch est le chargement des outils différés par Claude Code.
+export function ownTool(name: string) {
+  if (name === 'ToolSearch') return 'toolSearch'
+  const own = name.startsWith('mcp__nuee__') ? name.slice(11) : null
+  return own && (PAGE_TOOLS.has(own) || SESSION_TOOLS.has(own)) ? own : null
+}
+
+// Famille d'un outil dans le résumé : page, session, ou rien pour le chargement d'outils (sans intérêt une fois fait).
+function family(item: ToolItem): SummaryTool | null {
+  if (item.name === 'ToolSearch') return null
+  const own = item.name.startsWith('mcp__nuee__') ? item.name.slice(11) : ''
+  if (PAGE_TOOLS.has(own)) return 'page'
+  if (SESSION_TOOLS.has(own)) return 'session'
+  return item.tool as SummaryTool
+}
+
+// Libellé d'une étape : celui de l'outil de Nuée, sinon le verbe de son genre.
+export function stepKey(step: { doing: string; tool?: string }) {
+  return step.tool ? `chat.activity.tools.${step.tool}` : `chat.activity.doing.${step.doing}`
 }
 
 // Lignes ajoutées et retirées sur toute la session : enregistrées avec elle pour la liste des sessions.

@@ -508,6 +508,11 @@ pub enum AgentEvent {
     TurnStart,
     /// La réponse est complète. L'agent range encore son tour (résumé, hooks) avant `turnEnd`.
     Answered,
+    /// Jetons de sortie du tour, réflexion comprise : estimés pendant l'écriture, recalés sur le compte de l'agent à la
+    /// fin de chaque message. Pour la ligne vivante, comme le compteur de Claude Code.
+    Tokens {
+        output: u32,
+    },
     /// Durée de vie, en secondes, du cache de prompt que le tour vient d'écrire : 1 h sur abonnement, 5 min avec une
     /// clé d'API. Absent quand le tour n'a rien écrit en cache.
     Cache {

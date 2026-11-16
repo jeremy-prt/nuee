@@ -152,6 +152,8 @@ export interface Conversation {
   // Dernier événement reçu : une réflexion commence là, son texte n'arrive qu'à la fin.
   activeAt: number
   thinkingAt: number
+  // Jetons de sortie du tour en cours (estimés par l'agent pendant l'écriture), pour la ligne vivante.
+  tokens: number
   // Temps passé à attendre une réponse à une demande d'autorisation : il ne compte pas dans la durée.
   pausedMs: number
   pausedAt: number | null
@@ -425,6 +427,7 @@ function apply(conversation: Conversation, events: AgentEvent[]) {
         conversation.phase = 'answering'
         conversation.startedAt = performance.now()
         conversation.activeAt = conversation.startedAt
+        conversation.tokens = 0
         conversation.pausedMs = 0
         conversation.pausedAt = null
         const done = items[lastIndex(items, (item) => item.kind === 'tool' && !!item.task?.background && item.task.status !== 'running')]
@@ -433,6 +436,9 @@ function apply(conversation: Conversation, events: AgentEvent[]) {
         break
       case 'cache':
         conversation.cacheUntil = Date.now() + event.ttl * 1000
+        break
+      case 'tokens':
+        conversation.tokens = event.output
         break
       case 'answered': {
         if (conversation.phase !== 'answering') break
@@ -517,6 +523,7 @@ export const useConversationsStore = defineStore('conversations', () => {
       startedAt: 0,
       activeAt: 0,
       thinkingAt: 0,
+      tokens: 0,
       pausedMs: 0,
       pausedAt: null,
       queue: [],
@@ -685,6 +692,7 @@ export const useConversationsStore = defineStore('conversations', () => {
     conversation.phase = 'answering'
     conversation.startedAt = performance.now()
     conversation.activeAt = conversation.startedAt
+    conversation.tokens = 0
     conversation.pausedMs = 0
     conversation.pausedAt = null
     try {

@@ -41,6 +41,11 @@ pub struct Claude {
     auth_failed: bool,
     /// Compaction ratée : la CLI le redit ensuite dans un message à elle (« Compaction canceled. »).
     compact_failed: bool,
+    /// Jetons de sortie des messages finis du tour, puis caractères reçus du message en cours (4 par jeton environ) :
+    /// la CLI ne donne le vrai compte qu'à la fin de chaque message.
+    turn_tokens: u32,
+    message_chars: u32,
+    tokens_sent: u32,
 }
 
 impl Claude {
@@ -52,13 +57,37 @@ impl Claude {
             streamed: HashSet::new(),
             auth_failed: false,
             compact_failed: false,
+            turn_tokens: 0,
+            message_chars: 0,
+            tokens_sent: 0,
+        }
+    }
+
+    // Une mise à jour tous les 10 jetons environ : assez pour voir le compte monter, sans un événement par morceau.
+    fn count(&mut self, chars: usize, events: &mut Vec<AgentEvent>) {
+        self.message_chars = self.message_chars.saturating_add(chars as u32);
+        let estimate = self.turn_tokens + self.message_chars / 4;
+        if estimate >= self.tokens_sent + 10 {
+            self.tokens_sent = estimate;
+            events.push(AgentEvent::Tokens { output: estimate });
         }
     }
 
     fn stream_event(&mut self, event: &Value, events: &mut Vec<AgentEvent>) {
+        if event["type"] == "message_delta"
+            && let Some(output) = event["usage"]["output_tokens"].as_u64()
+        {
+            self.turn_tokens = self.turn_tokens.saturating_add(output as u32);
+            self.message_chars = 0;
+            self.tokens_sent = self.turn_tokens;
+            events.push(AgentEvent::Tokens {
+                output: self.turn_tokens,
+            });
+        }
         match event["type"].as_str() {
             Some("message_start") => {
                 self.message_id = str_of(&event["message"]["id"]).to_owned();
+                self.message_chars = 0;
             }
             Some("content_block_start") if is_tool(&event["content_block"]) => {
                 let name = str_of(&event["content_block"]["name"]);
@@ -78,7 +107,11 @@ impl Claude {
             {
                 events.push(AgentEvent::Answered);
             }
+            Some("content_block_delta") if event["delta"]["type"] == "input_json_delta" => {
+                self.count(str_of(&event["delta"]["partial_json"]).len(), events);
+            }
             Some("content_block_delta") if event["delta"]["type"] == "text_delta" => {
+                self.count(str_of(&event["delta"]["text"]).len(), events);
                 self.streamed.insert(self.message_id.clone());
                 events.push(AgentEvent::Text {
                     id: format!("{}:{}", self.message_id, event["index"]),
@@ -86,6 +119,7 @@ impl Claude {
                 });
             }
             Some("content_block_delta") if event["delta"]["type"] == "thinking_delta" => {
+                self.count(str_of(&event["delta"]["thinking"]).len(), events);
                 self.streamed.insert(self.message_id.clone());
                 events.push(AgentEvent::Thinking {
                     id: format!("{}:{}", self.message_id, event["index"]),
@@ -285,6 +319,9 @@ impl Claude {
     }
 
     fn result(&mut self, line: &Value, events: &mut Vec<AgentEvent>) {
+        self.turn_tokens = 0;
+        self.message_chars = 0;
+        self.tokens_sent = 0;
         let failed = line["is_error"].as_bool().unwrap_or(false) || line["subtype"] != "success";
         let status = match (failed, self.auth_failed) {
             (false, _) => TurnStatus::Completed,
@@ -1749,6 +1786,28 @@ mod tests {
         let (id, response) = claude.control_response(refused).unwrap();
         claude.read_rewind(&id, response, &mut rewind).unwrap();
         assert_eq!(rewind.files_error.as_deref(), Some("No checkpoint"));
+    }
+
+    #[test]
+    fn output_tokens_are_estimated_then_counted_per_turn() {
+        let text = "x".repeat(200);
+        let (_, events) = parse(&[
+            r#"{"type":"stream_event","event":{"type":"message_start","message":{"id":"m1"}}}"#,
+            &format!(
+                r#"{{"type":"stream_event","event":{{"type":"content_block_delta","index":0,"delta":{{"type":"text_delta","text":"{text}"}}}}}}"#
+            ),
+            r#"{"type":"stream_event","event":{"type":"message_delta","delta":{"stop_reason":"tool_use"},"usage":{"output_tokens":42}}}"#,
+            r#"{"type":"stream_event","event":{"type":"message_start","message":{"id":"m2"}}}"#,
+            r#"{"type":"stream_event","event":{"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":8}}}"#,
+        ]);
+        let tokens: Vec<u32> = events
+            .iter()
+            .filter_map(|event| match event {
+                AgentEvent::Tokens { output } => Some(*output),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(tokens, vec![50, 42, 50]);
     }
 
     #[test]

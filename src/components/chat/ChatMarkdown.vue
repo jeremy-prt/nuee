@@ -186,5 +186,5 @@ const Rendered = () => {
 
 <template>
   <!-- Sans marge en tête ni en fin, la ligne copier est à la même distance du texte que sous une bulle. -->
-  <div class="text-sm leading-relaxed break-words select-text [&_li>:first-child]:mt-0 [&_li>:last-child]:mb-0 [&>:first-child]:mt-0 [&>:last-child]:mb-0"><Rendered /></div>
+  <div class="text-sm leading-relaxed break-words select-text [&_li>:first-child]:mt-0 [&_li>:last-child]:mb-0 [&>:first-child]:mt-0 [&>:last-child]:mb-0" :class="{ 'md-live': streaming }"><Rendered /></div>
 </template>
