@@ -6,11 +6,11 @@ import UiTooltip from '@/components/ui/UiTooltip.vue'
 // loading : l'icône laisse place à l'indicateur, le bouton ne peut pas être relancé.
 // inner : posé sur une ligne qui peut être surlignée, son survol passe au cran au-dessus (selection-inner).
 defineOptions({ inheritAttrs: false })
-defineProps<{ label: string; shortcut?: string; active?: boolean; loading?: boolean; disabled?: boolean; inner?: boolean; align?: 'start' | 'center' | 'end' }>()
+defineProps<{ label: string; shortcut?: string; active?: boolean; loading?: boolean; disabled?: boolean; inner?: boolean; align?: 'start' | 'center' | 'end'; hint?: string }>()
 </script>
 
 <template>
-  <UiTooltip :label="label" :shortcut="shortcut" :align="align">
+  <UiTooltip :label="label" :shortcut="shortcut" :align="align" :hint="hint">
     <button
       v-bind="$attrs"
       type="button"

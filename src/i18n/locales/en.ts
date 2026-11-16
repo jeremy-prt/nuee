@@ -527,8 +527,9 @@ export default {
       tokens: '{before} → {after} tokens',
     },
     fork: {
-      action: "Fork from this message",
-      title: "{title} (fork)",
+      action: "Duplicate from here",
+      hint: "Starts a new session from this point. This one stays as it is.",
+      title: "{title} (copy)",
     },
     rewind: {
       action: 'Go back to this message',

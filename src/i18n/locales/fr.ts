@@ -529,8 +529,9 @@ export default {
       tokens: '{before} → {after} tokens',
     },
     fork: {
-      action: "Bifurquer depuis ce message",
-      title: "{title} (bifurcation)",
+      action: "Dupliquer à partir d'ici",
+      hint: "Démarre une nouvelle session à partir de ce point. Celle-ci reste telle quelle.",
+      title: "{title} (copie)",
     },
     rewind: {
       action: 'Revenir à ce message',

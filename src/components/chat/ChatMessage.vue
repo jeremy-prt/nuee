@@ -142,7 +142,7 @@ watch(signedIn, async (now) => {
         {{ sent(item.at) }}
       </time>
       <ChatCopyButton :text="() => item.kind === 'user' ? item.text : ''" :label="t('chat.copy.message')" align="end" />
-      <UiIconButton v-if="rewindable" :label="t('chat.fork.action')" align="end" @click="emit('fork')">
+      <UiIconButton v-if="rewindable" :label="t('chat.fork.action')" :hint="t('chat.fork.hint')" align="end" @click="emit('fork')">
         <GitFork class="size-3.5" aria-hidden="true" />
       </UiIconButton>
       <UiIconButton v-if="rewindable" :label="t('chat.rewind.action')" align="end" @click="emit('rewind')">

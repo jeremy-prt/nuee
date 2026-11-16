@@ -529,8 +529,9 @@ export default {
       tokens: '{before} → {after} トークン',
     },
     fork: {
-      action: "このメッセージから分岐",
-      title: "{title}（分岐）",
+      action: "ここから複製",
+      hint: "この時点から新しいセッションを開始します。このセッションはそのまま残ります。",
+      title: "{title}（コピー）",
     },
     rewind: {
       action: 'このメッセージに戻る',

@@ -17,6 +17,8 @@ const props = withDefaults(
     shortcut?: string
     side?: Side
     sideOffset?: number
+    // Phrase d'aide sous le libellé, plus discrète.
+    hint?: string
     // `end` : bouton collé au bord droit de la conversation, l'infobulle s'ouvre vers l'intérieur (la page native du
     // Navigateur, à droite, la couperait).
     align?: 'start' | 'center' | 'end'
@@ -53,7 +55,7 @@ function setOpen(value: boolean) {
         :collision-padding="8"
         class="ui-tip z-50 flex max-w-80 items-center gap-3 rounded-md px-2 py-1 text-xs leading-4 font-medium text-content select-none"
       >
-        <span class="min-w-0 break-words">{{ label }}</span>
+        <span class="min-w-0 break-words">{{ label }}<span v-if="hint" class="mt-0.5 block font-normal text-muted">{{ hint }}</span></span>
         <kbd v-if="shortcut" class="ms-auto shrink-0 font-sans font-normal tracking-wide text-muted">{{ shortcut }}</kbd>
       </TooltipContent>
     </TooltipPortal>

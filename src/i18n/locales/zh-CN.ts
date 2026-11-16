@@ -529,8 +529,9 @@ export default {
       tokens: '{before} → {after} token',
     },
     fork: {
-      action: "从此消息分叉",
-      title: "{title}（分叉）",
+      action: "从此处复制",
+      hint: "从此处开始一个新会话。当前会话保持不变。",
+      title: "{title}（副本）",
     },
     rewind: {
       action: '回到这条消息',
