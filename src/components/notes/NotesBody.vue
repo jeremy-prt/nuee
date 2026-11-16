@@ -102,6 +102,17 @@ const editor = useEditor({
       autocorrect: 'off',
       autocapitalize: 'off',
     },
+    // ⌘C d'une sélection : du markdown en texte, comme le bouton Copier, pour que les images gardent leur chemin
+    // (lisible par un agent du même Mac) au lieu de disparaître du texte collé ailleurs.
+    clipboardTextSerializer: (slice) => {
+      const content = slice.content.toJSON() ?? []
+      const blocks = content.some((node: { type: string }) => node.type === 'text') ? [{ type: 'paragraph', content }] : content
+      try {
+        return clean(editor.value?.storage.markdown.manager.serialize({ type: 'doc', content: blocks }) ?? '')
+      } catch {
+        return slice.content.textBetween(0, slice.content.size, '\n\n')
+      }
+    },
     handlePaste: (_view, event) => {
       const files = [...(event.clipboardData?.files ?? [])].filter((file) => file.type.startsWith('image/'))
       if (!files.length) return false
