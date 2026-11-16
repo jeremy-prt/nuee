@@ -90,7 +90,7 @@ async fn run(
             return Err(fail("`question` et 1 ou 2 `options` attendus"));
         }
         return Ok(vec![text(
-            "The card is shown to the user. End your turn now without more text: never mention the card or its options, their choice arrives as their next message.",
+            "The card will show under your reply. Now write your final reply and end the turn: never mention the card, its question or its options, their choice arrives as their next message.",
         )]);
     }
     if name == "update_plan" {
@@ -1060,15 +1060,17 @@ rename_session and archive_session tidy them (archive only when the user asks or
 A session you started reports back here when it finishes a turn: do not poll it. \
 The user already sees each session you start as a Task card in this conversation, and each report as a \"Message from\" line followed by its text: \
 never announce a launch, never quote a session id, never repeat or summarize a report. After a report, write only what it changes for the user \
-(the answer they asked for if it is new to them, a problem, the next step) in one short sentence, or nothing if the work simply goes on.";
+(the answer they asked for if it is new to them, a problem, the next step) in one short sentence; if the work simply goes on, say so in a few words \
+(a turn whose last message has no text gets re-prompted).";
 
 const PLAN_INSTRUCTIONS: &str = "\n\nPlan: for any task of three steps or more, call update_plan first with the whole list (one step \
 in_progress), then again each time a step starts or ends, with the whole list. The user sees it as a live checklist: do not also \
 write the plan as a list in your reply.";
 
 const PROPOSE_INSTRUCTIONS: &str = "\n\nNext step: when a turn ends with a real decision for the user (a choice of approach, a go-ahead \
-to apply, commit or publish), call propose_next last with a short recap, the question and one or two replies, then end the turn. \
-Never for a plain answer, never every turn, and do not repeat the question in your reply.";
+to apply, commit or publish), call propose_next with a short recap, the question and one or two replies, then write your reply after it and end the turn \
+(the card always shows under the reply; a turn whose last message has no text gets re-prompted). Never for a plain answer, never every turn, \
+and do not repeat the question in your reply.";
 
 const VERIFY_INSTRUCTIONS: &str = "\n\nWhen to verify: once the project has a dev server in .claude/launch.json (preview_list shows it), after editing code \
 whose result the browser can show (something the dev server renders, serves or logs), verify it yourself before you reply and share proof; \
@@ -1101,7 +1103,7 @@ fn tool_list() -> Vec<Value> {
         ),
         tool(
             "propose_next",
-            "At the end of a turn that leaves the user a decision, show it as a card with one-click answers. Call it last, then end the turn.",
+            "At the end of a turn that leaves the user a decision, show it as a card with one-click answers. Call it just before your final reply.",
             json!({
                 "recap": { "type": "string", "description": "What is now true, in one or two short sentences, in the user's language." },
                 "question": { "type": "string", "description": "The one decision left to the user, short, in the user's language." },
