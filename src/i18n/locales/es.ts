@@ -444,7 +444,8 @@ export default {
       steer: 'Añadir a la respuesta en curso',
       send: 'Enviar ahora',
       remove: 'Quitar de la cola',
-      steered: 'Añadido durante la respuesta',
+      steeredPending: "Enviado",
+      steeredRead: "Leído",
     },
     limitSoon: {
       weekly: "Límite de uso semanal casi alcanzado",

@@ -132,6 +132,7 @@ import StopIcon from '@hugeicons/core-free-icons/StopIcon'
 import Sun03Icon from '@hugeicons/core-free-icons/Sun03Icon'
 import Tablet01Icon from '@hugeicons/core-free-icons/Tablet01Icon'
 import Tick02Icon from '@hugeicons/core-free-icons/Tick02Icon'
+import TickDouble02Icon from '@hugeicons/core-free-icons/TickDouble02Icon'
 import Typescript01Icon from '@hugeicons/core-free-icons/Typescript01Icon'
 import UnavailableIcon from '@hugeicons/core-free-icons/UnavailableIcon'
 import UndoIcon from '@hugeicons/core-free-icons/UndoIcon'
@@ -219,6 +220,7 @@ export const Bot = icon(BotIcon)
 export const Brain = icon(BrainIcon)
 export const CalendarAdd = icon(CalendarAdd01Icon)
 export const Check = icon(Tick02Icon)
+export const CheckDouble = icon(TickDouble02Icon)
 export const ChevronDown = icon(ChevronDownGlyph)
 export const ChevronLeft = icon(ChevronLeftGlyph)
 export const ChevronRight = icon(ChevronRightGlyph)

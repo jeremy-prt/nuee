@@ -444,7 +444,8 @@ export default {
       steer: '添加到当前回答',
       send: '立即发送',
       remove: '从队列中移除',
-      steered: '回答期间添加',
+      steeredPending: "已发送",
+      steeredRead: "已读",
     },
     limitSoon: {
       weekly: "每周使用上限即将用尽",

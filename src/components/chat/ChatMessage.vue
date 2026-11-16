@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CircleAlert, CornerDownRight, File, Folder, NotebookPen, Orchestra, TriangleAlert, Undo } from '@/components/ui/icons'
+import { Check, CheckDouble, CircleAlert, File, Folder, NotebookPen, Orchestra, TriangleAlert, Undo } from '@/components/ui/icons'
 import { computed, nextTick, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AgentLogin from '@/components/agent/AgentLogin.vue'
@@ -43,6 +43,8 @@ const props = defineProps<{
   // Dernière fin de tour, sans tour en cours : une connexion manquante s'y règle et le message repart.
   latest?: boolean
 }>()
+// Hors d'un tour en cours, un message ajouté sans identifiant (ancien historique) passe pour lu.
+const steerPending = computed(() => props.item.kind === 'user' && !!props.item.steered && !props.item.agentId && props.running)
 const emit = defineEmits<{ rewind: []; resend: [] }>()
 
 // Id de la session lancée, tiré de la réponse de `start_session` (`stores/operator.ts`).
@@ -108,13 +110,16 @@ watch(signedIn, async (now) => {
     </ul>
     <p
       v-if="item.text"
-      class="max-w-[85%] rounded-xl bg-selection px-3 py-2 text-sm whitespace-pre-wrap break-words select-text"
+      class="max-w-[85%] rounded-xl bg-selection px-3 py-2 text-sm whitespace-pre-wrap break-words select-text transition-opacity motion-reduce:transition-none"
+      :class="{ 'opacity-60': steerPending }"
     ><ChatPromptText :text="item.text" /></p>
     <p v-if="item.orchestra" class="flex items-center gap-1 text-[11px] text-violet" :title="t('composer.orchestra.sent')">
       <Orchestra class="size-3" aria-hidden="true" />{{ t('composer.orchestra.label') }}
     </p>
-    <p v-if="item.steered" class="flex items-center gap-1 text-[11px] text-muted">
-      <CornerDownRight class="size-3" aria-hidden="true" />{{ t('chat.queue.steered') }}
+    <!-- La CLI renvoie le message ajouté quand l'agent le lit vraiment, pas à l'envoi : son identifiant arrive alors. -->
+    <p v-if="item.steered" class="flex items-center gap-1 text-[11px] text-muted" role="status">
+      <template v-if="steerPending"><Check class="size-3" aria-hidden="true" />{{ t('chat.queue.steeredPending') }}</template>
+      <template v-else><CheckDouble class="size-3" aria-hidden="true" />{{ t('chat.queue.steeredRead') }}</template>
     </p>
     <div
       v-if="item.text"

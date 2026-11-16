@@ -444,7 +444,8 @@ export default {
       steer: '進行中の回答に追加',
       send: '今すぐ送信',
       remove: 'キューから削除',
-      steered: '回答中に追加',
+      steeredPending: "送信済み",
+      steeredRead: "既読",
     },
     limitSoon: {
       weekly: "週間の使用上限に近づいています",

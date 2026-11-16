@@ -444,7 +444,8 @@ export default {
       steer: 'Ajouter à la réponse en cours',
       send: 'Envoyer maintenant',
       remove: 'Retirer de la file',
-      steered: 'Ajouté pendant la réponse',
+      steeredPending: "Envoyé",
+      steeredRead: "Lu",
     },
     limitSoon: {
       weekly: "Limite d'utilisation hebdomadaire bientôt atteinte",

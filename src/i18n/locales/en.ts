@@ -442,7 +442,8 @@ export default {
       steer: 'Add to the current answer',
       send: 'Send now',
       remove: 'Remove from the queue',
-      steered: 'Added during the answer',
+      steeredPending: "Sent",
+      steeredRead: "Read",
     },
     limitSoon: {
       weekly: "Weekly usage limit almost reached",
