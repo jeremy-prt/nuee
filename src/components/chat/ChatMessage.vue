@@ -18,6 +18,7 @@ import ChatTool from '@/components/chat/ChatTool.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiImagePreview from '@/components/ui/UiImagePreview.vue'
+import { useSmoothText } from '@/composables/useSmoothText'
 import { previewSrc } from '@/ipc/attachment'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import { useAgentsStore } from '@/stores/agents'
@@ -50,6 +51,7 @@ function sent(at: number) {
   const since = formatSince(at, now.value, locale.value)
   return since.charAt(0).toLocaleUpperCase(locale.value) + since.slice(1)
 }
+const smooth = useSmoothText(() => (props.item.kind === 'text' ? props.item.text : ''), () => props.streaming)
 // Hors d'un tour en cours, un message ajouté sans identifiant (ancien historique) passe pour lu.
 const steerPending = computed(() => props.item.kind === 'user' && !!props.item.steered && !props.item.agentId && props.running)
 const emit = defineEmits<{ rewind: []; resend: [] }>()
@@ -145,7 +147,7 @@ watch(signedIn, async (now) => {
       </UiIconButton>
     </div>
   </template>
-  <ChatMarkdown v-else-if="item.kind === 'text'" :text="item.text" :streaming="streaming" :runs="item.id" />
+  <ChatMarkdown v-else-if="item.kind === 'text'" :text="smooth.text.value" :streaming="streaming || smooth.revealing.value" :runs="item.id" />
   <ChatQuestionRecord v-else-if="item.kind === 'tool' && item.answers" :answers="item.answers" />
   <ChatSubagent v-else-if="item.kind === 'tool' && item.tool === 'agent'" class="-mx-2 text-sm" :item="item" :agent="agent" />
   <ChatTool v-else-if="item.kind === 'tool'" class="-mx-2 text-sm" :item="item" />
