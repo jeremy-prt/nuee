@@ -444,8 +444,7 @@ export default {
       label: "Affichage du SVG",
       alt: "Image SVG",
       copy: "Copier le SVG",
-      copyPng: "Copier en PNG",
-      copiedPng: "Image copiée",
+      copyImage: "Copier l'image",
       copyFailed: "Copie de l'image impossible",
     },
     queue: {

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { HoverCardContent, HoverCardPortal, HoverCardRoot, HoverCardTrigger } from 'reka-ui'
+import { ref } from 'vue'
+import ChatImageMenu from '@/components/chat/ChatImageMenu.vue'
 import UiImagePreview from '@/components/ui/UiImagePreview.vue'
 import { previewSrc } from '@/ipc/attachment'
 
@@ -8,15 +10,20 @@ import { previewSrc } from '@/ipc/attachment'
 // vignette.
 defineOptions({ inheritAttrs: false })
 defineProps<{ path: string; alt: string; caption: string }>()
+// Le grand aperçu du survol se range pendant le menu du clic droit, qu'il recouvrirait.
+const hover = ref(false)
+const menu = ref(false)
 </script>
 
 <template>
-  <HoverCardRoot :open-delay="300" :close-delay="100">
+  <HoverCardRoot :open="hover && !menu" :open-delay="300" :close-delay="100" @update:open="hover = $event">
     <HoverCardTrigger as-child>
       <span v-bind="$attrs" class="inline-flex shrink-0">
-        <UiImagePreview :src="previewSrc(path)" :alt="alt">
-          <img :src="previewSrc(path)" :alt="alt" class="h-6 w-10 rounded border border-stroke object-cover" />
-        </UiImagePreview>
+        <ChatImageMenu :src="previewSrc(path)" class="flex" @update:open="menu = $event">
+          <UiImagePreview :src="previewSrc(path)" :alt="alt">
+            <img :src="previewSrc(path)" :alt="alt" class="h-6 w-10 rounded border border-stroke object-cover" />
+          </UiImagePreview>
+        </ChatImageMenu>
       </span>
     </HoverCardTrigger>
     <HoverCardPortal>

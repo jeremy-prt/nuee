@@ -1,6 +1,8 @@
 import { getVersion } from '@tauri-apps/api/app'
 import { homeDir } from '@tauri-apps/api/path'
 import { invoke, isTauri } from '@tauri-apps/api/core'
+import { Image } from '@tauri-apps/api/image'
+import { writeImage } from '@tauri-apps/plugin-clipboard-manager'
 import { openUrl } from '@tauri-apps/plugin-opener'
 
 export function systemLocales() {
@@ -19,6 +21,16 @@ export function openGithubPage(url: string) {
 // Navigateur par défaut, http(s) seulement (vérifié par Rust).
 export function openWebLink(url: string) {
   return invoke<void>('system_open_link', { url })
+}
+
+// Presse-papiers natif : celui de WebKit refuse une image écrite depuis un menu (hors du geste du clic), sans erreur.
+export async function copyImagePixels(rgba: Uint8Array, width: number, height: number) {
+  const image = await Image.new(rgba, width, height)
+  try {
+    await writeImage(image)
+  } finally {
+    await image.close()
+  }
 }
 
 export function isTauriApp() {

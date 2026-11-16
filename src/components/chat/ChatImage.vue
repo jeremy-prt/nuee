@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { inject, ref, watch } from 'vue'
+import ChatImageMenu from '@/components/chat/ChatImageMenu.vue'
 import UiImagePreview from '@/components/ui/UiImagePreview.vue'
 import { filesRead } from '@/ipc/files'
 import { codeRunPlaceKey } from '@/stores/codeRuns'
@@ -10,6 +11,7 @@ import { codeRunPlaceKey } from '@/stores/codeRuns'
 const props = defineProps<{ src: string; alt: string }>()
 const context = inject(codeRunPlaceKey, null)
 const shown = ref<string | null>(null)
+const svg = ref<string | null>(null)
 
 function relative(src: string) {
   const place = context?.value.place
@@ -21,6 +23,7 @@ function relative(src: string) {
 
 async function load(src: string) {
   shown.value = null
+  svg.value = null
   if (/^data:image\//.test(src)) return void (shown.value = src)
   if (/^[a-z]+:/i.test(src) && !src.startsWith('file:')) return
   const file = relative(src)
@@ -29,7 +32,10 @@ async function load(src: string) {
   try {
     const { body } = await filesRead({ chatId: context.value.chatId, path: place.cwd, worktree: place.worktree ? place.worktreePath : null }, file)
     if (body.kind === 'image') shown.value = body.data
-    else if (body.kind === 'text' && /\.svg$/i.test(file)) shown.value = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(body.text)}`
+    else if (body.kind === 'text' && /\.svg$/i.test(file)) {
+      svg.value = body.text
+      shown.value = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(body.text)}`
+    }
   } catch {
     // Fichier absent ou hors du dossier : la légende reste.
   }
@@ -38,8 +44,10 @@ watch(() => props.src, load, { immediate: true })
 </script>
 
 <template>
-  <UiImagePreview v-if="shown" :src="shown" :alt="alt || src" class="my-2 inline-block">
-    <img :src="shown" :alt="alt" class="max-h-80 max-w-full rounded-lg border border-stroke bg-white/5 object-contain" />
-  </UiImagePreview>
+  <ChatImageMenu v-if="shown" :src="shown" :svg="svg ?? undefined" class="my-2 inline-block">
+    <UiImagePreview :src="shown" :alt="alt || src">
+      <img :src="shown" :alt="alt" class="max-h-80 max-w-full rounded-lg border border-stroke bg-white/5 object-contain" />
+    </UiImagePreview>
+  </ChatImageMenu>
   <span v-else :title="src">{{ alt || src }}</span>
 </template>

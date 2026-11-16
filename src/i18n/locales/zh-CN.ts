@@ -444,8 +444,7 @@ export default {
       label: "SVG 显示",
       alt: "SVG 图像",
       copy: "复制 SVG",
-      copyPng: "复制为 PNG",
-      copiedPng: "图像已复制",
+      copyImage: "复制图像",
       copyFailed: "无法复制图像",
     },
     queue: {

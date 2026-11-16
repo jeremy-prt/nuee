@@ -444,8 +444,7 @@ export default {
       label: "SVG の表示",
       alt: "SVG 画像",
       copy: "SVG をコピー",
-      copyPng: "PNG としてコピー",
-      copiedPng: "画像をコピーしました",
+      copyImage: "画像をコピー",
       copyFailed: "画像をコピーできません",
     },
     queue: {
