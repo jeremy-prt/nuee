@@ -438,6 +438,16 @@ export default {
     },
     fromSession: { message: '{title} からメッセージを受信', started: '{title} から {agent} が開始', task: 'タスク', showTask: 'タスクを表示', show: 'メッセージを表示', more: 'もっと見る', less: '閉じる' },
     earlier: '以前のメッセージ {n} 件を表示',
+    svg: {
+      preview: "プレビュー",
+      code: "コード",
+      label: "SVG の表示",
+      alt: "SVG 画像",
+      copy: "SVG をコピー",
+      copyPng: "PNG としてコピー",
+      copiedPng: "画像をコピーしました",
+      copyFailed: "画像をコピーできません",
+    },
     queue: {
       label: '待機中のメッセージ',
       waiting: '待機中',

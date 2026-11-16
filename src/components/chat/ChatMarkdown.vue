@@ -2,7 +2,9 @@
 import { Lexer, type Token, type Tokens } from 'marked'
 import { computed, h, type VNodeChild } from 'vue'
 import ChatCodeBlock from '@/components/chat/ChatCodeBlock.vue'
+import ChatImage from '@/components/chat/ChatImage.vue'
 import ChatSkillResult from '@/components/chat/ChatSkillResult.vue'
+import ChatSvgBlock from '@/components/chat/ChatSvgBlock.vue'
 import { openWebLink } from '@/ipc/system'
 import { useBrowserStore } from '@/stores/browser'
 import { parseSkillResult } from '@/utils/skillResult'
@@ -54,6 +56,7 @@ function block(token: Token): VNodeChild {
       }
       // Rang du bloc dans la réponse : sa sortie, s'il est lancé, reste attachée à lui.
       const block = props.runs && !props.streaming ? `${props.runs}:${codeIndex++}` : undefined
+      if (code.lang === 'svg' && !props.streaming && /^\s*(<\?xml[^>]*>\s*)?<svg[\s>]/.test(code.text)) return h(ChatSvgBlock, { code: code.text, block })
       return h(ChatCodeBlock, { code: code.text, lang: code.lang, block })
     }
     case 'blockquote':
@@ -112,8 +115,10 @@ function inline(tokens: Token[] = []): VNodeChild[] {
         }
         return h('span', { class: 'text-accent underline underline-offset-2', title: link.href }, inline(link.tokens))
       }
-      case 'image':
-        return (token as Tokens.Image).text
+      case 'image': {
+        const image = token as Tokens.Image
+        return h(ChatImage, { src: image.href, alt: image.text })
+      }
       case 'text':
       case 'escape': {
         const text = token as Tokens.Text

@@ -438,6 +438,16 @@ export default {
     },
     fromSession: { message: 'Message reçu de {title}', started: 'Démarrée par {agent} depuis {title}', task: 'Tâche', showTask: 'Afficher la tâche', show: 'Afficher le message', more: 'Afficher plus', less: 'Afficher moins' },
     earlier: 'Afficher le message précédent | Afficher les {n} messages précédents',
+    svg: {
+      preview: "Aperçu",
+      code: "Code",
+      label: "Affichage du SVG",
+      alt: "Image SVG",
+      copy: "Copier le SVG",
+      copyPng: "Copier en PNG",
+      copiedPng: "Image copiée",
+      copyFailed: "Copie de l'image impossible",
+    },
     queue: {
       label: 'Messages en attente',
       waiting: 'En attente',

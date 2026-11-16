@@ -438,6 +438,16 @@ export default {
     },
     fromSession: { message: '收到来自 {title} 的消息', started: '由 {agent} 从 {title} 启动', task: '任务', showTask: '显示任务', show: '显示消息', more: '显示更多', less: '收起' },
     earlier: '显示之前的 {n} 条消息',
+    svg: {
+      preview: "预览",
+      code: "代码",
+      label: "SVG 显示",
+      alt: "SVG 图像",
+      copy: "复制 SVG",
+      copyPng: "复制为 PNG",
+      copiedPng: "图像已复制",
+      copyFailed: "无法复制图像",
+    },
     queue: {
       label: '等待中的消息',
       waiting: '等待中',
