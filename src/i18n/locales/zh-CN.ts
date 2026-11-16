@@ -146,7 +146,9 @@ export default {
       finished: '1 个已完成任务 | {n} 个已完成任务',
       noBranch: '无分支',
       noContext: '尚未统计',
-      noTasks: '无任务',
+      changes: "更改",
+      servers: "服务器",
+      backgroundTasks: "后台任务",
       files: '1 个已更改文件 | {n} 个已更改文件',
       keepAwake: '防止休眠',
       keepAwakeHelp: "在智能体工作期间，对所有会话生效。",
@@ -158,7 +160,6 @@ export default {
       local: "本机",
       current: "当前",
       finder: "Finder",
-      running: "1 个运行中 | {n} 个运行中",
       options: "选项",
     },
     terminal: {

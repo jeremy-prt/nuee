@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Bot, ChevronRight, Layers, Square, SquareTerminal, X } from '@/components/ui/icons'
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatSpinner from '@/components/chat/ChatSpinner.vue'
 import ChatTaskOutput from '@/components/chat/ChatTaskOutput.vue'
@@ -46,6 +46,19 @@ function toggle(task: TaskState) {
 const running = computed(() => tasks.value.filter(({ task }) => task.status === 'running'))
 const done = computed(() => tasks.value.filter(({ task }) => task.status !== 'running'))
 const doneOpen = ref(true)
+// Venue d'Environnement : dépliée et montrée une fois le volet affiché.
+watch(
+  () => conversations.focusedTask,
+  async (id) => {
+    if (!id) return
+    conversations.focusedTask = null
+    opened.value = new Set([...opened.value, id])
+    if (done.value.some(({ task }) => task.id === id)) doneOpen.value = true
+    await nextTick()
+    document.querySelector(`[data-task-id="${CSS.escape(id)}"]`)?.scrollIntoView({ block: 'nearest' })
+  },
+  { immediate: true },
+)
 
 // Durée qui défile pour les tâches en cours ; l'horloge ne tourne que s'il y en a une.
 const now = ref(Date.now())
@@ -96,7 +109,7 @@ function duration(task: TaskState) {
             </button>
           </h3>
           <ul v-if="group.id === 'running' || doneOpen" class="flex flex-col gap-1.5">
-            <li v-for="{ tool, task } in group.items" :key="task.id" class="rounded-lg bg-content/4">
+            <li v-for="{ tool, task } in group.items" :key="task.id" :data-task-id="task.id" class="rounded-lg bg-content/4">
               <div class="flex min-w-0 items-center gap-1 pe-1.5">
                 <button
                   type="button"

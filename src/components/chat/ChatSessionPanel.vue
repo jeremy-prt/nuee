@@ -2,10 +2,10 @@
 import {
   Bot,
   ChevronDown,
-  CircleCheck,
   CloudDownload,
   Coffee,
   ExternalLink,
+  FileDiff,
   Folder,
   FolderOpen,
   FolderTree,
@@ -15,6 +15,7 @@ import {
   Layers,
   NoProject,
   RemoteControl,
+  Server,
   SlidersHorizontal,
   Square,
   SquareTerminal,
@@ -27,7 +28,6 @@ import ChatGitRun from '@/components/chat/ChatGitRun.vue'
 import ChatPlan from '@/components/chat/ChatPlan.vue'
 import ChatSessionSub from '@/components/chat/ChatSessionSub.vue'
 import ProjectIcon from '@/components/project/ProjectIcon.vue'
-import ServerMenu from '@/components/server/ServerMenu.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 import UiMenuItem from '@/components/ui/UiMenuItem.vue'
 import UiMenuSeparator from '@/components/ui/UiMenuSeparator.vue'
@@ -37,18 +37,22 @@ import { menuIcon, menuLabel, menuRow } from '@/components/ui/menuRow'
 import { useDockFocus } from '@/composables/useDockFocus'
 import { useGitActions } from '@/composables/useGitActions'
 import { useMachineName } from '@/composables/useMachineName'
+import { useServerSetup } from '@/composables/useServerSetup'
 import { useSessionBranch } from '@/composables/useSessionBranch'
 import { useTerminalChat } from '@/composables/useTerminalChat'
 import { isAppError } from '@/ipc/agent'
 import type { EditorApp } from '@/ipc/bindings/EditorApp'
+import type { ServerInfo } from '@/ipc/bindings/ServerInfo'
 import { filesOpenEditor } from '@/ipc/files'
 import { projectReveal } from '@/ipc/project'
 import { type TaskState, type ToolItem, useConversationsStore } from '@/stores/conversations'
+import { useBrowserStore } from '@/stores/browser'
 import { useFilesStore } from '@/stores/files'
 import { useGeneralStore } from '@/stores/general'
 import { useLayoutStore } from '@/stores/layout'
 import { useGitActionsStore } from '@/stores/gitActions'
 import { useProjectsStore } from '@/stores/projects'
+import { useServersStore } from '@/stores/servers'
 import { useSessionGitStore } from '@/stores/sessionGit'
 import { useToastsStore } from '@/stores/toasts'
 import { useWorktreesStore } from '@/stores/worktrees'
@@ -59,10 +63,10 @@ import { planOf } from '@/utils/activity'
 import { tasksOf } from '@/utils/tasks'
 
 // Résumé de la session active, sur le modèle du panneau de détails de T3 Code : en haut une ligne par action de tous
-// les jours, en bas les détails repliés.
+// les jours, en bas les sections dépliées de l'app Claude.
 const emit = defineEmits<{ close: [] }>()
 const { t, locale } = useI18n()
-const { chat } = useTerminalChat()
+const { chat, place } = useTerminalChat()
 const { phase, idle, git, changed, run, commit, push, initRepo, start, runCommit } = useGitActions()
 const STOP = '[data-git-run="session"] [data-git-stop]'
 const { focusView } = useDockFocus()
@@ -122,10 +126,16 @@ const items = computed(() => (chat.value ? (conversations.find(chat.value.id)?.i
 // Le panneau s'ouvre par-dessus le reste : ce qui mène à un volet le referme, et le clavier y suit.
 // Commits à récupérer, relus à l'ouverture du sous-menu git (fetch au plus une fois par minute).
 const behind = computed(() => (chat.value ? (sessionGit.behind[chat.value.id] ?? 0) : 0))
-function toTasks(keyboard: boolean) {
+function toTasks(keyboard: boolean, taskId: string | null = null) {
+  conversations.focusedTask = taskId
   layout.showView('tasks')
   emit('close')
   if (keyboard) focusView('tasks')
+}
+function toChanges(keyboard: boolean) {
+  layout.showView('changes')
+  emit('close')
+  if (keyboard) focusView('changes')
 }
 function checkBehind() {
   if (chat.value && project.value) sessionGit.checkBehind(chat.value.id, project.value.path)
@@ -206,6 +216,9 @@ const plan = computed(() => {
   return null
 })
 const planDone = computed(() => plan.value?.filter((step) => step.status === 'completed').length ?? 0)
+const working = computed(() => !!chat.value && conversations.working(chat.value.id))
+// Comme dans le fil : un plan fini disparaît une fois le tour terminé, une section vide n'alourdit pas le panneau.
+const planShown = computed(() => !!plan.value && (working.value || planDone.value < plan.value.length))
 const running = computed(() => tasks.value.filter(({ task }) => task.status === 'running'))
 const finished = computed(() => tasks.value.length - running.value.length)
 const taskName = (tool: ToolItem, task: TaskState) => task.description ?? tool.detail?.description ?? tool.summary ?? tool.name
@@ -222,11 +235,26 @@ watch(
 )
 onBeforeUnmount(() => clearInterval(ticker))
 
+// ===== Serveurs =====
+
+// Seuls ceux qui tournent, comme l'app Claude : les lancer reste au menu Serveurs du Navigateur.
+const servers = useServersStore()
+const browser = useBrowserStore()
+const { list: serverList } = useServerSetup()
+const liveServers = computed(() => serverList.value?.servers.filter((server) => !server.external && (server.status === 'starting' || server.status === 'running')) ?? [])
+if (chat.value && place.value) servers.refresh(chat.value.id, place.value).catch(() => {})
+function openServer(server: ServerInfo) {
+  if (!chat.value || !place.value) return
+  browser.openServer(chat.value.id, place.value, server)
+  emit('close')
+}
+
 const row = 'flex h-8 w-full min-w-0 items-center gap-2.5 rounded-lg px-2 text-start text-[13px]'
 const action = `${row} hover:bg-selection-hover focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring`
 const empty = `${row} text-muted`
 const icon = 'size-4 shrink-0 text-muted'
 const separator = 'mx-2 my-1 h-px shrink-0 bg-stroke'
+const heading = 'flex items-center gap-1.5 px-2 pt-1 pb-0.5 text-xs text-muted'
 </script>
 
 <template>
@@ -279,7 +307,6 @@ const separator = 'mx-2 my-1 h-px shrink-0 bg-stroke'
             </DropdownMenuItem>
           </template>
         </ChatSessionSub>
-        <ServerMenu row />
       </template>
     </div>
 
@@ -303,7 +330,6 @@ const separator = 'mx-2 my-1 h-px shrink-0 bg-stroke'
           <ChatSessionSub v-else :label="`${t('composer.branch.label')} ${branch ?? t('dock.session.noBranch')}`" @open="(open) => open && (loadBranches(), checkBehind())">
             <GitBranch :class="icon" aria-hidden="true" />
             <span class="min-w-0 flex-1 truncate" :class="{ 'text-muted': !branch }">{{ branch ?? t('dock.session.noBranch') }}</span>
-            <ChatDiffStat v-if="git && changed" :added="git.changes.added" :removed="git.changes.removed" plain class="text-xs" />
             <template #menu="{ keyboard }">
               <UiMenuSub v-if="canSwitch" :label="t('composer.branch.label')" :icon="GitBranch" :value="branch ?? undefined">
                 <DropdownMenuItem
@@ -355,36 +381,6 @@ const separator = 'mx-2 my-1 h-px shrink-0 bg-stroke'
         </template>
       </ChatSessionSub>
 
-      <ChatSessionSub v-if="plan" :label="t('chat.plan.title')">
-        <CircleCheck :class="icon" aria-hidden="true" />
-        <span class="min-w-0 flex-1 truncate">{{ t('chat.plan.title') }}</span>
-        <span class="text-xs text-muted tabular-nums">{{ planDone }}/{{ plan.length }}</span>
-        <template #menu>
-          <ChatPlan :steps="plan" :live="phase !== 'idle'" class="w-72 border-0! bg-transparent!" />
-        </template>
-      </ChatSessionSub>
-
-      <ChatSessionSub :label="t('dock.tasks.title')">
-        <Layers :class="icon" aria-hidden="true" />
-        <span class="min-w-0 flex-1 truncate">{{ t('dock.tasks.title') }}</span>
-        <span v-if="running.length" class="text-xs text-muted">{{ t('dock.session.running', { n: running.length }, running.length) }}</span>
-        <template #menu="{ keyboard }">
-          <!-- Comme l'app Claude : les tâches en cours avec leur durée et ■, un clic mène au volet Tâches. -->
-          <div v-for="{ tool, task } in running" :key="task.id" class="group/row flex items-center gap-1">
-            <DropdownMenuItem :text-value="taskName(tool, task)" :class="[menuRow, 'min-w-0 flex-1 py-1']" @select="toTasks(keyboard)">
-              <component :is="task.kind === 'command' ? SquareTerminal : Bot" :class="[menuIcon, 'text-muted']" aria-hidden="true" />
-              <span :class="[menuLabel, 'min-w-0 flex-1']">{{ taskName(tool, task) }}</span>
-              <span v-if="task.startedAt" class="mt-0.5 shrink-0 text-muted tabular-nums">{{ formatDuration(now - task.startedAt, locale) }}</span>
-            </DropdownMenuItem>
-            <UiIconButton :label="t('dock.tasks.stop')" class="size-6!" @click="conversations.stopTask(chat.id, task.id)">
-              <Square class="size-3" aria-hidden="true" />
-            </UiIconButton>
-          </div>
-          <UiMenuItem v-if="finished" :label="t('dock.session.finished', { n: finished }, finished)" @select="toTasks(keyboard)" />
-          <p v-if="!tasks.length" class="px-2 py-1.5 text-xs text-muted">{{ t('dock.session.noTasks') }}</p>
-        </template>
-      </ChatSessionSub>
-
       <ChatSessionSub :label="t('dock.session.options')">
         <SlidersHorizontal :class="icon" aria-hidden="true" />
         <span class="min-w-0 flex-1 truncate">{{ t('dock.session.options') }}</span>
@@ -396,6 +392,80 @@ const separator = 'mx-2 my-1 h-px shrink-0 bg-stroke'
         </template>
       </ChatSessionSub>
     </div>
+
+    <template v-if="git && changed">
+      <div :class="separator" aria-hidden="true" />
+      <section :aria-label="t('dock.session.changes')">
+        <h3 :class="heading">{{ t('dock.session.changes') }}</h3>
+        <div class="flex items-center gap-1">
+          <button type="button" :class="[action, 'flex-1']" :aria-label="`${t('dock.session.changes')} +${git.changes.added} −${git.changes.removed}`" @click="toChanges($event.detail === 0)">
+            <FileDiff :class="icon" aria-hidden="true" />
+            <ChatDiffStat :added="git.changes.added" :removed="git.changes.removed" plain class="text-xs" />
+          </button>
+          <button type="button" data-control class="h-7 shrink-0 rounded-md px-2.5 text-xs disabled:opacity-50" :disabled="commit.disabled" @click="runCommit($event.detail === 0, STOP)">
+            {{ commit.label }}
+          </button>
+        </div>
+      </section>
+    </template>
+
+    <template v-if="liveServers.length && serverList">
+      <div :class="separator" aria-hidden="true" />
+      <section :aria-label="t('dock.session.servers')">
+        <h3 :class="heading">{{ t('dock.session.servers') }}</h3>
+        <ul class="flex flex-col gap-0.5">
+          <li v-for="server in liveServers" :key="server.name" class="flex items-center gap-1">
+            <button type="button" :class="[action, 'flex-1']" @click="openServer(server)">
+              <Server :class="icon" aria-hidden="true" />
+              <span class="min-w-0 flex-1 truncate">{{ server.name }}</span>
+              <span class="shrink-0 text-xs text-muted tabular-nums">
+                {{ server.status === 'starting' ? t('dock.servers.status.starting') : `localhost:${server.activePort ?? server.port}` }}
+              </span>
+            </button>
+            <UiIconButton :label="t('dock.servers.stop')" class="size-7! shrink-0" @click="servers.stop(serverList.root, server.name)">
+              <Square class="size-3 fill-current text-danger" aria-hidden="true" />
+            </UiIconButton>
+          </li>
+        </ul>
+      </section>
+    </template>
+
+    <!-- Plan et tâches dépliés en place, comme l'app Claude (demande de Jérémy), absents tant qu'il n'y a rien. -->
+    <template v-if="plan && planShown">
+      <div :class="separator" aria-hidden="true" />
+      <section :aria-label="t('chat.plan.title')">
+        <h3 :class="heading">
+          {{ t('chat.plan.title') }}
+          <span class="tabular-nums">{{ planDone }}/{{ plan.length }}</span>
+        </h3>
+        <ChatPlan :steps="plan" :live="working" class="border-0! bg-transparent! px-2! py-1.5! text-[13px]!" />
+      </section>
+    </template>
+
+    <template v-if="running.length">
+      <div :class="separator" aria-hidden="true" />
+      <section :aria-label="t('dock.session.backgroundTasks')">
+        <h3 :class="heading">{{ t('dock.session.backgroundTasks') }}</h3>
+        <ul class="flex flex-col gap-0.5">
+          <li v-for="{ tool, task } in running" :key="task.id" class="flex items-center gap-1">
+            <button type="button" :class="[action, 'flex-1']" @click="toTasks($event.detail === 0, task.id)">
+              <component :is="task.kind === 'command' ? SquareTerminal : Bot" :class="icon" aria-hidden="true" />
+              <span class="min-w-0 flex-1 truncate">{{ taskName(tool, task) }}</span>
+              <span v-if="task.startedAt" class="shrink-0 text-xs text-muted tabular-nums">{{ formatDuration(now - task.startedAt, locale) }}</span>
+            </button>
+            <UiIconButton :label="t('dock.tasks.stop')" class="size-7! shrink-0" @click="conversations.stopTask(chat.id, task.id)">
+              <Square class="size-3 fill-current text-danger" aria-hidden="true" />
+            </UiIconButton>
+          </li>
+          <li v-if="finished">
+            <button type="button" :class="action" @click="toTasks($event.detail === 0)">
+              <Layers :class="icon" aria-hidden="true" />
+              <span class="min-w-0 flex-1 truncate text-muted">{{ t('dock.session.finished', { n: finished }, finished) }}</span>
+            </button>
+          </li>
+        </ul>
+      </section>
+    </template>
   </div>
   <p v-else class="flex flex-1 items-center justify-center p-6 text-center text-sm text-muted">{{ t('dock.session.empty') }}</p>
 </template>

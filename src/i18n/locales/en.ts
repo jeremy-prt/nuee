@@ -144,7 +144,9 @@ export default {
       finished: '1 finished task | {n} finished tasks',
       noBranch: 'No branch',
       noContext: 'Not measured yet',
-      noTasks: 'No task',
+      changes: "Changes",
+      servers: "Servers",
+      backgroundTasks: "Background tasks",
       files: '1 changed file | {n} changed files',
       keepAwake: 'Keep awake',
       keepAwakeHelp: "Applies to all sessions, while an agent is working.",
@@ -156,7 +158,6 @@ export default {
       local: "Local",
       current: "current",
       finder: "Finder",
-      running: "1 running | {n} running",
       options: "Options",
     },
     terminal: {

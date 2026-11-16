@@ -146,7 +146,9 @@ export default {
       finished: '完了したタスク 1 件 | 完了したタスク {n} 件',
       noBranch: 'ブランチなし',
       noContext: 'まだ計測されていません',
-      noTasks: 'タスクなし',
+      changes: "変更",
+      servers: "サーバー",
+      backgroundTasks: "バックグラウンドタスク",
       files: '変更されたファイル 1 件 | 変更されたファイル {n} 件',
       keepAwake: 'スリープを防止',
       keepAwakeHelp: "エージェントが作業している間、すべてのセッションに適用されます。",
@@ -158,7 +160,6 @@ export default {
       local: "ローカル",
       current: "現在",
       finder: "Finder",
-      running: "実行中 1 件 | 実行中 {n} 件",
       options: "オプション",
     },
     terminal: {

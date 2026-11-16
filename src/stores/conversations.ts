@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { computed, shallowReactive } from 'vue'
+import { computed, ref, shallowReactive } from 'vue'
 import { agentAnswer, agentApprove, agentRewind, agentSend, agentSteer, agentStop, agentStopTask, agentWarm, isAppError } from '@/ipc/agent'
 import type { AgentEvent } from '@/ipc/bindings/AgentEvent'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
@@ -936,6 +936,9 @@ export const useConversationsStore = defineStore('conversations', () => {
     agentStopTask(chatId, taskId).catch(() => {})
   }
 
+  // Tâche choisie dans Environnement : le volet Tâches la déplie et la montre, puis remet à null.
+  const focusedTask = ref<string | null>(null)
+
   // Le process reste ouvert : turnEnd arrive aussitôt avec le statut « stopped ».
   function stop(chatId: string) {
     if (conversations.get(chatId)?.phase === 'answering') agentStop(chatId).catch(() => {})
@@ -970,5 +973,5 @@ export const useConversationsStore = defineStore('conversations', () => {
     conversations.delete(chatId)
   }
 
-  return { busy, find, working, itemsOf, create, open, release, setOptions, send, sendNow, unqueue, scheduleResume, cancelResume, begin, note, warm, approve, answer, stop, stopTask, rewind, remove }
+  return { busy, find, working, itemsOf, create, open, release, setOptions, send, sendNow, unqueue, scheduleResume, cancelResume, begin, note, warm, approve, answer, stop, stopTask, focusedTask, rewind, remove }
 })

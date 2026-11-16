@@ -3,7 +3,6 @@ import { Server } from '@/components/ui/icons'
 import { DropdownMenuContent, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuTrigger } from 'reka-ui'
 import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import ChatSessionSub from '@/components/chat/ChatSessionSub.vue'
 import ServerMenuItems from '@/components/server/ServerMenuItems.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { menuPanel } from '@/components/ui/menuRow'
@@ -14,9 +13,7 @@ import type { ServerInfo } from '@/ipc/bindings/ServerInfo'
 import { useConversationsStore } from '@/stores/conversations'
 import { useServersStore } from '@/stores/servers'
 
-// Menu Serveurs de l'en-tête du volet Navigateur, comme « Dev servers » dans l'app Claude. `row` : la même chose en
-// ligne du volet Environnement, en sous-menu sur le côté.
-defineProps<{ row?: boolean }>()
+// Menu Serveurs de l'en-tête du volet Navigateur, comme « Dev servers » dans l'app Claude.
 const { t } = useI18n()
 const servers = useServersStore()
 const conversations = useConversationsStore()
@@ -56,17 +53,7 @@ function onCloseAutoFocus(event: Event) {
 </script>
 
 <template>
-  <ChatSessionSub v-if="row" :label="label" :disabled="!chat" @open="(value) => value && refresh()">
-    <Server class="size-4 shrink-0 text-muted" aria-hidden="true" />
-    <span class="min-w-0 flex-1 truncate">{{ t('dock.servers.menu') }}</span>
-    <span v-if="running" class="flex shrink-0 items-center gap-1.5 text-xs text-muted tabular-nums" aria-hidden="true">
-      <span class="size-1.5 rounded-full bg-success" />{{ running }}
-    </span>
-    <template #menu>
-      <ServerMenuItems :running="running" />
-    </template>
-  </ChatSessionSub>
-  <UiTooltip v-else :label="t('dock.servers.menu')">
+  <UiTooltip :label="t('dock.servers.menu')">
     <span class="flex">
       <DropdownMenuRoot :open="open" :modal="false" @update:open="onOpen">
         <DropdownMenuTrigger

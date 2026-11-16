@@ -146,7 +146,9 @@ export default {
       finished: '1 tâche terminée | {n} tâches terminées',
       noBranch: 'Aucune branche',
       noContext: 'Pas encore mesuré',
-      noTasks: 'Aucune tâche',
+      changes: "Modifications",
+      servers: "Serveurs",
+      backgroundTasks: "Tâches en arrière-plan",
       files: '1 fichier modifié | {n} fichiers modifiés',
       keepAwake: 'Empêcher la veille',
       keepAwakeHelp: "S'applique à toutes les sessions, tant qu'un agent travaille.",
@@ -158,7 +160,6 @@ export default {
       local: "Local",
       current: "actuelle",
       finder: "Finder",
-      running: "1 en cours | {n} en cours",
       options: "Options",
     },
     terminal: {

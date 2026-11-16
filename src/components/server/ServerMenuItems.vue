@@ -15,7 +15,7 @@ import type { ServerStatus } from '@/ipc/bindings/ServerStatus'
 import { useBrowserStore } from '@/stores/browser'
 import { useServersStore } from '@/stores/servers'
 
-// Contenu du menu Serveurs, sous le bouton du volet Navigateur comme dans la ligne d'Environnement.
+// Contenu du menu Serveurs, sous le bouton du volet Navigateur.
 defineProps<{ running: number }>()
 const { t } = useI18n()
 const servers = useServersStore()
