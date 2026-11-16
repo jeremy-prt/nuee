@@ -765,6 +765,7 @@ export default {
     bodyPlaceholder: '输入内容，或键入“/”添加标题、列表…',
     untitled: '无标题',
     emptyBody: '空笔记',
+    imageOnly: "图像",
     new: '新建笔记',
     search: '搜索笔记',
     scope: '显示的项目',

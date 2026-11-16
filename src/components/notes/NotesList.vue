@@ -97,7 +97,7 @@ const projectName = (id: string | null) => projects.byId(id)?.name ?? t('notes.f
                 </span>
               </span>
               <span v-if="searching" class="truncate text-[11px] text-muted">{{ projectName(note.projectId) }}</span>
-              <span v-else class="line-clamp-2 text-xs text-muted">{{ notePreview(note.body) || t('notes.emptyBody') }}</span>
+              <span v-else class="line-clamp-2 text-xs text-muted">{{ notePreview(note.body) || t(/!\[/.test(note.body) ? 'notes.imageOnly' : 'notes.emptyBody') }}</span>
             </button>
             <div
               class="absolute end-1 top-1 opacity-0 transition-opacity duration-(--hover-duration) ease-out group-hover/row:opacity-100 focus-within:opacity-100 motion-reduce:transition-none"

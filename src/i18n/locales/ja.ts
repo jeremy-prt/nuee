@@ -765,6 +765,7 @@ export default {
     bodyPlaceholder: '入力するか「/」で見出しやリストを追加…',
     untitled: '無題',
     emptyBody: '空のノート',
+    imageOnly: "画像",
     new: '新しいノート',
     search: 'ノートを検索',
     scope: '表示中のプロジェクト',

@@ -763,6 +763,7 @@ export default {
     bodyPlaceholder: 'Write, or type “/” to add a heading, a list…',
     untitled: 'Untitled',
     emptyBody: 'Empty note',
+    imageOnly: "Image",
     new: 'New note',
     search: 'Search notes',
     scope: 'Shown project',

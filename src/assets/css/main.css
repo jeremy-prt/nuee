@@ -430,6 +430,21 @@ html[data-mode='light'] {
    grands puisque la note est une page. */
 .note-editor {
   line-height: 1.65;
+  & .note-image {
+    max-width: 100%;
+    max-height: 28rem;
+    border: 1px solid var(--color-stroke);
+    border-radius: var(--radius-lg);
+  }
+  & .note-image.ProseMirror-selectednode {
+    outline: 2px solid var(--color-ring);
+  }
+  /* Image choisie : WebKit peint aussi la sélection native sur toute la ligne, que ProseMirror ne cache que dans les
+     enfants. */
+  &.ProseMirror-hideselection::selection,
+  &.ProseMirror-hideselection *::selection {
+    background: transparent;
+  }
   & > * + * {
     margin-top: 0.5rem;
   }

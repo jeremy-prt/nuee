@@ -765,6 +765,7 @@ export default {
     bodyPlaceholder: 'Écrire, ou taper « / » pour ajouter un titre, une liste…',
     untitled: 'Sans titre',
     emptyBody: 'Note vide',
+    imageOnly: "Image",
     new: 'Nouvelle note',
     search: 'Rechercher dans les notes',
     scope: 'Projet affiché',

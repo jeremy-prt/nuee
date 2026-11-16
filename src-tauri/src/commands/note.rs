@@ -2,6 +2,7 @@ use tauri::State;
 
 use crate::error::AppError;
 use crate::services::agent::{AgentKind, AgentService};
+use crate::services::attachment::AttachmentService;
 use crate::services::note::{Note, NoteInput, NoteService, TITLE_MAX};
 
 /// Une consigne de quelques phrases ; au-delà, ce n'est plus une consigne mais un second transcript.
@@ -18,8 +19,15 @@ pub async fn note_save(note: NoteInput, notes: State<'_, NoteService>) -> Result
 }
 
 #[tauri::command]
-pub async fn note_delete(id: String, notes: State<'_, NoteService>) -> Result<(), AppError> {
-    notes.delete(&id)
+pub async fn note_delete(
+    id: String,
+    notes: State<'_, NoteService>,
+    attachments: State<'_, AttachmentService>,
+) -> Result<(), AppError> {
+    notes.delete(&id)?;
+    // Images collées dans la note, rangées sous son id.
+    attachments.discard(&id);
+    Ok(())
 }
 
 /// Résume une session en note (`id` choisi par le front) et l'enregistre. `focus` : ce que l'utilisateur veut garder.

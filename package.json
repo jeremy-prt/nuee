@@ -33,6 +33,7 @@
     "@tauri-apps/plugin-process": "2.4.0",
     "@tauri-apps/plugin-updater": "2.14.1",
     "@tiptap/core": "3.34.0",
+    "@tiptap/extension-image": "3.34.0",
     "@tiptap/extension-list": "3.34.0",
     "@tiptap/extensions": "3.34.0",
     "@tiptap/markdown": "3.34.0",

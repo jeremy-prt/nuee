@@ -78,7 +78,7 @@ if (!props.note.title && !props.note.body) void nextTick(() => titleField.value?
       </div>
     </div>
     <div class="min-h-0 flex-1 overflow-y-auto">
-      <NotesBody ref="body" class="mx-auto w-full max-w-3xl px-8" :text="note.body" @change="text = $event" />
+      <NotesBody ref="body" class="mx-auto w-full max-w-3xl px-8" :note-id="note.id" :text="note.body" @change="text = $event" />
     </div>
   </article>
 </template>

@@ -3,10 +3,11 @@ import type { ChatItem } from '@/stores/conversations'
 const TITLE_LENGTH = 80
 const TOOL_LENGTH = 200
 
-// Ce que le markdown ajoute autour du texte : titres, listes, citations, emphase, code.
+// Ce que le markdown ajoute autour du texte : titres, listes, citations, emphase, code ; une image n'en garde rien.
 function plain(line: string) {
   return line
     .replace(/^\s{0,3}(#{1,6}\s+|[-*+]\s+(\[[ xX]\]\s+)?|\d+[.)]\s+|>\s*)/, '')
+    .replace(/!\[[^\]]*\]\((<[^>]*>|[^)]*)\)/g, '')
     .replace(/[*_`~]/g, '')
     .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
     .trim()
