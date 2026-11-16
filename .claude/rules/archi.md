@@ -159,7 +159,7 @@ src-tauri/src/
 - Pas de `v-html` sur une sortie d'agent : le markdown passe par `ChatMarkdown` (lexer marked rendu en nœuds Vue). Une XSS dans la webview donne accès aux commandes, donc au lancement de process.
 - La webview n'affiche un fichier local que via le protocole asset, limité à `$APPDATA/attachments/**` et `$APPDATA/backgrounds/**` (image de fond, lue aussi en `fetch` pour ses effets, d'où `asset:` dans `connect-src`) : ne pas élargir ce scope, copier l'image dedans.
 - CSP définie dans `tauri.conf.json` : ne pas la repasser à `null`, ne pas charger de CDN. Aucun domaine externe : les mises à jour passent par `tauri-plugin-updater`, côté Rust.
-- `opener` n'ouvre que les pages du dépôt listées dans la capability (releases, issues/new, LICENSE) : élargir ce scope au cas par cas.
+- `opener` n'ouvre que les pages du dépôt listées dans la capability (releases, issues/new, LICENSE) : élargir ce scope au cas par cas. Un lien d'une réponse d'agent passe par `system_open_link` (Rust, http(s) seulement), jamais par ce scope ; dans le fil, un clic l'ouvre dans le navigateur par défaut, une page du poste dans le volet Navigateur, ⌘clic inverse.
 
 ## Divers
 

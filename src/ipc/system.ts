@@ -16,6 +16,11 @@ export function openGithubPage(url: string) {
   return openUrl(url)
 }
 
+// Navigateur par défaut, http(s) seulement (vérifié par Rust).
+export function openWebLink(url: string) {
+  return invoke<void>('system_open_link', { url })
+}
+
 export function isTauriApp() {
   return isTauri()
 }

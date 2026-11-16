@@ -3,21 +3,32 @@ import { Lexer, type Token, type Tokens } from 'marked'
 import { computed, h, type VNodeChild } from 'vue'
 import ChatCodeBlock from '@/components/chat/ChatCodeBlock.vue'
 import ChatSkillResult from '@/components/chat/ChatSkillResult.vue'
+import { openWebLink } from '@/ipc/system'
 import { useBrowserStore } from '@/stores/browser'
 import { parseSkillResult } from '@/utils/skillResult'
 
 // Markdown d'agent rendu en nœuds Vue, jamais en HTML brut : le HTML du texte reste du texte.
-// Les liens ne sont pas cliquables (un clic ferait naviguer la webview elle-même), sauf ceux du poste
-// (localhost, *.test) : ils s'ouvrent dans le volet Navigateur de la session.
+// Liens http(s) seulement, jamais suivis par la webview elle-même : une page du poste (localhost, *.test) s'ouvre dans
+// le volet Navigateur, une autre dans le navigateur par défaut ; ⌘clic inverse les deux.
 
-function isLocal(href: string) {
+function webUrl(href: string) {
   try {
     const url = new URL(href)
-    const host = url.hostname
-    return /^https?:$/.test(url.protocol) && (host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host.endsWith('.localhost') || host.endsWith('.test'))
+    return /^https?:$/.test(url.protocol) ? url : null
   } catch {
-    return false
+    return null
   }
+}
+
+function isLocal(url: URL) {
+  const host = url.hostname
+  return host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host.endsWith('.localhost') || host.endsWith('.test')
+}
+
+function follow(event: MouseEvent, url: URL) {
+  event.preventDefault()
+  if (isLocal(url) !== event.metaKey) useBrowserStore().openLink(url.href)
+  else openWebLink(url.href).catch(() => {})
 }
 
 function blocks(tokens: Token[]): VNodeChild[] {
@@ -86,17 +97,15 @@ function inline(tokens: Token[] = []): VNodeChild[] {
         return h('br')
       case 'link': {
         const link = token as Tokens.Link
-        if (isLocal(link.href)) {
+        const url = webUrl(link.href)
+        if (url) {
           return h(
             'a',
             {
-              href: link.href,
-              class: 'text-accent underline underline-offset-2 hover:text-content',
-              title: link.href,
-              onClick: (event: MouseEvent) => {
-                event.preventDefault()
-                useBrowserStore().openLink(link.href)
-              },
+              href: url.href,
+              class: 'text-accent underline underline-offset-2',
+              title: url.href,
+              onClick: (event: MouseEvent) => follow(event, url),
             },
             inline(link.tokens),
           )

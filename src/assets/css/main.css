@@ -1005,6 +1005,7 @@ html[data-mode='light'] .ui-tip {
 
   :is(
       button,
+      a[href],
       summary,
       [role='button'],
       [role='option'],

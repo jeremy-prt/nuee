@@ -133,6 +133,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::system::system_locales,
             commands::system::system_machine_name,
+            commands::system::system_open_link,
             commands::app::app_quit,
             commands::agent::agent_send,
             commands::agent::agent_warm,
