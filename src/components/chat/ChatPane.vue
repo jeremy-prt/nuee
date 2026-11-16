@@ -172,7 +172,8 @@ onBeforeUnmount(() => window.removeEventListener('focus', refreshGit))
 
 function send(prompt: string, attachments: Attachment[], other = false) {
   operator.userSpoke(props.tab.id)
-  const first = !items.value.some((item) => item.kind === 'user')
+  // Une bifurcation a déjà des messages (repris de l'originale) mais entre dans l'historique à son premier envoi.
+  const first = !props.tab.started && (!items.value.some((item) => item.kind === 'user') || !!conversations.find(props.tab.id)?.fork)
   if (first) {
     workspace.setWorktree(props.tab.id, worktree.value, props.tab.worktreePath)
     workspace.startChat(props.tab.id, prompt, attachments)
@@ -219,6 +220,17 @@ async function rewindTo(itemId: string) {
   } catch (error) {
     toasts.push({ kind: 'error', title: t('chat.rewind.failed'), body: isAppError(error) ? error.message : String(error) })
   }
+}
+
+// Nouvelle session dans le même projet et le même dossier (worktree compris, fichiers partagés comme dans l'app
+// Claude), ouverte en onglet avec le message dans son champ ; l'agent ne bifurque qu'à son premier envoi.
+function forkFrom(itemId: string) {
+  const tab = props.tab
+  const target = workspace.addChat(tab.projectId, t('chat.fork.title', { title: tab.title ?? '' }).trim(), tab.worktree ? tab.worktreePath : undefined)
+  const filled = conversations.fork(tab.id, itemId, target.id)
+  if (!filled) return void workspace.deleteChat(target.id)
+  drafts.set(target.id, filled.prefill, filled.attachments)
+  workspace.openTab(target.id)
 }
 
 const pane = useTemplateRef('pane')
@@ -278,6 +290,7 @@ onMounted(() => {
       :parent-id="tab.background ? null : tab.parentId"
       class="min-h-0 flex-1"
       @rewind="rewindTo"
+      @fork="forkFrom"
       @resend="resend"
       :typing="!!drafts.get(tab.id)?.text.trim()"
       :active="workspace.activeTabId === tab.id"

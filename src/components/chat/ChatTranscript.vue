@@ -46,7 +46,7 @@ const fromSession = (item: ChatItem, index: number) => {
   return shown.kind === 'user' && !!shown.from
 }
 
-const emit = defineEmits<{ rewind: [itemId: string]; resend: []; reply: [text: string] }>()
+const emit = defineEmits<{ rewind: [itemId: string]; fork: [itemId: string]; resend: []; reply: [text: string] }>()
 // Propositions fermées par la croix, le temps que la session reste affichée.
 const dismissed = ref(new Set<string>())
 
@@ -323,6 +323,7 @@ onMounted(() => {
           :rewindable="!running && row.item.kind === 'user' && !!row.item.agentId"
           :latest="!running && row.index === lastTurn"
           @rewind="emit('rewind', row.item.id)"
+          @fork="emit('fork', row.item.id)"
           @resend="emit('resend')"
         />
         <ChatMessage

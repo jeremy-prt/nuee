@@ -528,6 +528,10 @@ export default {
       failed: 'Error al compactar',
       tokens: '{before} → {after} tokens',
     },
+    fork: {
+      action: "Bifurcar desde este mensaje",
+      title: "{title} (bifurcación)",
+    },
     rewind: {
       action: 'Volver a este mensaje',
       title: '¿Volver a este mensaje?',

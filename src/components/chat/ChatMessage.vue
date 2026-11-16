@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, CheckDouble, CircleAlert, File, Folder, NotebookPen, Orchestra, TriangleAlert, Undo } from '@/components/ui/icons'
+import { Check, CheckDouble, CircleAlert, GitFork, File, Folder, NotebookPen, Orchestra, TriangleAlert, Undo } from '@/components/ui/icons'
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AgentLogin from '@/components/agent/AgentLogin.vue'
@@ -54,7 +54,7 @@ function sent(at: number) {
 const smooth = useSmoothText(() => (props.item.kind === 'text' ? props.item.text : ''), () => props.streaming)
 // Hors d'un tour en cours, un message ajouté sans identifiant (ancien historique) passe pour lu.
 const steerPending = computed(() => props.item.kind === 'user' && !!props.item.steered && !props.item.agentId && props.running)
-const emit = defineEmits<{ rewind: []; resend: [] }>()
+const emit = defineEmits<{ rewind: []; fork: []; resend: [] }>()
 
 // Id de la session lancée, tiré de la réponse de `start_session` (`stores/operator.ts`).
 const launched = (output: string | null) => output?.match(/^Session (\S+) lancée/)?.[1] ?? null
@@ -142,6 +142,9 @@ watch(signedIn, async (now) => {
         {{ sent(item.at) }}
       </time>
       <ChatCopyButton :text="() => item.kind === 'user' ? item.text : ''" :label="t('chat.copy.message')" align="end" />
+      <UiIconButton v-if="rewindable" :label="t('chat.fork.action')" align="end" @click="emit('fork')">
+        <GitFork class="size-3.5" aria-hidden="true" />
+      </UiIconButton>
       <UiIconButton v-if="rewindable" :label="t('chat.rewind.action')" align="end" @click="emit('rewind')">
         <Undo class="size-3.5" aria-hidden="true" />
       </UiIconButton>

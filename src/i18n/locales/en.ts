@@ -526,6 +526,10 @@ export default {
       failed: 'Compaction failed',
       tokens: '{before} → {after} tokens',
     },
+    fork: {
+      action: "Fork from this message",
+      title: "{title} (fork)",
+    },
     rewind: {
       action: 'Go back to this message',
       title: 'Go back to this message?',

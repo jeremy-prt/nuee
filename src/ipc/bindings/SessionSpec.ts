@@ -39,4 +39,9 @@ worktreePath: string | null,
 /**
  * Branche locale d'où part le worktree du chat à sa création. `None` : le HEAD du projet.
  */
-worktreeBase: string | null, };
+worktreeBase: string | null, 
+/**
+ * Bifurcation : `session_id` est la session d'origine, reprise dans une nouvelle jusqu'à juste avant ce message
+ * de l'utilisateur (son identifiant chez l'agent). L'originale n'est pas touchée.
+ */
+forkBefore: string | null, };

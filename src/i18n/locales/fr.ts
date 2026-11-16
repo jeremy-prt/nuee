@@ -528,6 +528,10 @@ export default {
       failed: 'Échec de la compaction',
       tokens: '{before} → {after} tokens',
     },
+    fork: {
+      action: "Bifurquer depuis ce message",
+      title: "{title} (bifurcation)",
+    },
     rewind: {
       action: 'Revenir à ce message',
       title: 'Revenir à ce message ?',

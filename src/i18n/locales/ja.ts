@@ -528,6 +528,10 @@ export default {
       failed: '圧縮できませんでした',
       tokens: '{before} → {after} トークン',
     },
+    fork: {
+      action: "このメッセージから分岐",
+      title: "{title}（分岐）",
+    },
     rewind: {
       action: 'このメッセージに戻る',
       title: 'このメッセージに戻りますか？',

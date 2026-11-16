@@ -611,8 +611,22 @@ impl Driver for Claude {
         if let Some(settings) = nuee_settings(spec) {
             args.extend(["--settings".into(), settings]);
         }
-        if let Some(id) = &spec.session_id {
-            args.extend(["--resume".to_owned(), id.clone()]);
+        match (&spec.session_id, &spec.fork_before) {
+            (Some(id), None) => args.extend(["--resume".to_owned(), id.clone()]),
+            // Bifurcation : sans point de reprise (premier message, transcript introuvable), une session neuve
+            // plutôt que reprendre l'originale.
+            (Some(id), Some(before)) => {
+                if let Some(at) = fork_point(id, before) {
+                    args.extend([
+                        "--resume".to_owned(),
+                        id.clone(),
+                        "--fork-session".to_owned(),
+                        "--resume-session-at".to_owned(),
+                        at,
+                    ]);
+                }
+            }
+            (None, _) => {}
         }
         // Outils du navigateur, servis par Nuée sur ce même canal : pas de port ni de process de plus.
         let server = crate::services::browser::tools::SERVER;
@@ -1559,6 +1573,26 @@ fn context_of(response: &Value) -> Option<ContextUsage> {
 }
 
 /// Dossier de config de l'utilisateur, là où la CLI le cherche.
+/// Message qui précède `before` dans le transcript de la session `id` : la bifurcation reprend jusqu'à lui (essayé,
+/// CLI 2.1.325 : `--resume-session-at` garde le message désigné). `None` si `before` ouvrait la session.
+fn fork_point(id: &str, before: &str) -> Option<String> {
+    let projects = config_dir()?.join("projects");
+    let file = std::fs::read_dir(projects)
+        .ok()?
+        .flatten()
+        .map(|dir| dir.path().join(format!("{id}.jsonl")))
+        .find(|path| path.is_file())?;
+    parent_of(&std::fs::read_to_string(file).ok()?, before)
+}
+
+fn parent_of(transcript: &str, uuid: &str) -> Option<String> {
+    transcript
+        .lines()
+        .filter_map(|line| serde_json::from_str::<Value>(line).ok())
+        .find(|entry| entry["uuid"] == uuid)
+        .and_then(|entry| entry["parentUuid"].as_str().map(str::to_owned))
+}
+
 pub(super) fn config_dir() -> Option<PathBuf> {
     std::env::var_os("CLAUDE_CONFIG_DIR")
         .map(PathBuf::from)
@@ -1789,6 +1823,19 @@ mod tests {
     }
 
     #[test]
+    fn a_fork_resumes_at_the_message_before() {
+        let transcript = [
+            r#"{"type":"user","uuid":"u1","parentUuid":null}"#,
+            r#"{"type":"assistant","uuid":"a1","parentUuid":"u1"}"#,
+            r#"{"type":"user","uuid":"u2","parentUuid":"a1"}"#,
+        ]
+        .join("\n");
+        assert_eq!(parent_of(&transcript, "u2").as_deref(), Some("a1"));
+        assert_eq!(parent_of(&transcript, "u1"), None);
+        assert_eq!(parent_of(&transcript, "absent"), None);
+    }
+
+    #[test]
     fn output_tokens_are_estimated_then_counted_per_turn() {
         let text = "x".repeat(200);
         let (_, events) = parse(&[
@@ -1989,6 +2036,7 @@ mod tests {
             worktree: false,
             worktree_path: None,
             worktree_base: None,
+            fork_before: None,
         };
         let args = Claude::new(Path::new("/projet")).args(&request);
         let tail: Vec<&str> = args.iter().skip(12).map(String::as_str).collect();
@@ -2450,6 +2498,7 @@ mod tests {
             worktree: false,
             worktree_path: None,
             worktree_base: None,
+            fork_before: None,
         };
         let args = Claude::new(Path::new("/projet")).args(&request);
         assert_eq!(args.iter().filter(|arg| *arg == "--settings").count(), 1);
@@ -2563,6 +2612,7 @@ mod tests {
             worktree: false,
             worktree_path: None,
             worktree_base: None,
+            fork_before: None,
         };
         let claude = Claude::new(Path::new("/projet"));
         let lowered = |effort| {

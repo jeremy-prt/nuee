@@ -145,6 +145,9 @@ export type Phase = 'idle' | 'answering' | 'finishing'
 export interface Conversation {
   agent: AgentKind
   sessionId: string | null
+  // Bifurcation pas encore envoyée : au premier message, l'agent reprend `sessionId` dans une nouvelle session, jusqu'à
+  // juste avant `before`. En mémoire seulement : perdue, la session repart de zéro sans toucher l'originale.
+  fork: { sessionId: string; before: string } | null
   options: TurnOptions
   phase: Phase
   // Début du tour en cours, pour la durée affichée à la fin de la réponse.
@@ -296,6 +299,7 @@ function apply(conversation: Conversation, events: AgentEvent[]) {
     switch (event.type) {
       case 'session':
         conversation.sessionId = event.id
+        conversation.fork = null
         break
       case 'text': {
         const last = items.at(-1)
@@ -517,6 +521,7 @@ export const useConversationsStore = defineStore('conversations', () => {
     return shallowReactive<Conversation>({
       agent,
       sessionId: null,
+      fork: null,
       // Un nouveau chat part des réglages de son projet ou de Réglages > Agents ; un chat enregistré reprend les siens.
       options: projects.chatOptions(projectId, agent),
       phase: 'idle',
@@ -675,9 +680,10 @@ export const useConversationsStore = defineStore('conversations', () => {
   }
 
   function spec(chatId: string, conversation: Conversation, place: Place): SessionSpec {
-    const { agent, sessionId } = conversation
+    const { agent, fork } = conversation
     const { hooks } = agentSettings.settings[agent]
-    return { chatId, agent, ...place, sessionId, options: catalog.resolve(agent, conversation.options), hooks, ...skills.exclusions() }
+    const sessionId = fork?.sessionId ?? conversation.sessionId
+    return { chatId, agent, ...place, sessionId, forkBefore: fork?.before ?? null, options: catalog.resolve(agent, conversation.options), hooks, ...skills.exclusions() }
   }
 
   async function dispatch(chatId: string, conversation: Conversation, place: Place, prompt: string, attachments: Attachment[], briefing: ChatCommand | null = null) {
@@ -940,6 +946,21 @@ export const useConversationsStore = defineStore('conversations', () => {
     return { ...result, prefill: result.prefill ?? item.text, attachments: item.attachments ?? [] }
   }
 
+  // Bifurcation depuis un message de l'utilisateur, comme l'app Claude : la nouvelle session `target` montre la
+  // conversation jusqu'à juste avant lui, et le message revient dans son champ. Les identifiants de l'agent ne sont pas
+  // repris (ils changent dans la session bifurquée) : pas de retour en arrière avant un premier tour.
+  function fork(sourceId: string, itemId: string, targetId: string) {
+    const source = conversations.get(sourceId)
+    const target = conversations.get(targetId)
+    const index = source?.items.findIndex((item) => item.id === itemId) ?? -1
+    const item = source?.items[index]
+    if (!source?.sessionId || !target || item?.kind !== 'user' || !item.agentId) return null
+    target.items = source.items.slice(0, index).map((entry) => (entry.kind === 'user' ? { ...entry, agentId: undefined } : entry))
+    target.options = { ...source.options }
+    target.fork = { sessionId: source.sessionId, before: item.agentId }
+    return { prefill: item.text, attachments: item.attachments ?? [] }
+  }
+
   function stopTask(chatId: string, taskId: string) {
     agentStopTask(chatId, taskId).catch(() => {})
   }
@@ -981,5 +1002,5 @@ export const useConversationsStore = defineStore('conversations', () => {
     conversations.delete(chatId)
   }
 
-  return { busy, find, working, itemsOf, create, open, release, setOptions, send, sendNow, unqueue, scheduleResume, cancelResume, begin, note, warm, approve, answer, stop, stopTask, focusedTask, rewind, remove }
+  return { busy, find, working, itemsOf, create, open, release, setOptions, send, sendNow, unqueue, scheduleResume, cancelResume, begin, note, warm, approve, answer, stop, stopTask, fork, focusedTask, rewind, remove }
 })

@@ -93,6 +93,10 @@ pub struct SessionSpec {
     /// Branche locale d'où part le worktree du chat à sa création. `None` : le HEAD du projet.
     #[serde(default)]
     pub worktree_base: Option<String>,
+    /// Bifurcation : `session_id` est la session d'origine, reprise dans une nouvelle jusqu'à juste avant ce message
+    /// de l'utilisateur (son identifiant chez l'agent). L'originale n'est pas touchée.
+    #[serde(default)]
+    pub fork_before: Option<String>,
 }
 
 /// Commande de Nuée attachée à un message : des consignes que l'utilisateur ne voit pas partent avec lui.
@@ -1210,8 +1214,10 @@ impl AgentService {
             Some(path) => valid_dir(path)?,
             None => self.scratch_dir(&spec.chat_id)?,
         };
-        if let Some(id) = &spec.session_id
-            && !valid_session_id(id)
+        if [&spec.session_id, &spec.fork_before]
+            .into_iter()
+            .flatten()
+            .any(|id| !valid_session_id(id))
         {
             return Err(AppError::InvalidInput(
                 "identifiant de session invalide".into(),

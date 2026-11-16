@@ -528,6 +528,10 @@ export default {
       failed: '压缩失败',
       tokens: '{before} → {after} token',
     },
+    fork: {
+      action: "从此消息分叉",
+      title: "{title}（分叉）",
+    },
     rewind: {
       action: '回到这条消息',
       title: '回到这条消息？',
