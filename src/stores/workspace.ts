@@ -420,6 +420,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     layout.focused = layout.panes.indexOf(id)
   }
 
+  // Déjà seule à l'écran : rien à mettre à côté d'elle.
+  function shownAlone(id: string) {
+    const panes = current().panes
+    return panes.length === 1 && panes[0] === id
+  }
+
   function split() {
     const layout = current()
     if (layout.panes.length >= MAX_PANES) return
@@ -755,7 +761,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     openChat,
     addChat,
     blankChat,
-    openBeside,
+    openBeside, shownAlone,
     split,
     closePane,
     closeTab,

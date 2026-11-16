@@ -17,6 +17,9 @@ const props = withDefaults(
     shortcut?: string
     side?: Side
     sideOffset?: number
+    // `end` : bouton collé au bord droit de la conversation, l'infobulle s'ouvre vers l'intérieur (la page native du
+    // Navigateur, à droite, la couperait).
+    align?: 'start' | 'center' | 'end'
     disabled?: boolean
   }>(),
   { side: undefined, sideOffset: 6, shortcut: undefined },
@@ -46,6 +49,7 @@ function setOpen(value: boolean) {
       <TooltipContent
         :side="placed"
         :side-offset="sideOffset"
+        :align="align"
         :collision-padding="8"
         class="ui-tip z-50 flex max-w-80 items-center gap-3 rounded-md px-2 py-1 text-xs leading-4 font-medium text-content select-none"
       >

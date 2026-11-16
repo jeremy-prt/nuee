@@ -2,6 +2,7 @@
 import { Play, Stop } from '@/components/ui/icons'
 import { computed, inject, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
+import ChatCode from '@/components/chat/ChatCode.vue'
 import ChatCodeOutput from '@/components/chat/ChatCodeOutput.vue'
 import ChatCopyButton from '@/components/chat/ChatCopyButton.vue'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
@@ -49,7 +50,7 @@ function toggle() {
         class="code-veil p-3 font-mono text-xs leading-relaxed group-hover/code:[--veil:0] group-focus-within/code:[--veil:0]"
         :class="[prose ? 'whitespace-pre-wrap wrap-anywhere' : 'overflow-x-auto', { '[--veil:0]': busy }]"
         :style="{ '--veil-width': actionsWidth }"
-      ><span v-if="prose" class="float-end h-6" :style="{ width: actionsWidth }" aria-hidden="true" /><code>{{ code }}</code></pre>
+      ><span v-if="prose" class="float-end h-6" :style="{ width: actionsWidth }" aria-hidden="true" /><ChatCode :code="code" :lang="lang" :colored="!prose && !!block" /></pre>
       <div
         ref="actions"
         class="absolute end-2 top-2 flex gap-0.5 transition-opacity duration-(--hover-duration) group-hover/code:opacity-100 focus-within:opacity-100 motion-reduce:transition-none"

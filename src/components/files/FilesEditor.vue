@@ -1,33 +1,18 @@
 <script setup lang="ts">
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
-import { HighlightStyle, LanguageDescription, bracketMatching, indentOnInput, syntaxHighlighting } from '@codemirror/language'
+import { LanguageDescription, bracketMatching, indentOnInput, syntaxHighlighting } from '@codemirror/language'
 import { languages } from '@codemirror/language-data'
 import { highlightSelectionMatches, search, searchKeymap } from '@codemirror/search'
 import { Compartment, EditorState } from '@codemirror/state'
 import { EditorView, drawSelection, highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers } from '@codemirror/view'
-import { tags } from '@lezer/highlight'
 import { onBeforeUnmount, onMounted, useTemplateRef, watch } from 'vue'
+import { codeHighlighter } from '@/utils/highlight'
 
 // Éditeur de texte du volet Fichiers : CodeMirror, langage deviné du nom (chargé à la demande), couleurs prises aux
 // jetons de l'app pour suivre le thème et le mode clair. `text` n'est lu qu'à la création, ensuite `replace`.
 // `line` : ligne à montrer à l'ouverture (résultat de recherche).
 const props = defineProps<{ text: string; name: string; label: string; line?: number }>()
 const emit = defineEmits<{ change: [text: string] }>()
-
-const highlight = HighlightStyle.define([
-  { tag: [tags.keyword, tags.operatorKeyword, tags.modifier, tags.controlKeyword], color: 'var(--color-violet)' },
-  { tag: [tags.string, tags.special(tags.string), tags.regexp], color: 'var(--color-success)' },
-  { tag: [tags.number, tags.bool, tags.null, tags.atom], color: 'var(--color-orange)' },
-  { tag: [tags.comment, tags.meta], color: 'var(--color-muted)', fontStyle: 'italic' },
-  { tag: [tags.function(tags.variableName), tags.function(tags.propertyName)], color: 'var(--color-info)' },
-  { tag: [tags.typeName, tags.className, tags.namespace], color: 'var(--color-warning)' },
-  { tag: [tags.tagName, tags.heading], color: 'var(--color-danger)', fontWeight: '600' },
-  { tag: [tags.attributeName, tags.propertyName], color: 'var(--color-mention)' },
-  { tag: [tags.link, tags.url], color: 'var(--color-info)', textDecoration: 'underline' },
-  { tag: tags.emphasis, fontStyle: 'italic' },
-  { tag: tags.strong, fontWeight: '600' },
-  { tag: tags.invalid, color: 'var(--color-danger)' },
-])
 
 const theme = EditorView.theme({
   '&': { height: '100%', fontSize: '12px', color: 'var(--color-content)', backgroundColor: 'transparent' },
@@ -80,7 +65,7 @@ onMounted(() => {
         bracketMatching(),
         highlightSelectionMatches(),
         search({ top: true }),
-        syntaxHighlighting(highlight),
+        syntaxHighlighting(codeHighlighter),
         language.of([]),
         keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap, indentWithTab]),
         EditorView.contentAttributes.of({

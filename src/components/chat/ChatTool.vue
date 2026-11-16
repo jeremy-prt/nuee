@@ -2,6 +2,7 @@
 import { ChevronRight } from '@/components/ui/icons'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import ChatCode from '@/components/chat/ChatCode.vue'
 import ChatDiff from '@/components/chat/ChatDiff.vue'
 import ChatDiffStat from '@/components/chat/ChatDiffStat.vue'
 import ChatMarkdown from '@/components/chat/ChatMarkdown.vue'
@@ -96,7 +97,7 @@ const open = ref(false)
         <pre
           v-if="full"
           class="max-h-48 overflow-auto rounded-md bg-selection/50 p-2 font-mono whitespace-pre-wrap break-all text-content select-text"
-        >{{ item.tool === 'command' ? `$ ${full}` : full }}</pre>
+        ><ChatCode v-if="item.tool === 'command'" :code="full" lang="bash" colored prefix="$ " /><template v-else>{{ full }}</template></pre>
         <ChatDiff v-if="item.change" :patch="item.change.patch" />
         <ChatMarkdown v-if="task?.progress && !running" class="text-xs! text-muted" :text="task.progress" />
         <pre

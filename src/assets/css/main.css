@@ -426,6 +426,21 @@ html[data-mode='light'] {
   }
 }
 
+/* Couleurs du code (`utils/highlight.ts`), communes à l'éditeur et au fil. */
+.tok-keyword { color: var(--color-violet); }
+.tok-string { color: var(--color-success); }
+.tok-number { color: var(--color-orange); }
+.tok-comment { color: var(--color-muted); font-style: italic; }
+.tok-function { color: var(--color-info); }
+.tok-type { color: var(--color-warning); }
+.tok-tag { color: var(--color-danger); font-weight: 600; }
+.tok-property { color: var(--color-mention); }
+.tok-link { color: var(--color-info); text-decoration: underline; }
+.tok-emphasis { font-style: italic; }
+.tok-strong { font-weight: 600; }
+.tok-invalid { color: var(--color-danger); }
+.tok-prompt { color: var(--color-muted); user-select: none; }
+
 /* Réponse en cours d'écriture : chaque nouveau bloc (paragraphe, liste, code) entre en fondu, comme T3 Code. Seuls
    les blocs créés pendant l'écriture le jouent, pas un fil rouvert. */
 .md-live > * {

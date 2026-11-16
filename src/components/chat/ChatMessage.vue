@@ -141,8 +141,8 @@ watch(signedIn, async (now) => {
       <time v-else-if="item.at" :datetime="new Date(item.at).toISOString()" :title="formatClock(item.at, locale, true)" class="px-1 text-[11px] text-muted tabular-nums">
         {{ sent(item.at) }}
       </time>
-      <ChatCopyButton :text="() => item.kind === 'user' ? item.text : ''" :label="t('chat.copy.message')" />
-      <UiIconButton v-if="rewindable" :label="t('chat.rewind.action')" @click="emit('rewind')">
+      <ChatCopyButton :text="() => item.kind === 'user' ? item.text : ''" :label="t('chat.copy.message')" align="end" />
+      <UiIconButton v-if="rewindable" :label="t('chat.rewind.action')" align="end" @click="emit('rewind')">
         <Undo class="size-3.5" aria-hidden="true" />
       </UiIconButton>
     </div>

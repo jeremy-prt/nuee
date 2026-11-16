@@ -49,7 +49,7 @@ async function copyConversation() {
     @select="actions.togglePin(tab)"
   />
   <UiMenuItem :label="t('menu.rename')" :icon="Pencil" :shortcut="shortcuts.label('rename')" @select="emit('rename')" />
-  <UiMenuItem :label="t('chats.openBeside')" :icon="Columns2" @select="openBeside" />
+  <UiMenuItem :label="t('chats.openBeside')" :icon="Columns2" :disabled="navigation.view === 'chats' && workspace.shownAlone(tab.id)" @select="openBeside" />
   <UiMenuItem :label="t('chats.copyConversation')" :icon="Copy" @select="copyConversation" />
   <UiMenuSeparator />
   <UiMenuItem :label="t('chats.archive')" :icon="Archive" @select="actions.archiveChat(tab)" />

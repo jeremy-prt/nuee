@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import UiIconButton from '@/components/ui/UiIconButton.vue'
 
 // Copie le texte au clic ; l'icône devient une coche le temps de le voir. `text` est lu au moment du clic.
-const props = defineProps<{ text: () => string; label: string }>()
+const props = defineProps<{ text: () => string; label: string; align?: 'start' | 'center' | 'end' }>()
 
 const { t } = useI18n()
 const copied = ref(false)
@@ -24,7 +24,7 @@ async function copy() {
 </script>
 
 <template>
-  <UiIconButton :label="copied ? t('chat.copy.copied') : label" @click="copy">
+  <UiIconButton :label="copied ? t('chat.copy.copied') : label" :align="align" @click="copy">
     <Check v-if="copied" class="size-3.5" aria-hidden="true" />
     <Copy v-else class="size-3.5" aria-hidden="true" />
   </UiIconButton>
