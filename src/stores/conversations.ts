@@ -516,6 +516,7 @@ export const useConversationsStore = defineStore('conversations', () => {
   const compactTimers = new Map<string, number>()
   const writes = new Map<string, Promise<void>>()
   let frame = 0
+  let fallback = 0
 
   function blank(agent: AgentKind, loaded: boolean, projectId: string | null) {
     return shallowReactive<Conversation>({
@@ -626,7 +627,10 @@ export const useConversationsStore = defineStore('conversations', () => {
   }
 
   function flush() {
+    cancelAnimationFrame(frame)
+    clearTimeout(fallback)
     frame = 0
+    fallback = 0
     for (const [chatId, events] of pending) {
       const conversation = conversations.get(chatId)
       if (!conversation) continue
@@ -673,6 +677,9 @@ export const useConversationsStore = defineStore('conversations', () => {
     if (events) events.push(event)
     else pending.set(chatId, [event])
     frame ||= requestAnimationFrame(flush)
+    // Fenêtre sur un autre bureau ou cachée : aucune image n'est dessinée, et sans cette minuterie la fin du tour
+    // et sa notification attendraient le retour dans l'app.
+    fallback ||= window.setTimeout(flush, 200)
   }
 
   function push(conversation: Conversation, item: ChatItem) {
