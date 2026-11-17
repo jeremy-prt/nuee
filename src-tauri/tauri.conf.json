@@ -21,6 +21,7 @@
         "theme": "Dark",
         "backgroundColor": "#171717",
         "visible": false,
+        "backgroundThrottling": "disabled",
         "devtools": false
       }
     ],

@@ -19,6 +19,7 @@
           "y": 22
         },
         "visible": false,
+        "backgroundThrottling": "disabled",
         "devtools": false
       }
     ]
