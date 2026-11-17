@@ -277,7 +277,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   // Comme monocode : un onglet ouvert s'insère juste après l'actif. Afficher une session commencée ferme les
-  // onglets vierges non affichés ; une vierge les laisse, sinon « + » répété n'en garderait qu'un.
+  // onglets vierges non affichés ; une vierge les laisse.
   function show(id: string) {
     seenAt[id] = Date.now()
     const layout = current()
@@ -302,8 +302,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   // Onglet qu'on peut fermer sans perdre de travail en cours : ni affiché, ni épinglé, agent au repos, rien en attente.
+  // Une session pas encore lancée qui a un brouillon reste : fermée, elle serait supprimée avec son texte.
   function closable(id: string, layout: PaneLayout) {
     if (layout.panes.includes(id) || isTabPinned(id) || conversations.working(id)) return false
+    if (useDraftsStore().get(id) && tabs.value.some((tab) => tab.id === id && !tab.started)) return false
     const conversation = conversations.find(id)
     return !conversation?.approvals.length && (conversation?.phase ?? 'idle') === 'idle'
   }
@@ -339,9 +341,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     closeTab(active, layout)
   }
 
-  // « + » (bande d'onglets, barre latérale) et ⌘T, comme un navigateur : toujours un onglet vierge de plus.
+  // « + » (bande d'onglets, barre latérale) et ⌘T : un onglet vierge de plus, sauf si celui affiché l'est déjà.
   function newTab() {
-    show(createChat().id)
+    const layout = current()
+    const active = layout.panes[layout.focused]
+    show(active && isBlank(active) ? active : createChat().id)
   }
 
   // Une session vierge part panneau de droite fermé : `restore` s'en charge au changement d'onglet, ceci couvre la
