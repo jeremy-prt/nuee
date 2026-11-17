@@ -9,9 +9,9 @@ import { useConversationsStore } from '@/stores/conversations'
 import { useWorkspaceStore } from '@/stores/workspace'
 import UiCollapse from '@/components/ui/UiCollapse.vue'
 
-// Consigne d'une session lancée par une autre, comme la carte « Tâche » de l'app Claude : dans la session qui l'a
+// Consigne d'une sous-session, lancée par une autre session : dans la session qui l'a
 // lancée (`sessionId` : le titre suit ses renommages) et en tête de celle-ci.
-const props = defineProps<{ title: string | null; text: string; sessionId?: string | null; folded?: boolean }>()
+const props = defineProps<{ title: string | null; text: string; sessionId?: string | null; folded?: boolean; running?: boolean }>()
 
 const { t } = useI18n()
 const workspace = useWorkspaceStore()
@@ -22,12 +22,16 @@ const session = computed(() => (props.sessionId ? workspace.tabs.find((tab) => t
 const working = computed(() => !!session.value && conversations.working(session.value.id))
 const shownTitle = computed(() => session.value?.title ?? props.title)
 const open = ref(!props.folded)
+// Titre et consigne arrivent encore avec l'appel : rien à déplier pour l'instant.
+const pending = computed(() => !shownTitle.value && !props.text)
 const bodyId = useId()
 </script>
 
 <template>
   <section :class="chatCard" class="text-sm">
+    <p v-if="pending" class="px-3 py-2 text-muted"><span :class="{ 'text-shimmer': running }">{{ t('chat.fromSession.preparing') }}</span></p>
     <button
+      v-else
       type="button"
       class="group/head flex w-full min-w-0 items-center gap-2 rounded-xl px-3 py-2 text-start text-muted hover:text-content focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
       :aria-expanded="open"
@@ -41,7 +45,7 @@ const bodyId = useId()
       <span v-if="working" class="sr-only">{{ t('chat.tool.running') }}</span>
     </button>
     <UiCollapse>
-      <ChatFoldText v-if="open" :id="bodyId" class="px-3 pb-2.5" :text="text" />
+      <ChatFoldText v-if="open && !pending" :id="bodyId" class="px-3 pb-2.5" :text="text" />
     </UiCollapse>
   </section>
 </template>

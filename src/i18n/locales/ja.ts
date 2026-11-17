@@ -436,7 +436,7 @@ export default {
       progress: "{total} ステップ中 {done} 完了",
       status: { pending: "未着手", in_progress: "進行中", completed: "完了" },
     },
-    fromSession: { message: '{title} からメッセージを受信', started: '{title} から {agent} が開始', task: 'タスク', showTask: 'タスクを表示', show: 'メッセージを表示', more: 'もっと見る', less: '閉じる' },
+    fromSession: { preparing: 'セッションを準備中…', message: '{title} からメッセージを受信', started: '{title} から {agent} が開始', task: 'サブセッション', showTask: '指示を表示', show: 'メッセージを表示', more: 'もっと見る', less: '閉じる' },
     earlier: '以前のメッセージ {n} 件を表示',
     svg: {
       preview: "プレビュー",

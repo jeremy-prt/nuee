@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ArrowDown } from '@/components/ui/icons'
-import { computed, nextTick, onMounted, ref, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatActivity from '@/components/chat/ChatActivity.vue'
 import ChatMessage from '@/components/chat/ChatMessage.vue'
@@ -21,7 +21,7 @@ const props = defineProps<{
   running: boolean
   agent: AgentKind
   clock: { since: number; pausedMs: number; pausedAt: number | null; asking: boolean; tokens: number } | null
-  // Titre de la session : celui de la carte « Tâche » d'une session lancée par une autre.
+  // Titre de la session : celui de sa carte quand une autre session l'a lancée.
   title?: string | null
   // Session qui a lancé celle-ci : son premier message est sa consigne, même enregistré avant `from`.
   parentId?: string | null
@@ -213,13 +213,18 @@ async function showEarlier() {
 
 // Suit le bas tant que l'utilisateur n'est pas remonté lire plus haut ; remonté, un bouton l'y ramène.
 let stick = true
+let lastTop = 0
 const away = ref(false)
 
 function onScroll() {
   const el = scroller.value
   if (!el) return
   const below = el.scrollHeight - el.scrollTop - el.clientHeight
-  stick = below < 48
+  // Le moindre cran vers le haut décroche, même près du bas : sinon le flux suivant y ramène aussitôt. Un contenu
+  // qui rétrécit fait aussi baisser `scrollTop`, mais laisse collé au bas (`below` nul).
+  if (el.scrollTop < lastTop - 1 && below > 1) stick = false
+  else if (below < 48) stick = true
+  lastTop = el.scrollTop
   // Pas dès le premier cran : le bouton n'apparaît qu'une fois vraiment remonté.
   away.value = below > 240
   if (el.scrollTop < 200) showEarlier()
@@ -237,6 +242,18 @@ function scrollToEnd() {
   const el = scroller.value
   if (el) el.scrollTop = el.scrollHeight
 }
+
+// Déplier un bloc décroche du bas : il s'ouvre vers le bas sous les yeux au lieu d'être poussé hors de vue.
+function onClick(event: MouseEvent) {
+  if ((event.target as Element).closest('[aria-expanded="false"]')) stick = false
+}
+
+// Le texte lissé et les blocs qui s'ouvrent grandissent sans changer `items` : le bas est suivi à chaque taille.
+const rowsList = useTemplateRef('rowsList')
+const resized = new ResizeObserver(() => {
+  if (stick) scrollToEnd()
+})
+onBeforeUnmount(() => resized.disconnect())
 
 watch(
   () => props.items,
@@ -267,6 +284,7 @@ function grow() {
 }
 
 onMounted(() => {
+  if (rowsList.value) resized.observe(rowsList.value)
   scrollToEnd()
   grow()
 })
@@ -274,8 +292,8 @@ onMounted(() => {
 
 <template>
   <!-- Le bas s'estompe sous le champ de saisie au lieu d'être coupé net. -->
-  <div ref="scroller" class="overflow-y-auto mask-b-from-[calc(100%-1.5rem)]" @scroll.passive="onScroll">
-    <ol class="mx-auto flex max-w-(--chat-width) flex-col gap-3 px-6 py-6" data-slide-rows role="log" :aria-busy="running || limit < PAGE" :aria-label="t('chat.transcript')">
+  <div ref="scroller" class="overflow-y-auto mask-b-from-[calc(100%-1.5rem)]" @scroll.passive="onScroll" @click="onClick">
+    <ol ref="rowsList" class="mx-auto flex max-w-(--chat-width) flex-col gap-3 px-6 py-6" data-slide-rows role="log" :aria-busy="running || limit < PAGE" :aria-label="t('chat.transcript')">
       <li v-if="start" class="flex justify-center">
         <button
           type="button"

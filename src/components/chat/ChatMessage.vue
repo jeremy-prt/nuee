@@ -103,6 +103,7 @@ watch(signedIn, async (now) => {
     :title="item.detail?.description ?? null"
     :text="item.detail?.text ?? ''"
     :session-id="launched(item.output)"
+    :running="item.status === 'running'"
     folded
   />
   <template v-else-if="item.kind === 'user'">

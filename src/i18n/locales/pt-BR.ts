@@ -436,7 +436,7 @@ export default {
       progress: "{done} de {total} etapas feitas",
       status: { pending: "a fazer", in_progress: "em andamento", completed: "feito" },
     },
-    fromSession: { message: 'Mensagem recebida de {title}', started: 'Iniciada por {agent} a partir de {title}', task: 'Tarefa', showTask: 'Mostrar a tarefa', show: 'Mostrar a mensagem', more: 'Mostrar mais', less: 'Mostrar menos' },
+    fromSession: { preparing: 'Preparando a sessão…', message: 'Mensagem recebida de {title}', started: 'Iniciada por {agent} a partir de {title}', task: 'Subsessão', showTask: 'Mostrar as instruções', show: 'Mostrar a mensagem', more: 'Mostrar mais', less: 'Mostrar menos' },
     earlier: 'Mostrar a mensagem anterior | Mostrar as {n} mensagens anteriores',
     svg: {
       preview: "Pré-visualização",

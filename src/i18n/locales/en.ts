@@ -434,7 +434,7 @@ export default {
       progress: "{done} of {total} steps done",
       status: { pending: "to do", in_progress: "in progress", completed: "done" },
     },
-    fromSession: { message: 'Message received from {title}', started: 'Started by {agent} from {title}', task: 'Task', showTask: 'Show task', show: 'Show message', more: 'Show more', less: 'Show less' },
+    fromSession: { preparing: 'Preparing session…', message: 'Message received from {title}', started: 'Started by {agent} from {title}', task: 'Sub-session', showTask: 'Show instructions', show: 'Show message', more: 'Show more', less: 'Show less' },
     earlier: 'Show the earlier message | Show the {n} earlier messages',
     svg: {
       preview: "Preview",

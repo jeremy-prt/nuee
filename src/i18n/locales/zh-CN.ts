@@ -436,7 +436,7 @@ export default {
       progress: "已完成 {done}/{total} 步",
       status: { pending: "待办", in_progress: "进行中", completed: "已完成" },
     },
-    fromSession: { message: '收到来自 {title} 的消息', started: '由 {agent} 从 {title} 启动', task: '任务', showTask: '显示任务', show: '显示消息', more: '显示更多', less: '收起' },
+    fromSession: { preparing: '正在准备会话…', message: '收到来自 {title} 的消息', started: '由 {agent} 从 {title} 启动', task: '子会话', showTask: '显示指令', show: '显示消息', more: '显示更多', less: '收起' },
     earlier: '显示之前的 {n} 条消息',
     svg: {
       preview: "预览",
