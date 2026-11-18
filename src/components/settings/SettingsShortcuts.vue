@@ -48,7 +48,7 @@ function keys(id: ShortcutId) {
 
 // Le survol et l'enregistrement se lisent sur les touches elles-mêmes, pas sur un fond plus large qu'elles.
 function keyState(id: ShortcutId) {
-  if (recording.value !== id) return `${KEY_IDLE} group-hover:border-content/25 group-hover:bg-content/10`
+  if (recording.value !== id) return `${KEY_IDLE} group-hover:border-content/25 group-hover:bg-content/10 light:group-hover:border-content/15 light:group-hover:bg-content/6`
   return refused.value?.id === id ? 'border-danger bg-danger/10 text-danger' : 'border-ring bg-content/5 text-content'
 }
 
@@ -159,7 +159,7 @@ async function replace(event: MouseEvent) {
                 <span
                   v-if="!keys(id).length"
                   class="flex h-6 items-center rounded-md border px-2 text-xs text-muted"
-                  :class="recording === id ? 'border-ring' : 'border-dashed border-stroke group-hover:border-content/25'"
+                  :class="recording === id ? 'border-ring' : 'border-dashed border-stroke group-hover:border-content/25 light:group-hover:border-content/15'"
                 >
                   {{ recording === id ? t('settings.shortcuts.recording') : t('settings.shortcuts.disabled') }}
                 </span>

@@ -24,7 +24,7 @@ const done = computed(() => props.steps.filter((step) => step.status === 'comple
           <span v-if="step.status === 'in_progress' && paused" class="grid size-3.5 place-items-center rounded-full border border-muted"><Ellipsis class="size-2.5 text-muted" /></span>
           <LoaderCircle v-else-if="step.status === 'in_progress' && live" class="size-3.5 animate-spin text-muted motion-reduce:animate-none" />
           <DashedCircle v-else-if="step.status === 'in_progress'" class="size-3.5 text-muted" />
-          <span v-else-if="step.status === 'completed'" class="grid size-3.5 place-items-center rounded-full bg-muted"><Check class="size-2.5 text-canvas" /></span>
+          <span v-else-if="step.status === 'completed'" class="grid size-3.5 place-items-center rounded-full bg-muted light:bg-content/30"><Check class="size-2.5 text-canvas" /></span>
           <DashedCircle v-else class="size-3.5 text-muted" />
         </span>
         <span class="min-w-0 flex-1" :class="{ 'text-muted': step.status === 'completed' }">

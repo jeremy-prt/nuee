@@ -14,7 +14,7 @@ const surface = computed(() => ({ background: veil(props.values.surface), backdr
   <!-- Un faux fond d'écran (lune sur des dunes) : la transparence ne se voit que s'il y a quelque chose derrière. -->
   <div class="relative aspect-2/1 overflow-hidden rounded-lg border border-stroke bg-overlay text-[6px]" aria-hidden="true">
     <div class="absolute inset-0 bg-radial-[at_88%_38%] from-content/15 to-transparent to-45%" />
-    <span class="absolute top-[32%] end-[9%] aspect-square w-[8%] rounded-full bg-content/60 shadow-[0_0_12px_3px] shadow-content/20" />
+    <span class="absolute top-[32%] end-[9%] aspect-square w-[8%] rounded-full bg-content/60 shadow-[0_0_12px_3px] shadow-content/20 light:bg-white light:shadow-black/10" />
     <svg class="absolute inset-0 size-full text-content" viewBox="0 0 200 100" preserveAspectRatio="none">
       <g fill="currentColor" fill-opacity="0.05" stroke="currentColor" stroke-width="1.5">
         <path d="M-2 52 C 40 44, 80 60, 120 54 S 180 46, 202 50 V102 H-2Z" stroke-opacity="0.22" />

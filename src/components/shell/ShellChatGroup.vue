@@ -56,7 +56,7 @@ watch(
     class="relative ms-4 flex h-6 w-[calc(100%-1rem)] min-w-0 items-center gap-1 rounded-md ps-3 pe-2 text-start text-[11px] text-muted hover:text-content focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
     @click="toggled[tab.id] = true"
   >
-    <span class="absolute start-0 top-0 h-1/2 w-2 rounded-es-md border-s border-b border-content/20" aria-hidden="true" />
+    <span class="absolute start-0 top-0 h-1/2 w-2 rounded-es-md border-s border-b border-content/20 light:border-content/12" aria-hidden="true" />
     <span class="min-w-0 truncate">{{ t('chats.nested.count', { n: children.length }, children.length) }}</span>
     <template v-if="unread">
       <span aria-hidden="true">·</span>
@@ -66,8 +66,8 @@ watch(
   <UiCollapse>
     <ul v-if="children.length && open" :id="listId" class="ms-4 pt-0.5">
       <li v-for="(child, index) in children" :key="child.id" class="relative ps-3" :class="{ 'pb-0.5': index < children.length - 1 }">
-        <span v-if="index < children.length - 1" class="absolute start-0 top-0 h-full w-px bg-content/20" aria-hidden="true" />
-        <span v-else class="absolute start-0 top-0 h-1/2 w-2 rounded-es-md border-s border-b border-content/20" aria-hidden="true" />
+        <span v-if="index < children.length - 1" class="absolute start-0 top-0 h-full w-px bg-content/20 light:bg-content/12" aria-hidden="true" />
+        <span v-else class="absolute start-0 top-0 h-1/2 w-2 rounded-es-md border-s border-b border-content/20 light:border-content/12" aria-hidden="true" />
         <ShellChatItem :tab="child" />
       </li>
     </ul>

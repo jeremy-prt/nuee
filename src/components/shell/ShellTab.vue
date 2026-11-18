@@ -63,7 +63,7 @@ const statusIcons = { approval: ShieldQuestion, question: MessageQuestion, done:
              logo de l'agent. Mêmes icônes et couleurs que les cartes de la liste. -->
         <!-- Case fixe : le chiffre affiché sous ⌘ prend la place de l'icône sans décaler le titre. -->
         <span class="-my-0.5 grid size-5 shrink-0 place-items-center">
-          <kbd v-if="rank" class="grid size-4 shrink-0 place-items-center rounded-sm border border-content/25 bg-content/8 font-sans text-[10px] text-content/80 tabular-nums">{{ rank }}</kbd>
+          <kbd v-if="rank" class="grid size-4 shrink-0 place-items-center rounded-sm border border-content/25 bg-content/8 font-sans light:border-content/15 light:bg-content/5 text-[10px] text-content/80 tabular-nums">{{ rank }}</kbd>
           <template v-else-if="status">
             <ChatSpinner v-if="status === 'working'" :agent="tab.agent" inherit class="size-3.5 text-xs" :class="sessionStatusColor.working" />
             <component :is="statusIcons[status as keyof typeof statusIcons]" v-else class="size-3.5 shrink-0" :class="sessionStatusColor[status]" aria-hidden="true" />
@@ -77,7 +77,7 @@ const statusIcons = { approval: ShieldQuestion, question: MessageQuestion, done:
         <span
           v-if="pinned"
           class="absolute start-1/2 -bottom-[3.5px] h-0.5 -translate-x-1/2 rounded-full"
-          :class="active ? 'w-2.5 bg-signal' : 'w-1.5 bg-content/35 opacity-0 group-hover:opacity-100'"
+          :class="active ? 'w-2.5 bg-signal' : 'w-1.5 bg-content/35 light:bg-content/20 opacity-0 group-hover:opacity-100'"
           aria-hidden="true"
         />
         <!-- Comme les sessions : la croix n'occupe pas de place, elle se pose au survol sur la fin du titre, qui s'estompe. -->

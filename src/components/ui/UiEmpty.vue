@@ -14,7 +14,7 @@ defineProps<{ icon: Component; title: string; description?: string; tone?: 'dang
       <span class="relative mb-3 grid size-10 place-items-center" aria-hidden="true">
         <span class="absolute inset-0 origin-bottom-left -translate-x-0.5 -rotate-10 scale-84 rounded-lg border border-stroke bg-content/4" />
         <span class="absolute inset-0 origin-bottom-right translate-x-0.5 rotate-10 scale-84 rounded-lg border border-stroke bg-content/4" />
-        <span class="relative grid size-10 place-items-center rounded-lg border border-stroke bg-content/8 shadow-sm backdrop-blur-md">
+        <span class="relative grid size-10 place-items-center rounded-lg border border-stroke bg-content/8 shadow-sm backdrop-blur-md light:shadow-none">
           <component :is="icon" class="size-4.5" :class="tone === 'danger' ? 'text-danger' : 'text-muted'" />
         </span>
       </span>

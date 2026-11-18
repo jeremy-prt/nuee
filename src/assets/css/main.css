@@ -1,5 +1,8 @@
 @import 'tailwindcss';
 
+/* `light:` pour ne retoucher que le mode clair (data-mode posé par stores/appearance.ts). */
+@custom-variant light (&:where([data-mode='light'], [data-mode='light'] *));
+
 /* Un seul rayon de base, le reste en découle ; les valeurs restent celles de Tailwind (4/6/8/12/16). `inline` : un
    `--radius` redéfini sur un conteneur s'applique à ses enfants. Règle d'usage dans `.claude/rules/arrondis.md`. */
 :root {
@@ -117,15 +120,15 @@ body,
    un fond clair, survols plus légers (le noir se voit plus que le blanc à dose égale). */
 html[data-mode='light'] {
   --icon-slate: oklch(44.6% 0.043 257.3);
-  --icon-blue: oklch(54.6% 0.245 262.9);
-  --icon-sky: oklch(58.8% 0.158 242);
+  --icon-blue: oklch(56% 0.165 254.6);
+  --icon-sky: oklch(60% 0.13 232.7);
   --icon-teal: oklch(60% 0.118 184.7);
   --icon-emerald: oklch(59.6% 0.145 163.2);
-  --icon-indigo: oklch(51.1% 0.262 277);
-  --icon-violet: oklch(54.1% 0.281 293);
-  --icon-pink: oklch(59.2% 0.249 0.6);
+  --icon-indigo: oklch(55% 0.18 276.9);
+  --icon-violet: oklch(57% 0.18 293.5);
+  --icon-pink: oklch(60% 0.2 349.8);
   --icon-red: oklch(57.7% 0.245 27.3);
-  --icon-orange: oklch(64.6% 0.222 41.1);
+  --icon-orange: oklch(64% 0.16 55.9);
   color-scheme: light;
   /* 62 % et non 58 % : 4,9:1 sur le blanc au lieu de 4,47, et encore 3:1 sur un fond grisé par l'image ou le bureau.
      Repris dans MUTED de stores/appearance.ts. */
@@ -141,13 +144,13 @@ html[data-mode='light'] {
   --color-signal-text: color-mix(in srgb, var(--color-signal) 80%, black);
   --color-danger: hsl(0 68% 48%);
   --color-success: hsl(145 63% 30%);
-  --color-warning: hsl(26 90% 37%);
+  --color-warning: oklch(55% 0.113 80.6);
   --color-info: hsl(210 80% 44%);
-  --color-orange: hsl(16 72% 46%);
+  --color-orange: oklch(56.2% 0.148 40.2);
   --color-violet: hsl(262 58% 54%);
-  --color-skill: hsl(330 64% 44%);
-  --color-mention: hsl(199 86% 38%);
-  --color-note: hsl(40 88% 36%);
+  --color-skill: oklch(56.6% 0.15 350.1);
+  --color-mention: oklch(54% 0.11 233.1);
+  --color-note: oklch(54.6% 0.11 94.7);
   --project-slate: oklch(0.55 0.03 260);
   --project-blue: oklch(0.55 0.15 250);
   --project-teal: oklch(0.56 0.1 195);
@@ -162,20 +165,25 @@ html[data-mode='light'] {
   --popover-shadow: rgb(0 0 0 / 0.12);
 }
 
-/* Pastilles et aplats pleins en clair : les couleurs d'état y sont assombries pour que leur texte reste lisible, ce qui
-   ternissait points d'état et badges. Seul l'aplat plein (`bg-success`, pas `bg-success/12`) reprend un ton vif. */
+/* Aplats pleins en clair (points d'état, badges), pas `bg-success/12` : les couleurs d'état y sont assombries pour
+   leur texte, ce qui les ternissait. Même teinte OKLCH que le sombre, plus lumineuse. */
 html[data-mode='light'] {
   .bg-success {
-    background-color: hsl(142 68% 40%);
+    background-color: oklch(63% 0.143 154.9);
   }
   .bg-danger {
     background-color: hsl(0 78% 54%);
   }
   .bg-warning {
-    background-color: hsl(36 95% 47%);
+    background-color: oklch(65% 0.133 80.6);
   }
   .bg-info {
-    background-color: hsl(212 88% 52%);
+    background-color: oklch(64.4% 0.135 250.3);
+  }
+  /* Un jaune lisible en texte sur blanc est forcément ocre : les icônes (cadenas des permissions) gardent un jaune
+     plus vif, à 3:1. */
+  svg.text-warning {
+    color: oklch(65% 0.133 80.6);
   }
 }
 
@@ -227,7 +235,7 @@ html.is-macos:not([data-window='opaque']) {
 html[data-mode='light'] {
   --popover-alpha: 72%;
   --glass-content: var(--color-content);
-  --raised-shadow: rgb(0 0 0 / 0.22);
+  --raised-shadow: rgb(0 0 0 / 0.12);
 }
 
 /* Trait entre deux colonnes : rien n'est dessous, il pose son propre fond de barre, sinon il laisserait

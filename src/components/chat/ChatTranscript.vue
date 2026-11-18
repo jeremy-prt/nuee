@@ -382,7 +382,7 @@ onMounted(() => {
       <div v-if="away" class="pointer-events-none sticky bottom-6 flex h-0 items-end justify-center">
         <UiIconButton
           :label="t('chat.backToEnd')"
-          class="pointer-events-auto size-9! rounded-full! border border-stroke bg-overlay! shadow-lg"
+          class="pointer-events-auto size-9! rounded-full! border border-stroke bg-overlay! shadow-lg light:shadow-md light:shadow-black/8"
           @click="backToEnd"
         >
           <ChatSpinner v-if="running" :agent="agent" class="text-base" />
