@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Archive, Check, ChevronDown, ChevronRight, CircleAlert, CircleCheck, GitBranch, MessageQuestion, Orchestra, ShieldQuestion, Undo } from '@/components/ui/icons'
+import { Archive, Check, ChevronDown, ChevronRight, CircleAlert, CircleCheck, GitBranch, MessageQuestion, Orchestra, PinOff, ShieldQuestion, Undo } from '@/components/ui/icons'
 import { HoverCardContent, HoverCardPortal, HoverCardRoot, HoverCardTrigger } from 'reka-ui'
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -88,6 +88,11 @@ const diff = computed(() => (props.tab.added || props.tab.removed ? { added: pro
 // dessous et le diff leur laisse la place.
 const fadeUnder = computed(() => (menuOpen.value ? 'fade-under-three' : 'group-focus-within:fade-under-three group-hover:fade-under-three'))
 // Carte : les actions prennent la place du statut sur la ligne du haut, comme T3 Code ; le modèle s'estompe dessous.
+const primary = computed(() => {
+  if (props.tab.pinned) return { label: t('chats.unpin'), short: t('chats.unpin'), icon: PinOff, run: () => actions.togglePin(props.tab) }
+  if (settled.value) return { label: t('chats.unsettle'), short: t('chats.unsettle'), icon: Undo, run: () => actions.toggleSettled(props.tab) }
+  return { label: t('chats.settle'), short: t('chats.settleShort'), icon: Check, run: () => actions.toggleSettled(props.tab) }
+})
 const fadeActions = computed(() => (menuOpen.value ? 'fade-under-actions' : 'group-focus-within:fade-under-actions group-hover:fade-under-actions'))
 // Flèche du groupe au survol seulement, comme l'app Claude.
 const chevronShown = computed(() => (menuOpen.value ? '' : 'opacity-0 group-focus-within:opacity-100 group-hover:opacity-100'))
@@ -260,16 +265,17 @@ watch(
         class="absolute end-1 top-1 flex gap-0.5 transition-opacity duration-(--hover-duration) ease-out group-hover:opacity-100 focus-within:opacity-100 motion-reduce:transition-none"
         :class="menuOpen ? 'opacity-100' : 'opacity-0'"
       >
-        <UiTooltip :label="settled ? t('chats.unsettle') : t('chats.settle')">
+        <!-- Épinglée : elle est là pour rester en haut, l'action rapide la désépingle ; « Classer » reste dans « … ». -->
+        <UiTooltip :label="primary.label">
           <button
             type="button"
             :class="compact ? 'grid size-6 place-items-center' : 'flex h-6 items-center gap-1 px-1.5'"
             class="rounded-sm text-muted hover:bg-selection-inner hover:text-content focus-visible:outline-2 focus-visible:outline-ring"
-            :aria-label="settled ? t('chats.unsettle') : t('chats.settle')"
-            @click="actions.toggleSettled(tab)"
+            :aria-label="primary.label"
+            @click="primary.run"
           >
-            <component :is="settled ? Undo : Check" class="size-3.5" aria-hidden="true" />
-            <span v-if="!compact" class="text-[11px]">{{ t('chats.settleShort') }}</span>
+            <component :is="primary.icon" class="size-3.5" aria-hidden="true" />
+            <span v-if="!compact" class="text-[11px]">{{ primary.short }}</span>
           </button>
         </UiTooltip>
         <UiTooltip :label="t('chats.archive')">
@@ -287,7 +293,8 @@ watch(
         </UiMoreMenu>
       </div>
     </div>
-    <HoverCardPortal v-if="!renaming && !menuOpen && !drag.source">
+    <!-- Sur une ligne fine seulement : une carte affiche déjà modèle, branche et diff. -->
+    <HoverCardPortal v-if="compact && !renaming && !menuOpen && !drag.source">
       <HoverCardContent side="right" align="start" :side-offset="10" :collision-padding="8" class="ui-pop z-50 w-64 px-3 py-2.5 text-xs">
         <p class="truncate text-[13px] font-medium text-content">{{ tabTitle(tab) }}</p>
         <dl class="mt-1.5 space-y-1 text-muted">

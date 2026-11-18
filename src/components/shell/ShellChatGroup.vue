@@ -13,6 +13,7 @@ import UiCollapse from '@/components/ui/UiCollapse.vue'
 import { useAttentionStore } from '@/stores/attention'
 import { useConversationsStore } from '@/stores/conversations'
 import { type Tab, useWorkspaceStore } from '@/stores/workspace'
+import { revealOpened } from '@/utils/reveal'
 
 // Une session de la liste et celles que son agent a lancées, en retrait dessous avec un trait de rattachement,
 // comme l'app Claude. Les imbriquées n'ont pas `data-chat-id` : le glisser ne range que le premier niveau.
@@ -39,13 +40,23 @@ watch(
     if (id && children.value.some((child) => child.id === id)) delete toggled[props.tab.id]
   },
 )
+
+function openNested(event: MouseEvent) {
+  toggled[props.tab.id] = true
+  revealOpened(event.currentTarget as Element, listId)
+}
+
+function toggleNested() {
+  toggled[props.tab.id] = !open.value
+  if (open.value) revealOpened(document.querySelector(`[data-chat-id="${props.tab.id}"]`), listId)
+}
 </script>
 
 <template>
   <ShellChatItem
     :tab="tab"
     :group="children.length ? { open, unread } : undefined"
-    @toggle="toggled[tab.id] = !open"
+    @toggle="toggleNested"
   />
   <!-- Repliée, la session d'origine dit encore ce qu'elle porte, comme l'app Claude. -->
   <button
@@ -54,7 +65,7 @@ watch(
     aria-expanded="false"
     :aria-controls="listId"
     class="relative ms-4 flex h-6 w-[calc(100%-1rem)] min-w-0 items-center gap-1 rounded-md ps-3 pe-2 text-start text-[11px] text-muted hover:text-content focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
-    @click="toggled[tab.id] = true"
+    @click="openNested($event)"
   >
     <span class="absolute start-0 top-0 h-1/2 w-2 rounded-es-md border-s border-b border-content/20 light:border-content/12" aria-hidden="true" />
     <span class="min-w-0 truncate">{{ t('chats.nested.count', { n: children.length }, children.length) }}</span>

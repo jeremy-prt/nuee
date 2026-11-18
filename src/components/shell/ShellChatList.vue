@@ -15,6 +15,7 @@ import { useProjectsStore } from '@/stores/projects'
 import { type Tab, useWorkspaceStore } from '@/stores/workspace'
 import { useWorktreesStore } from '@/stores/worktrees'
 import { type DateGroup, dateGroup } from '@/utils/duration'
+import { revealOpened } from '@/utils/reveal'
 
 // Sessions du projet en cours (ou du Chat sans projet) : panneau latéral, ou barre latérale en « Projets en menu ».
 
@@ -116,8 +117,10 @@ const counts = computed(() => {
 })
 
 const isCollapsed = (id: string) => layout.collapsedGroups.includes(id)
-function toggleGroup(id: string) {
-  layout.collapsedGroups = isCollapsed(id) ? layout.collapsedGroups.filter((other) => other !== id) : [...layout.collapsedGroups, id]
+function toggleGroup(id: string, event?: MouseEvent) {
+  const opening = isCollapsed(id)
+  layout.collapsedGroups = opening ? layout.collapsedGroups.filter((other) => other !== id) : [...layout.collapsedGroups, id]
+  if (opening) revealOpened(event?.currentTarget as Element | null, `chat-group-${id}`)
 }
 
 // Branches des sessions : relues à chaque arrivée sur le projet, une branche a pu changer hors de Nuée.
@@ -150,7 +153,7 @@ watch(
             class="group/head flex h-7 w-full items-center gap-1.5 rounded-md px-2 text-xs font-semibold text-muted hover:text-content/75 focus-visible:outline-2 focus-visible:outline-ring"
             :aria-expanded="!isCollapsed(group.id)"
             :aria-controls="`chat-group-${group.id}`"
-            @click="toggleGroup(group.id)"
+            @click="toggleGroup(group.id, $event)"
           >
             <span class="min-w-0 truncate text-start">{{ t(`chats.groups.${group.id}`) }}</span>
             <span class="flex-1 text-start font-normal text-muted/70 tabular-nums">{{ counts.get(group.id) }}</span>
@@ -186,7 +189,7 @@ watch(
           class="group/head flex h-7 w-full items-center gap-1.5 rounded-md px-2 text-xs font-semibold text-muted hover:text-content/75 focus-visible:outline-2 focus-visible:outline-ring"
           :aria-expanded="!isCollapsed(SETTLED_GROUP)"
           aria-controls="chat-group-settled"
-          @click="toggleGroup(SETTLED_GROUP)"
+          @click="toggleGroup(SETTLED_GROUP, $event)"
         >
           <span class="min-w-0 truncate text-start">{{ t('chats.groups.settled') }}</span>
           <span class="flex-1 text-start font-normal text-muted/70 tabular-nums">{{ settled.length }}</span>
