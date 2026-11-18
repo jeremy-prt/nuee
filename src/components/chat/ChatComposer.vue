@@ -32,6 +32,7 @@ import { useDraftsStore } from '@/stores/drafts'
 import { useGeneralStore } from '@/stores/general'
 import { useEffects } from '@/composables/useEffects'
 import { useNotesStore } from '@/stores/notes'
+import { useConversationsStore } from '@/stores/conversations'
 import { useOrchestraStore } from '@/stores/orchestra'
 import type { Project } from '@/stores/projects'
 import { useShortcutsStore } from '@/stores/shortcuts'
@@ -67,6 +68,17 @@ const general = useGeneralStore()
 const drafts = useDraftsStore()
 const orchestra = useOrchestraStore()
 const orchestrating = computed(() => orchestra.isOn(props.chatId))
+// Consignes déjà parties avec le dernier message : la session les garde, la croix ne sortirait plus vraiment du mode.
+// Seul le cadre violet reste ; activé en cours de session, la puce revient jusqu'au message suivant.
+const conversations = useConversationsStore()
+const briefed = computed(() => {
+  const items = conversations.find(props.chatId)?.items ?? []
+  for (let i = items.length - 1; i >= 0; i--) {
+    const item = items[i]
+    if (item?.kind === 'user' && !item.from) return !!item.orchestra
+  }
+  return false
+})
 // Mode « Résumer en note » : le texte tapé dit ce qu'il faut garder, l'envoi écrit la note au lieu d'un tour.
 const notes = useNotesStore()
 const summary = computed(() => notes.summaryMode.has(props.chatId))
@@ -577,7 +589,7 @@ function onKeydown(event: KeyboardEvent) {
           <span class="@max-sm:sr-only">{{ t(`composer.mode.${options.mode}`) }}</span>
         </UiMenu>
         <!-- Mode Orchestre : son icône et une croix pour en sortir, sans libellé qui prendrait la barre ; après le mode (choix de Jérémy). -->
-        <UiTooltip v-if="orchestrating" :label="t('composer.orchestra.off')" side="top">
+        <UiTooltip v-if="orchestrating && !briefed" :label="t('composer.orchestra.off')" side="top">
           <button
             ref="orchestraChip"
             type="button"
