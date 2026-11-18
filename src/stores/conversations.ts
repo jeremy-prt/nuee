@@ -722,9 +722,12 @@ export const useConversationsStore = defineStore('conversations', () => {
   function start(chatId: string, conversation: Conversation, message: Omit<Queued, 'id'>) {
     const { place, prompt, attachments } = message
     useWorkspaceStore().touch(chatId)
-    // Consignes du mode Orchestre : au premier message envoyé dans ce mode, la session les garde ensuite.
-    const previous = conversation.items[lastIndex(conversation.items, (item) => item.kind === 'user' && !item.from)]
-    const briefing: ChatCommand | null = message.orchestra && !(previous?.kind === 'user' && previous.orchestra) ? { kind: 'orchestra' } : null
+    // Consignes du mode Orchestre : au premier message envoyé dans ce mode, la session les garde ensuite. Une
+    // compaction ne les laisse que résumées : elles repartent avec le message suivant.
+    const at = lastIndex(conversation.items, (item) => item.kind === 'user' && !item.from)
+    const previous = conversation.items[at]
+    const kept = previous?.kind === 'user' && !!previous.orchestra && !conversation.items.slice(at + 1).some((item) => item.kind === 'compact' && item.status === 'done')
+    const briefing: ChatCommand | null = message.orchestra && !kept ? { kind: 'orchestra' } : null
     // Avant le premier message, il n'y a rien à résumer : `/compact` reste une bulle, à laquelle l'agent répond.
     if (isCompaction(prompt, attachments) && conversation.items.some((item) => item.kind === 'user')) {
       push(conversation, { kind: 'compact', id: crypto.randomUUID(), status: 'running', at: Date.now() })
