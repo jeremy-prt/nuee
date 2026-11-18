@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
+import SettingsAccent from '@/components/settings/SettingsAccent.vue'
 import SettingsHeading from '@/components/settings/SettingsHeading.vue'
 import UiChoiceCard from '@/components/ui/UiChoiceCard.vue'
 import { useAppearanceStore } from '@/stores/appearance'
@@ -9,7 +10,7 @@ const { t } = useI18n()
 const appearance = useAppearanceStore()
 
 // La teinte des fonds du thème, forcée : à sa vraie dose, toutes les pastilles paraissaient grises. Avec la pastille
-// de l'accent qu'il propose.
+// de l'accent qu'il propose, ou de celui choisi pour le thème en cours : la carte cochée ressemble à l'app.
 function swatch(id: ThemeId) {
   const mode = appearance.resolvedMode
   const { hue, [mode]: saturation } = themes[id]
@@ -17,7 +18,7 @@ function swatch(id: ThemeId) {
   const lightness = dark ? 20 - ('shift' in themes[id] ? 16 : 0) : 88 + ('shift' in themes[id] ? 12 : 0)
   return {
     background: `hsl(${hue} ${Math.min(saturation * 1.6, 60)}% ${lightness}%)`,
-    dot: accentColor(themes[id].accent, mode),
+    dot: accentColor(id === appearance.theme ? appearance.accent : themes[id].accent, mode),
   }
 }
 </script>
@@ -41,5 +42,6 @@ function swatch(id: ThemeId) {
         <span class="truncate text-sm font-medium">{{ t(`settings.themes.names.${id}`) }}</span>
       </UiChoiceCard>
     </div>
+    <SettingsAccent />
   </section>
 </template>

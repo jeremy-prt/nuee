@@ -1726,7 +1726,8 @@ export default {
       },
     },
     accent: {
-      title: 'Cor de destaque',
+      title: "Cor",
+      reset: "Cor do tema",
       names: {
         nuee: 'Neutro',
         braise: 'Brasa',

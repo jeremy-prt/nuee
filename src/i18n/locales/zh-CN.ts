@@ -1726,7 +1726,8 @@ export default {
       },
     },
     accent: {
-      title: '强调色',
+      title: "颜色",
+      reset: "主题颜色",
       names: {
         nuee: '中性',
         braise: '余烬',

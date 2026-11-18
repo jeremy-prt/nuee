@@ -1724,7 +1724,8 @@ export default {
       },
     },
     accent: {
-      title: 'Accent color',
+      title: "Color",
+      reset: "Theme color",
       names: {
         nuee: 'Neutral',
         braise: 'Ember',

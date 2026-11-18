@@ -3,7 +3,6 @@ import { ArrowLeft, Plus, Sparkles } from '@/components/ui/icons'
 import { nextTick, onMounted, onUnmounted, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SettingsAbout from '@/components/settings/SettingsAbout.vue'
-import SettingsAccent from '@/components/settings/SettingsAccent.vue'
 import SettingsAgent from '@/components/settings/SettingsAgent.vue'
 import SettingsAgents from '@/components/settings/SettingsAgents.vue'
 import SettingsAppearance from '@/components/settings/SettingsAppearance.vue'
@@ -226,7 +225,6 @@ onUnmounted(() => {
         <template v-else-if="navigation.settingsSection === 'appearance'">
           <SettingsMode />
           <SettingsThemes />
-          <SettingsAccent />
           <SettingsLayout />
           <SettingsAppearance />
           <SettingsInterface />

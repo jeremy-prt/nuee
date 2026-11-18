@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { RadioGroupItem, RadioGroupRoot } from 'reka-ui'
 import { useI18n } from 'vue-i18n'
-import SettingsHeading from '@/components/settings/SettingsHeading.vue'
 import UiTooltip from '@/components/ui/UiTooltip.vue'
 import { useAppearanceStore } from '@/stores/appearance'
 import { accentColor, type AccentId, accentIds } from '@/utils/themes'
@@ -17,8 +16,9 @@ const ring =
 </script>
 
 <template>
-  <section class="pt-8" aria-labelledby="accent-title">
-    <SettingsHeading id="accent-title" :title="t('settings.accent.title')" />
+  <!-- Partie du bloc Thème : la couleur est une variante du thème, comme dans T3 Code. -->
+  <div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+    <h3 id="accent-title" class="text-xs font-medium text-muted">{{ t('settings.accent.title') }}</h3>
     <RadioGroupRoot
       v-model="appearance.accent"
       data-setting="accent"
@@ -36,5 +36,13 @@ const ring =
         />
       </UiTooltip>
     </RadioGroupRoot>
-  </section>
+    <button
+      v-if="appearance.accentCustom"
+      type="button"
+      class="rounded-md px-1.5 py-0.5 text-xs text-muted hover:text-content focus-visible:outline-2 focus-visible:outline-ring"
+      @click="appearance.resetAccent"
+    >
+      {{ t('settings.accent.reset') }}
+    </button>
+  </div>
 </template>

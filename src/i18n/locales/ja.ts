@@ -1726,7 +1726,8 @@ export default {
       },
     },
     accent: {
-      title: 'アクセントカラー',
+      title: "カラー",
+      reset: "テーマの色",
       names: {
         nuee: 'ニュートラル',
         braise: '熾火',

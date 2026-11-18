@@ -464,6 +464,12 @@ export const useAppearanceStore = defineStore('appearance', () => {
     accent.value = themes[id].accent
   }
 
+  // Accent choisi à la main, différent de celui du thème : la carte du thème le montre, un lien y ramène.
+  const accentCustom = computed(() => accent.value !== themes[theme.value].accent)
+  function resetAccent() {
+    accent.value = themes[theme.value].accent
+  }
+
   function resetZoom() {
     zoom.value = defaults().zoom
   }
@@ -500,6 +506,8 @@ export const useAppearanceStore = defineStore('appearance', () => {
     layout,
     animations,
     applyTheme,
+    accentCustom,
+    resetAccent,
     fitToImage,
     stepZoom,
     resetZoom,
