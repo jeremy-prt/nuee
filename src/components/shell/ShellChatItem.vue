@@ -262,13 +262,14 @@ watch(
         class="absolute end-1 top-1 flex gap-0.5 transition-opacity duration-(--hover-duration) ease-out group-hover:opacity-100 focus-within:opacity-100 motion-reduce:transition-none"
         :class="menuOpen ? 'opacity-100' : 'opacity-0'"
       >
+        <!-- Boutons sans fond au survol : la ligne est déjà surlignée, un second fond alourdissait (choix de Jérémy). -->
         <!-- Épinglée : elle est là pour rester en haut, l'action rapide la désépingle ; « Classer » reste dans « … ». -->
         <!-- Sur une carte, le bouton dit déjà son action : l'infobulle ne ferait que la répéter. -->
         <UiTooltip :label="primary.label" :disabled="!compact">
           <button
             type="button"
             :class="compact ? 'grid size-6 place-items-center' : 'flex h-6 items-center gap-1 px-1.5'"
-            class="rounded-sm text-muted hover:bg-selection-inner hover:text-content focus-visible:outline-2 focus-visible:outline-ring"
+            class="rounded-sm text-muted hover:text-content focus-visible:outline-2 focus-visible:outline-ring"
             :aria-label="primary.label"
             @click="primary.run"
           >
@@ -279,14 +280,14 @@ watch(
         <UiTooltip :label="t('chats.archive')">
           <button
             type="button"
-            class="grid size-6 place-items-center rounded-sm text-muted hover:bg-selection-inner hover:text-content focus-visible:outline-2 focus-visible:outline-ring"
+            class="grid size-6 place-items-center rounded-sm text-muted hover:text-content focus-visible:outline-2 focus-visible:outline-ring"
             :aria-label="t('chats.archive')"
             @click="actions.archiveChat(tab)"
           >
             <Archive class="size-3.5" aria-hidden="true" />
           </button>
         </UiTooltip>
-        <UiMoreMenu :label="t('menu.more')" :keep-focus="() => renaming" @update:open="menuOpen = $event">
+        <UiMoreMenu :label="t('menu.more')" :keep-focus="() => renaming" plain @update:open="menuOpen = $event">
           <ShellChatMenu :tab="tab" @rename="startRename()" />
         </UiMoreMenu>
       </div>

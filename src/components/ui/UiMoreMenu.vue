@@ -6,7 +6,8 @@ import { menuPanel } from '@/components/ui/menuRow'
 
 // Bouton « … » d'une ligne : même menu que son clic droit, et seul accès au clavier.
 // `keepFocus` : l'action choisie place elle-même le focus (champ de renommage), le menu ne le rend pas au bouton.
-const props = defineProps<{ label: string; keepFocus?: () => boolean; tooltipSide?: 'top' | 'bottom' }>()
+// `plain` : sans fond au survol, posé sur une ligne déjà surlignée (cartes de session).
+const props = defineProps<{ label: string; keepFocus?: () => boolean; tooltipSide?: 'top' | 'bottom'; plain?: boolean }>()
 const emit = defineEmits<{ 'update:open': [open: boolean] }>()
 
 let byPointer = false
@@ -24,7 +25,8 @@ function onCloseAutoFocus(event: Event) {
     <span class="flex">
       <DropdownMenuRoot :modal="false" @update:open="emit('update:open', $event)">
         <DropdownMenuTrigger
-          class="grid size-6 place-items-center rounded-sm text-muted hover:bg-selection-inner hover:text-content focus-visible:outline-2 focus-visible:outline-ring aria-expanded:bg-selection-inner aria-expanded:text-content"
+          class="grid size-6 place-items-center rounded-sm text-muted hover:text-content focus-visible:outline-2 focus-visible:outline-ring aria-expanded:text-content"
+          :class="{ 'hover:bg-selection-inner aria-expanded:bg-selection-inner': !plain }"
           :aria-label="label"
           @pointerdown="openedBy(true)"
           @keydown="openedBy(false)"
