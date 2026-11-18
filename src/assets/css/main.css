@@ -133,7 +133,7 @@ html[data-mode='light'] {
   --color-signal-text: color-mix(in srgb, var(--color-signal) 80%, black);
   --color-danger: hsl(0 68% 48%);
   --color-success: hsl(145 63% 30%);
-  --color-warning: hsl(32 92% 33%);
+  --color-warning: hsl(26 90% 37%);
   --color-info: hsl(210 80% 44%);
   --color-orange: hsl(16 72% 46%);
   --color-violet: hsl(262 58% 54%);

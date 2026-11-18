@@ -36,7 +36,7 @@ export const accents = {
   braise: { hue: 4, saturation: 80, dark: 64, light: 48 },
   ambre: { hue: 28, saturation: 90, dark: 60, light: 45 },
   // Trop clair en sombre pour un rond blanc d'interrupteur : il porte le fond sombre.
-  soleil: { hue: 46, saturation: 92, dark: 58, light: 38, darkOnSignal: true },
+  soleil: { hue: 42, saturation: 94, dark: 58, light: 44, darkOnSignal: true },
   foret: { hue: 145, saturation: 52, dark: 52, light: 33 },
   iris: { hue: 262, saturation: 80, dark: 70, light: 55 },
   pivoine: { hue: 330, saturation: 78, dark: 67, light: 48 },
