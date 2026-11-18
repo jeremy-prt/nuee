@@ -10,7 +10,7 @@ const navigation = useNavigationStore()
 
 // Jamais derrière les Réglages, qu'elle rendrait difficiles à lire.
 const shown = computed(() => {
-  if (navigation.view === 'settings') return false
+  if (navigation.view === 'settings' || appearance.background.hidden) return false
   return navigation.view === 'chats' || appearance.background.where === 'everywhere'
 })
 // Toujours monté (zone centrale) : il prépare les vignettes d'effets dès le lancement et à chaque image.

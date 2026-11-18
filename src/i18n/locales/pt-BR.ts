@@ -1546,6 +1546,7 @@ export default {
         zoomOut: 'Diminuir a interface',
         zoomReset: 'Redefinir o tamanho da interface',
         fillScreen: "Preencher a tela",
+        toggleBackground: "Mostrar ou ocultar a imagem de fundo",
       },
     },
     general: {

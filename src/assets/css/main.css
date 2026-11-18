@@ -29,6 +29,12 @@
   /* Survol d'un bouton posé sur une ligne ou un onglet, surligné ou non : sans lui, il se perdait sur l'actif
      (14 → 19 %). Comme monocode, qui met ces boutons à 10 % partout. */
   --color-selection-inner: color-mix(in srgb, var(--color-content) 10%, transparent);
+  /* Interrupteur éteint : rond couleur du texte sur un rail à peine marqué. En clair, un rond blanc sur un rail plus
+     franc, comme macOS : le rond noir ressortait trop. */
+  --color-knob: var(--color-content);
+  --color-track: var(--color-selection-hover);
+  /* Bulle des messages de l'utilisateur : la sélection, sauf thème coloré (stores/appearance.ts la teinte). */
+  --color-bubble: var(--color-selection);
   /* Focus et éléments choisis : le signal adouci, juste assez pour garder 3:1 sur les fonds de la fenêtre. */
   --color-ring: color-mix(in srgb, var(--color-signal) 90%, transparent);
   /* Bordure d'un champ de saisie qui a le focus : le trait s'éclaircit à peine, comme dans monocode. */
@@ -128,6 +134,8 @@ html[data-mode='light'] {
   --color-selection: color-mix(in srgb, var(--color-content) 9%, transparent);
   --color-selection-hover: color-mix(in srgb, var(--color-content) 4.5%, transparent);
   --color-selection-inner: color-mix(in srgb, var(--color-content) 7%, transparent);
+  --color-knob: hsl(0 0% 100%);
+  --color-track: color-mix(in srgb, var(--color-content) 14%, transparent);
   --color-stroke-focus: color-mix(in srgb, var(--color-content) 26%, transparent);
   --color-edge-hover: color-mix(in srgb, var(--color-signal) 70%, var(--color-canvas));
   --color-signal-text: color-mix(in srgb, var(--color-signal) 80%, black);
@@ -152,6 +160,23 @@ html[data-mode='light'] {
   --control-highlight: rgb(255 255 255 / 0.7);
   --control-shadow: rgb(0 0 0 / 0.08);
   --popover-shadow: rgb(0 0 0 / 0.12);
+}
+
+/* Pastilles et aplats pleins en clair : les couleurs d'état y sont assombries pour que leur texte reste lisible, ce qui
+   ternissait points d'état et badges. Seul l'aplat plein (`bg-success`, pas `bg-success/12`) reprend un ton vif. */
+html[data-mode='light'] {
+  .bg-success {
+    background-color: hsl(142 68% 40%);
+  }
+  .bg-danger {
+    background-color: hsl(0 78% 54%);
+  }
+  .bg-warning {
+    background-color: hsl(36 95% 47%);
+  }
+  .bg-info {
+    background-color: hsl(212 88% 52%);
+  }
 }
 
 /* Texte sélectionné (chat, code) à la couleur du thème plutôt qu'à celle de macOS. */
@@ -1082,6 +1107,10 @@ html[data-mode='light'] .ui-tip {
       inset 0 1px 0 var(--control-highlight),
       inset 0 -1px 0 var(--control-solid-edge, transparent),
       0 1px 2px var(--control-shadow);
+  }
+  /* L'ombre pensée pour le sombre faisait une tache grise sous les boutons pleins en clair. */
+  html[data-mode='light'] [data-control='solid'] {
+    --control-shadow: rgb(0 0 0 / 0.18);
   }
 
   /* Pas sur un bouton qui ouvre une liste : elle se placerait sous le bouton rétréci, puis décalée. */

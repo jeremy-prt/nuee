@@ -120,7 +120,7 @@ watch(signedIn, async (now) => {
     </ul>
     <p
       v-if="item.text"
-      class="max-w-[85%] rounded-xl bg-selection px-3 py-2 text-sm whitespace-pre-wrap break-words select-text transition-opacity motion-reduce:transition-none"
+      class="max-w-[85%] rounded-xl bg-bubble px-3 py-2 text-sm whitespace-pre-wrap break-words select-text transition-opacity motion-reduce:transition-none"
       :class="{ 'opacity-60': steerPending }"
     ><ChatPromptText :text="item.text" /></p>
     <p v-if="item.orchestra" class="flex items-center gap-1 text-[11px] text-violet" :title="t('composer.orchestra.sent')">

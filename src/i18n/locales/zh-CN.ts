@@ -1546,6 +1546,7 @@ export default {
         zoomOut: '缩小界面',
         zoomReset: '重置界面大小',
         fillScreen: "填满屏幕",
+        toggleBackground: "显示或隐藏背景图片",
       },
     },
     general: {

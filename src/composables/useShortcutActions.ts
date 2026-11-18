@@ -86,6 +86,7 @@ export function useShortcutActions() {
     { id: 'zoomOut', run: () => appearance.stepZoom(-1) },
     { id: 'zoomReset', run: appearance.resetZoom },
     { id: 'fillScreen', run: () => void windowToggleFill().catch(() => {}) },
+    { id: 'toggleBackground', run: appearance.toggleBackground },
   ]
 
   function run(action: ShortcutAction, event?: KeyboardEvent) {

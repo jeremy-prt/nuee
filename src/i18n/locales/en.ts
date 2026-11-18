@@ -1544,6 +1544,7 @@ export default {
         zoomOut: 'Make the interface smaller',
         zoomReset: 'Reset the interface size',
         fillScreen: "Fill the screen",
+        toggleBackground: "Show or hide the background image",
       },
     },
     general: {

@@ -1546,6 +1546,7 @@ export default {
         zoomOut: 'インターフェースを縮小',
         zoomReset: 'インターフェースのサイズをリセット',
         fillScreen: "画面いっぱいに広げる",
+        toggleBackground: "背景画像の表示を切り替える",
       },
     },
     general: {
