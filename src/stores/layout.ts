@@ -73,10 +73,8 @@ interface LayoutState {
   sessionSort: SessionSort
   // Intertitres de la liste des sessions : coupés par défaut, chaque session montre déjà sa date et son état.
   sessionGroups: SessionGroups
-  // Intertitres repliés (`status.idle`, `week`…) : les sessions au repos le sont d'emblée, comme le « Settled » de T3 Code.
+  // Intertitres repliés à la main (`settled`, `week`…).
   collapsedGroups: string[]
-  // Une ligne par session (titre, état ou heure), comme OpenCode.
-  sessionCompact: boolean
   // Ordre des épinglées, choisi en les glissant ; une épinglée absente se range après, selon le tri.
   pinnedOrder: string[]
   // Onglets épinglés : en tête de la bande dans tous les projets, gardés au redémarrage (choix de Jérémy).
@@ -121,8 +119,7 @@ function defaults(): LayoutState {
     right: { open: false, size: SIZES.right.defaultSize, width: null, editorWidth: null, tabs: [], active: null, aside: null, asideRatio: 0.5, preferOpen: true, sessions: {}, projects: {}, gitModes: {} },
     sessionSort: 'activity',
     sessionGroups: 'status',
-    collapsedGroups: ['status.idle'],
-    sessionCompact: true,
+    collapsedGroups: [],
     pinnedOrder: [],
     pinnedTabs: [],
   }

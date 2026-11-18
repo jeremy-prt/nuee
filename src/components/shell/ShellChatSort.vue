@@ -70,8 +70,6 @@ const openedBy = (pointer: boolean) => {
             <UiMenuSub :label="t('chats.sort.groupsTitle')" :value="chosen(groupSection)?.label">
               <UiMenuChoices :section="groupSection" @select="layout.sessionGroups = $event as SessionGroups" />
             </UiMenuSub>
-            <UiMenuSeparator />
-            <UiMenuToggle v-model="layout.sessionCompact" :label="t('chats.sort.compact')" />
           </DropdownMenuContent>
         </DropdownMenuPortal>
       </DropdownMenuRoot>

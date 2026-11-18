@@ -67,19 +67,16 @@ const status = computed(() => sessionStatus(props.tab.id))
 const opened = computed(() => workspace.contextTabs.some((item) => item.id === props.tab.id))
 const settled = computed(() => !!props.tab.settledAt)
 const quiet = computed(() => settled.value || (!status.value && !active.value && !opened.value))
-// Comme T3 Code : une session garde sa carte tant qu'elle n'est pas classée, même finie (elle rapetissait d'un coup).
-// Classée, elle passe en ligne fine ; la densité compacte ne vaut plus que pour les inactives depuis 7 jours.
-const IDLE_AFTER = 7 * 86_400_000
+// Comme T3 Code : une session garde sa carte tant qu'elle n'est pas classée, même finie ; classée, ou rangée sous sa
+// parente sans travailler ni attendre, elle passe en ligne fine.
 const compact = computed(() => {
   if (settled.value) return true
   if (status.value === 'working' || status.value === 'approval' || status.value === 'question') return false
-  if (props.nested) return true
-  if (status.value) return false
-  return layout.sessionCompact && clock.now - props.tab.updatedAt >= IDLE_AFTER
+  return !!props.nested
 })
 const titleTone = computed(() => (quiet.value && !menuOpen.value ? 'text-muted group-hover/row:text-content group-focus-within/row:text-content' : ''))
 
-const since = computed(() => formatSince(props.tab.updatedAt, clock.now, locale.value, layout.sessionCompact))
+const since = computed(() => formatSince(props.tab.updatedAt, clock.now, locale.value, compact.value))
 const branch = computed(() => worktrees.branchOf(props.tab))
 const model = computed(() => catalog.modelLabel(props.tab.agent, props.tab.model))
 const diff = computed(() => (props.tab.added || props.tab.removed ? { added: props.tab.added, removed: props.tab.removed } : null))

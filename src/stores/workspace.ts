@@ -63,6 +63,7 @@ interface PaneLayout {
 const MAX_PANES = 2
 const SEED_LENGTH = 50
 const DAY = 86_400_000
+const SETTLE_AFTER = 7 * DAY
 const PURGE_EVERY = 3_600_000
 const RESUME_WITHIN = 3_600_000
 // Comme Arc : un onglet fini et pas regardé depuis 12 h se ferme seul (rouvrable par ⌘⇧T ou la liste).
@@ -651,8 +652,21 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     await archive(idle).catch((error) => console.error('archivage', error))
   }
 
+  // Comme T3 Code : sans activité depuis 7 jours, une session se classe seule. Ni une épinglée, ni une qui travaille
+  // ou attend une réponse.
+  async function autoSettle() {
+    const limit = Date.now() - SETTLE_AFTER
+    const idle = tabs.value.filter((tab) => {
+      if (!tab.started || tab.archived || tab.pinned || tab.settledAt || tab.updatedAt >= limit) return false
+      const conversation = conversations.find(tab.id)
+      return (conversation?.phase ?? 'idle') === 'idle' && !conversation?.approvals.length
+    })
+    for (const tab of idle) await setSettled(tab.id, true).catch((error) => console.error('classement', error))
+  }
+
   async function tidy() {
     closeIdleTabs()
+    await autoSettle()
     await autoArchive()
     await purgeArchives()
   }

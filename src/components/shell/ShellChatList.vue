@@ -47,16 +47,15 @@ const pinned = computed(() => {
   }
   return sorted(workspace.pinnedChats).sort((a, b) => rank(a) - rank(b))
 })
-// Comme T3 Code : une session au repos passe en « Inactives » après 7 jours sans activité.
-const IDLE_AFTER = 7 * 86_400_000
-type StatusGroup = 'waiting' | 'failed' | 'working' | 'done' | 'idle'
-const STATUS_RANK: Record<StatusGroup, number> = { waiting: 0, failed: 1, working: 2, done: 3, idle: 4 }
+// Les inactives depuis 7 jours se classent seules (`workspace.autoSettle`) : pas de groupe pour elles.
+type StatusGroup = 'waiting' | 'failed' | 'working' | 'done'
+const STATUS_RANK: Record<StatusGroup, number> = { waiting: 0, failed: 1, working: 2, done: 3 }
 
 function statusGroup(tab: Tab): StatusGroup {
   const status = sessionStatus(tab.id)
   if (status === 'approval' || status === 'question') return 'waiting'
   if (status) return status
-  return clock.now - tab.updatedAt < IDLE_AFTER ? 'done' : 'idle'
+  return 'done'
 }
 
 // En groupage par statut, les sessions actives passent devant avant le découpage progressif : jamais cachées plus bas.
