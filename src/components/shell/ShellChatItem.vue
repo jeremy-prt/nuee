@@ -263,7 +263,8 @@ watch(
         :class="menuOpen ? 'opacity-100' : 'opacity-0'"
       >
         <!-- Épinglée : elle est là pour rester en haut, l'action rapide la désépingle ; « Classer » reste dans « … ». -->
-        <UiTooltip :label="primary.label">
+        <!-- Sur une carte, le bouton dit déjà son action : l'infobulle ne ferait que la répéter. -->
+        <UiTooltip :label="primary.label" :disabled="!compact">
           <button
             type="button"
             :class="compact ? 'grid size-6 place-items-center' : 'flex h-6 items-center gap-1 px-1.5'"
