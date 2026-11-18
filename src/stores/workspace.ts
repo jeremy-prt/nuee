@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, reactive, ref, watch } from 'vue'
 import type { AgentKind } from '@/ipc/bindings/AgentKind'
 import type { Attachment } from '@/ipc/bindings/Attachment'
-import { chatList, chatRename, chatSetArchived, chatSetPinned, chatSetWorktree, chatTitle } from '@/ipc/chat'
+import { chatList, chatRename, chatSetArchived, chatSetPinned, chatSetSettled, chatSetWorktree, chatTitle } from '@/ipc/chat'
 import { i18nGlobal } from '@/i18n'
 import { useDraftsStore } from '@/stores/drafts'
 import { useGitPanelStore } from '@/stores/gitPanel'
@@ -40,6 +40,8 @@ export interface Tab {
   updatedAt: number
   // En haut de la liste du contexte ; l'archivage automatique le laisse.
   pinned: boolean
+  // Classée par l'utilisateur (ms) : rangée en bas de la liste jusqu'à sa prochaine activité.
+  settledAt: number | null
   // Recopiés de la conversation à chaque enregistrement : la liste les montre sans la charger.
   model: string | null
   added: number
@@ -268,7 +270,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   ) {
     const agent = background?.agent ?? projects.chatAgent(projectId)
     const worktree = worktreePath !== undefined && worktreePath !== null
-    const summary = { id: crypto.randomUUID(), projectId, number: nextChatNumber(projectId), agent, title, started: false, worktree, worktreePath: worktreePath ?? null, archived: false, archivedAt: null, createdAt: Date.now(), updatedAt: Date.now(), pinned: false, model: null, added: 0, removed: 0, parentId, background: !!background }
+    const summary = { id: crypto.randomUUID(), projectId, number: nextChatNumber(projectId), agent, title, started: false, worktree, worktreePath: worktreePath ?? null, archived: false, archivedAt: null, createdAt: Date.now(), updatedAt: Date.now(), pinned: false, settledAt: null, model: null, added: 0, removed: 0, parentId, background: !!background }
     if (background) hidden.add(summary.id)
     const tab: Tab = { ...summary, kind: 'chat' }
     tabs.value.push(tab)
@@ -695,12 +697,30 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
+  // Classée : rangée en bas de la liste, comme « Settle » de T3 Code. Une épinglée perd son épingle, sinon elle resterait
+  // en haut.
+  async function setSettled(id: string, settled: boolean) {
+    const tab = tabs.value.find((item) => item.id === id)
+    if (!tab || !!tab.settledAt === settled) return
+    const before = tab.settledAt
+    tab.settledAt = settled ? Date.now() : null
+    try {
+      await chatSetSettled(id, settled)
+      if (settled && tab.pinned) await setPinned(id, false)
+    } catch (error) {
+      tab.settledAt = before
+      throw error
+    }
+  }
+
   async function setPinned(id: string, pinned: boolean) {
     const tab = tabs.value.find((item) => item.id === id)
     if (!tab || tab.pinned === pinned) return
     tab.pinned = pinned
     try {
       await chatSetPinned(id, pinned)
+      // Une classée épinglée resterait fine et atténuée en haut de la liste.
+      if (pinned && tab.settledAt) await setSettled(id, false)
     } catch (error) {
       tab.pinned = !pinned
       throw error
@@ -794,6 +814,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     renamingId,
     requestRename,
     setPinned,
+    setSettled,
     moveTab,
     dropTab,
   }

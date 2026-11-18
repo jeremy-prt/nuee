@@ -35,6 +35,10 @@ export function chatSetPinned(id: string, pinned: boolean) {
   return invoke<void>('chat_set_pinned', { id, pinned })
 }
 
+export function chatSetSettled(id: string, settled: boolean) {
+  return invoke<void>('chat_set_settled', { id, settled })
+}
+
 // Avant le premier message seulement. path : worktree existant rejoint ; null avec worktree : le sien.
 export function chatSetWorktree(id: string, worktree: boolean, path: string | null) {
   return invoke<void>('chat_set_worktree', { id, worktree, path })

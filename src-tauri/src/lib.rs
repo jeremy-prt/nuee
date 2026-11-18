@@ -185,6 +185,7 @@ pub fn run() {
             commands::chat::chat_title,
             commands::chat::chat_rename,
             commands::chat::chat_set_pinned,
+            commands::chat::chat_set_settled,
             commands::chat::chat_set_worktree,
             commands::chat::chat_set_archived,
             commands::chat::chat_texts,

@@ -42,6 +42,10 @@ updatedAt: number,
  */
 pinned: boolean, 
 /**
+ * Classée en bas de la barre latérale, en millisecondes. `None` : pas classée.
+ */
+settledAt: number | null, 
+/**
  * Modèle des réglages enregistrés. `None` : celui que l'agent prend par défaut.
  */
 model: string | null, 

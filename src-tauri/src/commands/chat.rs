@@ -61,6 +61,15 @@ pub async fn chat_set_pinned(
     chats.set_pinned(&id, pinned)
 }
 
+#[tauri::command]
+pub async fn chat_set_settled(
+    id: String,
+    settled: bool,
+    chats: State<'_, ChatService>,
+) -> Result<(), AppError> {
+    chats.set_settled(&id, settled)
+}
+
 /// `None` tant que le chat n'a jamais été enregistré.
 #[tauri::command]
 pub async fn chat_content(

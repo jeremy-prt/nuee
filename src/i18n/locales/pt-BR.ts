@@ -28,8 +28,13 @@ export default {
     unpin: 'Desafixar',
     pinned: 'Fixadas',
     sort: { label: 'Ordenar sessões', title: 'Ordenar por', activity: 'Última atividade', created: 'Data de criação', name: 'Nome', groupsTitle: 'Agrupar por', noGroups: 'Nenhum', byDate: 'Data', byStatus: 'Status', compact: 'Exibição compacta' },
-    groups: { today: 'Hoje', yesterday: 'Ontem', week: 'Últimos 7 dias', month: 'Últimos 30 dias', older: 'Mais antigas', status: { waiting: 'Aguardando resposta', failed: 'Erro', working: 'Em andamento', done: 'Concluídas', idle: 'Inativas' } },
+    groups: { settled: "Classificadas", today: 'Hoje', yesterday: 'Ontem', week: 'Últimos 7 dias', month: 'Últimos 30 dias', older: 'Mais antigas', status: { waiting: 'Aguardando resposta', failed: 'Erro', working: 'Em andamento', done: 'Concluídas', idle: 'Inativas' } },
     recent: 'Sessões',
+    settle: "Classificar a sessão",
+    unsettle: "Tirar das classificadas",
+    settleFailed: "Não foi possível classificar a sessão",
+    showMore: "Ver mais {n}",
+    card: { status: "Estado", model: "Modelo", branch: "Branch", changes: "Alterações", settled: "Classificada", idle: "Em repouso" },
     nested: { count: '{n} aninhada | {n} aninhadas', unread: 'Não lidas: {n}' },
     renameLabel: 'Nome da sessão',
     openInTab: "Aberta em uma aba",
@@ -55,6 +60,8 @@ export default {
     empty: 'Nenhuma sessão ainda.',
     worktreeKept: 'Worktree mantido | {n} worktrees mantidos',
     worktreeKeptBody: 'Ele tem alterações não commitadas e continua disponível em {paths} | Eles têm alterações não commitadas e continuam disponíveis em {paths}',
+    // Sur la ligne d'une session, où la place manque ; la fiche au survol garde la version longue.
+    statusShort: { approval: "Autorização", question: "Pergunta", working: "Em andamento", done: "Concluído", failed: "Erro" },
     status: {
       approval: 'Autorização solicitada',
       question: 'Pergunta feita',

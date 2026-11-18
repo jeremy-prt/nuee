@@ -28,8 +28,13 @@ export default {
     unpin: 'ピン留めを外す',
     pinned: 'ピン留め',
     sort: { label: 'セッションを並べ替え', title: '並べ替え', activity: '最終アクティビティ', created: '作成日', name: '名前', groupsTitle: 'グループ化', noGroups: 'なし', byDate: '日付', byStatus: 'ステータス', compact: 'コンパクト表示' },
-    groups: { today: '今日', yesterday: '昨日', week: '過去 7 日間', month: '過去 30 日間', older: 'それ以前', status: { waiting: '応答待ち', failed: 'エラー', working: '実行中', done: '完了', idle: '待機中' } },
+    groups: { settled: "処理済み", today: '今日', yesterday: '昨日', week: '過去 7 日間', month: '過去 30 日間', older: 'それ以前', status: { waiting: '応答待ち', failed: 'エラー', working: '実行中', done: '完了', idle: '待機中' } },
     recent: 'セッション',
+    settle: "セッションを処理済みにする",
+    unsettle: "処理済みから戻す",
+    settleFailed: "セッションを処理済みにできませんでした",
+    showMore: "さらに {n} 件表示",
+    card: { status: "状態", model: "モデル", branch: "ブランチ", changes: "変更", settled: "処理済み", idle: "待機中" },
     nested: { count: 'ネスト {n} 件', unread: '未読: {n}' },
     renameLabel: 'セッション名',
     openInTab: "タブで開いています",
@@ -55,6 +60,8 @@ export default {
     empty: 'まだセッションはありません。',
     worktreeKept: 'worktree を残しました | {n} 件の worktree を残しました',
     worktreeKeptBody: 'コミットされていない変更があるため、{paths} に残しています。 | コミットされていない変更があるため、{paths} に残しています。',
+    // Sur la ligne d'une session, où la place manque ; la fiche au survol garde la version longue.
+    statusShort: { approval: "承認待ち", question: "質問", working: "実行中", done: "完了", failed: "エラー" },
     status: {
       approval: '承認待ち',
       question: '質問あり',

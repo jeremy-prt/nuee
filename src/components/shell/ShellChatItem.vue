@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Archive, ChevronDown, ChevronRight, CircleAlert, CircleCheck, GitBranch, MessageQuestion, Orchestra, ShieldQuestion } from '@/components/ui/icons'
+import { Archive, Check, ChevronDown, ChevronRight, CircleAlert, CircleCheck, GitBranch, MessageQuestion, Orchestra, ShieldQuestion, Undo } from '@/components/ui/icons'
+import { HoverCardContent, HoverCardPortal, HoverCardRoot, HoverCardTrigger } from 'reka-ui'
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChatDiffStat from '@/components/chat/ChatDiffStat.vue'
@@ -63,7 +64,15 @@ const status = computed(() => sessionStatus(props.tab.id))
 // Une session au repos s'efface : celles qui travaillent, attendent, viennent de finir ou sont ouvertes en onglet
 // ressortent.
 const opened = computed(() => workspace.contextTabs.some((item) => item.id === props.tab.id))
-const quiet = computed(() => !status.value && !active.value && !opened.value)
+const settled = computed(() => !!props.tab.settledAt)
+const quiet = computed(() => settled.value || (!status.value && !active.value && !opened.value))
+// Comme T3 Code : une session qui travaille ou attend une réponse prend une carte haute, une classée une ligne fine ;
+// les autres suivent le réglage de densité.
+const compact = computed(() => {
+  if (settled.value) return true
+  if (status.value === 'working' || status.value === 'approval' || status.value === 'question') return false
+  return layout.sessionCompact
+})
 const titleTone = computed(() => (quiet.value && !menuOpen.value ? 'text-muted group-hover/row:text-content group-focus-within/row:text-content' : ''))
 
 const since = computed(() => formatSince(props.tab.updatedAt, clock.now, locale.value, layout.sessionCompact))
@@ -73,9 +82,9 @@ const diff = computed(() => (props.tab.added || props.tab.removed ? { added: pro
 
 // Au survol, les boutons se posent à droite de la dernière ligne (la branche, sinon le titre) : le texte s'estompe
 // dessous et le diff leur laisse la place.
-const fadeUnder = computed(() => (menuOpen.value ? 'fade-under-two' : 'group-focus-within:fade-under-two group-hover:fade-under-two'))
+const fadeUnder = computed(() => (menuOpen.value ? 'fade-under-three' : 'group-focus-within:fade-under-three group-hover:fade-under-three'))
 // Avec une flèche de groupe, le titre s'arrête avant les boutons : la flèche reste cliquable.
-const keepClear = computed(() => (menuOpen.value ? 'pe-13' : 'group-focus-within:pe-13 group-hover:pe-13'))
+const keepClear = computed(() => (menuOpen.value ? 'pe-20' : 'group-focus-within:pe-20 group-hover:pe-20'))
 // Flèche du groupe au survol seulement, comme l'app Claude.
 const chevronShown = computed(() => (menuOpen.value ? '' : 'opacity-0 group-focus-within:opacity-100 group-hover:opacity-100'))
 const hideUnder = computed(() => (menuOpen.value ? 'hidden' : 'group-focus-within:hidden group-hover:hidden'))
@@ -127,6 +136,8 @@ watch(
 <template>
   <UiContextMenu :disabled="renaming" @update:open="menuOpen = $event">
     <!-- group/row : la carte garde son survol quand le pointeur passe sur ses boutons, posés par-dessus. -->
+    <HoverCardRoot :open-delay="700" :close-delay="80">
+    <HoverCardTrigger as-child>
     <div class="group/row group relative">
       <!-- En renommage, la carte devient un simple cadre : le champ prend la place du titre, rien d'autre ne bouge. -->
       <component
@@ -135,7 +146,7 @@ watch(
         :type="renaming ? undefined : 'button'"
         class="flex w-full rounded-md text-start focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
         :class="[
-          layout.sessionCompact ? 'h-8 items-center gap-2 px-2' : 'flex-col gap-1 p-2',
+          compact ? 'h-8 items-center gap-2 px-2' : 'flex-col gap-1 p-2',
           { 'opacity-50': drag.source?.kind === 'chat' && drag.source.id === tab.id },
           renaming || active ? 'bg-selection' : menuOpen ? 'bg-selection-hover' : 'group-hover/row:bg-selection-hover',
         ]"
@@ -144,7 +155,7 @@ watch(
         :aria-keyshortcuts="renaming ? undefined : shortcuts.aria('rename')"
         v-on="renaming ? {} : { click: select, dblclick: () => startRename(), keydown: onKeydown, pointerdown: (e: PointerEvent) => startChatDrag(e, tab.id) }"
       >
-        <template v-if="layout.sessionCompact">
+        <template v-if="compact">
           <!-- Session avec imbriquées : la flèche prend la place de l'icône au survol, comme l'app Claude. -->
           <span
             v-if="group"
@@ -159,7 +170,11 @@ watch(
           </span>
           <span
             class="grid size-4 shrink-0 place-items-center"
-            :class="[status && sessionStatusColor[status], group && (menuOpen ? 'invisible' : 'group-focus-within/row:invisible group-hover/row:invisible')]"
+            :class="[
+              status && sessionStatusColor[status],
+              group && (menuOpen ? 'invisible' : 'group-focus-within/row:invisible group-hover/row:invisible'),
+              { 'opacity-40 grayscale group-hover/row:opacity-100 group-hover/row:grayscale-0': settled && !status },
+            ]"
           >
             <ChatSpinner v-if="status === 'working'" :agent="tab.agent" inherit class="text-xs" />
             <ShieldQuestion v-else-if="status === 'approval'" class="size-3.5" aria-hidden="true" />
@@ -202,7 +217,7 @@ watch(
               <MessageQuestion v-else-if="status === 'question'" class="size-3" aria-hidden="true" />
               <CircleCheck v-else-if="status === 'done'" class="size-3" aria-hidden="true" />
               <CircleAlert v-else class="size-3" aria-hidden="true" />
-              {{ t(`chats.status.${status}`) }}
+              <span :title="t(`chats.status.${status}`)">{{ t(`chats.statusShort.${status}`) }}</span>
             </span>
             <span v-else class="shrink-0">{{ since }}</span>
           </span>
@@ -237,8 +252,18 @@ watch(
       <div
         v-if="!renaming"
         class="absolute end-1 flex gap-0.5 transition-opacity duration-(--hover-duration) ease-out group-hover:opacity-100 focus-within:opacity-100 motion-reduce:transition-none"
-        :class="[menuOpen ? 'opacity-100' : 'opacity-0', layout.sessionCompact ? 'top-1' : branch ? 'bottom-1' : 'bottom-1.5']"
+        :class="[menuOpen ? 'opacity-100' : 'opacity-0', compact ? 'top-1' : branch ? 'bottom-1' : 'bottom-1.5']"
       >
+        <UiTooltip :label="settled ? t('chats.unsettle') : t('chats.settle')">
+          <button
+            type="button"
+            class="grid size-6 place-items-center rounded-sm text-muted hover:bg-selection-inner hover:text-content focus-visible:outline-2 focus-visible:outline-ring"
+            :aria-label="settled ? t('chats.unsettle') : t('chats.settle')"
+            @click="actions.toggleSettled(tab)"
+          >
+            <component :is="settled ? Undo : Check" class="size-3.5" aria-hidden="true" />
+          </button>
+        </UiTooltip>
         <UiTooltip :label="t('chats.archive')">
           <button
             type="button"
@@ -254,6 +279,31 @@ watch(
         </UiMoreMenu>
       </div>
     </div>
+    </HoverCardTrigger>
+    <HoverCardPortal v-if="!renaming && !menuOpen && !drag.source">
+      <HoverCardContent side="right" align="start" :side-offset="10" :collision-padding="8" class="ui-pop z-50 w-64 px-3 py-2.5 text-xs">
+        <p class="truncate text-[13px] font-medium text-content">{{ tabTitle(tab) }}</p>
+        <dl class="mt-1.5 space-y-1 text-muted">
+          <div class="flex items-center gap-1.5">
+            <dt class="sr-only">{{ t('chats.card.status') }}</dt>
+            <dd class="min-w-0 truncate" :class="status && sessionStatusColor[status]">{{ status ? t(`chats.status.${status}`) : settled ? t('chats.card.settled') : t('chats.card.idle') }} · {{ since }}</dd>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <dt class="sr-only">{{ t('chats.card.model') }}</dt>
+            <dd class="min-w-0 truncate">{{ model ?? agents[tab.agent].name }}</dd>
+          </div>
+          <div v-if="branch" class="flex items-center gap-1.5">
+            <dt><GitBranch class="size-3" aria-hidden="true" /><span class="sr-only">{{ t('chats.card.branch') }}</span></dt>
+            <dd class="min-w-0 truncate">{{ branch }}</dd>
+          </div>
+          <div v-if="diff" class="flex items-center gap-1.5">
+            <dt class="sr-only">{{ t('chats.card.changes') }}</dt>
+            <dd><ChatDiffStat v-bind="diff" plain /></dd>
+          </div>
+        </dl>
+      </HoverCardContent>
+    </HoverCardPortal>
+    </HoverCardRoot>
     <template #menu><ShellChatMenu :tab="tab" @rename="startRename()" /></template>
   </UiContextMenu>
 </template>

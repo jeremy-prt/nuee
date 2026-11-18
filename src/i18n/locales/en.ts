@@ -26,8 +26,13 @@ export default {
     unpin: 'Unpin',
     pinned: 'Pinned',
     sort: { label: 'Sort sessions', title: 'Sort by', activity: 'Last activity', created: 'Creation date', name: 'Name', groupsTitle: 'Group by', noGroups: 'None', byDate: 'Date', byStatus: 'Status', compact: 'Compact view' },
-    groups: { today: 'Today', yesterday: 'Yesterday', week: 'Last 7 days', month: 'Last 30 days', older: 'Older', status: { waiting: 'Needs input', failed: 'Error', working: 'Working', done: 'Done', idle: 'Idle' } },
+    groups: { settled: "Settled", today: 'Today', yesterday: 'Yesterday', week: 'Last 7 days', month: 'Last 30 days', older: 'Older', status: { waiting: 'Needs input', failed: 'Error', working: 'Working', done: 'Done', idle: 'Idle' } },
     recent: 'Sessions',
+    settle: "Settle the session",
+    unsettle: "Move out of settled",
+    settleFailed: "Couldn't settle the session",
+    showMore: "Show {n} more",
+    card: { status: "Status", model: "Model", branch: "Branch", changes: "Changes", settled: "Settled", idle: "Idle" },
     nested: { count: '{n} nested', unread: 'Unread: {n}' },
     renameLabel: 'Session name',
     openInTab: "Open in a tab",
@@ -53,6 +58,8 @@ export default {
     empty: 'No sessions yet.',
     worktreeKept: 'Worktree kept | {n} worktrees kept',
     worktreeKeptBody: 'It has uncommitted changes and remains available in {paths} | They have uncommitted changes and remain available in {paths}',
+    // Sur la ligne d'une session, où la place manque ; la fiche au survol garde la version longue.
+    statusShort: { approval: "Permission", question: "Question", working: "Working", done: "Done", failed: "Error" },
     status: {
       approval: 'Permission requested',
       question: 'Question asked',

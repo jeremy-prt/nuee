@@ -28,8 +28,13 @@ export default {
     unpin: '取消置顶',
     pinned: '已置顶',
     sort: { label: '排序会话', title: '排序方式', activity: '最近活动', created: '创建日期', name: '名称', groupsTitle: '分组方式', noGroups: '无', byDate: '日期', byStatus: '状态', compact: '紧凑视图' },
-    groups: { today: '今天', yesterday: '昨天', week: '最近 7 天', month: '最近 30 天', older: '更早', status: { waiting: '等待回复', failed: '出错', working: '进行中', done: '已完成', idle: '空闲' } },
+    groups: { settled: "已处理", today: '今天', yesterday: '昨天', week: '最近 7 天', month: '最近 30 天', older: '更早', status: { waiting: '等待回复', failed: '出错', working: '进行中', done: '已完成', idle: '空闲' } },
     recent: '会话',
+    settle: "将会话标记为已处理",
+    unsettle: "移出已处理",
+    settleFailed: "无法将会话标记为已处理",
+    showMore: "再显示 {n} 个",
+    card: { status: "状态", model: "模型", branch: "分支", changes: "更改", settled: "已处理", idle: "空闲" },
     nested: { count: '{n} 个嵌套', unread: '未读：{n}' },
     renameLabel: '会话名称',
     openInTab: "已在标签页中打开",
@@ -55,6 +60,8 @@ export default {
     empty: '暂无会话。',
     worktreeKept: '已保留 worktree | 已保留 {n} 个 worktree',
     worktreeKeptBody: '它有尚未提交的更改，因此保留在 {paths} | 它们有尚未提交的更改，因此保留在 {paths}',
+    // Sur la ligne d'une session, où la place manque ; la fiche au survol garde la version longue.
+    statusShort: { approval: "待授权", question: "提问", working: "进行中", done: "已完成", failed: "出错" },
     status: {
       approval: '等待授权',
       question: '提出了问题',

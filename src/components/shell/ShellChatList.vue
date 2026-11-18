@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ChevronDown, Pin } from '@/components/ui/icons'
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ShellChatGroup from '@/components/shell/ShellChatGroup.vue'
 import UiCollapse from '@/components/ui/UiCollapse.vue'
@@ -59,12 +59,25 @@ function statusGroup(tab: Tab): StatusGroup {
 }
 
 // En groupage par statut, les sessions actives passent devant avant le découpage progressif : jamais cachées plus bas.
+// Les classées vont à part, en bas, quel que soit le groupage.
 const recent = computed(() => {
-  const list = sorted(workspace.recentChats)
+  const list = sorted(workspace.recentChats.filter((tab) => !tab.settledAt))
   if (layout.sessionGroups !== 'status') return list
   return list.sort((a, b) => STATUS_RANK[statusGroup(a)] - STATUS_RANK[statusGroup(b)])
 })
 const { shown: recentShown, more, limit, sentinel } = useProgressiveList(recent, () => navigation.projectId)
+
+// Comme T3 Code : les dernières classées d'abord, dix, puis par paquets de vingt-cinq.
+const SETTLED_FIRST = 10
+const SETTLED_STEP = 25
+const settled = computed(() => workspace.recentChats.filter((tab) => tab.settledAt).sort((a, b) => (b.settledAt ?? 0) - (a.settledAt ?? 0)))
+const settledLimit = ref(SETTLED_FIRST)
+const settledShown = computed(() => settled.value.slice(0, settledLimit.value))
+watch(
+  () => navigation.projectId,
+  () => (settledLimit.value = SETTLED_FIRST),
+)
+const SETTLED_GROUP = 'settled'
 
 type GroupId = `${DateGroup}` | `status.${StatusGroup}`
 
@@ -101,8 +114,8 @@ const counts = computed(() => {
   return result
 })
 
-const isCollapsed = (id: GroupId) => layout.collapsedGroups.includes(id)
-function toggleGroup(id: GroupId) {
+const isCollapsed = (id: string) => layout.collapsedGroups.includes(id)
+function toggleGroup(id: string) {
   layout.collapsedGroups = isCollapsed(id) ? layout.collapsedGroups.filter((other) => other !== id) : [...layout.collapsedGroups, id]
 }
 
@@ -159,6 +172,40 @@ watch(
       </template>
     </div>
     <div v-if="more" :key="limit" ref="sentinel" class="h-px" aria-hidden="true" />
+    <div v-if="settled.length" data-chat-zone="settled">
+      <h2 :class="{ 'mt-4': recent.length || pinned.length }">
+        <button
+          type="button"
+          class="group/head flex h-7 w-full items-center gap-1.5 rounded-md px-2 text-xs font-semibold text-muted hover:text-content/75 focus-visible:outline-2 focus-visible:outline-ring"
+          :aria-expanded="!isCollapsed(SETTLED_GROUP)"
+          aria-controls="chat-group-settled"
+          @click="toggleGroup(SETTLED_GROUP)"
+        >
+          <span class="min-w-0 truncate text-start">{{ t('chats.groups.settled') }}</span>
+          <span class="flex-1 text-start font-normal text-muted/70 tabular-nums">{{ settled.length }}</span>
+          <ChevronDown
+            class="size-3 shrink-0 text-muted opacity-0 transition duration-150 group-hover/head:opacity-100 group-focus-visible/head:opacity-100 motion-reduce:transition-none"
+            :class="{ '-rotate-90 rtl:rotate-90': isCollapsed(SETTLED_GROUP) }"
+            aria-hidden="true"
+          />
+        </button>
+      </h2>
+      <UiCollapse>
+        <div v-if="!isCollapsed(SETTLED_GROUP)" id="chat-group-settled">
+          <ul class="space-y-0.5">
+            <li v-for="tab in settledShown" :key="tab.id" :data-chat-id="tab.id"><ShellChatGroup :tab="tab" /></li>
+          </ul>
+          <button
+            v-if="settled.length > settledShown.length"
+            type="button"
+            class="mt-0.5 flex h-7 w-full items-center rounded-md px-2 text-xs text-muted hover:bg-selection-hover hover:text-content focus-visible:outline-2 focus-visible:outline-ring"
+            @click="settledLimit += SETTLED_STEP"
+          >
+            {{ t('chats.showMore', { n: Math.min(SETTLED_STEP, settled.length - settledShown.length) }) }}
+          </button>
+        </div>
+      </UiCollapse>
+    </div>
   </div>
   <p v-else class="px-2 text-sm text-muted">
     {{ t('chats.empty') }}

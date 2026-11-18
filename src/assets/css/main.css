@@ -1015,13 +1015,17 @@ html[data-mode='light'] .ui-tip {
 }
 
 /* Titre d'une ligne au survol : il s'estompe sous les boutons qui apparaissent au lieu de se raccourcir d'un coup.
-   Les distances partent du bord droit du titre (un bouton, ou deux). */
+   Les distances partent du bord droit du titre (un, deux ou trois boutons). */
 @utility fade-under-one {
   mask-image: linear-gradient(to left, transparent 1.25rem, black 1.75rem);
 }
 
 @utility fade-under-two {
   mask-image: linear-gradient(to left, transparent 3.375rem, black 3.875rem);
+}
+
+@utility fade-under-three {
+  mask-image: linear-gradient(to left, transparent 5rem, black 5.5rem);
 }
 
 /* Bloc de code (`ChatCodeBlock`) : la première ligne s'estompe sous les boutons du coin, le fond du bloc reste

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Archive, Columns2, Copy, Pencil, Pin, PinOff, Trash2 } from '@/components/ui/icons'
+import { Archive, CircleCheck, Columns2, Copy, Pencil, Pin, PinOff, Trash2, Undo } from '@/components/ui/icons'
 import { useI18n } from 'vue-i18n'
 import UiMenuItem from '@/components/ui/UiMenuItem.vue'
 import UiMenuSeparator from '@/components/ui/UiMenuSeparator.vue'
@@ -48,6 +48,7 @@ async function copyConversation() {
     :icon="tab.pinned ? PinOff : Pin"
     @select="actions.togglePin(tab)"
   />
+  <UiMenuItem :label="tab.settledAt ? t('chats.unsettle') : t('chats.settle')" :icon="tab.settledAt ? Undo : CircleCheck" @select="actions.toggleSettled(tab)" />
   <UiMenuItem :label="t('menu.rename')" :icon="Pencil" :shortcut="shortcuts.label('rename')" @select="emit('rename')" />
   <UiMenuItem :label="t('chats.openBeside')" :icon="Columns2" :disabled="navigation.view === 'chats' && workspace.shownAlone(tab.id)" @select="openBeside" />
   <UiMenuItem :label="t('chats.copyConversation')" :icon="Copy" @select="copyConversation" />

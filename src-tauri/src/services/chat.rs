@@ -49,6 +49,10 @@ pub struct ChatSummary {
     /// Épinglé en haut de la liste du projet ; l'archivage automatique le laisse.
     #[serde(default)]
     pub pinned: bool,
+    /// Classée en bas de la barre latérale, en millisecondes. `None` : pas classée.
+    #[serde(default)]
+    #[ts(type = "number | null")]
+    pub settled_at: Option<i64>,
     /// Modèle des réglages enregistrés. `None` : celui que l'agent prend par défaut.
     #[serde(default)]
     pub model: Option<String>,
@@ -129,6 +133,7 @@ const MIGRATIONS: &[&str] = &[
     // Colonne nullable seule : une version d'avant l'ignore en lisant la même base.
     "ALTER TABLE chats ADD COLUMN parent_id TEXT",
     "ALTER TABLE chats ADD COLUMN background INTEGER",
+    "ALTER TABLE chats ADD COLUMN settled_at INTEGER",
 ];
 
 /// Historique des chats dans une base SQLite du dossier de données de l'app.
@@ -151,7 +156,7 @@ impl ChatService {
         let db = self.lock();
         let mut query = db.prepare(
             "SELECT id, project_id, number, agent, title, started, worktree, worktree_path, archived, archived_at, updated_at, pinned,
-                    iif(json_valid(options), json_extract(options, '$.model'), NULL), added, removed, created_at, parent_id, background
+                    iif(json_valid(options), json_extract(options, '$.model'), NULL), added, removed, created_at, parent_id, background, settled_at
              FROM chats ORDER BY created_at",
         )?;
         let rows = query.query_map([], |row| {
@@ -178,6 +183,7 @@ impl ChatService {
                 created_at: row.get(15)?,
                 parent_id: row.get(16)?,
                 background: row.get::<_, Option<bool>>(17)?.unwrap_or(false),
+                settled_at: row.get(18)?,
             }))
         })?;
         let chats = rows.collect::<Result<Vec<_>, _>>()?;
@@ -266,6 +272,15 @@ impl ChatService {
         self.lock().execute(
             "UPDATE chats SET pinned = ?1 WHERE id = ?2",
             params![pinned, id],
+        )?;
+        Ok(())
+    }
+
+    /// Ne touche pas `updated_at` : classer une session ne relance pas son archivage automatique.
+    pub fn set_settled(&self, id: &str, settled: bool) -> Result<(), AppError> {
+        self.lock().execute(
+            "UPDATE chats SET settled_at = ?1 WHERE id = ?2",
+            params![settled.then(now), id],
         )?;
         Ok(())
     }
@@ -434,6 +449,48 @@ mod tests {
     use crate::services::agent::PermissionMode;
 
     #[test]
+    fn a_settled_chat_survives_a_reopen() {
+        let dir = std::env::temp_dir().join(format!("nuee-settle-{}", std::process::id()));
+        let path = dir.join("nuee.db");
+        let _ = std::fs::remove_dir_all(&dir);
+        let chats = ChatService::open(&path).expect("base");
+        chats
+            .create(&ChatSummary {
+                id: "c1".into(),
+                project_id: None,
+                number: 1,
+                agent: AgentKind::Claude,
+                title: None,
+                started: false,
+                worktree: false,
+                worktree_path: None,
+                archived: false,
+                archived_at: None,
+                created_at: 0,
+                updated_at: 0,
+                pinned: false,
+                settled_at: None,
+                model: None,
+                added: 0,
+                removed: 0,
+                parent_id: None,
+                background: false,
+            })
+            .expect("création");
+        let updated_at = chats.list().expect("liste")[0].updated_at;
+        chats.set_settled("c1", true).expect("classement");
+        drop(chats);
+
+        let chats = ChatService::open(&path).expect("réouverture");
+        let listed = chats.list().expect("liste").remove(0);
+        assert!(listed.settled_at.is_some_and(|at| at > 0));
+        assert_eq!(listed.updated_at, updated_at);
+        chats.set_settled("c1", false).expect("déclassement");
+        assert_eq!(chats.list().expect("liste")[0].settled_at, None);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn a_chat_survives_a_reopen() {
         let dir = std::env::temp_dir().join(format!("nuee-test-{}", std::process::id()));
         let path = dir.join("nuee.db");
@@ -451,6 +508,7 @@ mod tests {
             created_at: 0,
             updated_at: 0,
             pinned: false,
+            settled_at: None,
             model: None,
             added: 0,
             removed: 0,
@@ -643,6 +701,7 @@ mod tests {
             created_at: 0,
             updated_at: 0,
             pinned: false,
+            settled_at: None,
             model: None,
             added: 0,
             removed: 0,

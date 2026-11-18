@@ -721,7 +721,10 @@ export const useConversationsStore = defineStore('conversations', () => {
 
   function start(chatId: string, conversation: Conversation, message: Omit<Queued, 'id'>) {
     const { place, prompt, attachments } = message
-    useWorkspaceStore().touch(chatId)
+    const workspace = useWorkspaceStore()
+    workspace.touch(chatId)
+    // Une session classée qui reprend remonte dans la liste.
+    if (workspace.tabs.some((tab) => tab.id === chatId && tab.settledAt)) workspace.setSettled(chatId, false).catch(() => {})
     // Consignes du mode Orchestre : au premier message envoyé dans ce mode, la session les garde ensuite. Une
     // compaction ne les laisse que résumées : elles repartent avec le message suivant.
     const at = lastIndex(conversation.items, (item) => item.kind === 'user' && !item.from)

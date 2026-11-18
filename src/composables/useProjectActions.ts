@@ -105,6 +105,14 @@ export function useProjectActions() {
     }
   }
 
+  async function toggleSettled(tab: Tab) {
+    try {
+      await workspace.setSettled(tab.id, !tab.settledAt)
+    } catch (error) {
+      fail(t('chats.settleFailed'), error)
+    }
+  }
+
   // La ligne quitte l'historique sans laisser de trace visible : le message dit où la retrouver.
   async function archiveChat(tab: Tab) {
     try {
@@ -133,5 +141,5 @@ export function useProjectActions() {
     if (confirmed) await workspace.deleteChat(tab.id)
   }
 
-  return { reveal, revealScratch, importIcon, archiveProjectChats, deleteProject, openSettings, renameChat, togglePin, archiveChat, deleteChat }
+  return { reveal, revealScratch, importIcon, archiveProjectChats, deleteProject, openSettings, renameChat, togglePin, toggleSettled, archiveChat, deleteChat }
 }

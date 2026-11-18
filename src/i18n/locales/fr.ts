@@ -28,8 +28,13 @@ export default {
     unpin: 'Désépingler',
     pinned: 'Épinglées',
     sort: { label: 'Trier les sessions', title: 'Trier par', activity: 'Dernière activité', created: 'Date de création', name: 'Nom', groupsTitle: 'Regrouper par', noGroups: 'Aucun', byDate: 'Date', byStatus: 'Statut', compact: 'Affichage compact' },
-    groups: { today: 'Aujourd\'hui', yesterday: 'Hier', week: '7 derniers jours', month: '30 derniers jours', older: 'Plus anciennes', status: { waiting: 'Réponse attendue', failed: 'Erreur', working: 'En cours', done: 'Terminées', idle: 'Inactives' } },
+    groups: { settled: "Classées", today: 'Aujourd\'hui', yesterday: 'Hier', week: '7 derniers jours', month: '30 derniers jours', older: 'Plus anciennes', status: { waiting: 'Réponse attendue', failed: 'Erreur', working: 'En cours', done: 'Terminées', idle: 'Inactives' } },
     recent: 'Sessions',
+    settle: "Classer la session",
+    unsettle: "Sortir des classées",
+    settleFailed: "Impossible de classer la session",
+    showMore: "Voir {n} de plus",
+    card: { status: "État", model: "Modèle", branch: "Branche", changes: "Modifications", settled: "Classée", idle: "Au repos" },
     nested: { count: '{n} imbriquée | {n} imbriquées', unread: 'Non lues : {n}' },
     renameLabel: 'Nom de la session',
     openInTab: "Ouverte dans un onglet",
@@ -55,6 +60,8 @@ export default {
     empty: 'Aucune session pour le moment.',
     worktreeKept: 'Worktree conservé | {n} worktrees conservés',
     worktreeKeptBody: 'Il contient des changements non commités et reste disponible dans {paths} | Ils contiennent des changements non commités et restent disponibles dans {paths}',
+    // Sur la ligne d'une session, où la place manque ; la fiche au survol garde la version longue.
+    statusShort: { approval: "Autorisation", question: "Question", working: "En cours", done: "Terminé", failed: "Erreur" },
     status: {
       approval: 'Autorisation demandée',
       question: 'Question posée',

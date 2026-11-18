@@ -444,6 +444,7 @@ mod tests {
                 created_at: 0,
                 updated_at: 0,
                 pinned: false,
+                settled_at: None,
                 model: None,
                 added: 0,
                 removed: 0,
