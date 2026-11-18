@@ -79,7 +79,7 @@ function toggleNested() {
       <li v-for="(child, index) in children" :key="child.id" class="relative ps-3" :class="{ 'pb-0.5': index < children.length - 1 }">
         <span v-if="index < children.length - 1" class="absolute start-0 top-0 h-full w-px bg-content/20 light:bg-content/12" aria-hidden="true" />
         <span v-else class="absolute start-0 top-0 h-1/2 w-2 rounded-es-md border-s border-b border-content/20 light:border-content/12" aria-hidden="true" />
-        <ShellChatItem :tab="child" nested />
+        <ShellChatItem :tab="child" />
       </li>
     </ul>
   </UiCollapse>

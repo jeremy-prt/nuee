@@ -29,8 +29,7 @@ import { agents } from '@/utils/agents'
 import { formatSince } from '@/utils/duration'
 
 // `group` : la session a lancé celles imbriquées dessous ; flèche à côté du titre et point pour les non lues.
-// `nested` : rangée sous sa parente, en ligne fine tant qu'elle ne travaille ni n'attend.
-const props = defineProps<{ tab: Tab; group?: { open: boolean; unread: number }; nested?: boolean }>()
+const props = defineProps<{ tab: Tab; group?: { open: boolean; unread: number } }>()
 const emit = defineEmits<{ toggle: [] }>()
 
 const { t, locale } = useI18n()
@@ -67,13 +66,9 @@ const status = computed(() => sessionStatus(props.tab.id))
 const opened = computed(() => workspace.contextTabs.some((item) => item.id === props.tab.id))
 const settled = computed(() => !!props.tab.settledAt)
 const quiet = computed(() => settled.value || (!status.value && !active.value && !opened.value))
-// Comme T3 Code : une session garde sa carte tant qu'elle n'est pas classée, même finie ; classée, ou rangée sous sa
-// parente sans travailler ni attendre, elle passe en ligne fine.
-const compact = computed(() => {
-  if (settled.value) return true
-  if (status.value === 'working' || status.value === 'approval' || status.value === 'question') return false
-  return !!props.nested
-})
+// Comme T3 Code : une session garde sa carte tant qu'elle n'est pas classée, même finie ; classée, elle passe en ligne
+// fine.
+const compact = computed(() => settled.value)
 const titleTone = computed(() => (quiet.value && !menuOpen.value ? 'text-muted group-hover/row:text-content group-focus-within/row:text-content' : ''))
 
 const since = computed(() => formatSince(props.tab.updatedAt, clock.now, locale.value, compact.value))
