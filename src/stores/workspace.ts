@@ -217,7 +217,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   // Historique de la barre latérale, le plus récent en haut, les sessions épinglées à part.
   const contextChats = computed(() => tabsFor(navigation.projectId).filter((tab) => tab.started && !tab.archived && !hidden.has(tab.id)).reverse())
   // Sessions lancées par l'agent d'une autre, rangées sous la plus haute de leurs ancêtres visibles dans la liste,
-  // dans l'ordre de lancement. Une épinglée, ou dont l'ancêtre est ailleurs (archivé, autre projet), reste à sa place.
+  // dans l'ordre de lancement. Une épinglée, ou dont l'ancêtre est ailleurs (archivé, autre projet, classé ou non à
+  // l'inverse d'elle), reste à sa place.
   const nestedChats = computed(() => {
     const shown = new Map(contextChats.value.map((tab) => [tab.id, tab]))
     const byParent = new Map<string, Tab[]>()
@@ -231,6 +232,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         root = shown.get(root.parentId)
       }
       if (!root || root.id === tab.id) continue
+      // Classée seule, elle descend dans « Classées » ; encore active sous une parente classée, elle reste en haut.
+      if (!!root.settledAt !== !!tab.settledAt) continue
       childIds.add(tab.id)
       byParent.set(root.id, [...(byParent.get(root.id) ?? []), tab])
     }
