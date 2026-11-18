@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronDown, Pin } from '@/components/ui/icons'
+import { ChevronDown } from '@/components/ui/icons'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ShellChatGroup from '@/components/shell/ShellChatGroup.vue'
@@ -136,9 +136,7 @@ watch(
   <div v-if="workspace.contextChats.length" data-chat-list>
     <!-- Sans épinglée, la section n'apparaît que pendant le glisser d'une session, pour l'y déposer. -->
     <div v-if="pinned.length || drag.source?.kind === 'chat'" data-chat-zone="pinned">
-      <h2 class="flex h-7 items-center gap-1.5 px-2 text-xs font-semibold text-muted">
-        <Pin class="size-3" aria-hidden="true" />{{ t('chats.pinned') }}
-      </h2>
+      <h2 class="flex h-7 items-center px-2 text-xs font-semibold text-muted">{{ t('chats.pinned') }}</h2>
       <ul class="space-y-0.5">
         <li v-for="tab in pinned" :key="tab.id" :data-chat-id="tab.id"><ShellChatGroup :tab="tab" /></li>
       </ul>
