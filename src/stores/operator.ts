@@ -12,8 +12,10 @@ import { useProjectsStore } from '@/stores/projects'
 import { type Tab, useWorkspaceStore } from '@/stores/workspace'
 
 // Messages de Nuée envoyés d'affilée à une session sans que l'utilisateur y écrive : au-delà, deux agents qui se
-// répondent tourneraient en boucle.
+// répondent tourneraient en boucle. Un tour que la session parente a demandé elle-même (lancement, message) a un
+// plafond plus large : plusieurs sous-sessions dépassent vite le premier.
 const MAX_REPORTS = 3
+const MAX_ASKED_REPORTS = 20
 // Mode Orchestre : sessions lancées qui travaillent en même temps, au plus (règle de j-orchestre).
 const MAX_WORKERS = 3
 const EFFORTS: readonly Effort[] = ['low', 'medium', 'high', 'xhigh', 'max']
@@ -32,6 +34,8 @@ export const useOperatorStore = defineStore('operator', () => {
   const orchestra = useOrchestraStore()
 
   const reports = new Map<string, number>()
+  // Sous-sessions dont la parente attend le prochain rapport.
+  const asked = new Set<string>()
 
   if (isTauriApp()) onOperatorRequest(answer)
 
@@ -140,11 +144,12 @@ export const useOperatorStore = defineStore('operator', () => {
     const worktree = args.worktree === true && !!project && projects.support[project.id] === 'ready'
     workspace.setWorktree(tab.id, worktree)
     workspace.startChat(tab.id, prompt, [])
+    asked.add(tab.id)
     conversations.send(tab.id, placeOf(tab), prompt, [], false, { id: caller, title: from?.title ?? null, task: true })
     const options = conversations.find(tab.id)?.options
     const where = [projectName(projectId), worktree && 'dans son propre worktree', options && catalog.modelLabel(agent, catalog.resolve(agent, options).model)]
     // Début gardé tel quel : `ChatMessage` en tire l'id de la carte « Tâche ».
-    return `Session ${tab.id} lancée (${where.filter(Boolean).join(', ')}). L'utilisateur la voit déjà en carte « Tâche » : ne pas annoncer ce lancement ni citer cet id. Elle préviendra ici à la fin de chaque tour.`
+    return `Session ${tab.id} lancée (${where.filter(Boolean).join(', ')}). L'utilisateur la voit déjà en carte « Sous-session » : ne pas annoncer ce lancement ni citer cet id. Elle préviendra ici à la fin de chaque tour.`
   }
 
   // Modèle demandé par l'agent : valeur exacte du catalogue, sinon famille (« sonnet ») trouvée dans les libellés.
@@ -187,6 +192,7 @@ export const useOperatorStore = defineStore('operator', () => {
     const busy = conversation?.phase !== 'idle'
     const sender = workspace.tabs.find((item) => item.id === caller)
     const from = { id: caller, title: sender?.title ?? null, ...(report ? { report } : {}) }
+    if (!report && tab.parentId === caller) asked.add(id)
     conversations.send(id, conversation?.lastPlace ?? placeOf(tab), text, [], false, from)
     return busy ? `Message mis en file : la session ${id} travaille encore.` : `Message envoyé à la session ${id}.`
   }
@@ -214,7 +220,8 @@ export const useOperatorStore = defineStore('operator', () => {
     const parent = tab?.background ? null : tab?.parentId
     if (!parent || !workspace.tabs.some((tab) => tab.id === parent && !tab.archived)) return
     const count = reports.get(parent) ?? 0
-    if (count >= MAX_REPORTS) return
+    const owed = asked.delete(chatId)
+    if (count >= (owed ? MAX_ASKED_REPORTS : MAX_REPORTS)) return console.warn('session', `rapport de ${chatId} non transmis : plafond atteint`)
     reports.set(parent, count + 1)
     let answer = ''
     for (let i = items.length - 1; i >= 0 && !answer; i--) {
