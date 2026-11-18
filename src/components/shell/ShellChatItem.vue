@@ -29,7 +29,8 @@ import { agents } from '@/utils/agents'
 import { formatSince } from '@/utils/duration'
 
 // `group` : la session a lancé celles imbriquées dessous ; flèche à côté du titre et point pour les non lues.
-const props = defineProps<{ tab: Tab; group?: { open: boolean; unread: number } }>()
+// `nested` : rangée sous sa parente, en ligne fine tant qu'elle ne travaille ni n'attend.
+const props = defineProps<{ tab: Tab; group?: { open: boolean; unread: number }; nested?: boolean }>()
 const emit = defineEmits<{ toggle: [] }>()
 
 const { t, locale } = useI18n()
@@ -71,6 +72,8 @@ const quiet = computed(() => settled.value || (!status.value && !active.value &&
 const IDLE_AFTER = 7 * 86_400_000
 const compact = computed(() => {
   if (settled.value) return true
+  if (status.value === 'working' || status.value === 'approval' || status.value === 'question') return false
+  if (props.nested) return true
   if (status.value) return false
   return layout.sessionCompact && clock.now - props.tab.updatedAt >= IDLE_AFTER
 })
@@ -138,9 +141,10 @@ watch(
   <UiContextMenu :disabled="renaming" @update:open="menuOpen = $event">
     <!-- group/row : la carte garde son survol quand le pointeur passe sur ses boutons, posés par-dessus. -->
     <HoverCardRoot :open-delay="300" :close-delay="80">
-    <HoverCardTrigger as-child>
     <div class="group/row group relative">
       <!-- En renommage, la carte devient un simple cadre : le champ prend la place du titre, rien d'autre ne bouge. -->
+      <!-- Fiche au survol de la ligne seule : ses boutons ont leurs propres infobulles. -->
+      <HoverCardTrigger as-child>
       <component
         :is="renaming ? 'div' : 'button'"
         ref="row"
@@ -250,6 +254,7 @@ watch(
           </span>
         </template>
       </component>
+      </HoverCardTrigger>
       <div
         v-if="!renaming"
         class="absolute end-1 top-1 flex gap-0.5 transition-opacity duration-(--hover-duration) ease-out group-hover:opacity-100 focus-within:opacity-100 motion-reduce:transition-none"
@@ -282,7 +287,6 @@ watch(
         </UiMoreMenu>
       </div>
     </div>
-    </HoverCardTrigger>
     <HoverCardPortal v-if="!renaming && !menuOpen && !drag.source">
       <HoverCardContent side="right" align="start" :side-offset="10" :collision-padding="8" class="ui-pop z-50 w-64 px-3 py-2.5 text-xs">
         <p class="truncate text-[13px] font-medium text-content">{{ tabTitle(tab) }}</p>

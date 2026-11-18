@@ -53,7 +53,7 @@ function setOpen(value: boolean) {
         :side-offset="sideOffset"
         :align="align"
         :collision-padding="8"
-        class="ui-tip z-50 flex max-w-80 items-center gap-3 rounded-md px-2 py-1 text-xs leading-4 font-medium text-content select-none"
+        class="ui-tip z-[60] flex max-w-80 items-center gap-3 rounded-md px-2 py-1 text-xs leading-4 font-medium text-content select-none"
       >
         <span class="min-w-0 break-words">{{ label }}<span v-if="hint" class="mt-0.5 block font-normal text-muted">{{ hint }}</span></span>
         <kbd v-if="shortcut" class="ms-auto shrink-0 font-sans font-normal tracking-wide text-muted">{{ shortcut }}</kbd>

@@ -171,7 +171,7 @@ watch(
             v-if="!group.id || group.id === LIST_GROUP || !isCollapsed(group.id)"
             :id="group.id ? `chat-group-${group.id}` : undefined"
             class="space-y-0.5"
-            :class="{ 'mt-4': group.id === LIST_GROUP && (index || pinned.length) }"
+            :class="{ 'mt-4': group.id === LIST_GROUP && index && !pinned.length }"
           >
             <li v-for="tab in group.tabs" :key="tab.id" :data-chat-id="tab.id"><ShellChatGroup :tab="tab" /></li>
           </ul>
