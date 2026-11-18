@@ -31,6 +31,7 @@ export default {
     groups: { settled: "処理済み", today: '今日', yesterday: '昨日', week: '過去 7 日間', month: '過去 30 日間', older: 'それ以前', status: { waiting: '応答待ち', failed: 'エラー', working: '実行中', done: '最近', idle: '待機中' } },
     recent: 'セッション',
     settle: "セッションを処理済みにする",
+    settleShort: "処理済み",
     unsettle: "処理済みから戻す",
     settleFailed: "セッションを処理済みにできませんでした",
     showMore: "さらに {n} 件表示",

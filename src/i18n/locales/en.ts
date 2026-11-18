@@ -29,6 +29,7 @@ export default {
     groups: { settled: "Settled", today: 'Today', yesterday: 'Yesterday', week: 'Last 7 days', month: 'Last 30 days', older: 'Older', status: { waiting: 'Needs input', failed: 'Error', working: 'Working', done: 'Recent', idle: 'Idle' } },
     recent: 'Sessions',
     settle: "Settle the session",
+    settleShort: "Settle",
     unsettle: "Move out of settled",
     settleFailed: "Couldn't settle the session",
     showMore: "Show {n} more",

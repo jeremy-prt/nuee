@@ -84,8 +84,8 @@ const diff = computed(() => (props.tab.added || props.tab.removed ? { added: pro
 // Au survol, les boutons se posent à droite de la dernière ligne (la branche, sinon le titre) : le texte s'estompe
 // dessous et le diff leur laisse la place.
 const fadeUnder = computed(() => (menuOpen.value ? 'fade-under-three' : 'group-focus-within:fade-under-three group-hover:fade-under-three'))
-// Avec une flèche de groupe, le titre s'arrête avant les boutons : la flèche reste cliquable.
-const keepClear = computed(() => (menuOpen.value ? 'pe-20' : 'group-focus-within:pe-20 group-hover:pe-20'))
+// Carte : les actions prennent la place du statut sur la ligne du haut, comme T3 Code ; le modèle s'estompe dessous.
+const fadeActions = computed(() => (menuOpen.value ? 'fade-under-actions' : 'group-focus-within:fade-under-actions group-hover:fade-under-actions'))
 // Flèche du groupe au survol seulement, comme l'app Claude.
 const chevronShown = computed(() => (menuOpen.value ? '' : 'opacity-0 group-focus-within:opacity-100 group-hover:opacity-100'))
 const hideUnder = computed(() => (menuOpen.value ? 'hidden' : 'group-focus-within:hidden group-hover:hidden'))
@@ -137,7 +137,7 @@ watch(
 <template>
   <UiContextMenu :disabled="renaming" @update:open="menuOpen = $event">
     <!-- group/row : la carte garde son survol quand le pointeur passe sur ses boutons, posés par-dessus. -->
-    <HoverCardRoot :open-delay="700" :close-delay="80">
+    <HoverCardRoot :open-delay="300" :close-delay="80">
     <HoverCardTrigger as-child>
     <div class="group/row group relative">
       <!-- En renommage, la carte devient un simple cadre : le champ prend la place du titre, rien d'autre ne bouge. -->
@@ -211,8 +211,8 @@ watch(
               <span class="sr-only">{{ t('composer.orchestra.label') }}</span>
             </template>
             <SettingsAgentLogo v-else :id="tab.agent" tiny />
-            <span class="min-w-0 flex-1 truncate">{{ model ?? agents[tab.agent].name }}</span>
-            <span v-if="status" class="flex shrink-0 items-center gap-1" :class="sessionStatusColor[status]">
+            <span class="min-w-0 flex-1 truncate" :class="fadeActions">{{ model ?? agents[tab.agent].name }}</span>
+            <span v-if="status" class="flex shrink-0 items-center gap-1" :class="[sessionStatusColor[status], hideUnder]">
               <ChatSpinner v-if="status === 'working'" :agent="tab.agent" inherit class="text-xs" />
               <ShieldQuestion v-else-if="status === 'approval'" class="size-3" aria-hidden="true" />
               <MessageQuestion v-else-if="status === 'question'" class="size-3" aria-hidden="true" />
@@ -220,7 +220,7 @@ watch(
               <CircleAlert v-else class="size-3" aria-hidden="true" />
               <span :title="t(`chats.status.${status}`)">{{ t(`chats.statusShort.${status}`) }}</span>
             </span>
-            <span v-else class="shrink-0">{{ since }}</span>
+            <span v-else class="shrink-0" :class="hideUnder">{{ since }}</span>
           </span>
           <span class="flex items-center gap-1.5">
             <UiRenameField
@@ -231,7 +231,7 @@ watch(
               @commit="stopRename"
               @cancel="stopRename()"
             />
-            <span v-else class="flex min-w-0 flex-1 items-center gap-1" :class="{ [fadeUnder]: !branch, [keepClear]: group }">
+            <span v-else class="flex min-w-0 flex-1 items-center gap-1">
               <span class="min-w-0 truncate text-[13px]/5 font-medium" :class="titleTone"><UiTitleReveal :title="tab.title" :fallback="tabTitle(tab)" /></span>
               <span v-if="opened && !active" class="sr-only">, {{ t('chats.openInTab') }}</span>
               <span v-if="group" class="-m-0.5 grid size-4 shrink-0 place-items-center text-muted hover:text-content" :class="chevronShown" aria-hidden="true" @click.stop="emit('toggle')" @dblclick.stop @pointerdown.stop>
@@ -239,30 +239,32 @@ watch(
               </span>
               <span v-if="group?.unread && !group.open" class="ms-0.5 size-1.5 shrink-0 rounded-full bg-signal"><span class="sr-only">, {{ t('chats.nested.unread', { n: group.unread }) }},</span></span>
             </span>
-            <ChatDiffStat v-if="!branch && diff && !renaming" v-bind="diff" plain class="text-[11px]" :class="hideUnder" />
+            <ChatDiffStat v-if="!branch && diff && !renaming" v-bind="diff" plain class="text-[11px]" />
           </span>
           <span v-if="branch" class="flex h-4 items-center gap-1.5 text-[11px] text-muted">
-            <span class="flex min-w-0 flex-1 items-center gap-1" :class="fadeUnder">
+            <span class="flex min-w-0 flex-1 items-center gap-1">
               <GitBranch class="size-3 shrink-0" aria-hidden="true" />
               <span class="min-w-0 truncate">{{ branch }}</span>
             </span>
-            <ChatDiffStat v-if="diff" v-bind="diff" plain :class="hideUnder" />
+            <ChatDiffStat v-if="diff" v-bind="diff" plain />
           </span>
         </template>
       </component>
       <div
         v-if="!renaming"
-        class="absolute end-1 flex gap-0.5 transition-opacity duration-(--hover-duration) ease-out group-hover:opacity-100 focus-within:opacity-100 motion-reduce:transition-none"
-        :class="[menuOpen ? 'opacity-100' : 'opacity-0', compact ? 'top-1' : branch ? 'bottom-1' : 'bottom-1.5']"
+        class="absolute end-1 top-1 flex gap-0.5 transition-opacity duration-(--hover-duration) ease-out group-hover:opacity-100 focus-within:opacity-100 motion-reduce:transition-none"
+        :class="menuOpen ? 'opacity-100' : 'opacity-0'"
       >
         <UiTooltip :label="settled ? t('chats.unsettle') : t('chats.settle')">
           <button
             type="button"
-            class="grid size-6 place-items-center rounded-sm text-muted hover:bg-selection-inner hover:text-content focus-visible:outline-2 focus-visible:outline-ring"
+            :class="compact ? 'grid size-6 place-items-center' : 'flex h-6 items-center gap-1 px-1.5'"
+            class="rounded-sm text-muted hover:bg-selection-inner hover:text-content focus-visible:outline-2 focus-visible:outline-ring"
             :aria-label="settled ? t('chats.unsettle') : t('chats.settle')"
             @click="actions.toggleSettled(tab)"
           >
             <component :is="settled ? Undo : Check" class="size-3.5" aria-hidden="true" />
+            <span v-if="!compact" class="text-[11px]">{{ t('chats.settleShort') }}</span>
           </button>
         </UiTooltip>
         <UiTooltip :label="t('chats.archive')">

@@ -31,6 +31,7 @@ export default {
     groups: { settled: "Clasificadas", today: 'Hoy', yesterday: 'Ayer', week: 'Últimos 7 días', month: 'Últimos 30 días', older: 'Más antiguas', status: { waiting: 'Respuesta pendiente', failed: 'Error', working: 'En curso', done: 'Recientes', idle: 'Inactivas' } },
     recent: 'Sesiones',
     settle: "Clasificar la sesión",
+    settleShort: "Clasificar",
     unsettle: "Sacar de las clasificadas",
     settleFailed: "No se pudo clasificar la sesión",
     showMore: "Ver {n} más",

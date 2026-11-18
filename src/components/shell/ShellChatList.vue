@@ -78,6 +78,7 @@ watch(
   () => (settledLimit.value = SETTLED_FIRST),
 )
 const SETTLED_GROUP = 'settled'
+const LIST_GROUP = 'status.done'
 
 type GroupId = `${DateGroup}` | `status.${StatusGroup}`
 
@@ -142,7 +143,8 @@ watch(
     </div>
     <div data-chat-zone="recent">
       <template v-for="(group, index) in groups" :key="group.id ?? 'all'">
-        <h2 v-if="group.id" :class="{ 'mt-4': index || pinned.length }">
+        <!-- Comme T3 Code, les sessions finies restent la liste elle-même : « Terminé » n'est qu'un badge, pas un groupe. -->
+        <h2 v-if="group.id && group.id !== LIST_GROUP" :class="{ 'mt-4': index || pinned.length }">
           <button
             type="button"
             class="group/head flex h-7 w-full items-center gap-1.5 rounded-md px-2 text-xs font-semibold text-muted hover:text-content/75 focus-visible:outline-2 focus-visible:outline-ring"
@@ -165,7 +167,12 @@ watch(
           <h2 class="mt-4 flex h-7 items-center px-2 text-xs font-semibold text-muted">{{ t('chats.recent') }}</h2>
         </template>
         <UiCollapse>
-          <ul v-if="!group.id || !isCollapsed(group.id)" :id="group.id ? `chat-group-${group.id}` : undefined" class="space-y-0.5">
+          <ul
+            v-if="!group.id || group.id === LIST_GROUP || !isCollapsed(group.id)"
+            :id="group.id ? `chat-group-${group.id}` : undefined"
+            class="space-y-0.5"
+            :class="{ 'mt-4': group.id === LIST_GROUP && (index || pinned.length) }"
+          >
             <li v-for="tab in group.tabs" :key="tab.id" :data-chat-id="tab.id"><ShellChatGroup :tab="tab" /></li>
           </ul>
         </UiCollapse>

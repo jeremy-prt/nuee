@@ -1028,6 +1028,10 @@ html[data-mode='light'] .ui-tip {
   mask-image: linear-gradient(to left, transparent 5rem, black 5.5rem);
 }
 
+@utility fade-under-actions {
+  mask-image: linear-gradient(to left, transparent 8.5rem, black 9rem);
+}
+
 /* Bloc de code (`ChatCodeBlock`) : la première ligne s'estompe sous les boutons du coin, le fond du bloc reste
    visible. `--veil-width` : largeur des boutons ; `--veil` passe de 1 (net) à 0 quand ils apparaissent. */
 @property --veil {

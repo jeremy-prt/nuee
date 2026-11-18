@@ -31,6 +31,7 @@ export default {
     groups: { settled: "已处理", today: '今天', yesterday: '昨天', week: '最近 7 天', month: '最近 30 天', older: '更早', status: { waiting: '等待回复', failed: '出错', working: '进行中', done: '最近', idle: '空闲' } },
     recent: '会话',
     settle: "将会话标记为已处理",
+    settleShort: "已处理",
     unsettle: "移出已处理",
     settleFailed: "无法将会话标记为已处理",
     showMore: "再显示 {n} 个",
