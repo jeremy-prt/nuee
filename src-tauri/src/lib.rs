@@ -75,6 +75,8 @@ pub fn run() {
             }
         })
         .setup(|app| {
+            #[cfg(target_os = "macos")]
+            window::create_main(app)?;
             if let Some(main) = app.get_webview_window("main") {
                 // Flou « Moyen » dès l'ouverture : le réglage choisi n'arrive qu'une fois la page chargée.
                 #[cfg(target_os = "macos")]

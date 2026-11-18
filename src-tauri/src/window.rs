@@ -8,6 +8,38 @@ pub const SAVED_STATE: StateFlags = StateFlags::SIZE
     .union(StateFlags::POSITION)
     .union(StateFlags::MAXIMIZED);
 
+/// Fenêtre principale créée ici sur macOS (`"create": false` dans tauri.macos.conf.json) : la configuration WebKit
+/// ne se règle qu'à la création. Elle coupe Writing Tools d'Apple Intelligence, dont le bouton surgissait à chaque
+/// sélection de texte (macOS 15.1 et plus ; ignoré avant).
+#[cfg(target_os = "macos")]
+pub fn create_main(app: &tauri::App) -> tauri::Result<()> {
+    use objc2::runtime::NSObjectProtocol;
+    use objc2::{MainThreadMarker, msg_send, sel};
+    use objc2_web_kit::WKWebViewConfiguration;
+
+    let Some(config) = app
+        .config()
+        .app
+        .windows
+        .iter()
+        .find(|window| window.label == "main")
+    else {
+        return Ok(());
+    };
+    let Some(mtm) = MainThreadMarker::new() else {
+        return Ok(());
+    };
+    let webkit = unsafe { WKWebViewConfiguration::new(mtm) };
+    let none: isize = -1;
+    if webkit.respondsToSelector(sel!(setWritingToolsBehavior:)) {
+        let _: () = unsafe { msg_send![&*webkit, setWritingToolsBehavior: none] };
+    }
+    tauri::WebviewWindowBuilder::from_config(app.handle(), config)?
+        .with_webview_configuration(webkit)
+        .build()?;
+    Ok(())
+}
+
 // Fenêtre remise comme à la dernière fermeture ; au premier lancement, presque plein écran. Le plugin ne retrouve
 // pas un écran débranché depuis : la position est alors laissée à l'OS. Elle reste invisible jusqu'au chargement de
 // la page, pour s'ouvrir sur l'écran de démarrage et non sur une webview vide.
