@@ -175,15 +175,15 @@ html[data-mode='light'] {
     background-color: hsl(0 78% 54%);
   }
   .bg-warning {
-    background-color: oklch(65% 0.133 80.6);
+    background-color: hsl(44 96% 50%);
   }
   .bg-info {
     background-color: oklch(64.4% 0.135 250.3);
   }
-  /* Un jaune lisible en texte sur blanc est forcément ocre : les icônes (cadenas des permissions) gardent un jaune
-     plus vif, à 3:1. */
+  /* Un jaune lisible en texte sur blanc est forcément ocre, qui passait pour de la moutarde : les icônes (cadenas,
+     éclair du mode rapide) gardent le jaune franc du sombre, au prix du contraste (choix de Jérémy). */
   svg.text-warning {
-    color: oklch(65% 0.133 80.6);
+    color: hsl(44 96% 50%);
   }
 }
 
