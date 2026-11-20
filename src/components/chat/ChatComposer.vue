@@ -511,7 +511,7 @@ function onKeydown(event: KeyboardEvent) {
         <div
           ref="highlight"
           aria-hidden="true"
-          class="pointer-events-none absolute inset-0 overflow-hidden px-3.5 pt-3.5 pb-2 text-sm leading-5.5 wrap-break-word whitespace-pre-wrap"
+          class="pointer-events-none absolute inset-0 overflow-hidden px-3.5 pt-3.5 pb-2 text-sm leading-5 wrap-break-word whitespace-pre-wrap"
         >
           <ChatPromptText :text="prompt" fit />
         </div>
@@ -529,7 +529,7 @@ function onKeydown(event: KeyboardEvent) {
           writingsuggestions="false"
           :disabled="disabled"
           :class="{ 'cursor-default': overSkill }"
-          class="prompt-field relative block max-h-60 min-h-18 w-full resize-none bg-transparent px-3.5 pt-3.5 pb-2 text-sm leading-5.5 select-text outline-none placeholder:truncate"
+          class="prompt-field relative block max-h-60 min-h-18 w-full resize-none bg-transparent px-3.5 pt-3.5 pb-2 text-sm leading-5 select-text outline-none placeholder:truncate"
           :placeholder="running ? t(`composer.placeholderBusy.${general.followUp}`, { send: shortcuts.label('send'), other: shortcuts.label('sendOther') }) : t(summary ? 'composer.summary.placeholder' : orchestrating ? 'composer.orchestra.placeholder' : 'composer.placeholder')"
           @keydown="onKeydown"
           @input="syncCaret"
