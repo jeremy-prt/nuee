@@ -133,7 +133,8 @@ watch(
 </script>
 
 <template>
-  <div v-if="workspace.contextChats.length" data-chat-list>
+  <!-- Toute la hauteur de la zone qui défile : « Classées » se pose en bas, comme le « Settled » de T3 Code. -->
+  <div v-if="workspace.contextChats.length" data-chat-list class="flex min-h-full flex-col">
     <!-- Sans épinglée, la section n'apparaît que pendant le glisser d'une session, pour l'y déposer. -->
     <div v-if="pinned.length || drag.source?.kind === 'chat'" data-chat-zone="pinned">
       <h2 class="flex h-7 items-center px-2 text-xs font-semibold text-muted">{{ t('chats.pinned') }}</h2>
@@ -179,8 +180,8 @@ watch(
       </template>
     </div>
     <div v-if="more" :key="limit" ref="sentinel" class="h-px" aria-hidden="true" />
-    <div v-if="settled.length" data-chat-zone="settled">
-      <h2 :class="{ 'mt-4': recent.length || pinned.length }">
+    <div v-if="settled.length" data-chat-zone="settled" class="mt-auto" :class="{ 'pt-4': recent.length || pinned.length }">
+      <h2>
         <button
           type="button"
           class="group/head flex h-7 w-full items-center gap-1.5 rounded-md px-2 text-xs font-semibold text-muted hover:text-content/75 focus-visible:outline-2 focus-visible:outline-ring"
