@@ -40,6 +40,17 @@ function toggle() {
   if (busy.value) runs.stop(context.value.chatId, props.block)
   else runs.start(context.value.chatId, context.value.place, props.block, command.value)
 }
+
+// Triple-clic : WebKit prend le paragraphe avec son retour à la ligne final et peint la sélection jusqu'au bord et sous
+// la ligne. On ne sélectionne que le texte du code.
+function selectCode(event: MouseEvent) {
+  if (event.detail !== 3) return
+  const code = (event.currentTarget as HTMLElement).querySelector('code')
+  const selection = window.getSelection()
+  if (!code || !selection) return
+  event.preventDefault()
+  selection.selectAllChildren(code)
+}
 </script>
 
 <template>
@@ -50,6 +61,7 @@ function toggle() {
         class="code-veil p-3 font-mono text-xs leading-relaxed group-hover/code:[--veil:0] group-focus-within/code:[--veil:0]"
         :class="[prose ? 'whitespace-pre-wrap wrap-anywhere' : 'overflow-x-auto', { '[--veil:0]': busy }]"
         :style="{ '--veil-width': actionsWidth }"
+        @mousedown="selectCode"
       ><span v-if="prose" class="float-end h-6" :style="{ width: actionsWidth }" aria-hidden="true" /><ChatCode :code="code" :lang="lang" :colored="!prose && !!block" /></pre>
       <div
         ref="actions"
